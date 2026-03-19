@@ -1,0 +1,2148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ERP Backend Checklist — Laravel + MariaDB</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f0f4fa;--surface:#fff;--surface2:#eaf0fb;--border:#d4dff0;--border2:#a8bedd;
+  --text:#0f1c30;--text2:#3d5478;--text3:#7a95b8;
+  --accent:#185fa5;--accent-bg:#dceeff;--accent-bd:#8ab8e8;
+  --green:#1a5c2a;--green-bg:#e4f5e8;--green-bd:#85cc96;
+  --amber:#7a4508;--amber-bg:#fdf3e0;--amber-bd:#f5c87a;
+  --red:#8a1e1e;--red-bg:#fdeaea;--red-bd:#f0a0a0;
+  --purple:#4535aa;--purple-bg:#eeeeff;--purple-bd:#a8a0e8;
+  --r:10px;--rsm:6px
+}
+body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);font-size:14px;line-height:1.6}
+
+.hdr{background:linear-gradient(135deg,#0d3060 0%,#185fa5 100%);padding:24px 32px 20px;position:sticky;top:0;z-index:200}
+.hdr h1{font-size:18px;font-weight:700;color:#fff;letter-spacing:-0.3px}
+.hdr-sub{font-size:11px;color:#a8c8f0;margin-top:3px;font-family:monospace}
+.hdr-pills{display:flex;gap:6px;flex-wrap:wrap;margin-top:10px}
+.pill{font-size:10px;padding:3px 10px;border-radius:99px;font-family:monospace;font-weight:700;background:rgba(255,255,255,0.15);color:#e0eeff;border:1px solid rgba(255,255,255,0.2)}
+.pill-crit{background:rgba(255,80,80,0.25);color:#ffc0c0;border-color:rgba(255,80,80,0.3)}
+.pbar-wrap{background:rgba(255,255,255,0.15);height:6px;border-radius:99px;margin-top:14px;overflow:hidden}
+.pbar{height:100%;background:#4af09a;border-radius:99px;transition:width .4s}
+.pbar-row{display:flex;justify-content:space-between;margin-top:5px}
+.pbar-txt{font-size:11px;color:#a0c8e8;font-family:monospace}
+.switch-link{font-size:11px;color:#7ac0f0;font-family:monospace;cursor:pointer;text-decoration:underline;text-underline-offset:2px}
+
+.layout{display:flex;min-height:calc(100vh - 140px)}
+
+.sidebar{width:210px;min-width:210px;background:var(--surface);border-right:1px solid var(--border);padding:14px 0;position:sticky;top:140px;height:calc(100vh - 140px);overflow-y:auto}
+.sb-section{padding:5px 14px 2px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:var(--text3);font-family:monospace}
+.sb-item{display:flex;align-items:center;gap:6px;padding:6px 14px;font-size:11px;font-family:monospace;cursor:pointer;border-left:3px solid transparent;color:var(--text2);transition:all .12s;user-select:none}
+.sb-item:hover{background:var(--surface2);color:var(--text)}
+.sb-item.active{border-left-color:var(--accent);color:var(--accent);background:var(--accent-bg)}
+.sb-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0;background:var(--border2)}
+.sb-dot.done{background:var(--green)}
+.sb-dot.wip{background:var(--amber)}
+.sb-dot.blocked{background:var(--red)}
+.sb-pct{font-size:9px;color:var(--text3);margin-left:auto}
+
+.main{flex:1;padding:20px 26px;max-width:900px}
+
+.phase{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);margin-bottom:18px;overflow:hidden;box-shadow:0 1px 3px rgba(24,95,165,0.06)}
+.phase-hdr{padding:13px 18px;display:flex;align-items:center;gap:10px;cursor:pointer;user-select:none;background:var(--surface)}
+.phase-hdr:hover{background:var(--surface2)}
+.phase-badge{font-family:monospace;font-size:10px;font-weight:700;padding:3px 8px;border-radius:5px;flex-shrink:0;background:var(--accent-bg);color:var(--accent);border:1px solid var(--accent-bd)}
+.phase-title{font-weight:700;font-size:13px;flex:1;color:var(--text)}
+.phase-week{font-size:10px;color:var(--text3);font-family:monospace}
+.phase-cnt{font-size:10px;color:var(--text3);font-family:monospace;min-width:40px;text-align:right}
+.phase-chevron{font-size:10px;color:var(--text3);transition:transform .15s;margin-left:4px}
+.phase-chevron.open{transform:rotate(90deg)}
+.phase-bar{height:3px;background:var(--border);overflow:hidden}
+.phase-fill{height:100%;background:var(--accent);transition:width .3s;opacity:.7}
+
+.grp{border-top:1px solid var(--border)}
+.grp-hdr{padding:8px 18px 8px 22px;font-size:10px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;background:#f5f8ff;display:flex;align-items:center;gap:8px;cursor:pointer;user-select:none}
+.grp-hdr:hover{color:var(--text2)}
+.grp-cnt{font-size:10px;margin-left:auto;color:var(--text3)}
+
+.step{border-top:1px solid var(--border)}
+.step-row{display:flex;align-items:flex-start;gap:10px;padding:10px 18px 10px 26px;cursor:pointer;transition:background .1s}
+.step-row:hover{background:var(--surface2)}
+.step-box{width:15px;height:15px;border-radius:3px;border:1.5px solid var(--border2);flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;cursor:pointer;transition:all .12s;background:var(--surface)}
+.step.done .step-box{background:var(--green);border-color:var(--green)}
+.step.wip .step-box{background:var(--amber-bg);border-color:var(--amber)}
+.step.blocked .step-box{background:var(--red-bg);border-color:var(--red)}
+.step.done .step-title{text-decoration:line-through;color:var(--text3)}
+.step.done{opacity:.55}
+.ck-done{color:#fff;font-size:9px;font-weight:700}
+.ck-wip{width:5px;height:5px;border-radius:50%;background:var(--amber)}
+.ck-blocked{color:var(--red);font-size:10px;font-weight:700}
+.step-title{font-size:13px;font-weight:600;flex:1;line-height:1.5;color:var(--text)}
+.step-title code{font-family:monospace;font-size:11px;background:var(--surface2);padding:1px 5px;border-radius:3px;color:var(--accent)}
+.step-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:3px}
+.t{font-size:9px;padding:1px 6px;border-radius:3px;font-family:monospace;font-weight:700}
+.t-crit{background:var(--red-bg);color:var(--red)}
+.t-mig{background:var(--purple-bg);color:var(--purple)}
+.t-api{background:var(--accent-bg);color:var(--accent)}
+.t-test{background:var(--amber-bg);color:var(--amber)}
+
+.detail{display:none;padding:2px 18px 14px 51px;background:#f5f8ff;border-top:1px solid var(--border)}
+.detail.open{display:block}
+
+.d-section{margin-top:11px}
+.d-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.7px;margin-bottom:5px;font-family:monospace}
+.l-what{color:var(--accent)}
+.l-why{color:#0a6650}
+.l-how{color:var(--purple)}
+.l-files{color:var(--amber)}
+.l-check{color:var(--green)}
+.l-warn{color:var(--red)}
+
+.d-text{font-size:12px;color:var(--text);line-height:1.7}
+.d-text code{font-family:monospace;font-size:11px;background:#dde8f5;padding:1px 5px;border-radius:3px;color:#0d3060}
+.code-block{background:#0d1f35;color:#c8ddf5;padding:11px 15px;border-radius:var(--rsm);font-family:monospace;font-size:11px;line-height:1.75;overflow-x:auto;margin:6px 0;white-space:pre;border:1px solid #1a3a60}
+
+.file-list{display:flex;flex-direction:column;gap:3px;margin:4px 0}
+.file-item{display:flex;align-items:center;gap:7px;font-size:11px;font-family:monospace;color:var(--text2)}
+.ficon{width:16px;height:16px;border-radius:3px;display:flex;align-items:center;justify-content:center;font-size:8px;font-weight:700;flex-shrink:0}
+.fi-php{background:#5b21b622;color:#5b21b6}
+.fi-sql{background:#b9262622;color:#b92626}
+.fi-blade{background:#e9730c22;color:#c45d04}
+
+.check-list{display:flex;flex-direction:column;gap:3px;margin:4px 0}
+.check-item{display:flex;align-items:flex-start;gap:6px;font-size:12px;color:var(--text)}
+.ck-bul{color:var(--green);font-weight:700;flex-shrink:0;margin-top:1px}
+
+.warn-box{background:var(--amber-bg);border:1px solid var(--amber-bd);border-radius:var(--rsm);padding:9px 12px;margin:6px 0}
+.warn-lbl{font-size:9px;font-weight:700;color:var(--amber);font-family:monospace;letter-spacing:.5px;margin-bottom:3px}
+.warn-txt{font-size:12px;color:var(--text)}
+
+.guide-box{background:var(--surface);border:1px solid var(--border);border-radius:var(--r);padding:16px 20px;margin-bottom:20px}
+.guide-box h3{font-size:13px;font-weight:700;color:var(--text);margin-bottom:12px;padding-bottom:8px;border-bottom:1px solid var(--border)}
+.guide-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+.guide-col h4{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.6px;color:var(--text3);margin-bottom:7px;font-family:monospace}
+.guide-row{display:flex;gap:7px;padding:3px 0;font-size:11px;color:var(--text2)}
+.g-num{color:var(--text3);font-family:monospace;flex-shrink:0;min-width:16px}
+.g-cmd{font-family:monospace;background:var(--surface2);padding:1px 6px;border-radius:3px;font-size:10px;color:var(--accent)}
+
+.golden-box{background:var(--accent-bg);border:1px solid var(--accent-bd);border-radius:var(--r);padding:14px 18px;margin-bottom:20px}
+.golden-box h3{font-size:12px;font-weight:700;color:var(--accent);margin-bottom:10px;font-family:monospace;text-transform:uppercase;letter-spacing:.5px}
+.golden-steps{display:flex;gap:0;flex-wrap:wrap}
+.g-step{display:flex;align-items:center;gap:6px;font-size:11px;color:var(--accent);font-family:monospace}
+.g-step-num{background:var(--accent);color:#fff;width:18px;height:18px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;flex-shrink:0}
+.g-arrow{color:var(--accent-bd);font-size:12px;margin:0 4px}
+
+@media(max-width:720px){.sidebar{display:none}.main{padding:12px}.guide-grid{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+
+<div class="hdr">
+  <div class="hdr-top" style="display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:8px">
+    <div>
+      <h1>⚙ Backend Checklist — Laravel + MariaDB API</h1>
+      <div class="hdr-sub">PHP 8.2 · Laravel 11 · MariaDB 10.11 LTS · Redis 7 · Sanctum · Spatie</div>
+    </div>
+    <a href="ERP_Frontend_Checklist.html" style="font-size:11px;color:#7ac0f0;font-family:monospace;text-decoration:underline;text-underline-offset:2px;padding-top:4px">→ Switch to Frontend Checklist</a>
+  </div>
+  <div class="hdr-pills">
+    <span class="pill">Migrations (67 tables)</span>
+    <span class="pill">Models + Traits</span>
+    <span class="pill">Services (Business Logic)</span>
+    <span class="pill">API Controllers</span>
+    <span class="pill">Form Requests</span>
+    <span class="pill">API Resources</span>
+    <span class="pill">Repositories</span>
+    <span class="pill pill-crit">⚑ Critical Path Marked</span>
+  </div>
+  <div class="pbar-wrap"><div class="pbar" id="gpbar" style="width:0%"></div></div>
+  <div class="pbar-row">
+    <div class="pbar-txt" id="gpbar-txt">0 / 0 completed</div>
+    <div class="pbar-txt" id="gpbar-pct">0%</div>
+  </div>
+</div>
+
+<div class="layout">
+  <div class="sidebar" id="sb"></div>
+  <div class="main" id="main"></div>
+</div>
+
+<script>
+const PHASES = [
+{id:'be_p0',badge:'SETUP',title:'Environment & Docker',week:'Before Week 1',groups:[
+{title:'Computer & Tools',steps:[
+{id:'be_s01',label:'Install PHP 8.2 with all required extensions',tags:['critical'],
+what:'PHP 8.2 is the runtime. Required extensions: pdo_mysql, mbstring, openssl, tokenizer, xml, ctype, json, bcmath, fileinfo.',
+why:'Laravel 11 requires PHP 8.2 minimum. Missing extensions cause confusing errors during composer install.',
+how:`Windows: Download PHP 8.2 from windows.php.net, extract to C:\\php, add to PATH.
+Open php.ini and uncomment (remove the ;) these lines:
+  extension=pdo_mysql
+  extension=mbstring
+  extension=openssl
+  extension=bcmath
+  extension=fileinfo
+Mac: brew install php@8.2
+Ubuntu: sudo apt install php8.2 php8.2-mysql php8.2-mbstring php8.2-xml php8.2-bcmath php8.2-curl
+Verify: php -v  →  should show PHP 8.2.x`,
+files:[],checks:['php -v shows PHP 8.2.x','php -m shows pdo_mysql','php -m shows mbstring'],
+warn:'Never use PHP 7.x. Laravel 11 will refuse to install.'},
+{id:'be_s02',label:'Install Composer (PHP package manager)',tags:[],
+what:'Composer downloads and manages all PHP libraries your project needs.',
+why:'Every Laravel package is installed via Composer. Without it you cannot add any library.',
+how:`Windows: Download Composer-Setup.exe from getcomposer.org
+Mac/Ubuntu:
+  curl -sS https://getcomposer.org/installer | php
+  sudo mv composer.phar /usr/local/bin/composer
+Verify: composer --version`,
+files:[],checks:['composer --version shows 2.x'],warn:''},
+{id:'be_s03',label:'Install Docker Desktop',tags:['critical'],
+what:'Docker runs MariaDB 10.11 and Redis 7 as isolated containers — no direct install needed.',
+why:'Without Docker, installing MariaDB and Redis directly is complex and causes version conflicts. Docker keeps the dev environment clean and consistent.',
+how:`Download from docker.com for your OS.
+Open Docker Desktop — wait for "Engine Running" status.
+Verify: docker --version`,
+files:[],checks:['docker --version shows a version','Docker Desktop shows "Engine Running"'],
+warn:'Docker requires at least 4GB RAM. It must be running before you start Laravel.'},
+{id:'be_s04',label:'Create docker-compose.yml with all 4 services',tags:['critical'],
+what:'This file defines your entire local server: MariaDB, Redis, phpMyAdmin, MailHog.',
+why:'One command starts your entire server stack. Without it, you must manually install and configure 4 separate services.',
+how:`Create docker-compose.yml in your project root:
+  services:
+    mariadb:
+      image: mariadb:10.11
+      ports: ["3306:3306"]
+      environment:
+        MYSQL_ROOT_PASSWORD: secret
+        MYSQL_DATABASE: erp_db
+        MYSQL_USER: erp_user
+        MYSQL_PASSWORD: secret
+    redis:
+      image: redis:7-alpine
+      ports: ["6379:6379"]
+    phpmyadmin:
+      image: phpmyadmin
+      ports: ["8080:80"]
+      environment: { PMA_HOST: mariadb }
+    mailhog:
+      image: mailhog/mailhog
+      ports: ["8025:8025"]
+Then run: docker compose up -d`,
+files:[{type:'sql',name:'docker-compose.yml'}],
+checks:['docker ps shows all 4 containers running','localhost:8080 opens phpMyAdmin login'],
+warn:'Always run docker compose up -d before php artisan serve. If you see DB connection error, the container is not running.'},
+{id:'be_s05',label:'Create GitHub repository and configure .gitignore',tags:[],
+what:'A GitHub repository stores your code online with full history. .gitignore prevents secrets from being committed.',
+why:'Code without version control is one mistake from being permanently lost. Git also lets you roll back any broken change.',
+how:`On github.com: New Repository → name it "erp-system" → Private → Create.
+In your project folder:
+  git init
+  echo ".env" >> .gitignore
+  echo "node_modules/" >> .gitignore
+  echo "vendor/" >> .gitignore
+  git add .
+  git commit -m "Phase 0: Initial setup"
+  git remote add origin https://github.com/YOU/erp-system.git
+  git push -u origin main`,
+files:[{type:'sql',name:'.gitignore'}],
+checks:['Repository visible on github.com','git status shows nothing to commit'],
+warn:'.env must NEVER be in Git. It contains passwords. Verify .gitignore has .env on line 1.'},
+]}
+]},
+
+{id:'be_p1',badge:'PHASE 1',title:'Laravel Foundation & Base Classes',week:'Week 1–4',groups:[
+{title:'1.1 — Create Laravel Project',steps:[
+{id:'be_s06',label:'Create Laravel 11 project',tags:[],
+what:'composer create-project creates a fresh Laravel project with correct folder structure and configuration files.',
+why:'Starting from scratch manually would take days. This command does it in 2 minutes with everything wired correctly.',
+how:`In your terminal, navigate to your projects folder then run:
+  composer create-project laravel/laravel erp-system
+  cd erp-system
+
+Key folders to know:
+  app/           → your PHP code (models, controllers, services)
+  database/      → migrations and seeders
+  routes/        → api.php (API routes) and web.php (page routes)
+  resources/     → views (Blade) and JS/Vue (frontend)
+  config/        → configuration files`,
+files:[{type:'php',name:'All Laravel files created automatically'}],
+checks:['php artisan --version shows Laravel 11.x'],warn:''},
+{id:'be_s07',label:'Configure .env for Docker database and Redis',tags:['critical'],
+what:'.env holds all sensitive configuration. Laravel reads it on startup to connect to MariaDB and Redis.',
+why:'Without correct DB settings, php artisan migrate fails with "could not connect" error.',
+how:`Open .env and change:
+  DB_CONNECTION=mysql        ← stays "mysql" even for MariaDB
+  DB_HOST=127.0.0.1
+  DB_PORT=3306
+  DB_DATABASE=erp_db
+  DB_USERNAME=erp_user
+  DB_PASSWORD=secret
+
+  CACHE_DRIVER=redis
+  QUEUE_CONNECTION=redis
+  SESSION_DRIVER=redis
+  REDIS_HOST=127.0.0.1
+  REDIS_PORT=6379
+
+  MAIL_MAILER=smtp
+  MAIL_HOST=127.0.0.1
+  MAIL_PORT=1025`,
+files:[{type:'sql',name:'.env'}],
+checks:['php artisan migrate runs without connection errors'],
+warn:'DB_CONNECTION must stay as "mysql" — Laravel uses the same PDO driver for MariaDB. Changing it to "mariadb" will break.'},
+{id:'be_s08',label:'Configure AppServiceProvider for MariaDB strict mode',tags:['critical'],
+what:'MariaDB 10.11 needs specific SQL mode settings to enforce data integrity rules.',
+why:'Without strict mode, MariaDB silently accepts invalid data (zero dates, empty required fields) that causes bugs later.',
+how:`Open app/Providers/AppServiceProvider.php and add to boot():
+  use Illuminate\\Support\\Facades\\DB;
+  use Illuminate\\Support\\Facades\\Schema;
+
+  public function boot(): void {
+    Schema::defaultStringLength(191);
+    DB::statement("SET GLOBAL sql_mode='STRICT_TRANS_TABLES,
+      NO_ZERO_IN_DATE,NO_ZERO_DATE,
+      ERROR_FOR_DIVISION_BY_ZERO,
+      NO_ENGINE_SUBSTITUTION'");
+  }`,
+files:[{type:'php',name:'app/Providers/AppServiceProvider.php'}],
+checks:['php artisan migrate still runs without errors after this change'],warn:''},
+]},
+{title:'1.2 — Install All Composer Packages',steps:[
+{id:'be_s09',label:'Install all 7 backend packages',tags:[],
+what:'Install the PHP libraries your project depends on: auth, permissions, PDF, Excel, media, modules, API docs.',
+why:'These packages would take months to build yourself. They are tested by thousands of developers worldwide.',
+how:`Run these commands:
+  composer require laravel/sanctum
+  composer require spatie/laravel-permission
+  composer require spatie/laravel-medialibrary
+  composer require nwidart/laravel-modules
+  composer require barryvdh/laravel-dompdf
+  composer require maatwebsite/excel
+  composer require darkaonline/l5-swagger
+
+Then publish their config files:
+  php artisan vendor:publish --provider="Laravel\\Sanctum\\SanctumServiceProvider"
+  php artisan vendor:publish --provider="Spatie\\Permission\\PermissionServiceProvider"
+  php artisan module:install`,
+files:[{type:'php',name:'composer.json (updated)'}],
+checks:['composer install runs clean with no errors','vendor/ folder contains all packages'],
+warn:'If "memory exhausted": run COMPOSER_MEMORY_LIMIT=-1 composer require ...'},
+]},
+{title:'1.3 — Critical Base Classes (Build First)',steps:[
+{id:'be_s10',label:'Create HasUuid trait',tags:['critical'],
+what:'Auto-generates a UUID (e.g. "550e8400-e29b-41d4-a716-446655440000") for every new database record.',
+why:'Sequential IDs (1, 2, 3) are guessable — anyone can scrape your data. UUIDs are unguessable and required for multi-tenant security.',
+how:`Create: app/Models/Traits/HasUuid.php
+
+namespace App\\Models\\Traits;
+use Illuminate\\Support\\Str;
+
+trait HasUuid {
+  protected static function bootHasUuid(): void {
+    static::creating(function ($model) {
+      if (empty($model->{$model->getKeyName()})) {
+        $model->{$model->getKeyName()} = Str::uuid()->toString();
+      }
+    });
+  }
+  public function getIncrementing(): bool { return false; }
+  public function getKeyType(): string { return 'string'; }
+}`,
+files:[{type:'php',name:'app/Models/Traits/HasUuid.php'}],
+checks:['Create a test model — the id column contains a UUID string, not an integer'],warn:''},
+{id:'be_s11',label:'Create BelongsToTenant trait',tags:['critical'],
+what:'Adds a global Eloquent scope that automatically adds WHERE business_id = ? to every query, and auto-sets business_id on record creation.',
+why:'THIS IS YOUR MOST CRITICAL SECURITY FEATURE. Without it, Business A can read Business B\'s data. This is what makes the system multi-tenant.',
+how:`Create: app/Models/Traits/BelongsToTenant.php
+
+namespace App\\Models\\Traits;
+
+trait BelongsToTenant {
+  protected static function bootBelongsToTenant(): void {
+    static::creating(function ($model) {
+      if (auth()->check() && empty($model->business_id)) {
+        $model->business_id = auth()->user()->business_id;
+      }
+    });
+    static::addGlobalScope('tenant', function ($query) {
+      if (app()->bound('tenant')) {
+        $query->where(
+          $query->getModel()->getTable().'.business_id',
+          app('tenant')->id
+        );
+      }
+    });
+  }
+}`,
+files:[{type:'php',name:'app/Models/Traits/BelongsToTenant.php'}],
+checks:['Log in as User A, try GET /api/v1/customers — only Business A customers appear','Log in as User B — only Business B customers appear'],
+warn:'Test tenant isolation with 2 different businesses before building any feature. If this is broken, everything built after it is a security hole.'},
+{id:'be_s12',label:'Create HasUserTracking trait and BaseModel',tags:['critical'],
+what:'HasUserTracking auto-sets created_by and updated_by. BaseModel is the parent class every model will extend.',
+why:'BaseModel gives all models UUID + tenant scope + user tracking + SoftDeletes in one line. Build it once, all models inherit it.',
+how:`Create: app/Models/Traits/HasUserTracking.php
+  trait HasUserTracking {
+    protected static function bootHasUserTracking(): void {
+      static::creating(function ($m) {
+        if (auth()->check()) $m->created_by ??= auth()->id();
+      });
+      static::updating(function ($m) {
+        if (auth()->check()) $m->updated_by = auth()->id();
+      });
+    }
+  }
+
+Create: app/Models/BaseModel.php
+  namespace App\\Models;
+  use Illuminate\\Database\\Eloquent\\Model;
+  use Illuminate\\Database\\Eloquent\\SoftDeletes;
+  use App\\Models\\Traits\\{HasUuid, BelongsToTenant, HasUserTracking};
+
+  abstract class BaseModel extends Model {
+    use HasUuid, BelongsToTenant, HasUserTracking, SoftDeletes;
+    protected $keyType = 'string';
+    public $incrementing = false;
+  }`,
+files:[{type:'php',name:'app/Models/Traits/HasUserTracking.php'},{type:'php',name:'app/Models/BaseModel.php'}],
+checks:['BaseModel.php exists and is abstract','All 3 traits exist in app/Models/Traits/'],warn:''},
+{id:'be_s13',label:'Create BaseApiController (3 standard response methods)',tags:['critical'],
+what:'The parent controller all API controllers extend. Provides success(), paginated(), error() so all endpoints return identical JSON format.',
+why:'Inconsistent JSON responses break the Vue frontend. This class enforces the same envelope on every response.',
+how:`Create: app/Http/Controllers/Api/V1/BaseApiController.php
+
+namespace App\\Http\\Controllers\\Api\\V1;
+use App\\Http\\Controllers\\Controller;
+use Illuminate\\Http\\JsonResponse;
+
+class BaseApiController extends Controller {
+  protected function success($data=null, string $msg='OK', int $code=200): JsonResponse {
+    return response()->json(['success'=>true,'message'=>$msg,'data'=>$data], $code);
+  }
+  protected function paginated($pages, string $resource): JsonResponse {
+    return response()->json([
+      'success'=>true,
+      'data'=>$resource::collection($pages),
+      'meta'=>[
+        'current_page'=>$pages->currentPage(),
+        'last_page'=>$pages->lastPage(),
+        'per_page'=>$pages->perPage(),
+        'total'=>$pages->total(),
+      ]
+    ]);
+  }
+  protected function error(string $msg, int $code=400): JsonResponse {
+    return response()->json(['success'=>false,'message'=>$msg], $code);
+  }
+}`,
+files:[{type:'php',name:'app/Http/Controllers/Api/V1/BaseApiController.php'}],
+checks:['All 3 methods exist','Returns correct { success, message, data } envelope'],warn:''},
+{id:'be_s14',label:'Create Global Exception Handler (always JSON, never HTML)',tags:['critical'],
+what:'Intercepts all Laravel errors and returns JSON instead of HTML error pages.',
+why:'The Vue frontend cannot read HTML error pages. Without this, any unhandled exception crashes the frontend silently.',
+how:`Open bootstrap/app.php and add inside withExceptions():
+
+->withExceptions(function (Exceptions $e) {
+  $e->render(function (Throwable $ex, $request) {
+    if ($request->is('api/*') || $request->expectsJson()) {
+      if ($ex instanceof \\Illuminate\\Database\\Eloquent\\ModelNotFoundException)
+        return response()->json(['success'=>false,'message'=>'Record not found.'],404);
+      if ($ex instanceof \\Illuminate\\Validation\\ValidationException)
+        return response()->json(['success'=>false,'message'=>'Validation failed.','errors'=>$ex->errors()],422);
+      if ($ex instanceof \\Illuminate\\Auth\\AuthenticationException)
+        return response()->json(['success'=>false,'message'=>'Unauthenticated.'],401);
+      if ($ex instanceof \\App\\Exceptions\\Domain\\DomainException)
+        return response()->json(['success'=>false,'message'=>$ex->getMessage()],422);
+      return response()->json(['success'=>false,'message'=>'An unexpected error occurred.'],500);
+    }
+  });
+})`,
+files:[{type:'php',name:'bootstrap/app.php'}],
+checks:['GET /api/v1/fake-route → JSON 404, not HTML error page','Submit invalid form → JSON 422 with errors field'],
+warn:'Test this immediately after creating it. If you get HTML error pages from any API endpoint, this is misconfigured.'},
+{id:'be_s15',label:'Create TenantResolver middleware',tags:['critical'],
+what:'Runs on every authenticated API request, binds the current Business record to app("tenant") so all code can access it.',
+why:'Without this, every service and controller must manually resolve the tenant. This centralises it in one place and is how BelongsToTenant works.',
+how:`Create: app/Http/Middleware/TenantResolver.php
+
+namespace App\\Http\\Middleware;
+use App\\Models\\Foundation\\Business;
+use Closure;
+
+class TenantResolver {
+  public function handle($request, Closure $next) {
+    $user = auth()->user();
+    if ($user && $user->business_id) {
+      $business = Business::find($user->business_id);
+      if (!$business || !$business->is_active) {
+        return response()->json(['success'=>false,'message'=>'Account suspended.'],403);
+      }
+      app()->instance('tenant', $business);
+    }
+    return $next($request);
+  }
+}
+
+Register in bootstrap/app.php withMiddleware():
+  $middleware->appendToGroup('api', \\App\\Http\\Middleware\\TenantResolver::class);`,
+files:[{type:'php',name:'app/Http/Middleware/TenantResolver.php'}],
+checks:['app("tenant") returns a Business object inside any authenticated API controller'],warn:''},
+{id:'be_s16',label:'Create all 9 Domain Exception classes',tags:['critical'],
+what:'Custom exception classes that represent specific business rule violations. Thrown by Services, caught by the exception handler.',
+why:'Typed exceptions let you handle each error case precisely. Generic exceptions make debugging nearly impossible.',
+how:`Create folder: app/Exceptions/Domain/
+
+app/Exceptions/Domain/DomainException.php (base class):
+  class DomainException extends \\RuntimeException {}
+
+Then create these 9 (each just extends DomainException):
+  InsufficientStockException    — not enough stock for a sale
+  InsufficientLotQtyException   — a specific lot has insufficient qty
+  SerialNotFoundException        — serial number not found
+  SerialAlreadySoldException     — serial is not in_stock status
+  DuplicateSerialException      — serial number already exists in this business
+  InvalidStateTransitionException — e.g. completing a cancelled sale
+  UnbalancedJournalException    — debits do not equal credits
+  LotExpiredException           — lot.status = expired, cannot sell
+  LotRecalledException          — lot.status = recalled, cannot sell`,
+files:[{type:'php',name:'app/Exceptions/Domain/ (10 files total)'}],
+checks:['All 10 files exist in app/Exceptions/Domain/','php artisan tinker → new \\App\\Exceptions\\Domain\\DomainException() works'],warn:''},
+]},
+{title:'1.4 — Group A Migrations (Foundation Tables)',steps:[
+{id:'be_s17',label:'Create and run all 7 Group A migrations',tags:['migration','critical'],
+what:'The 7 foundation tables: businesses (tenant root), branches, warehouses, users, spatie permission tables, settings, audit_logs.',
+why:'Everything else builds on these. Get the columns right now — changing them after features are built is expensive.',
+how:`Run php artisan make:migration for each:
+  php artisan make:migration create_businesses_table
+  php artisan make:migration create_branches_table
+  php artisan make:migration create_warehouses_table
+  (users table exists — add business_id, status, max_discount, preferences JSON)
+  php artisan vendor:publish --provider="Spatie\\Permission\\PermissionServiceProvider" --tag="permission-migrations"
+  php artisan make:migration create_settings_table
+  php artisan make:migration create_audit_logs_table
+
+KEY COLUMNS:
+businesses: id(CHAR36 PK), name, legal_name, email(UNIQUE), phone, currency(CHAR3), country(CHAR2), address(JSON), logo_url, tier(ENUM: basic/standard/enterprise), status(ENUM: active/suspended/cancelled), max_users(INT), max_branches(INT), settings_cache(JSON), timestamps
+branches: id, business_id(FK), name, code(unique per business), phone, email, address(JSON), is_default(TINYINT1), is_active(TINYINT1), created_by(UUID nullable), timestamps, deleted_at
+warehouses: id, business_id(FK), branch_id(FK nullable), name, code, type(ENUM: main/transit/returns/damaged), is_active, is_default, allow_negative_stock, timestamps, deleted_at
+settings: id, business_id(FK), group(VARCHAR50), key(VARCHAR100), value(TEXT), type(ENUM: string/integer/boolean/json), is_encrypted, UNIQUE(business_id,key)
+audit_logs: id, business_id, user_id, event(VARCHAR50), auditable_type, auditable_id, old_values(JSON), new_values(JSON), ip_address, created_at ONLY — NO updated_at
+
+Run: php artisan migrate`,
+files:[{type:'sql',name:'database/migrations/ (7 migration files)'},{type:'php',name:'database/seeders/DatabaseSeeder.php'}],
+checks:['php artisan migrate runs with zero errors','All 7 tables appear in phpMyAdmin','audit_logs table has NO updated_at column (append-only)','businesses table has max_users and max_branches columns'],
+warn:'audit_logs must NEVER have updated_at. It is an append-only ledger. Once a log entry is written, it is permanent.'},
+]},
+{title:'1.5 — Seeders & Authentication API',steps:[
+{id:'be_s18',label:'Create RolePermissionSeeder (6 roles + permissions)',tags:[],
+what:'Seeds the 6 user roles and their permissions into the database using Spatie Permission.',
+why:'Without roles, you cannot control who can access what. Every user needs a role before they can use the system.',
+how:`php artisan make:seeder RolePermissionSeeder
+
+In the run() method use Spatie Role::create() and Permission::create():
+  Roles: super_admin, admin, manager, cashier, accountant, inventory_manager
+  Permission pattern: resource.action
+  Resources: users, branches, warehouses, products, customers, suppliers, sales, purchases, inventory, accounting, expenses, reports, settings, hrm
+  Actions: index, create, edit, delete, export
+  
+  Example:
+    Role::create(['name'=>'admin','guard_name'=>'web']);
+    Permission::create(['name'=>'users.create']);
+    Role::findByName('admin')->givePermissionTo(Permission::all());
+
+Then run:
+  php artisan db:seed --class=RolePermissionSeeder`,
+files:[{type:'php',name:'database/seeders/RolePermissionSeeder.php'}],
+checks:['6 rows in the roles table in phpMyAdmin','Permissions table has rows like "users.create"'],warn:''},
+{id:'be_s19',label:'Create DefaultSettingsSeeder (all setting groups)',tags:[],
+what:'Seeds all default settings for a new business, including stock tracking settings.',
+why:'Every new business needs default configuration. The system reads settings from Redis cache, so they must exist in the DB.',
+how:`php artisan make:seeder DefaultSettingsSeeder
+
+Seed these groups with their default values:
+  group=general: currency(USD), timezone(Asia/Phnom_Penh), date_format(Y-m-d), decimal_places(2)
+  group=invoice: prefix(INV), start_number(1), show_tax(true), show_logo(true)
+  group=pos: default_warehouse_id(null), allow_discount(true), max_discount_pct(100), receipt_printer(browser), lot_selection_strategy(fefo)
+  group=stock: enable_lot_tracking(false), enable_serial_tracking(false), lot_expiry_alert_days(30), default_lot_selection(fefo)
+  group=loyalty: is_active(false)
+  group=notifications: low_stock_threshold(10), lot_expiry_alert_days(30)`,
+files:[{type:'php',name:'database/seeders/DefaultSettingsSeeder.php'}],
+checks:['Settings rows appear in DB after running seeder','group=stock rows exist for lot/serial settings'],warn:''},
+{id:'be_s20',label:'Build complete Auth API (6 endpoints)',tags:['critical'],
+what:'Login, logout, me, change-password, forgot-password, reset-password.',
+why:'These 6 endpoints are the gateway to everything else. Without working auth, no other API can be tested.',
+how:`Create: app/Http/Controllers/Api/V1/Auth/AuthController.php (extends BaseApiController)
+
+login():
+  1. Validate: email(required|email), password(required)
+  2. $user = User::where('email', $req->email)->first()
+  3. if (!$user || !Hash::check($req->password, $user->password)) return $this->error('Invalid credentials', 401)
+  4. $token = $user->createToken('api-token')->plainTextToken
+  5. return $this->success(['token'=>$token, 'user'=>new UserResource($user)])
+
+logout():
+  auth()->user()->currentAccessToken()->delete();
+  return $this->success(null, 'Logged out.');
+
+me():
+  return $this->success(new UserResource(auth()->user()->load('roles.permissions')));
+
+Add routes in routes/api.php:
+  Route::prefix('v1')->group(function() {
+    Route::prefix('auth')->group(function() {
+      Route::post('login', [AuthController::class, 'login']);
+      Route::post('forgot-password', [AuthController::class, 'forgotPassword']);
+      Route::post('reset-password', [AuthController::class, 'resetPassword']);
+      Route::middleware('auth:sanctum')->group(function() {
+        Route::post('logout', [AuthController::class, 'logout']);
+        Route::get('me', [AuthController::class, 'me']);
+        Route::put('password', [AuthController::class, 'changePassword']);
+      });
+    });
+  });`,
+files:[{type:'php',name:'app/Http/Controllers/Api/V1/Auth/AuthController.php'},{type:'php',name:'routes/api.php'}],
+checks:['POST /api/v1/auth/login with valid credentials → returns token','POST /api/v1/auth/login with wrong password → 401','GET /api/v1/auth/me with Bearer token → returns user + roles + permissions','POST /api/v1/auth/logout → invalidates the token'],
+warn:'Test every auth endpoint in Postman before moving forward. If auth is broken, no other feature can be built.'},
+{id:'be_s21',label:'Build Users feature — all 8 Golden Order layers',tags:['critical'],
+what:'User management: create, update, invite, deactivate, assign roles. Also the first practice of the full Golden Order pattern.',
+why:'Every feature follows this exact same 8-step order. Master it here on a simple feature before tackling complex ones.',
+how:`Follow the Golden Order exactly — skip no step:
+
+1. MIGRATION: Add to users table: business_id(CHAR36 FK), first_name, last_name, status(ENUM: active/inactive/suspended), max_discount(DECIMAL5,2), preferences(JSON), INDEX(business_id,status)
+
+2. MODEL: app/Models/Foundation/User.php
+   extends Authenticatable (not BaseModel — special case)
+   uses HasUuid, BelongsToTenant, HasUserTracking, HasRoles(Spatie), HasApiTokens(Sanctum)
+
+3. FORM REQUEST: app/Http/Requests/Foundation/StoreUserRequest.php
+   rules: first_name(required), last_name(required), email(required|email|unique:users), password(required|min:8), role(required|exists:roles,name)
+
+4. API RESOURCE: app/Http/Resources/Foundation/UserResource.php
+   return: id, first_name, last_name, email, phone, status, max_discount, roles[], permissions[], created_at
+
+5. REPOSITORY: app/Repositories/Foundation/UserRepository.php
+   extends BaseRepository, methods: findByEmail(), paginateFiltered($filters)
+
+6. SERVICE: app/Services/Foundation/UserService.php
+   inject UserRepository. Methods: create($data), update($user, $data), invite($email, $role), deactivate($user)
+   On create: Hash::make($password), assign role via Spatie, dispatch InviteEmail job
+
+7. API CONTROLLER: app/Http/Controllers/Api/V1/Foundation/UserController.php
+   index, store, show, update, destroy — all delegate to UserService
+
+8. ROUTES in routes/api.php:
+   Route::apiResource('users', UserController::class);`,
+files:[{type:'php',name:'app/Models/Foundation/User.php'},{type:'php',name:'app/Http/Requests/Foundation/StoreUserRequest.php'},{type:'php',name:'app/Http/Resources/Foundation/UserResource.php'},{type:'php',name:'app/Services/Foundation/UserService.php'},{type:'php',name:'app/Http/Controllers/Api/V1/Foundation/UserController.php'}],
+checks:['GET /api/v1/users → paginated list','POST /api/v1/users → creates user, assigns role','DELETE /api/v1/users/{id} → soft deletes'],warn:''},
+{id:'be_s22',label:'Build Branches + Warehouses + Settings features',tags:[],
+what:'Branches are physical locations per business. Warehouses are stock storage locations. Settings are key-value configurations.',
+why:'Branches and Warehouses are referenced on almost every other table. They must exist before products, stock, or sales can be created.',
+how:`Apply the Golden Order to each:
+
+BRANCHES:
+  Migration: id, business_id(FK), name, code(unique per business), phone, email, address(JSON), is_default(TINYINT), is_active(TINYINT), created_by, timestamps, deleted_at, UNIQUE(business_id, code)
+  BranchService special rule: if is_default=true, unset is_default on all other branches first (DB::transaction)
+  Route: Route::apiResource('branches', BranchController::class);
+
+WAREHOUSES:
+  Migration: id, business_id, branch_id(FK nullable), name, code(unique per business), type(ENUM: main/transit/returns/damaged), is_active, is_default, allow_negative_stock(TINYINT default 0), timestamps, deleted_at
+  WarehouseService special rule: cannot delete if it has stock movements
+  Route: Route::apiResource('warehouses', WarehouseController::class);
+
+SETTINGS:
+  SettingsService::get(group, key) — checks Redis first: Redis::get("settings:{businessId}:{group}:{key}")
+  SettingsService::set(group, key, value) — writes to DB, busts Redis cache
+  SettingsService::getGroup(group) — returns all settings for a group
+  Route: GET /api/v1/settings/{group}, PUT /api/v1/settings/{group} (batch update)`,
+files:[{type:'php',name:'app/Services/Foundation/BranchService.php'},{type:'php',name:'app/Services/Foundation/WarehouseService.php'},{type:'php',name:'app/Services/Foundation/SettingsService.php'}],
+checks:['GET /api/v1/branches → returns business branches only (tenant isolated)','Setting is_default on one branch clears it on all others','GET /api/v1/settings/stock → returns stock settings from Redis'],warn:''},
+]}
+]},
+
+{id:'be_p2',badge:'PHASE 2',title:'Tax, Contacts & Catalog',week:'Week 5–7',groups:[
+{title:'2.1 — Tax Configuration',steps:[
+{id:'be_s23',label:'Build Tax Rates, Tax Groups, and Tax Group Items',tags:['migration'],
+what:'Tax rates (e.g. VAT 10%) and tax groups (combinations like GST = CGST 9% + SGST 9%). Products are assigned a tax group.',
+why:'Tax calculations must be correct on every sale. The snapshot of tax rate is stored on each sale line so rate changes do not affect history.',
+how:`Migrations:
+  tax_rates: id, business_id(FK), name(VARCHAR100), rate(DECIMAL5,2), type(ENUM: percentage/fixed), is_default(TINYINT), is_active(TINYINT), timestamps, deleted_at
+  tax_groups: id, business_id(FK), name, description, is_active, timestamps, deleted_at
+  tax_group_items: id, tax_group_id(FK), tax_rate_id(FK), UNIQUE(tax_group_id, tax_rate_id)
+
+TaxGroupService::create($data):
+  Create tax_group row
+  Sync tax_group_items: foreach $data['rate_ids'] as $rateId: TaxGroupItem::create([...])
+  All in DB::transaction()
+
+TaxGroupService::calculateTax($amount, $taxGroupId):
+  Load all rates in the group
+  For each rate: $tax += ($type === 'percentage') ? $amount * $rate/100 : $rate
+  Return total tax
+
+API Routes:
+  Route::apiResource('tax-rates', TaxRateController::class);
+  Route::apiResource('tax-groups', TaxGroupController::class);`,
+files:[{type:'sql',name:'database/migrations/xxxx_create_tax_rates_table.php'},{type:'sql',name:'database/migrations/xxxx_create_tax_groups_table.php'},{type:'php',name:'app/Services/Tax/TaxGroupService.php'}],
+checks:['Create VAT rate at 10%','Create compound group with 2 rates — calculateTax() returns correct total','GET /api/v1/tax-groups/{id} shows the rates assigned to it'],warn:''},
+]},
+{title:'2.2 — Customers & Suppliers',steps:[
+{id:'be_s24',label:'Build Customers with FULLTEXT index and CSV import',tags:['migration','critical'],
+what:'Customer records with FULLTEXT index on name/email/phone for instant POS search, plus CSV import.',
+why:'POS must return customer search results in under 50ms. FULLTEXT is the only way to achieve this at 10,000+ rows. LIKE %term% is 50x slower.',
+how:`Migration — customers table:
+  id(CHAR36), business_id(FK), customer_group_id(FK nullable), code(VARCHAR50 auto: CUST-00001),
+  name(VARCHAR255), type(ENUM: individual/company), email, phone, mobile, tax_id,
+  date_of_birth(DATE), address(JSON), credit_limit(DECIMAL15,2 default 0), pay_term(SMALLINT),
+  opening_balance(DECIMAL15,2 default 0), status(ENUM: active/inactive), notes(TEXT),
+  created_by, timestamps, deleted_at
+  UNIQUE(business_id, code)
+  INDEX(business_id, status), INDEX(business_id, phone)
+  $table->fullText(['name', 'email', 'phone', 'mobile']); ← CRITICAL
+
+CustomerService::search($term):
+  if (strlen($term) >= 3) {
+    return Customer::whereRaw("MATCH(name,email,phone,mobile) AGAINST(? IN BOOLEAN MODE)", [$term.'*'])->limit(10)->get();
+  }
+  return Customer::where('name','LIKE',"%{$term}%")->limit(10)->get();
+
+CustomerService::importCsv($file):
+  Use maatwebsite/excel to read rows
+  Validate each row independently — collect errors with row number
+  Never fail the whole import for one bad row
+  Return ['imported' => N, 'failed' => [['row'=>3, 'errors'=>['email invalid']]]]
+
+Also build: CustomerGroupService (simple CRUD)
+Routes:
+  GET /api/v1/customers/search  (FULLTEXT endpoint for POS)
+  POST /api/v1/customers/import
+  Route::apiResource('customers', CustomerController::class);`,
+files:[{type:'sql',name:'database/migrations/xxxx_create_customers_table.php'},{type:'php',name:'app/Services/Contacts/CustomerService.php'}],
+checks:['FULLTEXT index visible in phpMyAdmin under Indexes tab','Search returns results in under 100ms','CSV import with a bad row only skips that row, does not fail all'],
+warn:'$table->fullText([...]) is NOT the same as $table->index([...]). Using the wrong one means POS search will be slow on large datasets.'},
+{id:'be_s25',label:'Build Suppliers feature',tags:['migration'],
+what:'Supplier records for purchase order management and payables tracking.',
+why:'Every purchase order links to a supplier. Suppliers track outstanding payables (money you owe).',
+how:`Migration — suppliers table:
+  id, business_id(FK), code(auto: SUPP-00001), name, company, email, phone, mobile,
+  tax_id, address(JSON), pay_term(SMALLINT), opening_balance(DECIMAL15,2),
+  status(ENUM: active/inactive), notes, created_by, timestamps, deleted_at
+  UNIQUE(business_id, code), INDEX(business_id, status)
+
+SupplierService — same CRUD pattern as CustomerService
+  computed balance = SUM(purchases.total - purchases.paid_amount) — never stored
+Routes:
+  Route::apiResource('suppliers', SupplierController::class);
+  GET /api/v1/suppliers/{id}/ledger`,
+files:[{type:'sql',name:'database/migrations/xxxx_create_suppliers_table.php'},{type:'php',name:'app/Services/Contacts/SupplierService.php'}],
+checks:['GET /api/v1/suppliers → list with tenant isolation','Supplier balance is computed correctly from purchases'],warn:''},
+]},
+{title:'2.3 — Product Catalog (12 Tables)',steps:[
+{id:'be_s26',label:'Create all 12 catalog migrations in dependency order',tags:['migration','critical'],
+what:'Categories, brands, units, sub-units, variation templates, variation values, products, product variations, combo items, price groups, price group prices.',
+why:'Foreign key constraints require migrations in dependency order. Products reference categories, brands, units — those tables must exist first.',
+how:`Create in this EXACT order:
+  1. product_categories: id, business_id, parent_id(self-FK nullable), name, code, short_code(VARCHAR10), image_url, sort_order(SMALLINT default 0), UNIQUE(business_id,name)
+  2. brands: id, business_id, name, description, image_url, UNIQUE(business_id,name)
+  3. units: id, business_id, name, short_name(e.g. pcs, kg, box), allow_decimal(TINYINT)
+  4. sub_units: id, business_id, parent_unit_id(FK→units), name, short_name, conversion_factor(DECIMAL10,4 e.g. 12.0000 = 1 box = 12 pcs)
+  5. variation_templates: id, business_id, name(e.g. Size, Color, Flavor)
+  6. variation_values: id, variation_template_id(FK), name(e.g. Small/Red/Mango), sort_order(SMALLINT)
+  7. products: id, business_id, category_id(FK nullable), brand_id(FK nullable), unit_id(FK), tax_rate_id(FK nullable), name(VARCHAR255), sku(unique per business), barcode(VARCHAR100 unique if set), type(ENUM: single/variable/service/combo), stock_tracking(ENUM: none/lot/serial), has_expiry(TINYINT), selling_price(DECIMAL15,4), purchase_price(DECIMAL15,4), is_active(TINYINT), alert_quantity(DECIMAL15,4), description(TEXT), timestamps, deleted_at, FULLTEXT(name,sku,barcode), INDEX(business_id,type), INDEX(business_id,stock_tracking)
+  8. product_variations: id, business_id, product_id(FK), name(VARCHAR255 e.g. "Red/Large"), sku(unique per business), barcode, selling_price, purchase_price, is_active
+  9. combo_items: id, product_id(FK), child_product_id(FK), child_variation_id(FK nullable), quantity(DECIMAL15,4)
+  10. price_groups: id, business_id, name, description, is_default(TINYINT)
+  11. price_group_prices: id, business_id, price_group_id(FK), product_id(FK), variation_id(FK nullable), price(DECIMAL15,4), UNIQUE(price_group_id,product_id,variation_id)
+Run: php artisan migrate`,
+files:[{type:'sql',name:'database/migrations/ (11 new catalog migration files)'}],
+checks:['All 11 catalog tables exist in phpMyAdmin','products table has stock_tracking ENUM column with values: none, lot, serial','products table has FULLTEXT index on name, sku, barcode'],
+warn:'The order matters. If you create products before categories, the FK constraint fails. Follow the numbered order exactly.'},
+{id:'be_s27',label:'Build ProductService — all 4 product types',tags:['critical'],
+what:'Creates simple, variable, combo, and service products correctly. Enforces the stock_tracking immutability rule.',
+why:'Each product type creates different database records. The wrong logic corrupts product and inventory data.',
+how:`ProductService::create(array $data): Product
+
+For ALL types:
+  Create base product record first
+  If $data['stock_tracking'] === 'lot': set has_expiry = true automatically
+  Lock rule: if StockMovement::where('product_id', $id)->exists() then throw DomainException('Cannot change stock_tracking after stock movements exist')
+
+For type = 'variable':
+  foreach $data['variations'] as $v:
+    ProductVariation::create(['product_id'=>$product->id, 'name'=>$v['name'], 'sku'=>$v['sku'], 'selling_price'=>$v['price'], ...])
+
+For type = 'combo':
+  foreach $data['components'] as $c:
+    ComboItem::create(['product_id'=>$product->id, 'child_product_id'=>$c['product_id'], 'quantity'=>$c['quantity']])
+
+For type = 'service':
+  Force $data['stock_tracking'] = 'none' (services never have stock)
+  Force $data['track_inventory'] = false
+
+ProductService::importCsv($file):
+  Read rows with maatwebsite/excel
+  Validate each row: sku required, type valid ENUM, selling_price numeric
+  Never abort entire import for one bad row — collect row errors
+  Return ['imported'=>N, 'failed'=>[['row'=>3,'errors'=>['sku required']]]]`,
+files:[{type:'php',name:'app/Services/Catalog/ProductService.php'}],
+checks:['Create simple product — 1 row in products, 0 in product_variations','Create variable product with 3 variants — 1 row in products, 3 in product_variations','Create combo — 1 in products, N in combo_items','stock_tracking cannot be changed after first stock movement (throws exception)'],
+warn:'The stock_tracking immutability check MUST be in the Service, not in a Form Request. Business rules belong in Services.'},
+]}
+]},
+
+{id:'be_p3',badge:'PHASE 3',title:'Inventory — Stock Engine',week:'Week 8–10',groups:[
+{title:'3.1 — Inventory Migrations',steps:[
+{id:'be_s28',label:'Create stock_movements (append-only ledger)',tags:['migration','critical'],
+what:'The master ledger of every stock change. Rows are only ever appended — never updated or deleted.',
+why:'Like a bank statement. You never modify past entries. This is what makes inventory 100% auditable and recoverable from any point in time.',
+how:`Migration columns:
+  id(CHAR36 PK), business_id(FK), product_id(FK), variation_id(FK nullable),
+  warehouse_id(FK), lot_id(FK nullable), serial_id(FK nullable),
+  type(ENUM: purchase_receipt/sale/sale_return/purchase_return/adjustment_in/adjustment_out/transfer_in/transfer_out/opening_stock/combo_deduction/stock_count_correction),
+  quantity(DECIMAL15,4 always positive), unit_cost(DECIMAL15,4),
+  reference_type(VARCHAR100), reference_id(CHAR36),
+  notes(TEXT nullable), created_by(CHAR36 FK→users), created_at TIMESTAMP
+
+  CRITICAL: NO updated_at column
+
+  Indexes:
+    INDEX(business_id, created_at)
+    INDEX(product_id, warehouse_id, created_at)  ← movement history
+    INDEX(reference_type, reference_id)           ← polymorphic lookup
+    INDEX(lot_id), INDEX(serial_id)`,
+files:[{type:'sql',name:'database/migrations/xxxx_create_stock_movements_table.php'}],
+checks:['stock_movements table has NO updated_at column','ENUM has all 11 movement types','Indexes on lot_id and serial_id exist'],
+warn:'NEVER add updated_at to this table. Any tool or library that tries to add timestamps to this model must be explicitly disabled.'},
+{id:'be_s29',label:'Create stock_levels, stock_lots, stock_serials',tags:['migration','critical'],
+what:'stock_levels: current qty per product+warehouse. stock_lots: one row per received batch. stock_serials: one row per physical unit.',
+why:'These three tables power the entire inventory system. The GENERATED COLUMNS prevent computed values from drifting out of sync.',
+how:`stock_levels:
+  PRIMARY KEY (product_id, warehouse_id)
+  product_id(FK), variation_id(FK nullable), warehouse_id(FK),
+  quantity(DECIMAL15,4 default 0), reserved_quantity(DECIMAL15,4 default 0),
+  available_qty DECIMAL(15,4) →  $table->decimal('available_qty',15,4)->storedAs('quantity - reserved_quantity');
+
+stock_lots:
+  id, business_id, product_id(FK), variation_id(FK nullable), warehouse_id(FK), supplier_id(FK nullable),
+  lot_number(VARCHAR100), manufacture_date(DATE nullable), expiry_date(DATE nullable),
+  received_at(TIMESTAMP), unit_cost(DECIMAL15,4), qty_received(DECIMAL15,4), qty_on_hand(DECIMAL15,4),
+  qty_reserved(DECIMAL15,4 default 0),
+  qty_available DECIMAL(15,4) →  ->storedAs('qty_on_hand - qty_reserved')
+  status(ENUM: active/depleted/expired/recalled/quarantine), notes,
+  INDEX(product_id, warehouse_id, received_at)     ← FIFO
+  INDEX(product_id, warehouse_id, expiry_date)     ← FEFO
+  INDEX(business_id, expiry_date)                  ← daily expiry job
+  UNIQUE(business_id, lot_number)
+
+stock_serials:
+  id, business_id, product_id(FK), variation_id(FK nullable), warehouse_id(FK nullable),
+  supplier_id(FK nullable), serial_number(VARCHAR200), status(ENUM: in_stock/sold/returned/transferred/written_off/reserved),
+  purchase_item_id(FK nullable), sale_item_id(FK nullable), unit_cost(DECIMAL15,4),
+  warranty_expires(DATE nullable), received_at(TIMESTAMP), sold_at(TIMESTAMP nullable),
+  UNIQUE(business_id, serial_number)               ← prevents duplicates at DB level
+  INDEX(product_id, warehouse_id, status)          ← POS lookup`,
+files:[{type:'sql',name:'database/migrations/xxxx_create_stock_levels_table.php'},{type:'sql',name:'database/migrations/xxxx_create_stock_lots_table.php'},{type:'sql',name:'database/migrations/xxxx_create_stock_serials_table.php'}],
+checks:['stock_levels.available_qty is a GENERATED STORED column (shown as "GENERATED" in phpMyAdmin)','stock_lots.qty_available is also GENERATED STORED','UNIQUE constraint on stock_serials(business_id, serial_number)','FIFO index on (product_id, warehouse_id, received_at) exists'],
+warn:'->storedAs() is MariaDB/MySQL STORED GENERATED COLUMN syntax. Do not use ->virtualAs() — STORED is required for indexes on the column.'},
+{id:'be_s30',label:'Create stock_counts, stock_count_items, stock_count_serials',tags:['migration'],
+what:'Tables for physical stock count sessions. Counts compare system quantity to physically counted quantity.',
+why:'Without a formal count process, discrepancies between system stock and actual stock are never formally reconciled.',
+how:`stock_counts:
+  id, business_id, warehouse_id(FK), reference_no(VARCHAR50 auto: SC-2024-00001),
+  status(ENUM: in_progress/completed/cancelled), date(DATE), notes, created_by, completed_by(nullable), timestamps, deleted_at
+
+stock_count_items:
+  id, stock_count_id(FK), product_id(FK), variation_id(FK nullable), lot_id(FK nullable),
+  system_quantity(DECIMAL15,4), counted_quantity(DECIMAL15,4 nullable),
+  difference DECIMAL(15,4) GENERATED AS (counted_quantity - system_quantity) STORED,
+  unit_cost(DECIMAL15,4)
+
+stock_count_serials:  ← only for serial-tracked products
+  id, stock_count_id(FK), serial_id(FK→stock_serials), found(TINYINT1 — 1=found, 0=missing)`,
+files:[{type:'sql',name:'database/migrations/xxxx_create_stock_counts_table.php'}],
+checks:['stock_count_items.difference is a GENERATED column'],warn:''},
+]},
+{title:'3.2 — StockMovementService (Core Engine)',steps:[
+{id:'be_s31',label:'Build StockMovementService — createMovement() and selectLots()',tags:['critical'],
+what:'The most critical service in the system. ALL stock changes in the entire application flow through this one method.',
+why:'Centralising all stock writes here guarantees consistency. No code can accidentally modify stock in a different way.',
+how:`app/Services/Inventory/StockMovementService.php
+
+createMovement(string $type, Product $product, Warehouse $warehouse, float $qty, float $cost, $reference, array $options=[]): StockMovement
+
+  1. DB::transaction()
+  2. Create stock_movements row (always — for all 3 modes)
+  3. Based on $product->stock_tracking:
+     'none':   find or create StockLevel (product+warehouse), adjust quantity
+     'lot':    $lot = StockLot::findOrFail($options['lot_id'])
+               validate $lot->status === 'active' (throw LotExpiredException, LotRecalledException)
+               update $lot->qty_on_hand (±qty depending on type direction)
+               if qty_on_hand reaches 0: $lot->status = 'depleted'
+               update StockLevel quantity
+     'serial': $serial = StockSerial::findOrFail($options['serial_id'])
+               validate qty === 1.0 (throw exception if not — invariant: serial qty is always 1)
+               transition serial status based on movement type:
+                 purchase_receipt → in_stock
+                 sale → sold (set sold_at, clear warehouse_id)
+                 sale_return → returned → in_stock
+                 transfer_out → set new warehouse_id
+               update StockLevel quantity
+  4. For outbound movements: check available_qty >= qty BEFORE writing. Throw InsufficientStockException.
+
+selectLots(Product $product, Warehouse $warehouse, float $qty, string $strategy): array
+  $strategy = 'fifo' | 'fefo' | 'manual'
+  Query: StockLot::where product+warehouse+status=active AND qty_available > 0
+  FIFO: orderBy('received_at','asc')
+  FEFO: orderBy('expiry_date','asc')
+  Loop through lots, take as much as needed, span to next lot.
+  Return: [['lot_id'=>'...', 'quantity'=>5.0], ...]
+  Throw InsufficientStockException if total available < requested qty.`,
+files:[{type:'php',name:'app/Services/Inventory/StockMovementService.php'}],
+checks:['Adjust in stock → stock_levels.quantity increases + movement row created','Adjust out more than available → InsufficientStockException thrown','FIFO test: add lot A (received Monday), lot B (received Wednesday), sell 7 units — lot A consumed first','FEFO test: lot A expires Dec, lot B expires March → lot B selected first'],
+warn:'Use DB::lockForUpdate() when reading StockLevel inside a transaction. This prevents two simultaneous sales from both seeing the same available_qty and overselling.'},
+{id:'be_s32',label:'Build reserveStock(), deductStock(), releaseReservation(), returnToStock()',tags:['critical'],
+what:'The 4 methods called by SaleService to manage the 2-step stock flow: reserve on confirm, deduct on complete.',
+why:'The 2-step process prevents overselling. Two cashiers selling the last item simultaneously — only one succeeds at the reserve step.',
+how:`reserveStock(Sale $sale): void
+  foreach $sale->items as $item:
+    product = $item->product
+    if none: StockLevel::lockForUpdate(), check available_qty >= qty, increase reserved_quantity
+    if lot:  call selectLots() → get [{lot_id, quantity}]
+             foreach result: StockLot::lockForUpdate(), increase qty_reserved
+             throw LotExpiredException if lot expired
+             throw LotRecalledException if lot recalled
+             create SaleItemLot rows
+    if serial: foreach $item->serial_ids as $serialId:
+               $serial = StockSerial::lockForUpdate()->find($serialId)
+               if $serial->status !== 'in_stock': throw SerialAlreadySoldException
+               $serial->status = 'reserved'; $serial->save()
+               increase StockLevel reserved_quantity
+
+deductStock(Sale $sale): void
+  foreach $sale->items as $item:
+    if none: StockLevel: quantity -= qty, reserved_quantity -= qty
+    if lot:  foreach SaleItemLot: StockLot qty_on_hand -= qty_from_lot, qty_reserved -= qty_from_lot; auto-deplete if 0; StockLevel quantity -= total; StockLevel reserved_quantity -= total
+    if serial: foreach serials: $serial->status = 'sold', sold_at = now(), warehouse_id = null; StockLevel quantity -= 1; StockLevel reserved_quantity -= 1
+
+releaseReservation(Sale $sale): void  ← called on cancel
+  Reverse of reserveStock. Decrease reserved_quantity. Serial status back to in_stock.
+
+returnToStock(Sale $sale, array $returnItems): void
+  For each returned item:
+    if none: StockLevel quantity += qty
+    if lot:  StockLot qty_on_hand += qty; status back to active if was depleted; StockLevel quantity += qty
+    if serial: StockSerial status = returned → in_stock; restore warehouse_id; StockLevel quantity += 1`,
+files:[{type:'php',name:'app/Services/Inventory/StockMovementService.php (additional methods)'}],
+checks:['Confirm sale → qty_reserved increases (qty_on_hand unchanged)','Complete sale → qty_on_hand decreases, qty_reserved decreases','Cancel confirmed sale → qty_reserved back to 0','Serial status machine: in_stock → reserved → sold → returned → in_stock'],warn:''},
+{id:'be_s33',label:'Build Stock Levels API + Low Stock endpoint',tags:['api'],
+what:'Current stock levels per product+warehouse (filterable). Low stock report for products below alert_quantity. Movement history.',
+why:'Stock managers need to see current quantities and what is running low before a stockout occurs.',
+how:`StockController extends BaseApiController:
+
+index(Request $req): JsonResponse
+  StockLevel::with(['product.category','warehouse'])
+    ->when($req->warehouse_id, fn($q)=>$q->where('warehouse_id',$req->warehouse_id))
+    ->when($req->category_id, fn($q)=>$q->whereHas('product',fn($p)=>$p->where('category_id',$req->category_id)))
+    ->when($req->q, fn($q)=>$q->whereHas('product',fn($p)=>$p->whereFullText(['name','sku'],$req->q)))
+    ->paginate(50)
+
+lowStock(): JsonResponse
+  StockLevel::with('product')
+    ->join('products','products.id','=','stock_levels.product_id')
+    ->whereColumn('stock_levels.available_qty','<=','products.alert_quantity')
+    ->where('products.track_inventory',1)
+    ->where('products.stock_tracking','none') // lot/serial have different alert mechanisms
+    ->get()
+
+MovementController::index(Request $req):
+  StockMovement::with(['product','warehouse','lot','serial'])
+    ->when($req->product_id, fn($q)=>$q->where('product_id',$req->product_id))
+    ->when($req->type, fn($q)=>$q->where('type',$req->type))
+    ->when($req->lot_number, fn($q)=>$q->whereHas('lot',fn($l)=>$l->where('lot_number',$req->lot_number)))
+    ->when($req->serial_number, fn($q)=>$q->whereHas('serial',fn($s)=>$s->where('serial_number',$req->serial_number)))
+    ->when($req->from, fn($q)=>$q->where('created_at','>=',$req->from))
+    ->when($req->to, fn($q)=>$q->where('created_at','<=',$req->to))
+    ->latest()->paginate(100)
+
+Routes:
+  GET /api/v1/inventory/stock        → current levels
+  GET /api/v1/inventory/stock/low    → below alert_quantity
+  GET /api/v1/inventory/movements    → history (filterable by type/product/lot/serial/date)`,
+files:[{type:'php',name:'app/Http/Controllers/Api/V1/Inventory/StockController.php'},{type:'php',name:'app/Http/Controllers/Api/V1/Inventory/MovementController.php'}],
+checks:['GET /inventory/stock with warehouse_id filter returns correct products','GET /inventory/stock/low returns only products below alert_quantity','GET /inventory/movements?lot_number=LOT-001 returns movements for that lot'],warn:''},
+
+{id:'be_s33b',label:'Build Stock Adjustments Service + API (lot/serial aware)',tags:['api','svc'],
+what:'Manual stock-in and stock-out adjustments. For lot products: specify which lot. For serial products: specify which serials.',
+why:'Corrections to stock discrepancies are a daily business need. Without adjustments, system stock diverges from physical stock permanently.',
+how:`StockAdjustmentService::adjust(array $data): StockMovement
+  Validate:
+    product exists and belongs to current tenant
+    warehouse exists and belongs to current tenant
+    quantity > 0
+    For lot products: lot_id required, lot must exist + belong to same product+warehouse
+    For serial products: serial_ids[] required, each serial must be in_stock and in this warehouse
+
+  Call createMovement():
+    type = $data['type'] (adjustment_in or adjustment_out)
+    For qty-mode: createMovement($type, $product, $warehouse, $qty, $cost, null, [])
+    For lot-mode: createMovement($type, $product, $warehouse, $qty, $cost, null, ['lot_id'=>$data['lot_id']])
+    For serial-mode: foreach $data['serial_ids'] as $sid:
+                       createMovement($type, $product, $warehouse, 1, $cost, null, ['serial_id'=>$sid])
+
+  Special case — opening_stock type:
+    First stock entry for a new product. Creates the baseline.
+    Also useful when migrating from another system.
+
+Form Request: StoreAdjustmentRequest
+  type: required|in:adjustment_in,adjustment_out,opening_stock
+  product_id: required|exists:products,id
+  variation_id: nullable|exists:product_variations,id
+  warehouse_id: required|exists:warehouses,id
+  quantity: required|numeric|min:0.0001  (for non-serial products)
+  unit_cost: required|numeric|min:0
+  notes: nullable|string|max:500
+  lot_id: required_if:product.stock_tracking,lot
+  serial_ids: required_if:product.stock_tracking,serial|array|min:1
+  reference: nullable|string
+
+Route: POST /api/v1/inventory/adjustments`,
+files:[{type:'php',name:'app/Services/Inventory/StockAdjustmentService.php'},{type:'php',name:'app/Http/Requests/Inventory/StoreAdjustmentRequest.php'}],
+checks:['Adjustment in qty-product → stock_levels.quantity increases + movement row created','Adjustment out lot-product → lot qty_on_hand decreases','Adjustment out more than available → InsufficientStockException','Adjustment out serial-product → serial status = written_off'],warn:''},
+
+{id:'be_s33c',label:'Build Stock Transfer Service + API (warehouse-to-warehouse, lot/serial aware)',tags:['api','svc'],
+what:'Move stock from one warehouse to another. Creates transfer_out and transfer_in movements. Handles all 3 stock tracking modes.',
+why:'Businesses with multiple warehouses regularly redistribute stock. Transfers are different from adjustments — no stock is added or removed, only location changes.',
+how:`StockTransferService::transfer(array $data): array
+  Validate: from_warehouse_id !== to_warehouse_id (throw DomainException if same)
+  Both warehouses must belong to current tenant
+
+  DB::transaction():
+  foreach $data['items'] as $item:
+    $product = Product::find($item['product_id'])
+
+    if $product->stock_tracking === 'none':
+      Check available_qty >= qty in from_warehouse (throw InsufficientStockException if not)
+      createMovement(transfer_out, $product, $fromWarehouse, $qty, $cost, null)
+      createMovement(transfer_in,  $product, $toWarehouse,   $qty, $cost, null)
+
+    if $product->stock_tracking === 'lot':
+      $sourceLot = StockLot::find($item['lot_id'])
+      Validate: lot belongs to from_warehouse, lot.qty_available >= qty
+      Check lot status = active (throw LotExpiredException/LotRecalledException)
+      createMovement(transfer_out, $product, $fromWarehouse, $qty, $cost, null, ['lot_id'=>$sourceLot->id])
+      Find or create matching lot in to_warehouse (same lot_number):
+        $destLot = StockLot::firstOrCreate(['product_id'=>$product->id, 'warehouse_id'=>$toWarehouse->id, 'lot_number'=>$sourceLot->lot_number], [...$sourceLot attributes, 'qty_received'=>0, 'qty_on_hand'=>0])
+      createMovement(transfer_in, $product, $toWarehouse, $qty, $cost, null, ['lot_id'=>$destLot->id])
+
+    if $product->stock_tracking === 'serial':
+      foreach $item['serial_ids'] as $sid:
+        $serial = StockSerial::find($sid)
+        Validate: serial->warehouse_id === $fromWarehouse->id, serial->status === 'in_stock'
+        createMovement(transfer_out, ..., ['serial_id'=>$sid])
+        $serial->warehouse_id = $toWarehouse->id  // serial moves location
+        $serial->save()
+        createMovement(transfer_in, ..., ['serial_id'=>$sid])
+
+Route: POST /api/v1/inventory/transfers
+Body:
+  {
+    "from_warehouse_id": "...",
+    "to_warehouse_id": "...",
+    "notes": "Moving stock to branch B",
+    "items": [
+      { "product_id": "...", "quantity": 10 },                          // qty-mode
+      { "product_id": "...", "lot_id": "...", "quantity": 5 },          // lot-mode
+      { "product_id": "...", "serial_ids": ["uuid1","uuid2"] }          // serial-mode
+    ]
+  }`,
+files:[{type:'php',name:'app/Services/Inventory/StockTransferService.php'},{type:'php',name:'app/Http/Requests/Inventory/StoreTransferRequest.php'}],
+checks:['Transfer qty-product → source quantity decreases, destination increases','Transfer lot-product → lot appears in destination warehouse with correct qty','Transfer serial-product → serial warehouse_id updated to destination','Transfer to same warehouse → DomainException'],warn:'Cannot transfer from and to the same warehouse. Validate this before calling createMovement.'},
+
+{id:'be_s33d',label:'Build Lot Management Service + API (recall, quarantine, expiry)',tags:['api','svc'],
+what:'Change lot status: mark as recalled, put in quarantine, release from hold. Auto-expire via daily scheduler job.',
+why:'Food safety recalls and quality holds are real compliance requirements. Recalled/quarantined lots must block sales automatically.',
+how:`LotService::updateStatus(StockLot $lot, string $newStatus, ?string $reason=null): StockLot
+  Valid transitions (strict state machine):
+    active     → recalled     (manual: admin)
+    active     → quarantine   (manual: quality hold)
+    active     → expired      (auto: daily scheduler only — not via API)
+    quarantine → active       (manual: quality cleared)
+    quarantine → recalled     (manual: quality confirmed issue)
+  Any other transition: throw InvalidStateTransitionException("Cannot transition from {current} to {newStatus}")
+
+  DB::transaction():
+    $lot->status = $newStatus
+    if $reason: $lot->notes = $lot->notes . "\n[" . now() . "] " . $reason
+    $lot->save()
+    Notification::send($this->adminsFor($lot->business_id), new LotStatusChangedNotification($lot))
+
+LotController endpoints:
+  GET    /api/v1/inventory/lots
+    Filters: product_id, warehouse_id, status, lot_number (search), expiry_from, expiry_to
+    Returns: lot list with product name, warehouse, qty_on_hand, qty_available, expiry_date, status badge
+  GET    /api/v1/inventory/lots/{id}
+    Returns: lot details + all stock_movements for this lot (purchase in, sales out, transfers)
+  PUT    /api/v1/inventory/lots/{id}/status
+    Body: { status: "recalled"|"quarantine"|"active", reason: "optional explanation" }
+  GET    /api/v1/inventory/lots/expiring
+    Query: ?days=30 (default from settings)
+    Returns: lots WHERE status=active AND expiry_date <= today+$days ORDER BY expiry_date ASC`,
+files:[{type:'php',name:'app/Services/Inventory/LotService.php'},{type:'php',name:'app/Http/Controllers/Api/V1/Inventory/LotController.php'}],
+checks:['Mark lot as recalled → status=recalled, notification sent, cannot sell','Quarantined lot cannot be selected on sale → LotRecalledException','GET /inventory/lots/expiring?days=7 → only active lots expiring in 7 days','Invalid state transition (recalled→active) → InvalidStateTransitionException'],warn:''},
+
+{id:'be_s33e',label:'Build Serial Management Service + API (history, write-off, search)',tags:['api','svc'],
+what:'Search serials by number, view full lifecycle history, mark as written off.',
+why:'Warranty claims and after-sales service require knowing exactly where each physical unit is and has been.',
+how:`SerialService::writeOff(StockSerial $serial, string $reason): StockSerial
+  Validate: serial->status must be 'in_stock' (cannot write off a sold serial)
+  Validate: serial->business_id === tenant()->id
+  DB::transaction():
+    createMovement(adjustment_out, serial->product, serial->warehouse, 1, serial->unit_cost, null, ['serial_id'=>$serial->id])
+    $serial->notes = $serial->notes . "\n[Written off " . now() . "] " . $reason
+    return $serial  // status updated to written_off by createMovement
+
+SerialController::history(string $id): JsonResponse
+  $serial = StockSerial::with(['product','warehouse','purchaseItem.purchaseReceive.purchase.supplier','saleItem.sale.customer'])->findOrFail($id)
+  $movements = StockMovement::where('serial_id',$id)->with(['warehouse','createdBy'])->orderBy('created_at')->get()
+  return $this->success(['serial'=>new StockSerialResource($serial),'movements'=>StockMovementResource::collection($movements)])
+
+SerialController endpoints:
+  GET    /api/v1/inventory/serials
+    Filters: q=serial_number (partial search), product_id, warehouse_id, status
+    Fast lookup: serial_number exact → uses UNIQUE index, instant result
+  GET    /api/v1/inventory/serials/{id}
+    Returns: serial details + full movement history (purchase receive → sold → returned etc)
+    Useful for: warranty claims, theft investigation, after-sales service
+  PUT    /api/v1/inventory/serials/{id}/write-off
+    Body: { reason: "damaged in warehouse" }`,
+files:[{type:'php',name:'app/Services/Inventory/SerialService.php'},{type:'php',name:'app/Http/Controllers/Api/V1/Inventory/SerialController.php'}],
+checks:['Search serial by number → instant result via UNIQUE index','Serial history shows all movements in order: received → reserved → sold → returned','Write-off → adjustment_out movement created, status=written_off','Cannot write off a sold serial → DomainException'],warn:''},
+
+{id:'be_s33f',label:'Build Stock Count Service + API (session, finalize, serial verification)',tags:['api','svc'],
+what:'Count sessions per warehouse, enter counted quantities, verify serials as found/missing, finalize to auto-post adjustment movements.',
+why:'Physical counts reconcile system quantity with actual physical quantity. Required for audit accuracy and catching theft/loss.',
+how:`StockCountService::start(array $data): StockCount
+  Create StockCount (status=in_progress, warehouse_id, date, reference_no auto)
+  For each active product in warehouse:
+    if stock_tracking='none':
+      level = StockLevel::where(product+warehouse)->first()
+      StockCountItem::create([system_quantity=>level->quantity, counted_quantity=>null])
+    if stock_tracking='lot':
+      StockLot::active()->where(product+warehouse)->each(fn($lot)=>
+        StockCountItem::create([lot_id=>$lot->id, system_quantity=>$lot->qty_on_hand, counted_quantity=>null])
+      )
+    if stock_tracking='serial':
+      StockSerial::where(warehouse)->where('status','in_stock')->each(fn($serial)=>
+        StockCountSerial::create([stock_count_id,serial_id=>$serial->id,found=>null])
+      )
+
+StockCountService::complete(StockCount $count): StockCount
+  Guard: count->status === 'in_progress'
+  DB::transaction():
+    foreach $count->items as $item:
+      if $item->counted_quantity === null: skip (not counted yet — allowed)
+      $diff = $item->counted_quantity - $item->system_quantity
+      if $diff > 0: createMovement(stock_count_correction/adjustment_in, qty=abs($diff), lot_id=$item->lot_id if set)
+      if $diff < 0: createMovement(stock_count_correction/adjustment_out, qty=abs($diff), lot_id=$item->lot_id if set)
+    foreach $count->serials as $cs:
+      if $cs->found === 0 (missing): createMovement(adjustment_out, serial_id=$cs->serial_id)
+      if $cs is a new serial (found=1 but not in system yet): create new StockSerial, createMovement(adjustment_in)
+    $count->status = 'completed', $count->completed_by = auth()->id()
+    $count->save()
+
+Routes:
+  GET  /api/v1/inventory/stock-counts              → list of past counts
+  POST /api/v1/inventory/stock-counts              → start new count session
+  GET  /api/v1/inventory/stock-counts/{id}         → count detail with items
+  PUT  /api/v1/inventory/stock-counts/{id}         → update counted_quantity per item / mark serial found/missing
+  POST /api/v1/inventory/stock-counts/{id}/complete → finalize + auto-adjust`,
+files:[{type:'php',name:'app/Services/Inventory/StockCountService.php'},{type:'php',name:'app/Http/Controllers/Api/V1/Inventory/StockCountController.php'}],
+checks:['Start count → count_items pre-populated with system_quantity','Complete count → adjustment movements created for all differences','Missing serial → adjustment_out movement created','count.difference GENERATED COLUMN shows discrepancy automatically'],warn:''},
+
+{id:'be_s33g',label:'Feature 15 — Build Barcode Label PDF generator (lot+serial support)',tags:['api'],
+what:'Generate printable barcode sticker sheets for products. Lot product labels include lot_number + expiry_date. Serial products: one label per serial.',
+why:'Physical barcode labels are required for shelf management, stock receiving, and product identification.',
+how:`composer require picqer/php-barcode-generator
+
+BarcodeService::generateLabels(array $items): BinaryFileResponse
+  $labelData = []
+  foreach $items as $item:
+    $product = Product::find($item['product_id'])
+
+    if isset($item['lot_id']):
+      $lot = StockLot::find($item['lot_id'])
+      $labelData[] = [
+        'barcode_value' => $product->sku,
+        'barcode_type'  => $product->barcode_type ?? 'C128',
+        'name'          => $product->name,
+        'sku'           => $product->sku,
+        'lot_number'    => $lot->lot_number,
+        'expiry_date'   => $lot->expiry_date?->format('d/m/Y'),
+        'quantity'      => $item['quantity'] ?? 1
+      ]
+
+    elseif isset($item['serial_id']):
+      $serial = StockSerial::find($item['serial_id'])
+      $labelData[] = [
+        'barcode_value'   => $serial->serial_number,
+        'barcode_type'    => 'C128',
+        'name'            => $product->name,
+        'sku'             => $product->sku,
+        'serial_number'   => $serial->serial_number,
+        'warranty_expires'=> $serial->warranty_expires?->format('d/m/Y'),
+        'quantity'        => 1
+      ]
+
+    else:
+      for $i=0; $i<($item['quantity']??1); $i++:
+        $labelData[] = ['barcode_value'=>$product->barcode??$product->sku, 'name'=>$product->name, 'sku'=>$product->sku]
+
+  Generate barcodes:
+    $generator = new BarcodeGeneratorPNG()
+    foreach $labelData as &$label:
+      $label['barcode_img'] = base64_encode($generator->getBarcode($label['barcode_value'], $generator::TYPE_CODE_128))
+
+  $pdf = PDF::loadView('labels.barcodes', ['labels'=>$labelData])
+  return $pdf->download('barcode-labels.pdf')
+
+Create: resources/views/labels/barcodes.blade.php
+  Grid of label cells (3 per row), each showing:
+    Barcode image (from base64), product name, SKU, lot_number+expiry_date if present, serial_number if present
+
+Route: POST /api/v1/inventory/barcode-labels
+  Body: [{ product_id, quantity, lot_id?, serial_id? }, ...]`,
+files:[{type:'php',name:'app/Services/Inventory/BarcodeService.php'},{type:'blade',name:'resources/views/labels/barcodes.blade.php'},{type:'php',name:'app/Http/Controllers/Api/V1/Inventory/BarcodeController.php'}],
+checks:['POST with qty-product → PDF downloads with correct number of labels','Lot product label includes lot_number and expiry_date','Serial product: one label per serial with serial_number as barcode'],warn:''},
+]}
+]},
+
+{id:'be_p4',badge:'PHASE 4',title:'Accounting — Before Sales',week:'Week 8–9',groups:[
+{title:'4.1 — Double-Entry Accounting',steps:[
+{id:'be_s34',label:'Create accounting migrations (4 tables)',tags:['migration','critical'],
+what:'chart_of_accounts, payment_accounts, journals, journal_entries. The financial backbone.',
+why:'MUST be built BEFORE sales. Every completed sale auto-posts a journal. Without the accounting tables, SaleService will crash.',
+how:`Migrations:
+  chart_of_accounts: id, business_id, parent_id(self-FK nullable), code(VARCHAR20 unique per business), name(VARCHAR255), type(ENUM: asset/liability/equity/revenue/expense), sub_type(VARCHAR50 e.g. current_asset/bank/cogs), normal_balance(ENUM: debit/credit), is_system(TINYINT — cannot delete), is_active, description, timestamps, deleted_at, UNIQUE(business_id,code)
+
+  payment_accounts: id, business_id, name(VARCHAR100), account_type(ENUM: cash/bank/other), account_number(VARCHAR50), bank_name, opening_balance(DECIMAL15,2), coa_account_id(FK→chart_of_accounts nullable), is_active, timestamps, deleted_at
+
+  journals: id, business_id, fiscal_year_id(FK nullable), journal_number(VARCHAR50), type(ENUM: sale/purchase/payment_in/payment_out/sale_return/purchase_return/expense/manual/reversal/opening), reference_type, reference_id(CHAR36), description(VARCHAR500 required), total_amount(DECIMAL15,2), posted_at(TIMESTAMP), posted_by(FK→users), reversed_by_id(FK→journals nullable), created_at — NO updated_at
+  INDEX(business_id, type, posted_at), INDEX(reference_type, reference_id)
+
+  journal_entries: id, journal_id(FK), account_id(FK→chart_of_accounts), type(ENUM: debit/credit), amount(DECIMAL15,2 always positive), description(VARCHAR255), created_at — NO updated_at
+  INDEX(account_id, created_at)`,
+files:[{type:'sql',name:'database/migrations/xxxx_create_chart_of_accounts_table.php'},{type:'sql',name:'database/migrations/xxxx_create_journals_table.php'}],
+checks:['journals has NO updated_at','journal_entries has NO updated_at (both are append-only)','UNIQUE(business_id, code) on chart_of_accounts'],
+warn:'journal_entries is append-only like stock_movements. NEVER add updated_at. To fix a wrong journal, REVERSE it — never edit.'},
+{id:'be_s35',label:'Seed 21 default Chart of Accounts',tags:[],
+what:'Seed the 21 default account codes every new business gets on registration.',
+why:'Without default accounts, AccountingService cannot post any journal because the target accounts do not exist.',
+how:`php artisan make:seeder ChartOfAccountsSeeder
+
+Seed these accounts (code / name / type / sub_type / normal_balance):
+  1000 / Cash and Bank       / asset     / cash           / debit
+  1001 / Petty Cash          / asset     / cash           / debit
+  1100 / Accounts Receivable / asset     / current_asset  / debit
+  1200 / Inventory           / asset     / current_asset  / debit
+  1300 / Other Current Assets/ asset     / current_asset  / debit
+  1400 / Fixed Assets        / asset     / fixed_asset    / debit
+  2000 / Accounts Payable    / liability / current_liab   / credit
+  2100 / Tax Payable         / liability / current_liab   / credit
+  2200 / Other Current Liab  / liability / current_liab   / credit
+  3000 / Owner Capital       / equity    / equity         / credit
+  3100 / Retained Earnings   / equity    / equity         / credit
+  4000 / Sales Revenue       / revenue   / revenue        / credit
+  4100 / Sales Returns       / revenue   / revenue        / debit (contra)
+  5000 / Cost of Goods Sold  / expense   / cogs           / debit
+  6000 / Operating Expenses  / expense   / operating      / debit
+  6100 / Salary Expense      / expense   / operating      / debit
+  6200 / Rent Expense        / expense   / operating      / debit
+  6300 / Utility Expense     / expense   / operating      / debit
+  6900 / Other Expenses      / expense   / operating      / debit
+
+Set is_system=1 on all — they cannot be deleted.`,
+files:[{type:'php',name:'database/seeders/ChartOfAccountsSeeder.php'}],
+checks:['21 rows in chart_of_accounts after seeding','All have is_system=1'],warn:''},
+{id:'be_s36',label:'Build AccountingService — postJournal, reverseJournal, auto-posting',tags:['critical'],
+what:'postJournal() creates balanced debit/credit entries. reverseJournal() creates the exact opposite. Auto-post methods called by other services.',
+why:'Double-entry requires sum(debits) == sum(credits) always. The service enforces this invariant before writing anything.',
+how:`AccountingService::postJournal(string $description, string $type, array $lines, $reference=null): Journal
+
+  STEP 1: Validate balance
+    $totalDebit = collect($lines)->where('type','debit')->sum('amount')
+    $totalCredit = collect($lines)->where('type','credit')->sum('amount')
+    if (abs($totalDebit - $totalCredit) > 0.001) throw UnbalancedJournalException(...)
+
+  STEP 2: DB::transaction()
+    Create Journal row: description, type, total_amount=$totalDebit, posted_at=now(), posted_by=auth()->id()
+    foreach $lines: create JournalEntry with journal_id, account_id, type, amount
+
+AccountingService::reverseJournal(string $journalId, string $reason): Journal
+  Load original Journal + entries
+  Create new Journal with "(Reversal of #{number})" description
+  foreach original entries: swap debit↔credit, same amounts
+  Link: originalJournal->reversed_by_id = newJournal->id
+
+Auto-post methods called by other services:
+  postSaleJournal(Sale $sale):
+    if cash: DR 1000 Cash / CR 4000 Sales Revenue (for grand_total)
+    if credit: DR 1100 AR / CR 4000 Sales Revenue (for grand_total)
+    always: DR 5000 COGS / CR 1200 Inventory (for cost_of_goods)
+
+  postPurchaseJournal(Purchase $purchase):
+    DR 1200 Inventory / CR 2000 AP
+
+  postPaymentJournal(Payment $payment):
+    incoming: DR 1000 Cash / CR 1100 AR
+    outgoing: DR 2000 AP / CR 1000 Cash
+
+  postExpenseJournal(Expense $expense):
+    DR 6xxx Expense Account / CR 1000 Cash`,
+files:[{type:'php',name:'app/Services/Accounting/AccountingService.php'}],
+checks:['Post a $100 debit + $100 credit journal — 1 journal + 2 entries created','Post $100 debit + $90 credit — throws UnbalancedJournalException','Reverse a journal — second journal exists with swapped debit/credit'],
+warn:'Check the balance BEFORE any DB write. If you write entries then check, a partial write can corrupt the books permanently.'},
+{id:'be_s36b',label:'Build Accounting API — COA, Journals, Payment Accounts (with transfer), Fiscal Years',tags:['api'],
+what:'REST endpoints for chart of accounts CRUD, manual journals, journal reversal, payment accounts, inter-account transfer, fiscal years.',
+why:'Accountants manage the COA and post manual journals from the UI. Payment account transfer (e.g. petty cash to bank) is a common daily task.',
+how:`ChartOfAccountsController:
+  Route::apiResource('v1/accounting/accounts', ChartOfAccountsController::class);
+  ← index() returns tree grouped by type (asset/liability/equity/revenue/expense)
+  ← store() validates: code unique per business, type/sub_type valid ENUM
+  ← destroy() blocked if is_system=1 (throw DomainException) or if account has journal_entries
+
+JournalController:
+  Route::apiResource('v1/accounting/journals', JournalController::class);
+  Route::post('v1/accounting/journals/{id}/reverse', [JournalController::class, 'reverse']);
+  ← store() creates a MANUAL journal; calls AccountingService::postJournal()
+  ← Body: { description, type:'manual', lines:[{account_id,type:'debit'|'credit',amount,description}] }
+  ← The AccountingService enforces SUM(debit)==SUM(credit) before saving
+
+PaymentAccountController:
+  Route::apiResource('v1/payment-accounts', PaymentAccountController::class);
+  Route::post('v1/payment-accounts/transfer', [PaymentAccountController::class, 'transfer']);
+  ← transfer() moves money between two payment accounts (e.g. bank → petty cash)
+  ← Body: { from_account_id, to_account_id, amount, date, notes }
+  ← Creates two account_transactions rows + posts journal (DR to-account / CR from-account)
+
+  account_transactions table (append-only, records every payment account debit/credit):
+    id, business_id, payment_account_id(FK), type(ENUM:credit/debit), amount, reference_type, reference_id, transaction_date(DATE), note, created_at ONLY
+
+FiscalYearController:
+  Route::apiResource('v1/accounting/fiscal-years', FiscalYearController::class);
+  ← close() sets status=closed and prevents new journal entries for that period
+
+Accounting Report endpoints:
+  GET /api/v1/accounting/trial-balance   ← live from journal_entries
+  GET /api/v1/accounting/profit-loss     ← live from journal_entries
+  GET /api/v1/accounting/balance-sheet   ← live from journal_entries`,
+files:[{type:'php',name:'app/Http/Controllers/Api/V1/Accounting/ChartOfAccountsController.php'},{type:'php',name:'app/Http/Controllers/Api/V1/Accounting/JournalController.php'},{type:'php',name:'app/Http/Controllers/Api/V1/Accounting/PaymentAccountController.php'}],
+checks:['COA tree returns accounts grouped by asset/liability/equity/revenue/expense','Cannot delete a system account (is_system=1) → DomainException','Manual journal POST with balanced lines → saves correctly','POST /payment-accounts/transfer creates 2 account_transactions rows + 1 journal','Reverse journal → creates opposite journal, original has reversed_by_id set'],warn:''},
+]}
+]},
+
+{id:'be_p5',badge:'PHASE 5',title:'Sales, POS & Quotations',week:'Week 9–12',groups:[
+{title:'5.1 — Sales Database & Service',steps:[
+{id:'be_s37',label:'Create all Sales migrations (8 tables)',tags:['migration','critical'],
+what:'sales, sale_items, sale_item_lots, sale_item_serials, sale_payments, sale_returns, sale_return_items, cash_registers, cash_register_sessions.',
+why:'Sales are the core revenue feature. Every other module (stock, accounting, loyalty, reports) connects to sales.',
+how:`sales: id, business_id, branch_id, warehouse_id, customer_id(nullable), cash_register_session_id(nullable), created_by, sale_number(VARCHAR50 auto: INV-2026-00001), type(ENUM: pos_sale/invoice/draft/quotation/suspended), status(ENUM: draft/quotation/suspended/confirmed/completed/cancelled/returned), payment_status(ENUM: unpaid/partial/paid), sale_date(DATE), due_date(DATE nullable), subtotal(DECIMAL15,2), discount_type(ENUM nullable), discount_amount(DECIMAL15,2), tax_amount, shipping_charges, total_amount, paid_amount(default 0), change_amount, price_group_id(FK nullable), notes, timestamps, deleted_at
+  INDEX(business_id, status, created_at)
+  INDEX(business_id, payment_status, due_date)
+
+sale_items: id, sale_id(FK), product_id, variation_id(nullable), sub_unit_id(nullable), quantity(DECIMAL15,4), unit_price(DECIMAL15,4), discount_type(ENUM nullable), discount_amount, tax_rate(DECIMAL5,2 snapshot), tax_type, tax_amount, unit_cost(DECIMAL15,4 for COGS), total_amount, timestamps
+
+sale_item_lots: id, sale_item_id(FK), lot_id(FK→stock_lots), quantity(DECIMAL15,4), unit_cost(DECIMAL15,4)
+sale_item_serials: id, sale_item_id(FK), serial_id(FK→stock_serials), created_at, UNIQUE(sale_item_id, serial_id)
+
+sale_payments: id, business_id, sale_id(FK), payment_account_id(FK), amount, method(ENUM: cash/card/bank_transfer/cheque/reward_points/other), reference, payment_date, note, created_by, timestamps
+
+sale_returns: id, business_id, sale_id(FK), branch_id, warehouse_id, return_number, status(ENUM: draft/completed), return_date, total_amount, refund_method, notes, created_by, timestamps, deleted_at
+sale_return_items: id, sale_return_id(FK), sale_item_id(FK), product_id, variation_id(nullable), quantity, unit_price, unit_cost, total_amount, lot_id(nullable), serial_ids(JSON array)
+
+cash_registers: id, business_id, branch_id, name, is_active, timestamps, deleted_at
+cash_register_sessions: id, cash_register_id(FK), user_id(FK), opening_float, closing_float(nullable), total_sales, status(ENUM: open/closed), opened_at, closed_at(nullable), notes, timestamps`,
+files:[{type:'sql',name:'database/migrations/xxxx_create_sales_table.php (+ 8 related)'}],
+checks:['All 9 sales-related tables exist','sale_item_lots and sale_item_serials tables exist','sale_number auto-generation logic confirmed'],warn:''},
+{id:'be_s38',label:'Build SaleService — full state machine (5 methods)',tags:['critical'],
+what:'Manages the entire sale lifecycle: draft → confirmed → completed, with each transition calling the correct service.',
+why:'The state machine is the most important business logic in the system. Every step touches stock and accounting. It must be bulletproof.',
+how:`app/Services/Sales/SaleService.php — inject: StockMovementService, AccountingService, LoyaltyService
+
+createDraft(array $data): Sale
+  Auto-generate sale_number: "INV-" + year + "-" + str_pad(nextNumber, 5, '0', STR_PAD_LEFT)
+  Validate each item: product exists, is_active, qty > 0
+  Calculate per line: subtotal = unit_price * qty, discount, tax (snapshot from product.tax_rate), line_total
+  Calculate totals: subtotal, discount_total, tax_total, grand_total
+  DB::transaction(): Create Sale (status=draft) + SaleItems
+
+confirmSale(Sale $sale): Sale
+  Guard: if ($sale->status !== 'draft') throw InvalidStateTransitionException('Can only confirm a draft sale')
+  Call: $this->stockService->reserveStock($sale)  ← reserves stock for ALL items
+  Update: $sale->status = 'confirmed', $sale->confirmed_at = now()
+
+completeSale(Sale $sale, array $payments): Sale
+  Guard: status must be 'confirmed'
+  Call: $this->stockService->deductStock($sale)       ← deducts stock
+  Call: $this->accountingService->postSaleJournal($sale) ← posts DR/CR entries
+  Call: $this->recordPayments($sale, $payments)       ← records payment methods
+  Call: $this->loyaltyService->earnPoints($sale)      ← if loyalty enabled in settings
+  Update: $sale->status = 'completed', completed_at = now()
+
+cancelSale(Sale $sale): Sale
+  Guard: status must be 'draft' or 'confirmed'
+  If status was 'confirmed': call $this->stockService->releaseReservation($sale)
+  Update: status = 'cancelled', cancelled_at = now()
+
+processSaleReturn(Sale $sale, array $returnItems): SaleReturn
+  Call: $this->stockService->returnToStock($sale, $returnItems)
+  Call: $this->accountingService->reverseJournal($sale->journal_id, 'Sale Return')
+  Create SaleReturn + SaleReturnItem rows
+  Return $saleReturn`,
+files:[{type:'php',name:'app/Services/Sales/SaleService.php'}],
+checks:['Create draft → status=draft, stock_levels unchanged','Confirm → status=confirmed, reserved_quantity increased','Complete → status=completed, qty_on_hand decreased, journal_entries created','Cancel after confirm → reserved_quantity back to 0'],
+warn:'NEVER skip the status guard checks. Completing a cancelled sale would corrupt stock and accounting permanently.'},
+{id:'be_s39',label:'Build POS API, Sales API, Quotations, Cash Register endpoints',tags:[],
+what:'All HTTP endpoints for the sales module: CRUD, state transitions, POS-specific fast routes, PDF generation.',
+why:'These endpoints are what the Vue frontend calls. Without them, the sales interface cannot function.',
+how:`Routes and controllers to create:
+
+API Routes (in routes/api.php):
+  Route::apiResource('sales', SaleController::class);
+  Route::post('sales/{id}/confirm', [SaleController::class, 'confirm']);
+  Route::post('sales/{id}/complete', [SaleController::class, 'complete']);
+  Route::post('sales/{id}/cancel', [SaleController::class, 'cancel']);
+  Route::post('sales/{id}/return', [SaleController::class, 'processReturn']);
+  Route::get('sales/{id}/invoice', [SaleController::class, 'invoice']); ← PDF
+  Route::post('sales/pos', [PosController::class, 'completeSale']); ← one-step POS
+
+  Route::apiResource('quotations', QuotationController::class);
+  Route::post('quotations/{id}/convert', [QuotationController::class, 'convert']);
+
+  Route::apiResource('cash-registers', CashRegisterController::class);
+  Route::post('cash-registers/{id}/open', [CashRegisterController::class, 'open']);
+  Route::post('cash-registers/{id}/close', [CashRegisterController::class, 'close']);
+
+  Route::get('pos/products', [PosController::class, 'searchProducts']); ← FULLTEXT, must be < 100ms
+  Route::get('pos/customers', [PosController::class, 'searchCustomers']);
+
+SaleController::invoice() — use dompdf:
+  Load Sale with all items, customer, payments
+  Return PDF::loadView('invoices.sale', ['sale'=>$sale])->download('INV-xxxx.pdf')`,
+files:[{type:'php',name:'app/Http/Controllers/Api/V1/Sales/SaleController.php'},{type:'php',name:'app/Http/Controllers/Api/V1/Sales/PosController.php'},{type:'blade',name:'resources/views/invoices/sale.blade.php'}],
+checks:['POST /api/v1/sales/pos → creates + confirms + completes in one call','GET /api/v1/sales/{id}/invoice → downloads a PDF','GET /api/v1/pos/products?q=cola → returns results in under 100ms'],warn:''},
+]}
+]},
+
+{id:'be_p6',badge:'PHASE 6',title:'Purchases, Payments & Expenses',week:'Week 12–14',groups:[
+{title:'6.1 — Purchases',steps:[
+{id:'be_s40',label:'Create all Purchase migrations and build PurchaseService',tags:['migration','critical'],
+what:'Purchase orders, receive events, receive lots/serials, returns, and payments. Stock enters the system through receives.',
+why:'Stock only physically enters the system at receive time. Lot numbers and serial numbers are first created during a purchase receive.',
+how:`Migrations:
+  purchases: id, business_id, supplier_id, branch_id, warehouse_id, created_by, purchase_number(auto: PO-2024-00001), status(ENUM: draft/ordered/partial_received/received/cancelled), payment_status, order_date, expected_date, subtotal, discount, tax_amount, shipping, total_amount, paid_amount, notes, timestamps, deleted_at
+  purchase_items: id, purchase_id(FK), product_id, variation_id(nullable), quantity, quantity_received(default 0), unit_price, discount_amount, tax_rate, tax_amount, total_amount, timestamps
+  purchase_receives: id, purchase_id(FK), warehouse_id(FK), reference_no(GRN-2024-00001), received_date, notes, created_by, timestamps
+  purchase_receive_items: id, purchase_receive_id(FK), purchase_item_id(FK), product_id, variation_id(nullable), quantity_received, unit_cost, timestamps
+  purchase_receive_lots: id, purchase_receive_item_id(FK), lot_number, manufacture_date, expiry_date, quantity, unit_cost, notes, timestamps
+  purchase_receive_serials: id, purchase_receive_item_id(FK), serial_number, warranty_expires, unit_cost, notes, timestamps
+  purchase_returns, purchase_return_items (similar to sale_returns)
+  purchase_payments (same structure as sale_payments)
+
+PurchaseService::receive(Purchase $purchase, array $receiveData): PurchaseReceive
+  DB::transaction()
+  Create PurchaseReceive row
+  foreach $receiveData['items'] as $item:
+    Create PurchaseReceiveItem
+    if product.stock_tracking === 'none':
+      StockMovementService::createMovement(purchase_receipt, ...)
+    if product.stock_tracking === 'lot':
+      foreach $item['lots'] as $lotData:
+        Create PurchaseReceiveLot row
+        Find or create StockLot (match lot_number + product + warehouse)
+        StockMovementService::createMovement(purchase_receipt, options:[lot_id=>$lot->id])
+    if product.stock_tracking === 'serial':
+      foreach $item['serials'] as $serialData:
+        if StockSerial::where('business_id',$id)->where('serial_number',$sn)->exists(): throw DuplicateSerialException
+        Create StockSerial (status=in_stock)
+        Create PurchaseReceiveSerial row
+        StockMovementService::createMovement(purchase_receipt, options:[serial_id=>$serial->id])
+  AccountingService::postPurchaseJournal($purchase) — DR Inventory / CR AP`,
+files:[{type:'sql',name:'database/migrations/xxxx_create_purchases_table.php (+ 7 related)'},{type:'php',name:'app/Services/Purchases/PurchaseService.php'}],
+checks:['Receive a lot-tracked product → stock_lots row created, stock_levels updated','Receive a serial-tracked product → stock_serials rows created with status=in_stock','Receive duplicate serial → DuplicateSerialException thrown','Purchase journal posted: DR 1200 Inventory, CR 2000 AP'],
+warn:'Lot numbers and serial numbers are entered AT RECEIVE TIME. The PO itself does not create any stock. Only the receive event does.'},
+]},
+{title:'6.2 — Payments & Expenses',steps:[
+{id:'be_s41',label:'Build PaymentService and InstallmentService',tags:[],
+what:'Records sale payments and purchase payments, updates balance_due, posts accounting journal. Installments auto-generate payment schedules.',
+why:'Without payment tracking, you cannot know which invoices are paid, which are overdue, or how much cash you have.',
+how:`Migrations:
+  sale_payments (already in Phase 5), purchase_payments (same structure), installment_plans, installment_schedules
+
+PaymentService::recordSalePayment(Sale $sale, array $data): SalePayment
+  DB::transaction()
+  Create SalePayment row (sale_id, account_id, amount, method, date)
+  sale.paid_amount += amount
+  Recalculate: if paid_amount >= total: status='paid' / if > 0: 'partial' / else: 'unpaid'
+  AccountingService::postPaymentJournal(payment)  ← DR Cash/Bank, CR AR
+
+InstallmentService::createPlan(Sale $sale, float $downPayment, int $count, int $intervalDays): InstallmentPlan
+  DB::transaction()
+  Record down payment via PaymentService
+  remaining = sale.total_amount - downPayment
+  amount_per = remaining / $count
+  for i = 1 to $count:
+    due_date = sale.sale_date + (i * $intervalDays) days
+    Create InstallmentSchedule (due_date, amount, status=pending)
+
+Migrations:
+  installment_plans: id, business_id, payable_type, payable_id, total_amount, installments_count, frequency(ENUM: weekly/biweekly/monthly/custom), start_date, notes, created_by, timestamps
+  installment_schedules: id, plan_id(FK), installment_number(TINYINT), due_date(DATE), amount(DECIMAL15,2), paid_amount(default 0), status(ENUM: pending/paid/overdue/partial), payment_id(nullable), paid_at(nullable), timestamps
+  INDEX(status, due_date) — for overdue alert job`,
+files:[{type:'php',name:'app/Services/Payments/PaymentService.php'},{type:'php',name:'app/Services/Payments/InstallmentService.php'}],
+checks:['Record payment → paid_amount increases, payment_status changes correctly','Create installment plan → correct schedule dates generated','Overdue schedules found by INDEX(status, due_date) query'],warn:''},
+{id:'be_s42',label:'Build ExpenseService',tags:[],
+what:'Operating expenses linked to COA account and payment account. Auto-posts accounting journal on create.',
+why:'Expenses reduce profit. Without them, the P&L report is incorrect.',
+how:`Migrations:
+  expense_categories: id, business_id, name, description, timestamps, deleted_at
+  expenses: id, business_id, branch_id(nullable), expense_category_id(FK), payment_account_id(FK), coa_account_id(FK→chart_of_accounts), expense_number(auto), expense_date, amount, tax_amount, total_amount, reference, notes, attachment_url, is_recurring(TINYINT), recurring_interval(ENUM: daily/weekly/monthly nullable), created_by, timestamps, deleted_at
+
+ExpenseService::create(array $data): Expense
+  DB::transaction()
+  Create Expense row
+  AccountingService::postExpenseJournal($expense)  ← DR Expense Account, CR Cash/Bank
+
+For recurring expenses: RecurringExpenseJob (runs daily) checks all is_recurring=1 expenses and auto-creates new ones based on interval.`,
+files:[{type:'php',name:'app/Services/Expenses/ExpenseService.php'},{type:'sql',name:'database/migrations/xxxx_create_expenses_table.php'}],
+checks:['Create expense → journal entry created (DR Expense, CR Cash)','Recurring expense auto-creates on schedule'],warn:''},
+]}
+]},
+
+{id:'be_p7',badge:'PHASE 7',title:'Loyalty, Reports & Dashboard',week:'Week 14–16',groups:[
+{title:'7.1 — Loyalty Points',steps:[
+{id:'be_s43',label:'Build LoyaltyService and scheduler integration',tags:[],
+what:'Earn points on sale completion, redeem at POS, expire by age. Append-only transaction log.',
+why:'Loyalty drives repeat business. It must be accurate — customers notice if their points balance is wrong.',
+how:`Migrations:
+  loyalty_settings: id, business_id(UNIQUE FK), points_per_unit(DECIMAL10,4), redeem_rate(DECIMAL10,4), min_redeem_points(INT), expiry_months(TINYINT 0=never), is_active(TINYINT default 0), timestamps
+  loyalty_transactions: id, business_id(FK), customer_id(FK), type(ENUM: earned/redeemed/expired/adjusted), points(INT), reference_type, reference_id, note, expires_at(DATE nullable), created_at ONLY (append-only)
+  INDEX(customer_id, created_at), INDEX(type, expires_at)
+
+LoyaltyService::earnPoints(Sale $sale): void
+  if (!settings('loyalty.is_active')) return;
+  settings = LoyaltySetting::forBusiness()
+  points = floor($sale->total_amount * $settings->points_per_unit)
+  LoyaltyTransaction::create([type=>'earned', customer_id, points, reference_type=>'Sale', reference_id=>$sale->id, expires_at=>now()->addMonths($settings->expiry_months)])
+  Customer::incrementPoints($points)   ← computed from transactions sum
+
+LoyaltyService::redeemPoints(Sale $sale, int $points): float
+  Check customer has enough points
+  discount = $points * $settings->redeem_rate
+  LoyaltyTransaction::create([type=>'redeemed', points=>-$points, ...])
+  return $discount  ← applied to sale total
+
+LoyaltyPointsExpireJob (runs daily):
+  LoyaltyTransaction::where('expires_at', '<', today())->where('type','earned')
+  For each: create new LoyaltyTransaction(type='expired', points=>-original_points)`,
+files:[{type:'php',name:'app/Services/Loyalty/LoyaltyService.php'},{type:'sql',name:'database/migrations/xxxx_create_loyalty_settings_table.php'}],
+checks:['Complete a sale → loyalty points appear in loyalty_transactions','Redeem points → negative entry in loyalty_transactions, discount applied to sale','Expired points job creates "expired" entries'],warn:''},
+]},
+{title:'7.2 — Dashboard API & All 25 Reports',steps:[
+{id:'be_s44',label:'Build Dashboard API with Redis caching',tags:['critical'],
+what:'All KPI metrics for the dashboard, cached in Redis for 5 minutes per business.',
+why:'Dashboard queries touch many tables. Without Redis cache, each page load runs 20+ queries and feels slow.',
+how:`DashboardService::getKpis(string $businessId): array
+  1. Check Redis: $cached = Redis::get("dashboard:{$businessId}");
+     if ($cached) return json_decode($cached, true);
+
+  2. Run these queries:
+     Revenue today: Sale::completed()->whereDate('sale_date', today())->sum('total_amount')
+     Revenue this month: same + whereMonth/Year
+     Revenue this year: same + whereYear
+     Purchases today/month/year: same pattern on Purchase model
+     Gross profit: Revenue - SUM(journal_entries where account=5000 COGS, type=debit)
+     Receivables: Sale::where('payment_status','!=','paid')->sum('balance_due')
+     Payables: Purchase::where('payment_status','!=','paid')->sum('balance_due')
+     Low stock: StockLevel::where('available_qty','<=', DB::raw('products.alert_quantity'))->count()
+     Expiring lots: StockLot::where('status','active')->where('expiry_date','<=',now()->addDays(30))->count()
+     Top 5 products: SaleItem::selectRaw('product_id, SUM(quantity) as total_qty')->groupBy('product_id')->orderByDesc('total_qty')->limit(5)->with('product')->get()
+     Recent 10 sales: Sale::completed()->latest()->limit(10)->with('customer')->get()
+
+  3. Cache: Redis::setex("dashboard:{$businessId}", 300, json_encode($data));
+
+  4. Bust cache in SaleService::completeSale() and PurchaseService::receive():
+     Redis::del("dashboard:{$businessId}");`,
+files:[{type:'php',name:'app/Services/Dashboard/DashboardService.php'}],
+checks:['Dashboard API returns all metrics in under 50ms on Redis hit','Change a sale — dashboard data updates after cache expiry (max 5 min)'],warn:''},
+{id:'be_s45',label:'Build all 26 Report methods in ReportService + Excel export for every report',tags:['svc','api'],
+what:'All 26 report queries (the plan\'s 25 + Loyalty Points Report), each with proper filters, each exportable to .xlsx via maatwebsite/excel.',
+why:'Reports are used every day by managers, accountants, and clients. Missing or incorrect reports lose client trust immediately.',
+how:`app/Services/Reports/ReportService.php — one public method per report. All accept: array $filters=[from,to,branch_id,warehouse_id,product_id,customer_id,supplier_id,status,...]
+
+1.  getSalesReport($f)
+    Sale::with(['customer','branch','createdBy'])->filter($f)->paginate()
+    Filters: date range (sale_date), branch_id, customer_id, status, payment_status
+
+2.  getSalesReturnReport($f)
+    SaleReturn::with(['sale.customer','branch','createdBy'])->filter($f)->paginate()
+    Filters: date range (return_date), branch_id, customer_id
+
+3.  getPurchasesReport($f)
+    Purchase::with(['supplier','branch','createdBy'])->filter($f)->paginate()
+    Filters: date range (order_date), branch_id, supplier_id, status, payment_status
+
+4.  getPurchaseReturnReport($f)
+    PurchaseReturn::with(['purchase.supplier','branch','createdBy'])->filter($f)->paginate()
+
+5.  getSalePaymentsReport($f)
+    SalePayment::with(['sale.customer','paymentAccount','createdBy'])->filter($f)->paginate()
+    Filters: date range (payment_date), method, payment_account_id, created_by (cashier)
+
+6.  getPurchasePaymentsReport($f)
+    PurchasePayment::with(['purchase.supplier','paymentAccount'])->filter($f)->paginate()
+
+7.  getStockReport($f)
+    StockLevel::with(['product.category','warehouse'])
+      ->filter($f)
+      ->get()
+      ->map(function($level){
+        // For lot-tracked: append lot summary (active lots count, nearest expiry)
+        if($level->product->stock_tracking==='lot'):
+          $level->lot_summary = StockLot::active()->where('product_id',$level->product_id)->where('warehouse_id',$level->warehouse_id)->get(['lot_number','qty_on_hand','expiry_date'])
+        return $level
+      })
+
+8.  getStockMovementReport($f)
+    StockMovement::with(['product','warehouse','lot','serial','createdBy'])
+      ->when($f['type']??null, fn($q)=>$q->where('type',$f['type']))
+      ->when($f['product_id']??null, fn($q)=>$q->where('product_id',$f['product_id']))
+      ->when($f['lot_number']??null, fn($q)=>$q->whereHas('lot',fn($l)=>$l->where('lot_number',$f['lot_number'])))
+      ->when($f['serial_number']??null, fn($q)=>$q->whereHas('serial',fn($s)=>$s->where('serial_number',$f['serial_number'])))
+      ->whereBetween('created_at',[$f['from']??'2000-01-01', $f['to']??now()])
+      ->latest()->paginate(200)
+
+9.  getLowStockReport($f)
+    StockLevel::with(['product','warehouse'])
+      ->join('products','products.id','=','stock_levels.product_id')
+      ->whereColumn('stock_levels.available_qty','<=','products.alert_quantity')
+      ->where('products.track_inventory',1)
+      ->where('products.stock_tracking','none')
+      ->get()
+
+10. getStockValueReport($f)
+    StockLevel::with(['product','warehouse'])
+      ->get()
+      ->map(fn($l)=>[
+        'product'       => $l->product->name,
+        'sku'           => $l->product->sku,
+        'warehouse'     => $l->warehouse->name,
+        'qty_on_hand'   => $l->quantity,
+        'purchase_price'=> $l->product->purchase_price,
+        'selling_price' => $l->product->selling_price,
+        'cost_value'    => $l->quantity * $l->product->purchase_price,
+        'retail_value'  => $l->quantity * $l->product->selling_price,
+      ])
+
+11. getLotReport($f)
+    StockLot::with(['product','warehouse','supplier'])
+      ->when($f['product_id']??null, fn($q)=>$q->where('product_id',$f['product_id']))
+      ->when($f['warehouse_id']??null, fn($q)=>$q->where('warehouse_id',$f['warehouse_id']))
+      ->when($f['status']??null, fn($q)=>$q->where('status',$f['status']))
+      ->when($f['lot_number']??null, fn($q)=>$q->where('lot_number','LIKE','%'.$f['lot_number'].'%'))
+      ->when($f['expiry_from']??null, fn($q)=>$q->where('expiry_date','>=',$f['expiry_from']))
+      ->when($f['expiry_to']??null, fn($q)=>$q->where('expiry_date','<=',$f['expiry_to']))
+      ->paginate()
+
+12. getLotExpiryReport($f)
+    $days = $f['days'] ?? settings('stock','lot_expiry_alert_days') ?? 30
+    StockLot::with(['product','warehouse'])
+      ->where('status','active')
+      ->whereNotNull('expiry_date')
+      ->where('expiry_date','<=',now()->addDays($days))
+      ->orderBy('expiry_date','asc')
+      ->get()
+
+13. getSerialReport($f)
+    StockSerial::with(['product','warehouse'])
+      ->when($f['q']??null, fn($q)=>$q->where('serial_number','LIKE','%'.$f['q'].'%'))
+      ->when($f['product_id']??null, fn($q)=>$q->where('product_id',$f['product_id']))
+      ->when($f['status']??null, fn($q)=>$q->where('status',$f['status']))
+      ->when($f['warranty_expiring_in']??null, fn($q)=>$q->where('warranty_expires','<=',now()->addDays($f['warranty_expiring_in'])))
+      ->paginate()
+    // Each serial: shows received_at, sold_at, warranty_expires, purchase source, sale destination
+
+14. getProductSalesReport($f)
+    SaleItem::with('product')
+      ->join('sales','sales.id','=','sale_items.sale_id')
+      ->where('sales.status','completed')
+      ->whereBetween('sales.sale_date',[$f['from']??'2000-01-01',$f['to']??now()])
+      ->selectRaw('product_id, SUM(quantity) as qty_sold, SUM(total_amount) as revenue, SUM(unit_cost*quantity) as cost, SUM(total_amount - unit_cost*quantity) as profit')
+      ->groupBy('product_id')
+      ->with('product')
+      ->orderByDesc('revenue')
+      ->paginate()
+
+15. getTrendingProductsReport($f)
+    Same as ProductSalesReport but ORDER BY qty_sold DESC, LIMIT ($f['limit']??10)
+
+16. getCustomerLedger(string $customerId, array $f)
+    Sales + SalePayments for one customer, ordered by date, with running balance:
+      $runningBalance = 0
+      foreach $transactions as $t:
+        if type=sale: $runningBalance += $t->total_amount
+        if type=payment: $runningBalance -= $t->amount
+        $t->running_balance = $runningBalance
+
+17. getSupplierLedger(string $supplierId, array $f)
+    Purchases + PurchasePayments for one supplier, same running balance logic
+
+18. getReceivablesAging($f)
+    Sale::where('payment_status','!=','paid')
+      ->selectRaw('customer_id, SUM(total_amount-paid_amount) as balance,
+        SUM(CASE WHEN DATEDIFF(CURDATE(),due_date) BETWEEN 0 AND 30 THEN total_amount-paid_amount ELSE 0 END) as bucket_0_30,
+        SUM(CASE WHEN DATEDIFF(CURDATE(),due_date) BETWEEN 31 AND 60 THEN total_amount-paid_amount ELSE 0 END) as bucket_31_60,
+        SUM(CASE WHEN DATEDIFF(CURDATE(),due_date) BETWEEN 61 AND 90 THEN total_amount-paid_amount ELSE 0 END) as bucket_61_90,
+        SUM(CASE WHEN DATEDIFF(CURDATE(),due_date) > 90 THEN total_amount-paid_amount ELSE 0 END) as bucket_90plus')
+      ->groupBy('customer_id')->with('customer')->get()
+
+19. getPayablesAging($f)
+    Same as ReceivablesAging but on purchases table, grouped by supplier_id
+
+20. getExpenseReport($f)
+    Expense::with(['category','branch','paymentAccount','createdBy'])
+      ->whereBetween('expense_date',[$f['from']??'2000-01-01',$f['to']??now()])
+      ->when($f['category_id']??null, fn($q)=>$q->where('expense_category_id',$f['category_id']))
+      ->paginate()
+
+21. getCashRegisterReport($f)
+    CashRegisterSession::with(['register.branch','user'])
+      ->when($f['from']??null, fn($q)=>$q->where('opened_at','>=',$f['from']))
+      ->get()
+      ->map(fn($s)=>[
+        ...$s->toArray(),
+        'total_sales'  => SalePayment::where('cash_register_session_id',$s->id)->sum('amount'),
+        'difference'   => $s->closing_float - ($s->opening_float + $total_sales),
+      ])
+
+22. getTaxReport($f)
+    Output tax (from completed sales):
+      Sale::completed()->whereBetween('sale_date',[$from,$to])->sum('tax_amount')
+    Input tax (from received purchases):
+      Purchase::received()->whereBetween('order_date',[$from,$to])->sum('tax_amount')
+    Net: output - input
+
+23. getProfitLossReport($f)
+    From journal_entries grouped by COA account type:
+      Revenue = SUM(credit amounts on type=revenue accounts) - SUM(debit on revenue accounts)
+      COGS    = SUM(debit on sub_type=cogs)
+      Expenses= SUM(debit on type=expense accounts excluding cogs)
+      Gross Profit = Revenue - COGS
+      Net Profit   = Gross Profit - Expenses
+
+24. getBalanceSheet($f)
+    Assets     = SUM(debit-credit on type=asset accounts) as of $f['as_of_date']
+    Liabilities= SUM(credit-debit on type=liability accounts)
+    Equity     = SUM(credit-debit on type=equity accounts) + Net Profit
+    Verify: Assets = Liabilities + Equity
+
+25. getTrialBalance($f)
+    ChartOfAccount::withSum('journalEntries AS total_debit','amount','type','debit')
+      ->withSum('journalEntries AS total_credit','amount','type','credit')
+      ->get()
+    Footer: total all debits == total all credits
+
+26. getLoyaltyPointsReport($f)
+    Customer list with:
+      total_earned   = SUM(points WHERE type=earned) per customer
+      total_redeemed = ABS(SUM(points WHERE type=redeemed)) per customer
+      total_expired  = ABS(SUM(points WHERE type=expired)) per customer
+      current_balance= SUM(points) per customer (positive=credit, negative=debit)
+
+Excel export for ALL reports:
+  class GenericReportExport implements FromCollection, WithHeadings, ShouldAutoSize {
+    public function __construct(protected Collection $data, protected array $headings){}
+    public function collection(){ return $this->data; }
+    public function headings(){ return $this->headings; }
+  }
+  Every report controller method has two actions: index() for JSON, export() for Excel download
+
+Routes:
+  GET /api/v1/reports/dashboard
+  GET /api/v1/reports/sales           → report #1
+  GET /api/v1/reports/sales-returns   → report #2
+  GET /api/v1/reports/purchases       → report #3
+  GET /api/v1/reports/purchase-returns → report #4
+  GET /api/v1/reports/sale-payments   → report #5
+  GET /api/v1/reports/purchase-payments → report #6
+  GET /api/v1/reports/stock           → report #7
+  GET /api/v1/reports/stock-movements → report #8
+  GET /api/v1/reports/low-stock       → report #9
+  GET /api/v1/reports/stock-value     → report #10
+  GET /api/v1/reports/lots            → report #11
+  GET /api/v1/reports/lots-expiry     → report #12
+  GET /api/v1/reports/serials         → report #13
+  GET /api/v1/reports/product-sales   → report #14
+  GET /api/v1/reports/trending        → report #15
+  GET /api/v1/reports/customer-ledger/{id} → report #16
+  GET /api/v1/reports/supplier-ledger/{id} → report #17
+  GET /api/v1/reports/receivables-aging → report #18
+  GET /api/v1/reports/payables-aging  → report #19
+  GET /api/v1/reports/expenses        → report #20
+  GET /api/v1/reports/cash-register   → report #21
+  GET /api/v1/reports/tax             → report #22
+  GET /api/v1/reports/profit-loss     → report #23
+  GET /api/v1/reports/balance-sheet   → report #24
+  GET /api/v1/reports/trial-balance   → report #25
+  GET /api/v1/reports/loyalty         → report #26
+  GET /api/v1/reports/{name}/export   → Excel download for any of the above`,
+files:[{type:'php',name:'app/Services/Reports/ReportService.php'},{type:'php',name:'app/Exports/GenericReportExport.php'},{type:'php',name:'app/Http/Controllers/Api/V1/Reports/ReportController.php'}],
+checks:['All 26 report endpoints return data','GET /reports/sales-returns → shows sale returns (not just sales)','GET /reports/low-stock → products with available_qty <= alert_quantity','GET /reports/stock-value → shows cost_value AND retail_value per product','GET /reports/receivables-aging → 4 buckets (0-30/31-60/61-90/90+)','GET /reports/payables-aging → same 4 buckets for supplier payables','GET /reports/cash-register → opening float, total sales, closing float, difference','GET /reports/loyalty → earned/redeemed/expired/balance per customer','GET /reports/trial-balance → total debits == total credits','Every /export endpoint downloads a .xlsx file'],
+warn:'Run at least 10 sales, 5 purchases, 5 expenses before testing reports. Reports against empty data are impossible to verify correctly.'},
+]}
+]},
+
+{id:'be_p8',badge:'PHASE 8',title:'Notifications, Jobs & HRM',week:'Week 16–20',groups:[
+{title:'8.1 — Scheduled Jobs',steps:[
+{id:'be_s46',label:'Build all 8 scheduled notification jobs',tags:[],
+what:'Daily automated jobs: low stock alerts, lot expiry, payment reminders, installment overdue, quotation expiry, recurring expenses, loyalty expiry.',
+why:'These jobs replace manual monitoring. The system proactively alerts the admin before problems become serious.',
+how:`Register all jobs in routes/console.php (Laravel 11 Artisan schedule):
+
+Schedule::daily()->call(function() {
+  LowStockAlertJob::dispatch();        // qty-mode below alert_quantity → email admin
+  LotExpiryAlertJob::dispatch();       // lots expiring in N days → email admin
+  LotExpiredJob::dispatch();           // expiry_date < today → set status=expired, in-app notification
+  SalePaymentDueJob::dispatch();       // invoice due in X days → email customer
+  PurchasePaymentDueJob::dispatch();   // PO due → email admin
+  InstallmentOverdueJob::dispatch();   // schedules past due_date → email admin
+  QuotationExpiryJob::dispatch();      // quotation passed expiry → in-app notification
+  RecurringExpenseJob::dispatch();     // auto-create recurring expenses
+  LoyaltyPointsExpireJob::dispatch();  // points past expires_at → create expired entries
+});
+
+LotExpiredJob logic:
+  StockLot::where('status','active')->where('expiry_date','<',today())->each(function($lot) {
+    $lot->update(['status'=>'expired']);
+    Notification::send(adminsForBusiness($lot->business_id), new LotExpiredNotification($lot));
+  });`,
+files:[{type:'php',name:'app/Jobs/ (8 job classes)'},{type:'php',name:'routes/console.php'}],
+checks:['php artisan schedule:run executes without errors','LotExpiredJob updates lot status to expired','php artisan queue:work processes queued jobs'],warn:''},
+]},
+{title:'8.2 — HRM Module Backend',steps:[
+{id:'be_s47',label:'Create all 9 HRM migrations in Modules/HRM/',tags:['migration'],
+what:'HRM has 9 tables: departments, designations, employees, attendance_records, leave_types, leave_balances, leave_requests, payroll_runs, payroll_items.',
+why:'HRM is an optional module. It must live in Modules/HRM/ so it can be enabled/disabled without touching core app/ code.',
+how:`Run: php artisan module:make HRM
+
+Create migrations in Modules/HRM/Database/Migrations/:
+  departments: id, business_id(FK), parent_id(self-FK nullable), name, description, manager_id(FK→employees nullable), timestamps
+  designations: id, business_id(FK), name, timestamps
+  employees: id, business_id(FK), user_id(FK→users nullable), branch_id, department_id, designation_id, employee_code(unique per business: EMP-00001), first_name, last_name, gender(ENUM: male/female/other), date_of_birth, hire_date, job_title, phone, email, address(JSON), status(ENUM: active/on_leave/resigned/terminated), salary_type(ENUM: monthly/hourly/daily), salary_amount(DECIMAL15,2), bank_account(JSON), emergency_contact(JSON), timestamps, deleted_at, UNIQUE(business_id, employee_code)
+  attendance_records: id, business_id, employee_id(FK), date(DATE), check_in(TIME), check_out(TIME nullable), break_minutes(SMALLINT), working_hours(DECIMAL5,2), status(ENUM: present/absent/late/half_day/holiday/on_leave), is_overtime, overtime_hours, note, timestamps, UNIQUE(employee_id, date)
+  leave_types: id, business_id, name, max_days_per_year(SMALLINT), is_paid(TINYINT), timestamps
+  leave_balances: id, business_id, employee_id, leave_type_id, year(SMALLINT), total_days(DECIMAL5,1), used_days(DECIMAL5,1), remaining_days DECIMAL(5,1) GENERATED AS (total_days - used_days) STORED, UNIQUE(employee_id, leave_type_id, year)
+  leave_requests: id, business_id, employee_id, leave_type_id, start_date, end_date, total_days, reason, status(ENUM: pending/approved/rejected/cancelled), approved_by(nullable), approved_at, rejection_reason, timestamps
+  payroll_runs: id, business_id, month(TINYINT), year(SMALLINT), status(ENUM: draft/processing/finalized), total_employees, total_gross, total_deductions, total_net, finalized_at, finalized_by, timestamps, UNIQUE(business_id, month, year)
+  payroll_items: id, payroll_run_id(FK), employee_id, base_salary, allowances, deductions, overtime_pay, leave_deductions, gross_pay, net_pay, working_days, absent_days, overtime_hours, allowances_detail(JSON), deductions_detail(JSON), timestamps`,
+files:[{type:'sql',name:'Modules/HRM/Database/Migrations/ (9 files)'}],
+checks:['All 9 HRM tables exist after php artisan module:migrate HRM','leave_balances.remaining_days is a GENERATED column'],warn:''},
+{id:'be_s48',label:'Build AttendanceService, LeaveService, PayrollService',tags:[],
+what:'AttendanceService: check-in/out + working hours. LeaveService: submit + approve + balance. PayrollService: net pay calculation.',
+why:'Payroll affects employee salaries. Errors cost money and create legal problems. The formula must be precise.',
+how:`AttendanceService::checkIn(string $employeeId): AttendanceRecord
+  Check UNIQUE(employee_id, date) — no open record today
+  Create record: check_in = now(), status = 'present'
+  If now() > shift_start_setting: status = 'late'
+
+AttendanceService::checkOut(string $employeeId): AttendanceRecord
+  Find today's open record
+  check_out = now()
+  working_hours = (check_out - check_in) in decimal hours - (break_minutes / 60)
+  If working_hours > overtime_threshold setting: is_overtime=1, overtime_hours = working_hours - threshold
+
+LeaveService::submit($employeeId, $leaveTypeId, $from, $to, $reason): LeaveRequest
+  total_days = count of working days between $from and $to (exclude weekends/holidays)
+  Load leave_balance for (employee, type, year)
+  If $balance->remaining_days < $total_days: throw DomainException('Insufficient leave balance')
+  Create LeaveRequest (status=pending)
+
+LeaveService::approve(string $requestId): LeaveRequest
+  Guard: status must be 'pending'
+  $balance->used_days += $request->total_days  (remaining_days GENERATED automatically)
+  $request->status = 'approved', approved_by = auth()->id(), approved_at = now()
+
+PayrollService::calculateRun(string $businessId, int $month, int $year): PayrollRun
+  Create PayrollRun (status=draft)
+  foreach active Employee:
+    if salary_type === 'monthly': base = salary_amount
+    if salary_type === 'hourly':  base = salary_amount * SUM(attendance.working_hours for month)
+    overtime_pay = SUM(overtime_hours) * (salary_amount/working_days_per_month/8 * 1.5)
+    leave_deductions = unpaid_leave_days * (salary_amount / working_days_per_month)
+    gross_pay = base + allowances + overtime_pay
+    deductions = income_tax + other_deductions
+    net_pay = gross_pay - deductions - leave_deductions
+    Create PayrollItem
+  Update PayrollRun totals
+
+PayrollService::finalizeRun(string $runId): PayrollRun
+  status = 'finalized', finalized_at = now(), finalized_by = auth()->id()
+  AccountingService::postJournal(debit: 6100 Salary Expense, credit: 1000 Cash, amount: total_net)
+
+PayrollService::generatePayslip(string $runId, string $employeeId): BinaryFileResponse
+  $item = PayrollItem::where([payroll_run_id=$runId, employee_id=$employeeId])->with(['employee','payrollRun'])->firstOrFail()
+  $pdf = PDF::loadView('hrm.payslip', ['item'=>$item, 'employee'=>$item->employee, 'run'=>$item->payrollRun])
+  return $pdf->download("Payslip-{$item->employee->employee_code}-{$item->payrollRun->month}-{$item->payrollRun->year}.pdf")
+
+Create: resources/views/hrm/payslip.blade.php
+  Employee info header (name, code, department, designation, hire_date)
+  Period: Month YYYY
+  Earnings table: Base Salary | Allowances | Overtime Pay | Gross Pay
+  Deductions table: Income Tax | Social Security | Leave Deductions | Total Deductions
+  Net Pay (large, prominent)
+  Company branding from business settings
+
+All HRM API Routes (prefix /api/v1/hrm/):
+  Route::apiResource('employees', EmployeeController::class);
+  Route::apiResource('departments', DepartmentController::class);
+  Route::apiResource('designations', DesignationController::class);
+  Route::post('attendance/checkin', [AttendanceController::class, 'checkIn']);
+  Route::post('attendance/checkout', [AttendanceController::class, 'checkOut']);
+  Route::get('attendance', [AttendanceController::class, 'index']);
+  Route::get('attendance/report/{id}', [AttendanceController::class, 'employeeReport']);
+  Route::apiResource('leave-types', LeaveTypeController::class);
+  Route::apiResource('leave-requests', LeaveRequestController::class);
+  Route::put('leave-requests/{id}/approve', [LeaveRequestController::class, 'approve']);
+  Route::put('leave-requests/{id}/reject', [LeaveRequestController::class, 'reject']);
+  Route::get('leave-balances/{id}', [LeaveBalanceController::class, 'show']);
+  Route::post('payroll', [PayrollController::class, 'calculate']);
+  Route::get('payroll', [PayrollController::class, 'index']);
+  Route::put('payroll/{id}/finalize', [PayrollController::class, 'finalize']);
+  Route::get('payroll/{id}/export', [PayrollController::class, 'export']);          ← full run Excel
+  Route::get('payroll/{id}/payslip/{eid}', [PayrollController::class, 'payslip']); ← individual PDF`,
+files:[{type:'php',name:'Modules/HRM/Services/AttendanceService.php'},{type:'php',name:'Modules/HRM/Services/LeaveService.php'},{type:'php',name:'Modules/HRM/Services/PayrollService.php'}],
+checks:['Check in twice for same day → rejected by UNIQUE constraint','Approve leave → leave_balance.remaining_days decreases automatically (GENERATED)','Calculate payroll → net_pay = gross - deductions for each employee','Finalize payroll → journal DR 6100 Salary / CR 1000 Cash created','GET /hrm/payroll/{id}/payslip/{eid} → downloads PDF payslip with earnings and deductions'],warn:'The payroll tax formula (income tax, social security) is country-specific. Review with the client before finalising any payroll run.'},
+]}
+]},
+
+{id:'be_p9',badge:'PHASE 9',title:'Testing, Security & Deploy',week:'Week 18–26',groups:[
+{title:'9.1 — Automated Tests',steps:[
+{id:'be_s49',label:'Write unit tests for all critical services (80%+ coverage)',tags:['test','critical'],
+what:'PHPUnit tests that automatically verify service methods work correctly and stay correct as you add features.',
+why:'Tests are your safety net. Without them, every feature you add might break something that worked before.',
+how:`Run: php artisan test (shows current state)
+
+StockMovementServiceTest (tests/Unit/Inventory/StockMovementServiceTest.php):
+  test_none_mode_adds_stock: call createMovement adjustment_in, assert stock_levels.quantity increased
+  test_none_mode_throws_on_insufficient: adjustment_out for more than available → InsufficientStockException
+  test_lot_mode_creates_lot_row: purchase_receipt with lot → stock_lots row created
+  test_fifo_selects_oldest_lot: lot A (older) + lot B, sell 5 → lot A selected
+  test_fefo_selects_nearest_expiry: lot A (later expiry) + lot B (sooner), fefo mode → lot B selected
+  test_lot_spanning: lot A (qty 3) + lot B (qty 5), sell 7 → lot A fully used, lot B has 1 left
+  test_lot_throws_on_expired: try to sell from expired lot → LotExpiredException
+  test_serial_created_on_receive: purchase_receipt for serial product → StockSerial row with in_stock
+  test_serial_reserved_on_confirm: confirm sale → serial status = reserved
+  test_serial_sold_on_complete: complete sale → serial status = sold
+  test_duplicate_serial_throws: receive same serial_number twice → DuplicateSerialException
+  test_concurrent_confirm_no_oversell: two concurrent confirms for last item → one fails
+
+AccountingServiceTest (tests/Unit/Accounting/AccountingServiceTest.php):
+  test_balanced_journal_saves: $100 DR + $100 CR → journal + 2 entries created
+  test_unbalanced_journal_throws: $100 DR + $90 CR → UnbalancedJournalException
+  test_reversal_creates_opposite: reverse journal → second journal with swapped debit/credit
+
+Feature tests (tests/Feature/):
+  AuthApiTest: wrong password → 401, correct → token, logout → token invalidated
+  TenantIsolationTest: Business A cannot see Business B data
+  SaleApiTest: full state machine (draft→confirm→complete), stock changes verified
+  LotApiTest: FIFO/FEFO selection, lot spanning, expired lot blocked
+  SerialApiTest: status transitions, duplicate blocked
+
+Check coverage:
+  php artisan test --coverage
+  Target: 80%+ on app/Services/`,
+files:[{type:'php',name:'tests/Unit/Inventory/StockMovementServiceTest.php'},{type:'php',name:'tests/Unit/Accounting/AccountingServiceTest.php'},{type:'php',name:'tests/Feature/Sales/SaleApiTest.php'}],
+checks:['php artisan test → all tests pass, zero failures','Coverage report shows 80%+ on Services folder'],
+warn:'A failing test is a warning. NEVER comment out or skip a failing test. Fix the underlying code instead.'},
+]},
+{title:'9.2 — Security & Production',steps:[
+{id:'be_s50',label:'Security hardening and rate limiting',tags:['critical'],
+what:'Rate limiting on auth routes, CORS configuration, checking for exposed secrets, N+1 query elimination.',
+why:'Security problems after launch expose client data and can end your business reputation.',
+how:`1. Rate limiting in routes/api.php:
+   Route::middleware('throttle:5,1')->group(function() { /* auth routes */ });
+   Route::middleware('throttle:300,1')->group(function() { /* all API routes */ });
+
+2. CORS — config/cors.php:
+   'allowed_origins' => ['https://yourdomain.com']  ← NOT '*'
+   'allowed_methods' => ['GET','POST','PUT','DELETE']
+   'allowed_headers' => ['Content-Type','Authorization','X-Requested-With']
+
+3. Production .env:
+   APP_DEBUG=false
+   APP_ENV=production
+
+4. Check .env not in git:
+   git log --all -- .env  ← must return nothing
+
+5. N+1 queries — install Telescope (dev only):
+   composer require laravel/telescope --dev
+   php artisan telescope:install
+   Check every API endpoint. Any endpoint showing more than 5 queries needs:
+     Sale::with(['items.product','customer','payments'])->paginate()
+
+6. File upload validation on all upload endpoints:
+   $request->validate(['image' => 'required|file|mimes:jpg,jpeg,png|max:2048'])`,
+files:[{type:'php',name:'config/cors.php'},{type:'php',name:'routes/api.php (throttle middleware)'}],
+checks:['6th login attempt in 1 minute → 429 Too Many Requests','GET from a different origin → blocked by CORS','No N+1 queries in any API endpoint (verified in Telescope)','git log --all -- .env returns nothing'],
+warn:'Run this entire checklist before your first client goes live. Skipping security is how data breaches happen.'},
+{id:'be_s51',label:'Deploy to Ubuntu 22.04 production server',tags:['critical'],
+what:'Setup Nginx, PHP 8.2, MariaDB 10.11 (production), Redis, SSL, Supervisor queue workers, GitHub Actions CI/CD.',
+why:'Your local laptop is not a server. Clients need a stable, always-on server with a domain and HTTPS.',
+how:`1. Provision Ubuntu 22.04 on DigitalOcean or Hetzner (4GB RAM minimum)
+2. sudo apt install nginx php8.2-fpm php8.2-mysql php8.2-mbstring php8.2-xml php8.2-bcmath php8.2-redis
+3. Install MariaDB 10.11: follow mariadb.org/download/ for Ubuntu
+4. sudo apt install redis-server
+5. Configure /etc/nginx/sites-available/erp:
+   server {
+     server_name yourdomain.com;
+     root /var/www/erp/public;
+     index index.php;
+     location / { try_files $uri $uri/ /index.php?$query_string; }
+     location ~ \\.php$ { fastcgi_pass unix:/run/php/php8.2-fpm.sock; include fastcgi_params; }
+   }
+6. sudo certbot --nginx -d yourdomain.com  ← free SSL
+7. git clone [repo] /var/www/erp
+8. composer install --no-dev --optimize-autoloader
+9. npm run build
+10. php artisan migrate --force
+11. php artisan db:seed --class=RolePermissionSeeder
+12. Supervisor config for queue worker:
+    [program:erp-worker]
+    command=php /var/www/erp/artisan queue:work redis --sleep=3 --tries=3
+    autostart=true
+    autorestart=true
+13. Cron: * * * * * php /var/www/erp/artisan schedule:run >> /dev/null 2>&1
+14. Set up daily MariaDB backup to S3 — test restore process BEFORE going live`,
+files:[{type:'sql',name:'/etc/nginx/sites-available/erp'},{type:'sql',name:'/etc/supervisor/conf.d/erp-worker.conf'}],
+checks:['https://yourdomain.com loads with green SSL padlock','php artisan test → passes on production','Queue workers shown as RUNNING in supervisor status','Daily backup verified restorable'],
+warn:'A backup you have never restored is not a real backup. Test the restore process before your first client uses the system.'},
+]}
+]}
+];
+
+// ─── STATE ENGINE ──────────────────────────────────────────────────────
+let S={};
+const KEY='erp_be_v1';
+function load(){try{const s=localStorage.getItem(KEY);if(s)S=JSON.parse(s)}catch(e){}}
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function cycle(id){const c=S[id]||'none',n={none:'done',done:'wip',wip:'blocked',blocked:'none'};S[id]=n[c];save();renderAll();}
+
+function allTasks(){let t=0,d=0;PHASES.forEach(p=>p.groups.forEach(g=>g.steps.forEach(s=>{t++;if((S[s.id]||'none')==='done')d++})));return{t,d};}
+function phaseTasks(p){let t=0,d=0;p.groups.forEach(g=>g.steps.forEach(s=>{t++;if((S[s.id]||'none')==='done')d++}));return{t,d};}
+
+let openP={},openG={},openD={};
+
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+function ck(st){if(st==='done')return '<span class="ck-done">✓</span>';if(st==='wip')return '<div class="ck-wip"></div>';if(st==='blocked')return '<span class="ck-blocked">✕</span>';return '';}
+function tmap(t){return{critical:'t-crit',migration:'t-mig',api:'t-api',test:'t-test'}[t]||'';}
+
+function renderStep(s){
+  const st=S[s.id]||'none',do_=openD[s.id];
+  const tags=(s.tags||[]).map(t=>`<span class="t ${tmap(t)}">${t}</span>`).join('');
+  const wn=s.warn?`<div class="warn-box"><div class="warn-lbl">⚠ WARNING</div><div class="warn-txt">${esc(s.warn)}</div></div>`:'';
+  const fi=s.files&&s.files.length?`<div class="d-section"><div class="d-label l-files">Files to create</div><div class="file-list">${s.files.map(f=>`<div class="file-item"><div class="ficon fi-${f.type}">${f.type.slice(0,2).toUpperCase()}</div><span>${esc(f.name)}</span></div>`).join('')}</div></div>`:'';
+  const ch=s.checks&&s.checks.length?`<div class="d-section"><div class="d-label l-check">Checkpoints — verify before moving on</div><div class="check-list">${s.checks.map(c=>`<div class="check-item"><span class="ck-bul">✓</span><span>${esc(c)}</span></div>`).join('')}</div></div>`:'';
+  const how=esc(s.how||'').replace(/\n/g,'<br>');
+  return `<div class="step ${st}" id="sc_${s.id}">
+    <div class="step-row" onclick="toggleD('${s.id}')">
+      <div class="step-box" onclick="event.stopPropagation();cycle('${s.id}')">${ck(st)}</div>
+      <div style="flex:1"><div class="step-title">${esc(s.label)}</div><div class="step-tags">${tags}</div></div>
+      <span style="font-size:10px;color:var(--text3);margin-left:8px">${do_?'▲':'▼'}</span>
+    </div>
+    <div class="detail ${do_?'open':''}" id="det_${s.id}">
+      ${wn}
+      <div class="d-section"><div class="d-label l-what">What you are building</div><div class="d-text">${esc(s.what||'')}</div></div>
+      <div class="d-section"><div class="d-label l-why">Why this matters</div><div class="d-text">${esc(s.why||'')}</div></div>
+      <div class="d-section"><div class="d-label l-how">How to do it — step by step</div><div class="d-text">${how}</div></div>
+      ${fi}${ch}
+    </div>
+  </div>`;
+}
+
+function renderSb(){
+  document.getElementById('sb').innerHTML=`<div class="sb-section">Navigation</div>`+PHASES.map(p=>{
+    const{t,d}=phaseTasks(p),pct=t>0?Math.round(d/t*100):0,dot=d===t&&t>0?'done':d>0?'wip':'';
+    return `<div class="sb-item ${openP[p.id]?'active':''}" onclick="scrollToP('${p.id}')"><div class="sb-dot ${dot}"></div><span style="flex:1">${p.badge}</span><span class="sb-pct">${pct}%</span></div>`;
+  }).join('');
+}
+
+function scrollToP(id){document.getElementById(id)?.scrollIntoView({behavior:'smooth',block:'start'});}
+
+function renderProg(){
+  const{t,d}=allTasks(),pct=t>0?Math.round(d/t*100):0;
+  document.getElementById('gpbar').style.width=pct+'%';
+  document.getElementById('gpbar-txt').textContent=`${d} / ${t} completed`;
+  document.getElementById('gpbar-pct').textContent=pct+'%';
+}
+
+function renderMain(){
+  const legend=`<div style="display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap;font-size:11px;color:var(--text2)">
+    <strong>Click checkbox to cycle:</strong>
+    <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:3px;border:1.5px solid var(--border2);display:inline-block"></span>Not started</span>
+    <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:3px;background:var(--green);display:inline-block"></span>Done</span>
+    <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:3px;background:var(--amber-bg);border:1.5px solid var(--amber);display:inline-block"></span>In progress</span>
+    <span style="display:flex;align-items:center;gap:4px"><span style="width:12px;height:12px;border-radius:3px;background:var(--red-bg);border:1.5px solid var(--red);display:inline-block"></span>Blocked</span>
+    <span style="color:var(--text3);margin-left:4px">· Click row title to expand details</span>
+  </div>`;
+
+  const golden=`<div class="golden-box">
+    <h3>Golden Order — follow for every single feature</h3>
+    <div class="golden-steps">
+      ${['Migration','Model','Form Request','API Resource','Repository','Service','API Controller','Web Controller','Tests'].map((s,i)=>`<span class="g-step"><span class="g-step-num">${i+1}</span>${s}</span>${i<8?'<span class="g-arrow">→</span>':''}`).join('')}
+    </div>
+  </div>`;
+
+  const daily=`<div class="guide-box">
+    <h3>Daily Routine</h3>
+    <div class="guide-grid">
+      <div class="guide-col"><h4>Start of Day</h4>
+        ${['docker compose up -d','php artisan serve','Open VS Code','Check current phase + step'].map((s,i)=>`<div class="guide-row"><span class="g-num">${i+1}.</span><span>${s.includes('artisan')||s.includes('docker')?`<span class="g-cmd">${s}</span>`:s}</span></div>`).join('')}
+      </div>
+      <div class="guide-col"><h4>During Work</h4>
+        ${['Follow Golden Order exactly','Test in Postman after each layer','Never put logic in Controller','Always use DB::transaction() on multi-table writes'].map((s,i)=>`<div class="guide-row"><span class="g-num">${i+5}.</span><span>${s}</span></div>`).join('')}
+      </div>
+      <div class="guide-col"><h4>End of Day</h4>
+        ${['php artisan test (must be green)','git add .','git commit -m "Phase X: what you built"','git push'].map((s,i)=>`<div class="guide-row"><span class="g-num">${i+9}.</span><span>${s.includes('artisan')||s.includes('git')?`<span class="g-cmd">${s}</span>`:s}</span></div>`).join('')}
+      </div>
+    </div>
+  </div>`;
+
+  const phases=PHASES.map(p=>{
+    const{t,d}=phaseTasks(p),pct=t>0?Math.round(d/t*100):0,isOpen=openP[p.id]!==false;
+    const groups=p.groups.map(g=>{
+      const gid=p.id+'_'+g.title,isG=openG[gid]!==false;
+      const gdone=g.steps.filter(s=>(S[s.id]||'none')==='done').length;
+      return `<div class="grp"><div class="grp-hdr" onclick="toggleG('${gid}')"><span>${isG?'▼':'▶'}</span>${esc(g.title)}<span class="grp-cnt">${gdone}/${g.steps.length}</span></div>${isG?g.steps.map(renderStep).join(''):''}</div>`;
+    }).join('');
+    return `<div class="phase" id="${p.id}">
+      <div class="phase-hdr" onclick="toggleP('${p.id}')">
+        <span class="phase-badge">${p.badge}</span>
+        <span class="phase-title">${p.title}</span>
+        <span class="phase-week">${p.week}</span>
+        <span class="phase-cnt">${d}/${t}</span>
+        <span class="phase-chevron ${isOpen?'open':''}">▶</span>
+      </div>
+      <div class="phase-bar"><div class="phase-fill" style="width:${pct}%"></div></div>
+      ${isOpen?`<div>${groups}</div>`:''}
+    </div>`;
+  }).join('');
+
+  document.getElementById('main').innerHTML=legend+golden+daily+phases;
+}
+
+function toggleP(id){openP[id]=!(openP[id]!==false);renderAll();}
+function toggleG(id){openG[id]=!(openG[id]!==false);renderAll();}
+function toggleD(id){openD[id]=!openD[id];renderAll();}
+function renderAll(){renderProg();renderSb();renderMain();}
+
+load();
+PHASES.forEach(p=>{openP[p.id]=false;});
+if(PHASES.length)openP[PHASES[0].id]=true;
+renderAll();
+</script>
+</body>
+</html>
