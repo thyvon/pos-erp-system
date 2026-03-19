@@ -23,6 +23,7 @@ class DefaultSettingsSeeder extends Seeder
                 DB::table('settings')->updateOrInsert(
                     [
                         'business_id' => $businessId,
+                        'group' => $setting['group'],
                         'key' => $setting['key'],
                     ],
                     [
