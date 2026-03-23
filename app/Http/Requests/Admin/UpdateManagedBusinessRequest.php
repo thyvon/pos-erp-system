@@ -25,7 +25,7 @@ class UpdateManagedBusinessRequest extends FormRequest
             'currency' => ['sometimes', 'required', 'string', 'size:3'],
             'timezone' => ['sometimes', 'required', 'string', 'max:100'],
             'country' => ['nullable', 'string', 'size:2'],
-            'locale' => ['nullable', 'string', 'max:10'],
+            'locale' => ['nullable', Rule::in(['en', 'km'])],
             'logo_url' => ['nullable', 'url', 'max:500'],
             'tier' => ['sometimes', 'required', 'in:basic,standard,enterprise'],
             'status' => ['sometimes', 'required', 'in:active,suspended,cancelled'],

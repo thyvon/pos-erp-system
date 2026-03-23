@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import * as authApi from '@api/auth'
+import { applyLocale, resolveLocalePreference } from '@/i18n'
 
 const TOKEN_KEY = 'auth_token'
 const USER_KEY = 'auth_user'
@@ -56,6 +57,7 @@ export const useAuthStore = defineStore('auth', {
         this.token = response.data.data.token
         this.user = response.data.data.user
         this.persist()
+        applyLocale(resolveLocalePreference(this.user))
         return response.data
       } finally {
         this.loading = false
@@ -69,7 +71,15 @@ export const useAuthStore = defineStore('auth', {
       const response = await authApi.me()
       this.user = response.data.data
       this.persist()
+      applyLocale(resolveLocalePreference(this.user))
       return this.user
+    },
+    async updateLocalePreference(locale) {
+      const response = await authApi.updatePreferences({ locale })
+      this.user = response.data.data
+      this.persist()
+      applyLocale(resolveLocalePreference(this.user))
+      return response.data
     },
     async logout() {
       try {

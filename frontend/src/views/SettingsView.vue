@@ -115,7 +115,9 @@
 
                       <div>
                         <label class="erp-label" for="locale">Locale</label>
-                        <Field id="locale" name="locale" class="erp-input" />
+                        <Field id="locale" name="locale" as="select" class="erp-select">
+                          <option v-for="option in localeOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+                        </Field>
                         <ErrorMessage name="locale" class="erp-helper text-rose-500 dark:text-rose-400" />
                       </div>
                     </div>
@@ -399,6 +401,10 @@ const settingsFormKey = ref(0)
 const businessFormKey = ref(0)
 const generalFormKey = ref(0)
 const timezones = ['Asia/Phnom_Penh', 'Asia/Bangkok', 'UTC']
+const localeOptions = [
+  { value: 'en', label: 'English' },
+  { value: 'km', label: 'Khmer' },
+]
 
 const groups = [
   {

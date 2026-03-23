@@ -27,6 +27,7 @@ class UserResource extends JsonResource
             'sales_target_amount' => $this->sales_target_amount,
             'last_login_at' => $this->last_login_at,
             'preferences' => $this->preferences,
+            'locale' => data_get($this->preferences, 'locale') ?? $this->business?->locale ?? config('app.locale'),
             'business' => $this->whenLoaded('business', fn () => [
                 'id' => $this->business?->id,
                 'name' => $this->business?->name,

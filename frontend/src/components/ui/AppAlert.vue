@@ -20,7 +20,7 @@
                 <button
                   type="button"
                   class="rounded-[5px] px-2 py-1 text-lg leading-none opacity-60 transition hover:opacity-100"
-                  aria-label="Dismiss alert"
+                  :aria-label="t('alert.dismiss')"
                   @click="dismiss"
                 >
                   <i class="fa-solid fa-xmark text-sm"></i>
@@ -37,6 +37,8 @@
 
 <script setup>
 import { computed, onBeforeUnmount, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { getIntlLocale } from '@/i18n'
 
 const props = defineProps({
   show: { type: Boolean, default: false },
@@ -47,6 +49,7 @@ const props = defineProps({
 })
 
 const emit = defineEmits(['update:show', 'dismiss'])
+const { t, locale } = useI18n()
 
 const visible = ref(props.show)
 const timestamp = ref('')
@@ -91,7 +94,7 @@ const startTimer = () => {
     return
   }
 
-  timestamp.value = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+  timestamp.value = new Date().toLocaleTimeString(getIntlLocale(locale.value), { hour: '2-digit', minute: '2-digit' })
 
   timeoutId = setTimeout(() => {
     dismiss()

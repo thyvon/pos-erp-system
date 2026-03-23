@@ -168,7 +168,9 @@
 
                 <div>
                   <label class="erp-label" for="locale">Locale</label>
-                  <Field id="locale" name="locale" class="erp-input" />
+                  <Field id="locale" name="locale" as="select" class="erp-select">
+                    <option v-for="option in localeOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
+                  </Field>
                   <ErrorMessage name="locale" class="erp-helper text-rose-500 dark:text-rose-400" />
                 </div>
               </div>
@@ -258,6 +260,10 @@ import { useAuthStore } from '@stores/auth'
 const auth = useAuthStore()
 const store = useAdminBusinessesStore()
 const timezones = ['Asia/Phnom_Penh', 'Asia/Bangkok', 'UTC']
+const localeOptions = [
+  { value: 'en', label: 'English' },
+  { value: 'km', label: 'Khmer' },
+]
 
 const canCreateBusiness = computed(() => auth.can('businesses.create'))
 const canEditBusiness = computed(() => auth.can('businesses.edit'))

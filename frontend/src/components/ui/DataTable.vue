@@ -4,7 +4,7 @@
       <div>
         <h2 class="text-lg font-semibold text-slate-950 dark:text-white">{{ title }}</h2>
         <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-          {{ total }} total {{ total === 1 ? 'record' : 'records' }}
+          {{ t('table.total', { count: total }) }}
         </p>
       </div>
 
@@ -17,7 +17,7 @@
     </div>
 
     <div class="relative">
-      <LoadingSpinner :show="loading" title="Loading table" message="Fetching current records..." />
+      <LoadingSpinner :show="loading" :title="t('table.loadingTitle')" :message="t('table.loadingMessage')" />
 
       <div class="overflow-x-auto">
         <table class="erp-table">
@@ -54,9 +54,9 @@
             <tr>
               <td :colspan="columns.length" class="px-4 py-12 text-center">
                 <div class="mx-auto max-w-sm">
-                  <div class="text-base font-semibold text-slate-950 dark:text-white">No records found</div>
+                  <div class="text-base font-semibold text-slate-950 dark:text-white">{{ t('table.noRecordsFound') }}</div>
                   <div class="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
-                    Try changing your filters or create the first record for this section.
+                    {{ t('table.noRecordsMessage') }}
                   </div>
                 </div>
               </td>
@@ -68,9 +68,9 @@
 
     <div class="flex flex-col gap-3 border-t border-slate-200/70 px-4 py-3 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
       <div class="flex flex-col gap-2.5 text-sm text-slate-500 dark:text-slate-400 sm:flex-row sm:items-center">
-        <span>Page {{ currentPage }} of {{ lastPage }}</span>
+        <span>{{ t('table.pageOf', { current: currentPage, last: lastPage }) }}</span>
         <label class="flex items-center gap-2">
-          <span>Rows</span>
+          <span>{{ t('table.rows') }}</span>
           <select
             class="erp-select max-w-[5.5rem] py-2"
             :value="perPage"
@@ -94,12 +94,13 @@
 
 <script setup>
 import { ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import AppPagination from './AppPagination.vue'
 import LoadingSpinner from './LoadingSpinner.vue'
 import SearchInput from './SearchInput.vue'
 
 const props = defineProps({
-  title: { type: String, default: 'Records' },
+  title: { type: String, default: '' },
   columns: { type: Array, default: () => [] },
   rows: { type: Array, default: () => [] },
   loading: { type: Boolean, default: false },
@@ -108,13 +109,14 @@ const props = defineProps({
   lastPage: { type: Number, default: 1 },
   perPage: { type: Number, default: 15 },
   searchTerm: { type: String, default: '' },
-  searchPlaceholder: { type: String, default: 'Search records...' },
+  searchPlaceholder: { type: String, default: '' },
   sortKey: { type: String, default: '' },
   sortDirection: { type: String, default: 'asc' },
   perPageOptions: { type: Array, default: () => [10, 15, 25, 50] },
 })
 
 const emit = defineEmits(['search', 'sort-change', 'page-change', 'per-page-change'])
+const { t } = useI18n()
 
 const searchValue = ref(props.searchTerm)
 let searchTimer = null

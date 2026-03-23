@@ -1,0 +1,18 @@
+{
+  "Validation failed.": "Validation failed.",
+  "Unauthenticated.": "Unauthenticated.",
+  "You do not have permission.": "You do not have permission.",
+  "Record not found.": "Record not found.",
+  "An unexpected error occurred.": "An unexpected error occurred.",
+  "Request failed.": "Request failed.",
+  "Invalid credentials.": "Invalid credentials.",
+  "This user account is not active.": "This user account is not active.",
+  "This business is not active.": "This business is not active.",
+  "Login successful.": "Login successful.",
+  "Logout successful.": "Logout successful.",
+  "The current password is incorrect.": "The current password is incorrect.",
+  "Password updated successfully.": "Password updated successfully.",
+  "Language updated successfully.": "Language updated successfully.",
+  "Business profile updated successfully.": "Business profile updated successfully.",
+  "Settings updated successfully.": "Settings updated successfully."
+}

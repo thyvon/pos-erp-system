@@ -29,6 +29,6 @@ class BusinessController extends BaseApiController
 
         $updatedBusiness = $this->businessService->updateCurrentBusiness($request->validated());
 
-        return $this->success(new BusinessResource($updatedBusiness), 'Business profile updated successfully.');
+        return $this->success(new BusinessResource($updatedBusiness), __('Business profile updated successfully.'));
     }
 }

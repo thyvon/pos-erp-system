@@ -20,6 +20,7 @@ Route::prefix('v1/auth')->group(function () {
         Route::post('logout', [AuthController::class, 'logout']);
         Route::get('me', [AuthController::class, 'me']);
         Route::put('password', [AuthController::class, 'updatePassword']);
+        Route::put('preferences', [AuthController::class, 'updatePreferences']);
     });
 });
 

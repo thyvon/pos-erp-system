@@ -185,11 +185,11 @@
             class="erp-sidebar-callout mt-6 rounded-[5px] p-3"
           >
             <div class="erp-sidebar-callout-kicker text-[11px] font-semibold uppercase tracking-[0.22em]">
-              Next Build Target
+              {{ t('layout.nextBuildTarget') }}
             </div>
-            <div class="erp-sidebar-callout-title mt-2 text-base font-semibold">Branches + Warehouses</div>
+            <div class="erp-sidebar-callout-title mt-2 text-base font-semibold">{{ t('layout.nextBuildTitle') }}</div>
             <p class="erp-sidebar-callout-body mt-2 text-sm leading-6">
-              The visual shell is now the default. Each next page should inherit this surface instead of rebuilding layout.
+              {{ t('layout.nextBuildBody') }}
             </p>
           </div>
         </div>
@@ -201,7 +201,7 @@
             <div class="flex items-center gap-3">
               <button type="button" class="erp-topbar-button lg:hidden" @click="sidebarOpen = true">
                 <i class="fa-solid fa-bars"></i>
-                <span>Menu</span>
+                <span>{{ t('common.menu') }}</span>
               </button>
               <button
                 type="button"
@@ -230,8 +230,12 @@
             <div class="flex items-center gap-2 sm:gap-3">
               <div class="erp-glass-band hidden items-center gap-2.5 px-3 py-1.5 text-sm text-slate-600 dark:text-slate-300 xl:flex">
                 <div class="h-2.5 w-2.5 rounded-full bg-emerald-500"></div>
-                <span>Backend connected</span>
+                <span>{{ t('layout.backendConnected') }}</span>
               </div>
+              <button type="button" class="erp-topbar-button" :title="t('common.language')" @click="toggleLocale">
+                <i class="fa-solid fa-language"></i>
+                <span>{{ currentLocaleLabel }}</span>
+              </button>
               <button type="button" class="erp-topbar-button" @click="toggleTheme">
                 <i class="fa-solid" :class="isDark ? 'fa-sun' : 'fa-moon'"></i>
               </button>
@@ -264,12 +268,12 @@
                       {{ userDisplayName }}
                     </div>
                     <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                      {{ auth.user?.email || auth.user?.roles?.[0] || 'User' }}
+                      {{ auth.user?.email || auth.user?.roles?.[0] || t('common.user') }}
                     </div>
                   </div>
                   <button type="button" class="erp-topbar-user-menu-item" role="menuitem" @click="handleLogout">
                     <i class="fa-solid fa-arrow-right-from-bracket"></i>
-                    <span>Logout</span>
+                    <span>{{ t('layout.logout') }}</span>
                   </button>
                 </div>
               </div>
@@ -293,12 +297,12 @@
                 {{ appName }}
               </div>
               <div class="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                Frosted ERP workspace connected to the Laravel API backend.
+                {{ t('layout.footerDescription') }}
               </div>
             </div>
             <div class="flex flex-col items-start gap-1 text-left sm:items-end">
               <div class="font-medium text-slate-700 dark:text-slate-200">{{ today }}</div>
-              <div class="text-xs text-slate-500 dark:text-slate-400">{{ currentYear }} © All rights reserved</div>
+              <div class="text-xs text-slate-500 dark:text-slate-400">{{ currentYear }} © {{ t('layout.allRightsReserved') }}</div>
             </div>
           </div>
         </footer>
@@ -310,7 +314,9 @@
 <script setup>
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@stores/auth'
+import { applyLocale, getIntlLocale } from '@/i18n'
 
 const props = defineProps({
   title: {
@@ -330,6 +336,7 @@ const props = defineProps({
 const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()
+const { t, locale } = useI18n()
 const sidebarOpen = ref(false)
 const sidebarCollapsed = ref(localStorage.getItem('erp_sidebar_collapsed') === 'true')
 const sidebarHovered = ref(false)
@@ -342,12 +349,14 @@ const userMenuRef = ref(null)
 const themeKey = 'erp_theme'
 const appName = import.meta.env.VITE_APP_NAME || 'ERP System'
 const currentYear = new Date().getFullYear()
-const today = new Date().toLocaleDateString(undefined, {
-  weekday: 'short',
-  year: 'numeric',
-  month: 'long',
-  day: 'numeric',
-})
+const today = computed(() =>
+  new Date().toLocaleDateString(getIntlLocale(locale.value), {
+    weekday: 'short',
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })
+)
 
 const userDisplayName = computed(() => {
   const fullName = auth.user?.full_name?.trim()
@@ -362,7 +371,7 @@ const userDisplayName = computed(() => {
     return joined
   }
 
-  return auth.user?.email || 'ERP User'
+  return auth.user?.email || t('common.user')
 })
 
 const userAvatarUrl = computed(() => auth.user?.avatar_url || '')
@@ -426,17 +435,19 @@ const footerDesktopStyle = computed(() => ({
       : '0',
 }))
 
+const currentLocaleLabel = computed(() => (locale.value === 'km' ? 'KM' : 'EN'))
+
 const navGroups = computed(() => {
   const base = [
     {
-      label: 'Overview',
+      label: t('layout.groups.overview'),
       items: [
         {
-          label: 'Dashboard',
-          description: 'KPIs and progress',
+          label: t('layout.nav.dashboard.label'),
+          description: t('layout.nav.dashboard.description'),
           short: 'DB',
           to: '/dashboard',
-          status: 'Live',
+          status: t('status.live'),
           statusClass: 'bg-emerald-400/15 text-emerald-200',
           icon: 'fa-solid fa-gauge-high',
         },
@@ -446,15 +457,15 @@ const navGroups = computed(() => {
 
   if (isSuperAdmin.value) {
     base.push({
-      label: 'Platform',
+      label: t('layout.groups.platform'),
       items: [
         {
-          label: 'Businesses',
-          description: 'Register and manage tenants',
+          label: t('layout.nav.businesses.label'),
+          description: t('layout.nav.businesses.description'),
           short: 'BS',
           to: '/admin/businesses',
           permission: 'businesses.index',
-          status: 'Ready',
+          status: t('status.ready'),
           statusClass: 'bg-cyan-400/15 text-cyan-200',
           icon: 'fa-solid fa-briefcase',
         },
@@ -462,25 +473,25 @@ const navGroups = computed(() => {
     })
   } else {
     base.push({
-      label: 'User Management',
+      label: t('layout.groups.userManagement'),
       items: [
         {
-          label: 'Users',
-          description: 'Roles and access',
+          label: t('layout.nav.users.label'),
+          description: t('layout.nav.users.description'),
           short: 'US',
           to: '/users',
           permission: 'users.index',
-          status: 'Ready',
+          status: t('status.ready'),
           statusClass: 'bg-cyan-400/15 text-cyan-200',
           icon: 'fa-solid fa-users',
         },
         {
-          label: 'Roles',
-          description: 'Role list and permissions',
+          label: t('layout.nav.roles.label'),
+          description: t('layout.nav.roles.description'),
           short: 'RL',
           to: '/roles',
           permission: 'roles.index',
-          status: 'Ready',
+          status: t('status.ready'),
           statusClass: 'bg-cyan-400/15 text-cyan-200',
           icon: 'fa-solid fa-user-shield',
         },
@@ -488,45 +499,45 @@ const navGroups = computed(() => {
     })
 
     base.push({
-      label: 'Foundation',
+      label: t('layout.groups.foundation'),
       items: [
         {
-          label: 'Branches',
-          description: 'Multi-location setup',
+          label: t('layout.nav.branches.label'),
+          description: t('layout.nav.branches.description'),
           short: 'BR',
           to: '/branches',
           permission: 'branches.index',
-          status: 'Ready',
+          status: t('status.ready'),
           statusClass: 'bg-cyan-400/15 text-cyan-200',
           icon: 'fa-solid fa-code-branch',
         },
         {
-          label: 'Warehouses',
-          description: 'Stock locations',
+          label: t('layout.nav.warehouses.label'),
+          description: t('layout.nav.warehouses.description'),
           short: 'WH',
           to: '/warehouses',
           permission: 'warehouses.index',
-          status: 'Ready',
+          status: t('status.ready'),
           statusClass: 'bg-cyan-400/15 text-cyan-200',
           icon: 'fa-solid fa-warehouse',
         },
         {
-          label: 'Settings',
-          description: 'Business and system defaults',
+          label: t('layout.nav.settings.label'),
+          description: t('layout.nav.settings.description'),
           short: 'ST',
           to: '/settings',
           permissionAny: ['settings.index', 'businesses.index'],
-          status: 'Ready',
+          status: t('status.ready'),
           statusClass: 'bg-cyan-400/15 text-cyan-200',
           icon: 'fa-solid fa-gear',
         },
         {
-          label: 'Custom Fields',
-          description: 'Schema extensions',
+          label: t('layout.nav.customFields.label'),
+          description: t('layout.nav.customFields.description'),
           short: 'CF',
           to: '/custom-fields',
           permission: 'custom_fields.index',
-          status: 'Ready',
+          status: t('status.ready'),
           statusClass: 'bg-cyan-400/15 text-cyan-200',
           icon: 'fa-solid fa-sliders',
         },
@@ -535,29 +546,29 @@ const navGroups = computed(() => {
   }
 
   base.push({
-    label: 'Roadmap',
+    label: t('layout.groups.roadmap'),
     items: [
       {
-        label: 'Catalog',
-        description: 'Products and contacts',
+        label: t('layout.nav.catalog.label'),
+        description: t('layout.nav.catalog.description'),
         short: 'CG',
-        status: 'Planned',
+        status: t('status.planned'),
         statusClass: 'bg-slate-400/15 text-slate-300',
         icon: 'fa-solid fa-boxes-stacked',
       },
       {
-        label: 'Inventory',
-        description: 'Lots and serials',
+        label: t('layout.nav.inventory.label'),
+        description: t('layout.nav.inventory.description'),
         short: 'IV',
-        status: 'Planned',
+        status: t('status.planned'),
         statusClass: 'bg-slate-400/15 text-slate-300',
         icon: 'fa-solid fa-layer-group',
       },
       {
-        label: 'Sales & POS',
-        description: 'Order flow',
+        label: t('layout.nav.sales.label'),
+        description: t('layout.nav.sales.description'),
         short: 'SL',
-        status: 'Planned',
+        status: t('status.planned'),
         statusClass: 'bg-slate-400/15 text-slate-300',
         icon: 'fa-solid fa-cash-register',
       },
@@ -582,6 +593,21 @@ const toggleTheme = () => {
   root.classList.toggle('dark', nextDark)
   isDark.value = nextDark
   localStorage.setItem(themeKey, nextDark ? 'dark' : 'light')
+}
+
+const toggleLocale = async () => {
+  const nextLocale = locale.value === 'en' ? 'km' : 'en'
+
+  if (auth.isLoggedIn) {
+    try {
+      await auth.updateLocalePreference(nextLocale)
+      return
+    } catch {
+      // Fallback to client-only locale switch if the preferences request fails.
+    }
+  }
+
+  applyLocale(nextLocale)
 }
 
 const toggleSidebarCollapsed = () => {

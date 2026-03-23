@@ -13,7 +13,7 @@
       inputmode="search"
       enterkeyhint="search"
       class="erp-input pl-11 pr-11"
-      :placeholder="placeholder"
+      :placeholder="resolvedPlaceholder"
       @input="$emit('update:modelValue', $event.target.value)"
     />
 
@@ -29,10 +29,16 @@
 </template>
 
 <script setup>
-defineProps({
+import { computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+
+const props = defineProps({
   modelValue: { type: String, default: '' },
-  placeholder: { type: String, default: 'Search...' },
+  placeholder: { type: String, default: '' },
 })
 
 defineEmits(['update:modelValue'])
+
+const { t } = useI18n()
+const resolvedPlaceholder = computed(() => props.placeholder || t('table.searchRecords'))
 </script>

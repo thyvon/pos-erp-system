@@ -29,15 +29,15 @@ class AuthController extends BaseApiController
             ->first();
 
         if (! $user || ! Hash::check($validated['password'], $user->password)) {
-            return $this->error('Invalid credentials.', 401);
+            return $this->error(__('Invalid credentials.'), 401);
         }
 
         if ($user->status !== 'active') {
-            return $this->error('This user account is not active.', 403);
+            return $this->error(__('This user account is not active.'), 403);
         }
 
         if (! $user->hasRole('super_admin') && $user->business?->status !== 'active') {
-            return $this->error('This business is not active.', 403);
+            return $this->error(__('This business is not active.'), 403);
         }
 
         $user->forceFill([
@@ -51,7 +51,7 @@ class AuthController extends BaseApiController
         return $this->success([
             'token' => $token,
             'user' => new UserResource($user->fresh(['business', 'roles', 'permissions', 'branches', 'defaultBranch'])),
-        ], 'Login successful.');
+        ], __('Login successful.'));
     }
 
     public function logout(Request $request)
@@ -64,7 +64,7 @@ class AuthController extends BaseApiController
             $this->writeAuditLog($user, 'logout');
         }
 
-        return $this->success(null, 'Logout successful.');
+        return $this->success(null, __('Logout successful.'));
     }
 
     public function me(Request $request)
@@ -93,7 +93,27 @@ class AuthController extends BaseApiController
             'password' => $validated['new_password'],
         ])->save();
 
-        return $this->success(new UserResource($user->load(['business', 'roles', 'permissions', 'branches', 'defaultBranch'])), 'Password updated successfully.');
+        return $this->success(new UserResource($user->load(['business', 'roles', 'permissions', 'branches', 'defaultBranch'])), __('Password updated successfully.'));
+    }
+
+    public function updatePreferences(Request $request)
+    {
+        $validated = $request->validate([
+            'locale' => ['required', 'in:en,km'],
+        ]);
+
+        $user = $request->user();
+        $preferences = $user->preferences ?? [];
+        $preferences['locale'] = $validated['locale'];
+
+        $user->forceFill([
+            'preferences' => $preferences,
+        ])->save();
+
+        return $this->success(
+            new UserResource($user->load(['business', 'roles', 'permissions', 'branches', 'defaultBranch'])),
+            __('Language updated successfully.')
+        );
     }
 
     public function forgotPassword(Request $request)

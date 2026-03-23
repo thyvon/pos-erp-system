@@ -23,7 +23,7 @@ class StoreBusinessRequest extends FormRequest
             'currency' => ['required', 'string', 'size:3'],
             'timezone' => ['required', 'string', 'max:100'],
             'country' => ['nullable', 'string', 'size:2'],
-            'locale' => ['nullable', 'string', 'max:10'],
+            'locale' => ['nullable', Rule::in(['en', 'km'])],
             'logo_url' => ['nullable', 'url', 'max:500'],
             'tier' => ['required', 'in:basic,standard,enterprise'],
             'status' => ['required', 'in:active,suspended,cancelled'],

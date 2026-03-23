@@ -24,6 +24,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->alias([
             'super_admin' => \App\Http\Middleware\EnsureSuperAdmin::class,
         ]);
+        $middleware->appendToGroup('api', \App\Http\Middleware\SetApplicationLocale::class);
         $middleware->appendToGroup('api', \App\Http\Middleware\TenantResolver::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {
@@ -40,7 +41,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (ValidationException $exception, Request $request) {
             return response()->json([
                 'success' => false,
-                'message' => 'Validation failed.',
+                'message' => __('Validation failed.'),
                 'errors' => $exception->errors(),
             ], 422);
         });
@@ -48,14 +49,14 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (AuthenticationException $exception, Request $request) {
             return response()->json([
                 'success' => false,
-                'message' => 'Unauthenticated.',
+                'message' => __('Unauthenticated.'),
             ], 401);
         });
 
         $exceptions->render(function (AuthorizationException $exception, Request $request) {
             return response()->json([
                 'success' => false,
-                'message' => 'You do not have permission.',
+                'message' => __('You do not have permission.'),
             ], 403);
         });
 
@@ -69,7 +70,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $exceptions->render(function (ModelNotFoundException|NotFoundHttpException $exception, Request $request) {
             return response()->json([
                 'success' => false,
-                'message' => 'Record not found.',
+                'message' => __('Record not found.'),
             ], 404);
         });
 
@@ -79,10 +80,10 @@ return Application::configure(basePath: dirname(__DIR__))
                 : 500;
 
             $message = match ($status) {
-                401 => 'Unauthenticated.',
-                403 => 'You do not have permission.',
-                404 => 'Record not found.',
-                default => $status >= 500 ? 'An unexpected error occurred.' : ($exception->getMessage() ?: 'Request failed.'),
+                401 => __('Unauthenticated.'),
+                403 => __('You do not have permission.'),
+                404 => __('Record not found.'),
+                default => $status >= 500 ? __('An unexpected error occurred.') : ($exception->getMessage() ?: __('Request failed.')),
             };
 
             return response()->json([
