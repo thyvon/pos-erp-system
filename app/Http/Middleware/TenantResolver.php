@@ -18,6 +18,10 @@ class TenantResolver
         $user = $request->user();
         $businessId = $user?->business_id;
 
+        if ($user && method_exists($user, 'hasRole') && $user->hasRole('super_admin')) {
+            return $next($request);
+        }
+
         if (empty($businessId)) {
             return $next($request);
         }

@@ -38,6 +38,7 @@ class BranchService
 
             /** @var Branch $branch */
             $branch = $this->branches->create($data);
+            auth()->user()?->branches()->syncWithoutDetaching([$branch->id]);
 
             return $branch->load(['manager']);
         });

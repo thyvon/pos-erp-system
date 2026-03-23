@@ -12,6 +12,22 @@ export const useAuthStore = defineStore('auth', {
   }),
   getters: {
     isLoggedIn: (state) => Boolean(state.token),
+    isSuperAdmin: (state) => Boolean(state.user?.roles?.includes('super_admin')),
+    permissions: (state) => state.user?.permissions || [],
+    can: (state) => (permission) => {
+      if (state.user?.roles?.includes('super_admin')) {
+        return true
+      }
+
+      return Boolean(state.user?.permissions?.includes(permission))
+    },
+    canAny: (state) => (permissions) => {
+      if (state.user?.roles?.includes('super_admin')) {
+        return true
+      }
+
+      return permissions.some((permission) => state.user?.permissions?.includes(permission))
+    },
   },
   actions: {
     persist() {

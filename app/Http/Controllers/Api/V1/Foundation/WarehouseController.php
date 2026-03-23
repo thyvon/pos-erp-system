@@ -19,6 +19,8 @@ class WarehouseController extends BaseApiController
 
     public function index(Request $request): JsonResponse
     {
+        $this->authorize('viewAny', Warehouse::class);
+
         $warehouses = $this->warehouseService->paginate($request->only([
             'search',
             'type',
@@ -31,6 +33,8 @@ class WarehouseController extends BaseApiController
 
     public function store(StoreWarehouseRequest $request): JsonResponse
     {
+        $this->authorize('create', Warehouse::class);
+
         $warehouse = $this->warehouseService->create($request->validated());
 
         return $this->success(new WarehouseResource($warehouse), 'Warehouse created successfully.', 201);
@@ -38,11 +42,15 @@ class WarehouseController extends BaseApiController
 
     public function show(Warehouse $warehouse): JsonResponse
     {
+        $this->authorize('view', $warehouse);
+
         return $this->success(new WarehouseResource($warehouse->load(['branch'])));
     }
 
     public function update(UpdateWarehouseRequest $request, Warehouse $warehouse): JsonResponse
     {
+        $this->authorize('update', $warehouse);
+
         $warehouse = $this->warehouseService->update($warehouse, $request->validated());
 
         return $this->success(new WarehouseResource($warehouse), 'Warehouse updated successfully.');
@@ -50,6 +58,8 @@ class WarehouseController extends BaseApiController
 
     public function destroy(Warehouse $warehouse): JsonResponse
     {
+        $this->authorize('delete', $warehouse);
+
         $this->warehouseService->delete($warehouse);
 
         return $this->success(null, 'Warehouse deleted successfully.');

@@ -4,10 +4,7 @@
     <div class="erp-glass-orb right-[8%] top-[3.5rem] h-64 w-64 bg-orange-200/30" style="animation-delay: -4s"></div>
     <div class="erp-glass-orb bottom-[7rem] right-[-5rem] h-72 w-72 bg-blue-300/20" style="animation-delay: -8s"></div>
 
-    <div
-      class="relative min-h-screen transition-[grid-template-columns] duration-300 lg:grid lg:grid-rows-[72px_minmax(0,1fr)]"
-      :class="sidebarCollapsed ? 'lg:grid-cols-[6rem_minmax(0,1fr)]' : 'lg:grid-cols-[19rem_minmax(0,1fr)]'"
-    >
+    <div class="relative min-h-screen">
       <div
         v-if="sidebarOpen"
         class="fixed inset-0 z-40 bg-slate-950/28 backdrop-blur-md lg:hidden"
@@ -16,22 +13,23 @@
 
       <div
         v-if="isDesktop"
-        class="relative z-30 flex items-center border-b border-r border-white/10 bg-[linear-gradient(180deg,rgba(5,16,31,0.96),rgba(8,20,37,0.92))] px-4"
+        class="erp-sidebar-brand fixed left-0 top-0 z-30 flex h-[72px] items-center px-4"
+        :style="desktopBrandStyle"
       >
         <RouterLink to="/dashboard" class="flex min-w-0 items-center gap-3">
           <div class="flex h-11 w-11 items-center justify-center rounded-[5px] bg-[linear-gradient(135deg,#ecf5ff,#8cc7ff_55%,#4d84ff)] text-lg font-bold text-slate-950 shadow-[0_18px_30px_rgba(77,132,255,0.28)]">
             E
           </div>
           <div v-if="!sidebarCollapsed" class="min-w-0">
-            <div class="text-[11px] font-semibold uppercase tracking-[0.28em] text-cyan-200/80">
+            <div class="erp-sidebar-brand-kicker text-[11px] font-semibold uppercase tracking-[0.28em]">
               POS ERP
             </div>
-            <div class="mt-1 truncate text-sm font-medium text-white/90">Liquid Workspace</div>
+            <div class="erp-sidebar-brand-title mt-1 truncate text-sm font-medium">Liquid Workspace</div>
           </div>
         </RouterLink>
       </div>
 
-      <header v-if="isDesktop" class="sticky top-0 z-30">
+      <header v-if="isDesktop" class="fixed top-0 z-30" :style="desktopHeaderStyle">
         <div class="erp-panel-float flex min-h-[72px] w-full items-center justify-between gap-3 rounded-none border-x-0 border-t-0 px-4 py-2.5 lg:px-6">
           <div class="flex items-center gap-3">
             <button
@@ -109,31 +107,31 @@
       </header>
 
       <aside
-        class="fixed inset-y-0 left-0 z-50 flex w-[19rem] max-w-[88vw] flex-col overflow-hidden rounded-r-[5px] text-slate-200 transition-all duration-300 lg:!static lg:z-auto lg:h-[calc(100vh-72px)] lg:max-w-none lg:rounded-none lg:sticky lg:top-[72px] lg:translate-x-0"
+        class="erp-sidebar-shell fixed inset-y-0 left-0 z-50 flex w-[19rem] max-w-[88vw] flex-col overflow-hidden rounded-r-[5px] transition-all duration-300 lg:bottom-0 lg:top-[72px] lg:z-20 lg:max-w-none lg:rounded-none lg:translate-x-0"
         :style="desktopSidebarStyle"
         :class="sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'"
       >
-        <div class="absolute inset-0 rounded-r-[5px] bg-[linear-gradient(180deg,rgba(5,16,31,0.9),rgba(8,20,37,0.78))] lg:rounded-none"></div>
-        <div class="absolute inset-0 rounded-r-[5px] border border-white/10 lg:rounded-none lg:border-y-0 lg:border-l-0"></div>
-        <div class="absolute inset-x-0 top-0 h-28 rounded-tr-[5px] bg-gradient-to-b from-white/10 to-transparent lg:rounded-none"></div>
+        <div class="erp-sidebar-shell-bg absolute inset-0 rounded-r-[5px] lg:rounded-none"></div>
+        <div class="erp-sidebar-shell-border absolute inset-0 rounded-r-[5px] lg:rounded-none"></div>
+        <div class="erp-sidebar-shell-glow absolute inset-x-0 top-0 h-28 rounded-tr-[5px] lg:rounded-none"></div>
 
-        <div v-if="!isDesktop" class="relative flex min-h-[88px] items-center justify-between border-b border-white/10 px-4 py-4">
+        <div v-if="!isDesktop" class="erp-sidebar-mobile-head relative flex min-h-[88px] items-center justify-between px-4 py-4">
           <RouterLink to="/dashboard" class="flex items-center gap-3">
             <div class="flex h-12 w-12 items-center justify-center rounded-[5px] bg-[linear-gradient(135deg,#ecf5ff,#8cc7ff_55%,#4d84ff)] text-lg font-bold text-slate-950 shadow-[0_18px_30px_rgba(77,132,255,0.28)]">
               E
             </div>
             <div v-if="!sidebarCollapsed" class="min-w-0">
-              <div class="text-[11px] font-semibold uppercase tracking-[0.28em] text-cyan-200/80">
+              <div class="erp-sidebar-brand-kicker text-[11px] font-semibold uppercase tracking-[0.28em]">
                 POS ERP
               </div>
-              <div class="mt-1 text-sm font-medium text-white/90">Liquid Workspace</div>
+              <div class="erp-sidebar-brand-title mt-1 text-sm font-medium">Liquid Workspace</div>
             </div>
           </RouterLink>
 
           <div class="flex items-center gap-2">
             <button
               type="button"
-              class="rounded-[5px] border border-white/10 px-2.5 py-1.5 text-sm text-slate-300 lg:hidden"
+              class="erp-sidebar-mobile-close rounded-[5px] px-2.5 py-1.5 text-sm lg:hidden"
               @click="sidebarOpen = false"
             >
               <i class="fa-solid fa-xmark"></i>
@@ -141,52 +139,13 @@
           </div>
         </div>
 
-        <div ref="sidebarScrollRef" class="relative flex-1 overflow-y-auto overscroll-y-contain px-3 py-4">
-          <div v-if="!sidebarCollapsed" class="erp-sidebar-panel">
-            <div class="flex items-start justify-between gap-3">
-              <div class="flex items-start gap-3">
-                <div class="erp-user-avatar erp-user-avatar-sidebar">
-                  <img
-                    v-if="userAvatarUrl"
-                    :src="userAvatarUrl"
-                    :alt="userDisplayName"
-                    class="h-full w-full object-cover"
-                  />
-                  <span v-else>{{ userInitials }}</span>
-                </div>
-                <div>
-                  <div class="text-[11px] font-semibold uppercase tracking-[0.22em] text-cyan-300/80">
-                    Workspace
-                  </div>
-                  <div class="mt-2 text-lg font-semibold text-white">
-                    {{ auth.user?.business?.name || 'Foundation Build' }}
-                  </div>
-                  <div class="mt-1 text-sm text-slate-300/80">
-                    {{ userDisplayName }}
-                  </div>
-                </div>
-              </div>
-              <span class="erp-nav-badge bg-white/10 text-cyan-100">Live API</span>
-            </div>
-
-            <p class="mt-3 text-sm leading-6 text-slate-300/78">
-              Frosted shell for the ERP control center with tenant-aware modules and API-first flow.
-            </p>
-
-            <div class="mt-4 grid grid-cols-2 gap-2.5">
-              <div class="rounded-[5px] border border-white/10 bg-white/5 px-2.5 py-2.5">
-                <div class="text-[11px] uppercase tracking-[0.18em] text-slate-400/80">Role</div>
-                <div class="mt-1 text-sm font-medium text-white">
-                  {{ auth.user?.roles?.[0] || 'Admin' }}
-                </div>
-              </div>
-              <div class="rounded-[5px] border border-white/10 bg-white/5 px-2.5 py-2.5">
-                <div class="text-[11px] uppercase tracking-[0.18em] text-slate-400/80">Modules</div>
-                <div class="mt-1 text-sm font-medium text-white">Foundation</div>
-              </div>
-            </div>
-          </div>
-
+        <div
+          ref="sidebarScrollRef"
+          class="relative flex-1 overscroll-y-contain px-3 py-4"
+          :class="sidebarScrollClasses"
+          @mouseenter="sidebarHovered = true"
+          @mouseleave="sidebarHovered = false"
+        >
           <div class="mt-6 space-y-6">
             <section v-for="group in navGroups" :key="group.label">
               <div v-if="!sidebarCollapsed" class="erp-sidebar-section-title">
@@ -223,20 +182,20 @@
 
           <div
             v-if="!sidebarCollapsed"
-            class="mt-6 rounded-[5px] border border-white/10 bg-gradient-to-br from-white/10 to-white/0 p-3"
+            class="erp-sidebar-callout mt-6 rounded-[5px] p-3"
           >
-            <div class="text-[11px] font-semibold uppercase tracking-[0.22em] text-slate-400/80">
+            <div class="erp-sidebar-callout-kicker text-[11px] font-semibold uppercase tracking-[0.22em]">
               Next Build Target
             </div>
-            <div class="mt-2 text-base font-semibold text-white">Branches + Warehouses</div>
-            <p class="mt-2 text-sm leading-6 text-slate-300/76">
+            <div class="erp-sidebar-callout-title mt-2 text-base font-semibold">Branches + Warehouses</div>
+            <p class="erp-sidebar-callout-body mt-2 text-sm leading-6">
               The visual shell is now the default. Each next page should inherit this surface instead of rebuilding layout.
             </p>
           </div>
         </div>
       </aside>
 
-      <div class="erp-main-wrap min-w-0 overflow-x-hidden">
+      <div class="erp-main-wrap min-w-0 overflow-x-hidden" :style="mainWrapStyle">
         <header v-if="!isDesktop" class="sticky top-0 z-30">
           <div class="erp-panel-float flex min-h-[72px] w-full items-center justify-between gap-3 rounded-none border-x-0 border-t-0 px-4 py-2.5 lg:px-6">
             <div class="flex items-center gap-3">
@@ -318,8 +277,8 @@
           </div>
         </header>
 
-        <main class="px-0 py-0">
-          <div class="w-full px-4 py-4 pb-28 lg:px-6 lg:py-5">
+        <main class="min-h-full px-0 py-0">
+          <div class="w-full px-4 py-4 pb-40 lg:px-6 lg:py-5 lg:pb-36">
             <slot />
           </div>
         </main>
@@ -373,6 +332,7 @@ const router = useRouter()
 const route = useRoute()
 const sidebarOpen = ref(false)
 const sidebarCollapsed = ref(localStorage.getItem('erp_sidebar_collapsed') === 'true')
+const sidebarHovered = ref(false)
 const sidebarScrollRef = ref(null)
 const viewportWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1440)
 const isDesktop = computed(() => viewportWidth.value >= 1024)
@@ -406,6 +366,7 @@ const userDisplayName = computed(() => {
 })
 
 const userAvatarUrl = computed(() => auth.user?.avatar_url || '')
+const isSuperAdmin = computed(() => auth.isSuperAdmin)
 
 const userInitials = computed(() => {
   const source = userDisplayName.value
@@ -433,6 +394,29 @@ const desktopSidebarStyle = computed(() => ({
   width: sidebarCollapsed.value ? '6rem' : '19rem',
 }))
 
+const desktopBrandStyle = computed(() => ({
+  width: sidebarCollapsed.value ? '6rem' : '19rem',
+}))
+
+const desktopHeaderStyle = computed(() => ({
+  left: viewportWidth.value >= 1024 ? (sidebarCollapsed.value ? '6rem' : '19rem') : '0',
+  right: '0',
+}))
+
+const mainWrapStyle = computed(() => ({
+  marginLeft: viewportWidth.value >= 1024 ? (sidebarCollapsed.value ? '6rem' : '19rem') : '0',
+  paddingTop: viewportWidth.value >= 1024 ? '72px' : '0',
+  paddingBottom: viewportWidth.value >= 1024 ? '6rem' : '7rem',
+}))
+
+const sidebarScrollClasses = computed(() => {
+  if (!isDesktop.value) {
+    return 'overflow-y-auto'
+  }
+
+  return sidebarHovered.value ? 'overflow-y-auto' : 'overflow-y-hidden'
+})
+
 const footerDesktopStyle = computed(() => ({
   left:
     viewportWidth.value >= 1024
@@ -442,60 +426,115 @@ const footerDesktopStyle = computed(() => ({
       : '0',
 }))
 
-const navGroups = [
-  {
-    label: 'Overview',
-    items: [
-      {
-        label: 'Dashboard',
-        description: 'KPIs and progress',
-        short: 'DB',
-        to: '/dashboard',
-        status: 'Live',
-        statusClass: 'bg-emerald-400/15 text-emerald-200',
-        icon: 'fa-solid fa-gauge-high',
-      },
-    ],
-  },
-  {
-    label: 'Foundation',
-    items: [
-      {
-        label: 'Users',
-        description: 'Roles and access',
-        short: 'US',
-        to: '/users',
-        status: 'Ready',
-        statusClass: 'bg-cyan-400/15 text-cyan-200',
-        icon: 'fa-solid fa-users',
-      },
-      {
-        label: 'Branches',
-        description: 'Multi-location setup',
-        short: 'BR',
-        status: 'Next',
-        statusClass: 'bg-amber-400/15 text-amber-200',
-        icon: 'fa-solid fa-code-branch',
-      },
-      {
-        label: 'Warehouses',
-        description: 'Stock locations',
-        short: 'WH',
-        status: 'Next',
-        statusClass: 'bg-amber-400/15 text-amber-200',
-        icon: 'fa-solid fa-warehouse',
-      },
-      {
-        label: 'Settings',
-        description: 'System defaults',
-        short: 'ST',
-        status: 'Soon',
-        statusClass: 'bg-slate-400/15 text-slate-300',
-        icon: 'fa-solid fa-gear',
-      },
-    ],
-  },
-  {
+const navGroups = computed(() => {
+  const base = [
+    {
+      label: 'Overview',
+      items: [
+        {
+          label: 'Dashboard',
+          description: 'KPIs and progress',
+          short: 'DB',
+          to: '/dashboard',
+          status: 'Live',
+          statusClass: 'bg-emerald-400/15 text-emerald-200',
+          icon: 'fa-solid fa-gauge-high',
+        },
+      ],
+    },
+  ]
+
+  if (isSuperAdmin.value) {
+    base.push({
+      label: 'Platform',
+      items: [
+        {
+          label: 'Businesses',
+          description: 'Register and manage tenants',
+          short: 'BS',
+          to: '/admin/businesses',
+          permission: 'businesses.index',
+          status: 'Ready',
+          statusClass: 'bg-cyan-400/15 text-cyan-200',
+          icon: 'fa-solid fa-briefcase',
+        },
+      ],
+    })
+  } else {
+    base.push({
+      label: 'User Management',
+      items: [
+        {
+          label: 'Users',
+          description: 'Roles and access',
+          short: 'US',
+          to: '/users',
+          permission: 'users.index',
+          status: 'Ready',
+          statusClass: 'bg-cyan-400/15 text-cyan-200',
+          icon: 'fa-solid fa-users',
+        },
+        {
+          label: 'Roles',
+          description: 'Role list and permissions',
+          short: 'RL',
+          to: '/roles',
+          permission: 'roles.index',
+          status: 'Ready',
+          statusClass: 'bg-cyan-400/15 text-cyan-200',
+          icon: 'fa-solid fa-user-shield',
+        },
+      ],
+    })
+
+    base.push({
+      label: 'Foundation',
+      items: [
+        {
+          label: 'Branches',
+          description: 'Multi-location setup',
+          short: 'BR',
+          to: '/branches',
+          permission: 'branches.index',
+          status: 'Ready',
+          statusClass: 'bg-cyan-400/15 text-cyan-200',
+          icon: 'fa-solid fa-code-branch',
+        },
+        {
+          label: 'Warehouses',
+          description: 'Stock locations',
+          short: 'WH',
+          to: '/warehouses',
+          permission: 'warehouses.index',
+          status: 'Ready',
+          statusClass: 'bg-cyan-400/15 text-cyan-200',
+          icon: 'fa-solid fa-warehouse',
+        },
+        {
+          label: 'Settings',
+          description: 'Business and system defaults',
+          short: 'ST',
+          to: '/settings',
+          permissionAny: ['settings.index', 'businesses.index'],
+          status: 'Ready',
+          statusClass: 'bg-cyan-400/15 text-cyan-200',
+          icon: 'fa-solid fa-gear',
+        },
+        {
+          label: 'Custom Fields',
+          description: 'Schema extensions',
+          short: 'CF',
+          to: '/custom-fields',
+          permission: 'custom_fields.index',
+          status: 'Ready',
+          statusClass: 'bg-cyan-400/15 text-cyan-200',
+          icon: 'fa-solid fa-sliders',
+        },
+      ],
+    })
+  }
+
+  base.push({
     label: 'Roadmap',
     items: [
       {
@@ -523,8 +562,19 @@ const navGroups = [
         icon: 'fa-solid fa-cash-register',
       },
     ],
-  },
-]
+  })
+
+  return base
+    .map((group) => ({
+      ...group,
+      items: group.items.filter(
+        (item) =>
+          (!item.permission || auth.can(item.permission)) &&
+          (!item.permissionAny || auth.canAny(item.permissionAny))
+      ),
+    }))
+    .filter((group) => group.items.length > 0)
+})
 
 const toggleTheme = () => {
   const root = document.documentElement
@@ -557,17 +607,6 @@ const handleResize = () => {
   viewportWidth.value = window.innerWidth
 }
 
-const handleSidebarWheel = (event) => {
-  const element = sidebarScrollRef.value
-
-  if (!element || element.scrollHeight <= element.clientHeight) {
-    return
-  }
-
-  event.preventDefault()
-  element.scrollTop += event.deltaY
-}
-
 const handleDocumentPointerDown = (event) => {
   if (!userMenuOpen.value) {
     return
@@ -590,6 +629,7 @@ watch(
   () => route.fullPath,
   () => {
     sidebarOpen.value = false
+    sidebarHovered.value = false
     closeUserMenu()
   }
 )
@@ -599,13 +639,11 @@ onMounted(() => {
   window.addEventListener('resize', handleResize)
   document.addEventListener('pointerdown', handleDocumentPointerDown)
   document.addEventListener('keydown', handleDocumentKeyDown)
-  sidebarScrollRef.value?.addEventListener('wheel', handleSidebarWheel, { passive: false })
 })
 
 onBeforeUnmount(() => {
   window.removeEventListener('resize', handleResize)
   document.removeEventListener('pointerdown', handleDocumentPointerDown)
   document.removeEventListener('keydown', handleDocumentKeyDown)
-  sidebarScrollRef.value?.removeEventListener('wheel', handleSidebarWheel)
 })
 </script>

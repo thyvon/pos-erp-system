@@ -2,6 +2,7 @@
 
 namespace Database\Seeders;
 
+use App\Models\Branch;
 use App\Models\Business;
 use App\Models\User;
 use Illuminate\Database\Seeder;
@@ -60,7 +61,18 @@ class LocalAdminUserSeeder extends Seeder
 
         $user->deleted_at = null;
         $user->save();
-        $user->syncRoles(['admin']);
+        $user->syncRoles(['super_admin']);
+        $branchIds = Branch::query()
+            ->where('business_id', $business->id)
+            ->pluck('id')
+            ->all();
+
+        if ($branchIds !== []) {
+            $user->branches()->sync($branchIds);
+            $user->forceFill([
+                'default_branch_id' => $branchIds[0],
+            ])->save();
+        }
 
         $this->call(DefaultSettingsSeeder::class);
     }

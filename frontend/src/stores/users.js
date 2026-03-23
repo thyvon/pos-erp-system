@@ -13,7 +13,13 @@ export const useUsersStore = defineStore('users', {
     loading: false,
     saving: false,
     deleting: false,
+    optionsLoading: false,
     filters: defaultFilters(),
+    accessOptions: {
+      roles: [],
+      permissions: [],
+      branches: [],
+    },
     pagination: {
       total: 0,
       current_page: 1,
@@ -22,6 +28,17 @@ export const useUsersStore = defineStore('users', {
     },
   }),
   actions: {
+    async fetchAccessOptions() {
+      this.optionsLoading = true
+
+      try {
+        const response = await usersApi.getUserAccessOptions()
+        this.accessOptions = response.data.data
+        return response.data
+      } finally {
+        this.optionsLoading = false
+      }
+    },
     async fetchUsers(overrides = {}) {
       this.loading = true
       this.filters = { ...this.filters, ...overrides }

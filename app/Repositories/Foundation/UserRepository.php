@@ -5,6 +5,8 @@ namespace App\Repositories\Foundation;
 use App\Models\User;
 use App\Repositories\BaseRepository;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Spatie\Permission\Models\Permission;
+use Spatie\Permission\Models\Role;
 
 class UserRepository extends BaseRepository
 {
@@ -26,7 +28,8 @@ class UserRepository extends BaseRepository
         $perPage = max(1, min($perPage, 100));
 
         return $this->query()
-            ->with(['business', 'roles', 'permissions'])
+            ->with(['business', 'roles', 'permissions', 'branches', 'defaultBranch'])
+            ->whereDoesntHave('roles', fn ($roleQuery) => $roleQuery->where('name', 'super_admin'))
             ->when(
                 filled($filters['search'] ?? null),
                 function ($query) use ($filters): void {
@@ -52,5 +55,35 @@ class UserRepository extends BaseRepository
             ->latest()
             ->paginate($perPage)
             ->withQueryString();
+    }
+
+    public function availableRoles(): array
+    {
+        return Role::query()
+            ->where('guard_name', 'web')
+            ->where('name', '!=', 'super_admin')
+            ->with('permissions:name')
+            ->orderBy('name')
+            ->get()
+            ->map(fn (Role $role) => [
+                'name' => $role->name,
+                'permissions' => $role->permissions->pluck('name')->values(),
+            ])
+            ->all();
+    }
+
+    public function availablePermissions(): array
+    {
+        return Permission::query()
+            ->where('guard_name', 'web')
+            ->orderBy('name')
+            ->get(['name'])
+            ->groupBy(fn ($permission) => str($permission->name)->before('.')->value())
+            ->map(fn ($permissions, $group) => [
+                'group' => $group,
+                'permissions' => $permissions->pluck('name')->values(),
+            ])
+            ->values()
+            ->all();
     }
 }

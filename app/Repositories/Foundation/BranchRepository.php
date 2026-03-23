@@ -4,6 +4,7 @@ namespace App\Repositories\Foundation;
 
 use App\Models\Branch;
 use App\Repositories\BaseRepository;
+use App\Support\BranchAccess;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class BranchRepository extends BaseRepository
@@ -18,7 +19,7 @@ class BranchRepository extends BaseRepository
         $perPage = (int) ($filters['per_page'] ?? 15);
         $perPage = max(1, min($perPage, 100));
 
-        return $this->query()
+        $query = $this->query()
             ->with(['manager'])
             ->when(
                 filled($filters['search'] ?? null),
@@ -39,8 +40,10 @@ class BranchRepository extends BaseRepository
                 fn ($query) => $query->where('is_active', filter_var($filters['is_active'], FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE) ?? $filters['is_active'])
             )
             ->orderByDesc('is_default')
-            ->orderBy('name')
-            ->paginate($perPage)
-            ->withQueryString();
+            ->orderBy('name');
+
+        BranchAccess::scopeBranchQuery($query, auth()->user());
+
+        return $query->paginate($perPage)->withQueryString();
     }
 }

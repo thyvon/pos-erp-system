@@ -25,6 +25,7 @@ class WarehouseService
     {
         return DB::transaction(function () use ($data): Warehouse {
             $this->resolveBusiness();
+            $this->ensureUserCanAccessBranch($data['branch_id']);
 
             if (blank($data['code'] ?? null)) {
                 $data['code'] = $this->generateCode();
@@ -46,6 +47,10 @@ class WarehouseService
     public function update(Warehouse $warehouse, array $data): Warehouse
     {
         return DB::transaction(function () use ($warehouse, $data): Warehouse {
+            if (array_key_exists('branch_id', $data) && $data['branch_id'] !== null) {
+                $this->ensureUserCanAccessBranch($data['branch_id']);
+            }
+
             if (array_key_exists('code', $data) && blank($data['code'])) {
                 $data['code'] = $warehouse->code;
             }
@@ -117,5 +122,14 @@ class WarehouseService
             : ((int) substr($lastCode, 3)) + 1;
 
         return sprintf('WH-%03d', $nextNumber);
+    }
+
+    protected function ensureUserCanAccessBranch(string $branchId): void
+    {
+        $user = auth()->user();
+
+        if ($user instanceof \App\Models\User && ! $user->hasRole('super_admin') && ! $user->hasBranchAccess($branchId)) {
+            throw new DomainException('You cannot manage warehouse data outside your assigned branches.', 403);
+        }
     }
 }

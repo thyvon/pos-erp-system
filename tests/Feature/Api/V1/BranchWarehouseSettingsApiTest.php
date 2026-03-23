@@ -37,8 +37,10 @@ class BranchWarehouseSettingsApiTest extends TestCase
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
 
-        Branch::factory()->for($business)->count(2)->create();
+        $visibleBranches = Branch::factory()->for($business)->count(2)->create();
         Branch::factory()->for($otherBusiness)->count(2)->create();
+        $admin->branches()->sync($visibleBranches->pluck('id')->all());
+        $admin->forceFill(['default_branch_id' => $visibleBranches->first()->id])->save();
 
         Sanctum::actingAs($admin);
 
@@ -49,6 +51,28 @@ class BranchWarehouseSettingsApiTest extends TestCase
             ->assertJsonPath('success', true)
             ->assertJsonCount(2, 'data')
             ->assertJsonPath('meta.total', 2);
+    }
+
+    public function test_branches_index_only_returns_assigned_branches_for_user(): void
+    {
+        $business = Business::factory()->create();
+        $admin = User::factory()->for($business)->create();
+        $admin->assignRole('admin');
+        $branchA = Branch::factory()->for($business)->create(['name' => 'Branch A']);
+        $branchB = Branch::factory()->for($business)->create(['name' => 'Branch B']);
+
+        $admin->branches()->sync([$branchA->id]);
+        $admin->forceFill(['default_branch_id' => $branchA->id])->save();
+
+        Sanctum::actingAs($admin);
+
+        $response = $this->getJson('/api/v1/branches');
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonFragment(['name' => 'Branch A'])
+            ->assertJsonMissing(['name' => 'Branch B']);
     }
 
     public function test_setting_one_default_branch_clears_default_flag_on_other_branches(): void
@@ -84,6 +108,9 @@ class BranchWarehouseSettingsApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $branch = Branch::factory()->for($business)->create();
+        $admin->branches()->sync([$branch->id]);
+        $admin->forceFill(['default_branch_id' => $branch->id])->save();
 
         Sanctum::actingAs($admin);
 
@@ -102,6 +129,9 @@ class BranchWarehouseSettingsApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $branch = Branch::factory()->for($business)->create();
+        $admin->branches()->sync([$branch->id]);
+        $admin->forceFill(['default_branch_id' => $branch->id])->save();
 
         $this->seed(DefaultSettingsSeeder::class);
 
@@ -128,7 +158,10 @@ class BranchWarehouseSettingsApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
-        $warehouse = Warehouse::factory()->for($business)->create();
+        $branch = Branch::factory()->for($business)->create();
+        $admin->branches()->sync([$branch->id]);
+        $admin->forceFill(['default_branch_id' => $branch->id])->save();
+        $warehouse = Warehouse::factory()->forBranch($branch)->create();
 
         Schema::create('stock_movements', function (Blueprint $table): void {
             $table->uuid('id')->primary();
@@ -158,6 +191,9 @@ class BranchWarehouseSettingsApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $branch = Branch::factory()->for($business)->create();
+        $admin->branches()->sync([$branch->id]);
+        $admin->forceFill(['default_branch_id' => $branch->id])->save();
 
         Setting::query()->updateOrCreate([
             'business_id' => $business->id,
@@ -182,5 +218,28 @@ class BranchWarehouseSettingsApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.enable_lot_tracking', true)
             ->assertJsonPath('data.lot_expiry_alert_days', 45);
+    }
+
+    public function test_settings_group_update_returns_forbidden_without_settings_edit_permission(): void
+    {
+        $business = Business::factory()->create();
+        $manager = User::factory()->for($business)->create();
+        $manager->assignRole('manager');
+        $branch = Branch::factory()->for($business)->create();
+        $manager->branches()->sync([$branch->id]);
+        $manager->forceFill(['default_branch_id' => $branch->id])->save();
+
+        Sanctum::actingAs($manager);
+
+        $response = $this->putJson('/api/v1/settings/stock', [
+            'settings' => [
+                'enable_lot_tracking' => true,
+            ],
+        ]);
+
+        $response
+            ->assertForbidden()
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('message', 'This action is unauthorized.');
     }
 }

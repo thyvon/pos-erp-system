@@ -9,7 +9,9 @@
 
     <input
       :value="modelValue"
-      type="search"
+      type="text"
+      inputmode="search"
+      enterkeyhint="search"
       class="erp-input pl-11 pr-11"
       :placeholder="placeholder"
       @input="$emit('update:modelValue', $event.target.value)"

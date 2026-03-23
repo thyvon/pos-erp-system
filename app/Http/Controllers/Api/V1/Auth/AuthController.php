@@ -36,7 +36,7 @@ class AuthController extends BaseApiController
             return $this->error('This user account is not active.', 403);
         }
 
-        if ($user->business?->status !== 'active') {
+        if (! $user->hasRole('super_admin') && $user->business?->status !== 'active') {
             return $this->error('This business is not active.', 403);
         }
 
@@ -50,7 +50,7 @@ class AuthController extends BaseApiController
 
         return $this->success([
             'token' => $token,
-            'user' => new UserResource($user->fresh(['business', 'roles', 'permissions'])),
+            'user' => new UserResource($user->fresh(['business', 'roles', 'permissions', 'branches', 'defaultBranch'])),
         ], 'Login successful.');
     }
 
@@ -70,7 +70,7 @@ class AuthController extends BaseApiController
     public function me(Request $request)
     {
         return $this->success(
-            new UserResource($request->user()->load(['business', 'roles', 'permissions']))
+            new UserResource($request->user()->load(['business', 'roles', 'permissions', 'branches', 'defaultBranch']))
         );
     }
 
@@ -93,7 +93,7 @@ class AuthController extends BaseApiController
             'password' => $validated['new_password'],
         ])->save();
 
-        return $this->success(new UserResource($user->load(['business', 'roles', 'permissions'])), 'Password updated successfully.');
+        return $this->success(new UserResource($user->load(['business', 'roles', 'permissions', 'branches', 'defaultBranch'])), 'Password updated successfully.');
     }
 
     public function forgotPassword(Request $request)

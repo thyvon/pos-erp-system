@@ -1,7 +1,7 @@
 <template>
   <AppLayout
     title="Users"
-    subtitle="Manage access, commission, and targets inside the updated frosted workspace."
+    subtitle="Manage access, roles, extra permissions, and branch visibility for each user."
     :breadcrumbs="[
       { label: 'Dashboard', to: '/dashboard' },
       { label: 'Users' },
@@ -30,7 +30,7 @@
         @per-page-change="handlePerPageChange"
       >
         <template #toolbar>
-          <button type="button" class="erp-button-primary" @click="openCreateModal">
+          <button v-if="canCreateUser" type="button" class="erp-button-primary" @click="openCreateModal">
             <i class="fa-solid fa-plus"></i>
             New user
           </button>
@@ -49,16 +49,41 @@
           </span>
         </template>
 
+        <template #default_branch="{ row }">
+          <div class="text-sm text-slate-700 dark:text-slate-200">
+            {{ row.default_branch?.name || 'Not set' }}
+          </div>
+        </template>
+
+        <template #branches="{ row }">
+          <div class="flex flex-wrap gap-1.5">
+            <span
+              v-for="branch in (row.branches || []).slice(0, 2)"
+              :key="branch.id"
+              class="inline-flex rounded-[5px] bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+            >
+              {{ branch.name }}
+            </span>
+            <span
+              v-if="(row.branches || []).length > 2"
+              class="inline-flex rounded-[5px] bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+            >
+              +{{ row.branches.length - 2 }}
+            </span>
+          </div>
+        </template>
+
         <template #status="{ row }">
           <StatusBadge :status="row.status" />
         </template>
 
         <template #actions="{ row }">
-          <div class="flex items-center gap-2">
-            <button type="button" class="erp-button-icon" @click="openEditModal(row)">
+          <div v-if="showActionsColumn" class="flex items-center gap-2">
+            <button v-if="canEditUser" type="button" class="erp-button-icon" @click="openEditModal(row)">
               <i class="fa-solid fa-pen-to-square"></i>
             </button>
             <button
+              v-if="canDeleteUser"
               type="button"
               class="erp-button-icon"
               :disabled="isCurrentUser(row)"
@@ -74,103 +99,228 @@
         :show="modal.show"
         :title="modal.mode === 'create' ? 'Create user' : 'Edit user'"
         icon="user account"
-        size="lg"
+        size="xl"
         @close="closeModal"
       >
-        <Form :key="formKey" :validation-schema="schema" :initial-values="formValues" @submit="submitForm">
-          <div class="erp-form-grid">
-            <div>
-              <label class="erp-label" for="first_name">First name</label>
-              <Field id="first_name" name="first_name" class="erp-input" />
-              <ErrorMessage name="first_name" class="erp-helper text-rose-500 dark:text-rose-400" />
+        <Form
+          v-slot="{ values, setFieldValue }"
+          :key="formKey"
+          :validation-schema="schema"
+          :initial-values="formValues"
+          @submit="submitForm"
+        >
+          <div class="space-y-6">
+            <div class="erp-form-grid">
+              <div>
+                <label class="erp-label" for="first_name">First name</label>
+                <Field id="first_name" name="first_name" class="erp-input" />
+                <ErrorMessage name="first_name" class="erp-helper text-rose-500 dark:text-rose-400" />
+              </div>
+
+              <div>
+                <label class="erp-label" for="last_name">Last name</label>
+                <Field id="last_name" name="last_name" class="erp-input" />
+                <ErrorMessage name="last_name" class="erp-helper text-rose-500 dark:text-rose-400" />
+              </div>
             </div>
 
-            <div>
-              <label class="erp-label" for="last_name">Last name</label>
-              <Field id="last_name" name="last_name" class="erp-input" />
-              <ErrorMessage name="last_name" class="erp-helper text-rose-500 dark:text-rose-400" />
-            </div>
-          </div>
+            <div class="erp-form-grid">
+              <div>
+                <label class="erp-label" for="email">Email</label>
+                <Field id="email" name="email" type="email" class="erp-input" />
+                <ErrorMessage name="email" class="erp-helper text-rose-500 dark:text-rose-400" />
+              </div>
 
-          <div class="erp-form-grid">
-            <div>
-              <label class="erp-label" for="email">Email</label>
-              <Field id="email" name="email" type="email" class="erp-input" />
-              <ErrorMessage name="email" class="erp-helper text-rose-500 dark:text-rose-400" />
-            </div>
-
-            <div>
-              <label class="erp-label" for="phone">Phone</label>
-              <Field id="phone" name="phone" class="erp-input" />
-              <ErrorMessage name="phone" class="erp-helper text-rose-500 dark:text-rose-400" />
-            </div>
-          </div>
-
-          <div class="erp-form-grid">
-            <div>
-              <label class="erp-label" for="role">Role</label>
-              <Field id="role" as="select" name="role" class="erp-select">
-                <option value="">Select role</option>
-                <option v-for="role in roles" :key="role" :value="role">{{ role }}</option>
-              </Field>
-              <ErrorMessage name="role" class="erp-helper text-rose-500 dark:text-rose-400" />
+              <div>
+                <label class="erp-label" for="phone">Phone</label>
+                <Field id="phone" name="phone" class="erp-input" />
+                <ErrorMessage name="phone" class="erp-helper text-rose-500 dark:text-rose-400" />
+              </div>
             </div>
 
-            <div>
-              <label class="erp-label" for="status">Status</label>
-              <Field id="status" as="select" name="status" class="erp-select">
-                <option value="active">Active</option>
-                <option value="inactive">Inactive</option>
-                <option value="suspended">Suspended</option>
-              </Field>
-              <ErrorMessage name="status" class="erp-helper text-rose-500 dark:text-rose-400" />
-            </div>
-          </div>
+            <div class="grid gap-4 xl:grid-cols-[1.05fr_0.95fr]">
+              <section class="rounded-[5px] border border-slate-200/80 p-4 dark:border-slate-800/80">
+                <div class="flex items-center justify-between gap-3">
+                  <div>
+                    <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Role access</div>
+                    <div class="mt-1 text-sm text-slate-600 dark:text-slate-300">Assign one base role, then add extra permissions if needed.</div>
+                  </div>
+                </div>
 
-          <div class="erp-form-grid">
-            <div>
-              <label class="erp-label" for="password">
-                Password
-                <span class="ml-2 text-xs text-slate-500 dark:text-slate-400">
-                  {{ modal.mode === 'create' ? '(required)' : '(leave blank to keep current)' }}
-                </span>
-              </label>
-              <Field id="password" name="password" type="password" class="erp-input" />
-              <ErrorMessage name="password" class="erp-helper text-rose-500 dark:text-rose-400" />
+                <div class="mt-4 space-y-4">
+                  <div class="erp-form-grid">
+                    <div>
+                      <label class="erp-label" for="role">Role</label>
+                      <Field id="role" as="select" name="role" class="erp-select">
+                        <option value="">Select role</option>
+                        <option v-for="role in roles" :key="role.name" :value="role.name">{{ role.name }}</option>
+                      </Field>
+                      <ErrorMessage name="role" class="erp-helper text-rose-500 dark:text-rose-400" />
+                    </div>
+
+                    <div>
+                      <label class="erp-label" for="status">Status</label>
+                      <Field id="status" as="select" name="status" class="erp-select">
+                        <option value="active">Active</option>
+                        <option value="inactive">Inactive</option>
+                        <option value="suspended">Suspended</option>
+                      </Field>
+                      <ErrorMessage name="status" class="erp-helper text-rose-500 dark:text-rose-400" />
+                    </div>
+                  </div>
+
+                  <div>
+                    <div class="erp-label">Role permissions</div>
+                    <div class="mt-2 flex flex-wrap gap-2">
+                      <span
+                        v-for="permission in selectedRolePermissions(values.role)"
+                        :key="permission"
+                        class="inline-flex rounded-[5px] bg-cyan-100 px-2.5 py-1 text-[11px] font-medium text-cyan-700 dark:bg-cyan-950/50 dark:text-cyan-300"
+                      >
+                        {{ permission }}
+                      </span>
+                      <span
+                        v-if="selectedRolePermissions(values.role).length === 0"
+                        class="text-sm text-slate-500 dark:text-slate-400"
+                      >
+                        Select a role to preview its base permissions.
+                      </span>
+                    </div>
+                  </div>
+
+                  <div>
+                    <div class="erp-label">Extra permissions</div>
+                    <div class="mt-3 space-y-3">
+                      <div
+                        v-for="group in permissionGroups"
+                        :key="group.group"
+                        class="rounded-[5px] border border-slate-200/70 p-3 dark:border-slate-800/70"
+                      >
+                        <div class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
+                          {{ group.group }}
+                        </div>
+                        <div class="mt-3 grid gap-2 md:grid-cols-2">
+                          <label
+                            v-for="permission in group.permissions"
+                            :key="permission"
+                            class="flex items-center gap-2 rounded-[5px] px-2 py-1.5 text-sm text-slate-700 dark:text-slate-200"
+                          >
+                            <input
+                              type="checkbox"
+                              class="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
+                              :checked="values.direct_permissions.includes(permission)"
+                              @change="toggleArrayValue('direct_permissions', permission, values.direct_permissions, setFieldValue, $event.target.checked)"
+                            />
+                            <span>{{ permission }}</span>
+                          </label>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </section>
+
+              <section class="rounded-[5px] border border-slate-200/80 p-4 dark:border-slate-800/80">
+                <div>
+                  <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Branch access</div>
+                  <div class="mt-1 text-sm text-slate-600 dark:text-slate-300">Users can only access the branches assigned here.</div>
+                </div>
+
+                <div class="mt-4 space-y-4">
+                  <div>
+                    <label class="erp-label" for="default_branch_id">Default branch</label>
+                    <Field id="default_branch_id" as="select" name="default_branch_id" class="erp-select">
+                      <option value="">Select default branch</option>
+                      <option
+                        v-for="branch in selectedBranches(values.branch_ids)"
+                        :key="branch.id"
+                        :value="branch.id"
+                      >
+                        {{ branch.name }}
+                      </option>
+                    </Field>
+                    <ErrorMessage name="default_branch_id" class="erp-helper text-rose-500 dark:text-rose-400" />
+                  </div>
+
+                  <div>
+                    <div class="erp-label">Assigned branches</div>
+                    <div class="mt-3 space-y-2">
+                      <label
+                        v-for="branch in branches"
+                        :key="branch.id"
+                        class="flex items-center justify-between gap-3 rounded-[5px] border border-slate-200/70 px-3 py-2.5 text-sm dark:border-slate-800/70"
+                      >
+                        <div class="flex items-center gap-3">
+                          <input
+                            type="checkbox"
+                            class="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
+                            :checked="values.branch_ids.includes(branch.id)"
+                            @change="toggleBranchSelection(branch.id, values, setFieldValue, $event.target.checked)"
+                          />
+                          <div>
+                            <div class="font-medium text-slate-800 dark:text-slate-100">{{ branch.name }}</div>
+                            <div class="text-xs text-slate-500 dark:text-slate-400">{{ branch.code }}</div>
+                          </div>
+                        </div>
+                        <span
+                          v-if="branch.is_default"
+                          class="inline-flex rounded-[5px] bg-emerald-100 px-2 py-1 text-[11px] font-medium text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300"
+                        >
+                          Business default
+                        </span>
+                      </label>
+                    </div>
+                    <ErrorMessage name="branch_ids" class="erp-helper text-rose-500 dark:text-rose-400" />
+                  </div>
+                </div>
+              </section>
             </div>
 
-            <div>
-              <label class="erp-label" for="max_discount">Max discount %</label>
-              <Field id="max_discount" name="max_discount" type="number" min="0" max="100" class="erp-input" />
-              <ErrorMessage name="max_discount" class="erp-helper text-rose-500 dark:text-rose-400" />
-            </div>
-          </div>
+            <div class="erp-form-grid">
+              <div>
+                <label class="erp-label" for="password">
+                  Password
+                  <span class="ml-2 text-xs text-slate-500 dark:text-slate-400">
+                    {{ modal.mode === 'create' ? '(required)' : '(leave blank to keep current)' }}
+                  </span>
+                </label>
+                <Field id="password" name="password" type="password" class="erp-input" />
+                <ErrorMessage name="password" class="erp-helper text-rose-500 dark:text-rose-400" />
+              </div>
 
-          <div class="erp-form-grid">
-            <div>
-              <label class="erp-label" for="commission_percentage">Commission %</label>
-              <Field id="commission_percentage" name="commission_percentage" type="number" min="0" max="100" class="erp-input" />
-              <ErrorMessage name="commission_percentage" class="erp-helper text-rose-500 dark:text-rose-400" />
+              <div>
+                <label class="erp-label" for="max_discount">Max discount %</label>
+                <Field id="max_discount" name="max_discount" type="number" min="0" max="100" class="erp-input" />
+                <ErrorMessage name="max_discount" class="erp-helper text-rose-500 dark:text-rose-400" />
+              </div>
             </div>
 
-            <div>
-              <label class="erp-label" for="sales_target_amount">Monthly sales target</label>
-              <Field id="sales_target_amount" name="sales_target_amount" type="number" min="0" class="erp-input" />
-              <ErrorMessage name="sales_target_amount" class="erp-helper text-rose-500 dark:text-rose-400" />
-            </div>
-          </div>
+            <div class="erp-form-grid">
+              <div>
+                <label class="erp-label" for="commission_percentage">Commission %</label>
+                <Field id="commission_percentage" name="commission_percentage" type="number" min="0" max="100" class="erp-input" />
+                <ErrorMessage name="commission_percentage" class="erp-helper text-rose-500 dark:text-rose-400" />
+              </div>
 
-          <div class="erp-form-actions">
-            <button type="button" class="erp-button-secondary" :disabled="store.saving" @click="closeModal">
-              Cancel
-            </button>
-            <button type="submit" class="erp-button-primary" :disabled="store.saving">
-              <span
-                v-if="store.saving"
-                class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white dark:border-slate-950/25 dark:border-t-slate-950"
-              ></span>
-              {{ modal.mode === 'create' ? 'Create user' : 'Save changes' }}
-            </button>
+              <div>
+                <label class="erp-label" for="sales_target_amount">Monthly sales target</label>
+                <Field id="sales_target_amount" name="sales_target_amount" type="number" min="0" class="erp-input" />
+                <ErrorMessage name="sales_target_amount" class="erp-helper text-rose-500 dark:text-rose-400" />
+              </div>
+            </div>
+
+            <div class="erp-form-actions">
+              <button type="button" class="erp-button-secondary" :disabled="store.saving" @click="closeModal">
+                Cancel
+              </button>
+              <button type="submit" class="erp-button-primary" :disabled="store.saving || store.optionsLoading">
+                <span
+                  v-if="store.saving"
+                  class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white dark:border-slate-950/25 dark:border-t-slate-950"
+                ></span>
+                {{ modal.mode === 'create' ? 'Create user' : 'Save changes' }}
+              </button>
+            </div>
           </div>
         </Form>
       </AppModal>
@@ -202,15 +352,30 @@ import { useUsersStore } from '@stores/users'
 const auth = useAuthStore()
 const store = useUsersStore()
 
-const roles = ['super_admin', 'admin', 'manager', 'cashier', 'accountant', 'inventory_manager', 'sales_representative']
+const canCreateUser = computed(() => auth.can('users.create'))
+const canEditUser = computed(() => auth.can('users.edit'))
+const canDeleteUser = computed(() => auth.can('users.delete'))
+const showActionsColumn = computed(() => canEditUser.value || canDeleteUser.value)
+const roles = computed(() => store.accessOptions.roles || [])
+const branches = computed(() => store.accessOptions.branches || [])
+const permissionGroups = computed(() => store.accessOptions.permissions || [])
 
-const columns = [
-  { key: 'full_name', label: 'User' },
-  { key: 'email', label: 'Email' },
-  { key: 'role', label: 'Role' },
-  { key: 'status', label: 'Status' },
-  { key: 'actions', label: 'Actions' },
-]
+const columns = computed(() => {
+  const baseColumns = [
+    { key: 'full_name', label: 'User' },
+    { key: 'email', label: 'Email' },
+    { key: 'role', label: 'Role' },
+    { key: 'default_branch', label: 'Default Branch' },
+    { key: 'branches', label: 'Branch Access' },
+    { key: 'status', label: 'Status' },
+  ]
+
+  if (showActionsColumn.value) {
+    baseColumns.push({ key: 'actions', label: 'Actions' })
+  }
+
+  return baseColumns
+})
 
 const alert = reactive({
   show: false,
@@ -233,6 +398,8 @@ const deleteDialog = reactive({
 
 const formKey = ref(0)
 
+const defaultBranchId = computed(() => branches.value.find((branch) => branch.is_default)?.id || branches.value[0]?.id || '')
+
 const formValues = computed(() => ({
   first_name: modal.user?.first_name ?? '',
   last_name: modal.user?.last_name ?? '',
@@ -244,6 +411,9 @@ const formValues = computed(() => ({
   max_discount: modal.user?.max_discount ?? 0,
   commission_percentage: modal.user?.commission_percentage ?? 0,
   sales_target_amount: modal.user?.sales_target_amount ?? 0,
+  direct_permissions: modal.user?.direct_permissions ?? [],
+  branch_ids: modal.user?.branch_ids ?? (defaultBranchId.value ? [defaultBranchId.value] : []),
+  default_branch_id: modal.user?.default_branch_id ?? defaultBranchId.value,
 }))
 
 const schema = computed(() =>
@@ -261,10 +431,59 @@ const schema = computed(() =>
     max_discount: yup.number().min(0).max(100).required(),
     commission_percentage: yup.number().min(0).max(100).required(),
     sales_target_amount: yup.number().min(0).required(),
+    direct_permissions: yup.array().of(yup.string()).default([]),
+    branch_ids: yup.array().of(yup.string()).min(1, 'Assign at least one branch.').required(),
+    default_branch_id: yup.string().required('Default branch is required.'),
   })
 )
 
+const showToast = (type, message) => {
+  alert.type = type
+  alert.title = type === 'danger' ? 'Error' : type === 'warning' ? 'Warning' : 'Success'
+  alert.message = message
+  alert.show = true
+}
+
+const selectedRolePermissions = (roleName) =>
+  roles.value.find((role) => role.name === roleName)?.permissions || []
+
+const selectedBranches = (branchIds = []) =>
+  branches.value.filter((branch) => branchIds.includes(branch.id))
+
+const toggleArrayValue = (fieldName, value, currentValues, setFieldValue, checked) => {
+  const nextValues = new Set(currentValues || [])
+
+  if (checked) {
+    nextValues.add(value)
+  } else {
+    nextValues.delete(value)
+  }
+
+  setFieldValue(fieldName, Array.from(nextValues))
+}
+
+const toggleBranchSelection = (branchId, values, setFieldValue, checked) => {
+  const nextBranchIds = new Set(values.branch_ids || [])
+
+  if (checked) {
+    nextBranchIds.add(branchId)
+  } else {
+    nextBranchIds.delete(branchId)
+  }
+
+  const normalizedBranchIds = Array.from(nextBranchIds)
+  setFieldValue('branch_ids', normalizedBranchIds)
+
+  if (!normalizedBranchIds.includes(values.default_branch_id)) {
+    setFieldValue('default_branch_id', normalizedBranchIds[0] || '')
+  }
+}
+
 const openCreateModal = () => {
+  if (!canCreateUser.value) {
+    return
+  }
+
   modal.mode = 'create'
   modal.user = null
   modal.show = true
@@ -272,6 +491,10 @@ const openCreateModal = () => {
 }
 
 const openEditModal = (user) => {
+  if (!canEditUser.value) {
+    return
+  }
+
   modal.mode = 'edit'
   modal.user = user
   modal.show = true
@@ -283,14 +506,11 @@ const closeModal = () => {
   modal.user = null
 }
 
-const showToast = (type, message) => {
-  alert.type = type
-  alert.title = type === 'danger' ? 'Error' : type === 'warning' ? 'Warning' : 'Success'
-  alert.message = message
-  alert.show = true
-}
-
 const openDeleteModal = (user) => {
+  if (!canDeleteUser.value) {
+    return
+  }
+
   deleteDialog.show = true
   deleteDialog.user = user
   deleteDialog.itemName = user.full_name
@@ -316,12 +536,16 @@ const handlePerPageChange = async (perPage) => {
 
 const submitForm = async (values) => {
   try {
+    const payload = {
+      ...values,
+      direct_permissions: [...new Set(values.direct_permissions || [])],
+      branch_ids: [...new Set(values.branch_ids || [])],
+    }
+
     if (modal.mode === 'create') {
-      await store.createUser(values)
+      await store.createUser(payload)
       showToast('success', 'User created successfully.')
     } else {
-      const payload = { ...values }
-
       if (!payload.password) {
         delete payload.password
       }
@@ -357,6 +581,9 @@ onMounted(async () => {
     await auth.fetchMe()
   }
 
-  await store.fetchUsers()
+  await Promise.all([
+    store.fetchAccessOptions(),
+    store.fetchUsers(),
+  ])
 })
 </script>

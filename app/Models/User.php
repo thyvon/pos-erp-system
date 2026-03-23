@@ -7,6 +7,7 @@ use App\Traits\BelongsToTenant;
 use App\Traits\HasUserTracking;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
@@ -34,6 +35,7 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'business_id',
+        'default_branch_id',
         'first_name',
         'last_name',
         'email',
@@ -79,5 +81,40 @@ class User extends Authenticatable
     public function business(): BelongsTo
     {
         return $this->belongsTo(Business::class);
+    }
+
+    public function branches(): BelongsToMany
+    {
+        return $this->belongsToMany(Branch::class)
+            ->withTimestamps();
+    }
+
+    public function defaultBranch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class, 'default_branch_id');
+    }
+
+    public function accessibleBranchIds(): array
+    {
+        if ($this->hasRole('super_admin')) {
+            return [];
+        }
+
+        if ($this->relationLoaded('branches')) {
+            return $this->branches->modelKeys();
+        }
+
+        return $this->branches()
+            ->pluck('branches.id')
+            ->all();
+    }
+
+    public function hasBranchAccess(string $branchId): bool
+    {
+        if ($this->hasRole('super_admin')) {
+            return true;
+        }
+
+        return in_array($branchId, $this->accessibleBranchIds(), true);
     }
 }

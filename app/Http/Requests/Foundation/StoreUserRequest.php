@@ -3,6 +3,7 @@
 namespace App\Http\Requests\Foundation;
 
 use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
 
 class StoreUserRequest extends FormRequest
 {
@@ -25,7 +26,12 @@ class StoreUserRequest extends FormRequest
             'commission_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'sales_target_amount' => ['nullable', 'numeric', 'min:0'],
             'preferences' => ['nullable', 'array'],
-            'role' => ['required', 'string', 'exists:roles,name'],
+            'role' => ['required', 'string', 'exists:roles,name', Rule::notIn(['super_admin'])],
+            'direct_permissions' => ['nullable', 'array'],
+            'direct_permissions.*' => ['string', 'exists:permissions,name'],
+            'branch_ids' => ['required', 'array', 'min:1'],
+            'branch_ids.*' => ['string', 'distinct', 'exists:branches,id'],
+            'default_branch_id' => ['nullable', 'string', 'exists:branches,id'],
         ];
     }
 }

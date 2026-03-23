@@ -13,12 +13,12 @@ use Illuminate\Http\Request;
 
 class UserController extends BaseApiController
 {
-    public function __construct(protected UserService $userService)
-    {
-    }
+    public function __construct(protected UserService $userService) {}
 
     public function index(Request $request): JsonResponse
     {
+        $this->authorize('viewAny', User::class);
+
         $users = $this->userService->paginate($request->only([
             'search',
             'status',
@@ -29,8 +29,17 @@ class UserController extends BaseApiController
         return $this->paginated($users, UserResource::class);
     }
 
+    public function options(): JsonResponse
+    {
+        $this->authorize('viewAny', User::class);
+
+        return $this->success($this->userService->accessControlOptions());
+    }
+
     public function store(StoreUserRequest $request): JsonResponse
     {
+        $this->authorize('create', User::class);
+
         $user = $this->userService->create($request->validated());
 
         return $this->success(new UserResource($user), 'User created successfully.', 201);
@@ -38,11 +47,15 @@ class UserController extends BaseApiController
 
     public function show(User $user): JsonResponse
     {
+        $this->authorize('view', $user);
+
         return $this->success(new UserResource($user->load(['business', 'roles', 'permissions'])));
     }
 
     public function update(UpdateUserRequest $request, User $user): JsonResponse
     {
+        $this->authorize('update', $user);
+
         $user = $this->userService->update($user, $request->validated());
 
         return $this->success(new UserResource($user), 'User updated successfully.');
@@ -50,6 +63,8 @@ class UserController extends BaseApiController
 
     public function destroy(User $user): JsonResponse
     {
+        $this->authorize('delete', $user);
+
         $this->userService->destroy($user);
 
         return $this->success(null, 'User deleted successfully.');

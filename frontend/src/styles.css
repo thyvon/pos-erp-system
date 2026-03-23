@@ -161,6 +161,63 @@
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
   }
 
+  .erp-sidebar-shell {
+    color: #27405f;
+  }
+
+  .erp-sidebar-shell-bg {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.8), rgba(241, 247, 255, 0.66)),
+      radial-gradient(circle at top, rgba(125, 211, 252, 0.16), transparent 42%);
+    backdrop-filter: blur(22px);
+  }
+
+  .erp-sidebar-shell-border {
+    border: 1px solid rgba(186, 202, 226, 0.72);
+    box-shadow:
+      18px 0 44px rgba(69, 90, 128, 0.14),
+      inset 1px 0 0 rgba(255, 255, 255, 0.42);
+  }
+
+  .erp-sidebar-shell-glow {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.44), transparent);
+  }
+
+  .erp-sidebar-brand {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.84), rgba(241, 247, 255, 0.74)),
+      radial-gradient(circle at top left, rgba(125, 211, 252, 0.18), transparent 48%);
+    border-right: 1px solid rgba(186, 202, 226, 0.72);
+    border-bottom: 1px solid rgba(186, 202, 226, 0.72);
+    box-shadow:
+      16px 0 36px rgba(69, 90, 128, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.52);
+    backdrop-filter: blur(20px);
+  }
+
+  .erp-sidebar-brand-kicker {
+    color: rgba(14, 116, 144, 0.82);
+  }
+
+  .erp-sidebar-brand-title {
+    color: rgba(15, 23, 42, 0.86);
+  }
+
+  .erp-sidebar-mobile-head {
+    border-bottom: 1px solid rgba(186, 202, 226, 0.58);
+  }
+
+  .erp-sidebar-mobile-close {
+    border: 1px solid rgba(186, 202, 226, 0.7);
+    background: rgba(255, 255, 255, 0.52);
+    color: #38506e;
+  }
+
+  .erp-sidebar-mobile-close:hover {
+    border-color: rgba(58, 123, 255, 0.28);
+    color: #174fb4;
+  }
+
   .erp-sidebar-collapse {
     @apply h-10 w-10 items-center justify-center rounded-[5px] text-sm font-semibold transition;
     background: rgba(255, 255, 255, 0.08);
@@ -205,38 +262,45 @@
 
   .erp-sidebar-section-title {
     @apply px-3 text-[11px] font-semibold uppercase tracking-[0.24em];
-    color: rgba(219, 234, 254, 0.56);
+    color: rgba(74, 99, 134, 0.72);
   }
 
   .erp-sidebar-link {
     @apply flex items-center justify-between rounded-[5px] px-3 py-2.5 text-sm font-medium transition;
-    color: rgba(226, 232, 240, 0.76);
+    color: rgba(39, 64, 95, 0.88);
     border: 1px solid transparent;
   }
 
   .erp-sidebar-link:hover {
-    border-color: rgba(255, 255, 255, 0.12);
-    background: rgba(255, 255, 255, 0.08);
-    color: white;
+    border-color: rgba(186, 202, 226, 0.72);
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(243, 248, 255, 0.44));
+    color: #132238;
+    box-shadow: 0 14px 28px rgba(69, 90, 128, 0.1);
   }
 
   .erp-sidebar-link-active {
-    background: linear-gradient(135deg, rgba(255, 255, 255, 0.94), rgba(230, 241, 255, 0.82));
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.62), rgba(243, 248, 255, 0.38)),
+      radial-gradient(circle at top left, rgba(125, 211, 252, 0.22), transparent 52%);
+    backdrop-filter: blur(18px);
     color: #132238;
-    box-shadow: 0 18px 32px rgba(15, 23, 42, 0.18);
+    border-color: rgba(186, 202, 226, 0.72);
+    box-shadow:
+      0 18px 32px rgba(69, 90, 128, 0.14),
+      inset 0 1px 0 rgba(255, 255, 255, 0.42);
   }
 
   .erp-sidebar-link-active .erp-nav-icon {
-    background: linear-gradient(135deg, rgba(58, 123, 255, 0.18), rgba(82, 184, 255, 0.22));
+    background: linear-gradient(135deg, rgba(58, 123, 255, 0.12), rgba(82, 184, 255, 0.18));
     color: #1850b8;
-    border-color: rgba(58, 123, 255, 0.12);
+    border-color: rgba(58, 123, 255, 0.18);
   }
 
   .erp-nav-icon {
     @apply inline-flex h-10 w-10 items-center justify-center rounded-[5px] text-sm;
-    background: rgba(255, 255, 255, 0.08);
-    border: 1px solid rgba(255, 255, 255, 0.1);
-    color: rgba(255, 255, 255, 0.84);
+    background: rgba(255, 255, 255, 0.42);
+    border: 1px solid rgba(186, 202, 226, 0.72);
+    color: rgba(39, 64, 95, 0.86);
   }
 
   .erp-nav-badge {
@@ -251,12 +315,146 @@
     @apply h-12 w-12 text-sm;
   }
 
+  .erp-sidebar-callout {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.52), rgba(243, 248, 255, 0.3));
+    border: 1px solid rgba(186, 202, 226, 0.68);
+    box-shadow:
+      0 18px 32px rgba(69, 90, 128, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.42);
+    backdrop-filter: blur(18px);
+  }
+
+  .erp-sidebar-callout-kicker {
+    color: rgba(74, 99, 134, 0.72);
+  }
+
+  .erp-sidebar-callout-title {
+    color: rgba(15, 23, 42, 0.88);
+  }
+
+  .erp-sidebar-callout-body {
+    color: rgba(56, 80, 110, 0.82);
+  }
+
   .erp-user-avatar-topbar {
     @apply h-11 w-11 text-sm;
   }
 
   .erp-user-avatar-topbar-compact {
     @apply h-8 w-8 text-xs;
+  }
+
+  .dark .erp-sidebar-shell {
+    color: rgba(226, 232, 240, 0.9);
+  }
+
+  .dark .erp-sidebar-shell-bg {
+    background:
+      linear-gradient(180deg, rgba(5, 16, 31, 0.9), rgba(8, 20, 37, 0.78)),
+      radial-gradient(circle at top, rgba(34, 211, 238, 0.12), transparent 42%);
+  }
+
+  .dark .erp-sidebar-shell-border {
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    box-shadow:
+      18px 0 44px rgba(2, 6, 23, 0.32),
+      inset 1px 0 0 rgba(255, 255, 255, 0.04);
+  }
+
+  .dark .erp-sidebar-shell-glow {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), transparent);
+  }
+
+  .dark .erp-sidebar-brand {
+    background:
+      linear-gradient(180deg, rgba(5, 16, 31, 0.96), rgba(8, 20, 37, 0.92)),
+      radial-gradient(circle at top left, rgba(34, 211, 238, 0.1), transparent 48%);
+    border-right-color: rgba(255, 255, 255, 0.1);
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+    box-shadow:
+      16px 0 36px rgba(2, 6, 23, 0.28),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  .dark .erp-sidebar-brand-kicker {
+    color: rgba(165, 243, 252, 0.8);
+  }
+
+  .dark .erp-sidebar-brand-title {
+    color: rgba(255, 255, 255, 0.9);
+  }
+
+  .dark .erp-sidebar-mobile-head {
+    border-bottom-color: rgba(255, 255, 255, 0.1);
+  }
+
+  .dark .erp-sidebar-mobile-close {
+    border-color: rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.06);
+    color: rgba(226, 232, 240, 0.8);
+  }
+
+  .dark .erp-sidebar-mobile-close:hover {
+    border-color: rgba(125, 211, 252, 0.24);
+    color: white;
+  }
+
+  .dark .erp-sidebar-section-title {
+    color: rgba(219, 234, 254, 0.56);
+  }
+
+  .dark .erp-sidebar-link {
+    color: rgba(226, 232, 240, 0.76);
+  }
+
+  .dark .erp-sidebar-link:hover {
+    border-color: rgba(255, 255, 255, 0.12);
+    background: rgba(255, 255, 255, 0.08);
+    color: white;
+    box-shadow: none;
+  }
+
+  .dark .erp-sidebar-link-active {
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06)),
+      radial-gradient(circle at top left, rgba(34, 211, 238, 0.16), transparent 52%);
+    color: #eff6ff;
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow:
+      0 18px 32px rgba(2, 6, 23, 0.24),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  .dark .erp-sidebar-link-active .erp-nav-icon {
+    background: linear-gradient(135deg, rgba(125, 211, 252, 0.14), rgba(34, 211, 238, 0.16));
+    color: #8bddff;
+    border-color: rgba(125, 211, 252, 0.14);
+  }
+
+  .dark .erp-nav-icon {
+    background: rgba(255, 255, 255, 0.08);
+    border-color: rgba(255, 255, 255, 0.1);
+    color: rgba(255, 255, 255, 0.84);
+  }
+
+  .dark .erp-sidebar-callout {
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.02));
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow:
+      0 18px 32px rgba(2, 6, 23, 0.24),
+      inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  }
+
+  .dark .erp-sidebar-callout-kicker {
+    color: rgba(148, 163, 184, 0.82);
+  }
+
+  .dark .erp-sidebar-callout-title {
+    color: rgba(255, 255, 255, 0.92);
+  }
+
+  .dark .erp-sidebar-callout-body {
+    color: rgba(203, 213, 225, 0.74);
   }
 
   .erp-topbar-user-chip {
