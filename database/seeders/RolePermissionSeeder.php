@@ -17,6 +17,7 @@ class RolePermissionSeeder extends Seeder
             'users',
             'branches',
             'warehouses',
+            'businesses',
             'products',
             'customers',
             'suppliers',
@@ -24,9 +25,17 @@ class RolePermissionSeeder extends Seeder
             'purchases',
             'inventory',
             'accounting',
+            'payments',
             'expenses',
             'reports',
             'settings',
+            'loyalty',
+            'commissions',
+            'crm',
+            'gift_cards',
+            'manufacturing',
+            'asset_management',
+            'installments',
             'hrm',
         ];
 
@@ -48,6 +57,7 @@ class RolePermissionSeeder extends Seeder
             'super_admin' => Permission::all(),
             'admin' => Permission::all(),
             'manager' => Permission::whereNotIn('name', [
+                'settings.edit',
                 'settings.delete',
                 'accounting.delete',
             ])->get(),
@@ -62,10 +72,25 @@ class RolePermissionSeeder extends Seeder
             ])->get(),
             'accountant' => Permission::where(function ($query): void {
                 $query->where('name', 'like', 'accounting.%')
+                    ->orWhere('name', 'like', 'payments.%')
                     ->orWhere('name', 'like', 'reports.%')
                     ->orWhere('name', 'like', 'expenses.%');
             })->get(),
-            'hr' => Permission::where('name', 'like', 'hrm.%')->get(),
+            'inventory_manager' => Permission::where(function ($query): void {
+                $query->where('name', 'like', 'inventory.%')
+                    ->orWhere('name', 'like', 'products.%')
+                    ->orWhere('name', 'like', 'purchases.%')
+                    ->orWhere('name', 'like', 'suppliers.%')
+                    ->orWhere('name', 'like', 'warehouses.%');
+            })->get(),
+            'sales_representative' => Permission::whereIn('name', [
+                'sales.index',
+                'sales.create',
+                'sales.edit',
+                'customers.index',
+                'products.index',
+                'reports.index',
+            ])->get(),
         ];
 
         foreach ($roles as $roleName => $rolePermissions) {

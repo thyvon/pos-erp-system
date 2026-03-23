@@ -79,7 +79,7 @@ return Application::configure(basePath: dirname(__DIR__))
                 401 => 'Unauthenticated.',
                 403 => 'You do not have permission.',
                 404 => 'Record not found.',
-                default => $status >= 500 ? 'Server error.' : ($exception->getMessage() ?: 'Request failed.'),
+                default => $status >= 500 ? 'An unexpected error occurred.' : ($exception->getMessage() ?: 'Request failed.'),
             };
 
             return response()->json([

@@ -19,7 +19,7 @@ Route::prefix('v1/auth')->group(function () {
     });
 });
 
-Route::prefix('v1')->middleware('auth:sanctum')->group(function () {
+Route::prefix('v1')->middleware(['auth:sanctum', 'throttle:300,1'])->group(function () {
     Route::apiResource('users', UserController::class);
     Route::apiResource('branches', BranchController::class);
     Route::apiResource('warehouses', WarehouseController::class);

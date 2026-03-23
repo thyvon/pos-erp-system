@@ -1,0 +1,1326 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ERP System — Project Roadmap</title>
+<link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;600;700&family=Syne:wght@400;600;700;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#080c12;
+  --surface:#0d1420;
+  --surface2:#121c2e;
+  --surface3:#1a2540;
+  --border:#1e2f4a;
+  --border2:#243556;
+  --text:#e8f0ff;
+  --text2:#7a9cc8;
+  --text3:#3d5a80;
+  --accent:#3b82f6;
+  --accent2:#60a5fa;
+  --green:#10b981;
+  --green-bg:rgba(16,185,129,0.1);
+  --amber:#f59e0b;
+  --amber-bg:rgba(245,158,11,0.1);
+  --red:#ef4444;
+  --red-bg:rgba(239,68,68,0.08);
+  --purple:#8b5cf6;
+  --purple-bg:rgba(139,92,246,0.1);
+  --cyan:#06b6d4;
+  --pink:#ec4899;
+  --mono:'JetBrains Mono',monospace;
+  --display:'Syne',sans-serif;
+}
+
+body{font-family:var(--mono);background:var(--bg);color:var(--text);font-size:13px;line-height:1.6;min-height:100vh}
+
+/* ── HEADER ── */
+.header{
+  background:linear-gradient(135deg,#0a1628 0%,#0d1f3c 50%,#091520 100%);
+  border-bottom:1px solid var(--border);
+  padding:24px 32px 20px;
+  position:sticky;top:0;z-index:200;
+  box-shadow:0 4px 40px rgba(0,0,0,0.6);
+}
+.header-top{display:flex;align-items:flex-start;justify-content:space-between;gap:20px;flex-wrap:wrap}
+.header-brand{display:flex;flex-direction:column;gap:4px}
+.header-title{font-family:var(--display);font-size:20px;font-weight:800;color:#fff;letter-spacing:-0.5px}
+.header-title span{color:var(--accent2)}
+.header-sub{font-size:10px;color:var(--text3);letter-spacing:1px;text-transform:uppercase}
+.header-meta{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.meta-pill{font-size:10px;padding:3px 10px;border-radius:99px;border:1px solid var(--border2);color:var(--text2);font-family:var(--mono)}
+.meta-pill.core{border-color:rgba(59,130,246,0.4);color:var(--accent2)}
+.meta-pill.module{border-color:rgba(139,92,246,0.4);color:#a78bfa}
+
+/* Progress bar */
+.progress-section{margin-top:16px}
+.progress-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:6px}
+.progress-label{font-size:11px;color:var(--text2)}
+.progress-pct{font-size:14px;font-weight:700;color:var(--text);font-family:var(--display)}
+.progress-track{height:6px;background:var(--border);border-radius:99px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--accent),var(--cyan));border-radius:99px;transition:width .5s ease;position:relative}
+.progress-fill::after{content:'';position:absolute;right:0;top:0;bottom:0;width:20px;background:rgba(255,255,255,0.3);border-radius:99px;animation:shimmer 2s infinite}
+@keyframes shimmer{0%,100%{opacity:0.3}50%{opacity:0.8}}
+
+/* Phase counters */
+.phase-stats{display:flex;gap:20px;margin-top:14px;flex-wrap:wrap}
+.stat{display:flex;align-items:center;gap:6px;font-size:11px}
+.stat-dot{width:8px;height:8px;border-radius:50%}
+.stat-dot.done{background:var(--green)}
+.stat-dot.inprog{background:var(--amber)}
+.stat-dot.blocked{background:var(--red)}
+.stat-dot.todo{background:var(--border2)}
+
+/* ── LAYOUT ── */
+.layout{display:flex;min-height:calc(100vh - 225px)}
+
+/* ── SIDEBAR ── */
+.sidebar{
+  width:220px;min-width:220px;
+  background:var(--surface);
+  border-right:1px solid var(--border);
+  position:sticky;top:225px;
+  height:calc(100vh - 225px);
+  overflow-y:auto;
+  padding:12px 0;
+}
+.sb-section{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:1.2px;color:var(--text3);padding:10px 16px 4px;margin-top:4px}
+.sb-item{
+  display:flex;align-items:center;gap:8px;
+  padding:7px 14px 7px 16px;
+  cursor:pointer;
+  border-left:3px solid transparent;
+  transition:all .12s;
+  text-decoration:none;
+}
+.sb-item:hover{background:var(--surface2);border-left-color:var(--border2)}
+.sb-item.active{background:rgba(59,130,246,0.1);border-left-color:var(--accent)}
+.sb-num{font-size:9px;color:var(--text3);min-width:18px;font-weight:700}
+.sb-name{font-size:10px;color:var(--text2);flex:1;line-height:1.3}
+.sb-item.active .sb-name{color:var(--text)}
+.sb-badge{font-size:9px;padding:1px 6px;border-radius:99px;font-weight:700}
+.sb-badge.done{background:var(--green-bg);color:var(--green)}
+.sb-badge.inprog{background:var(--amber-bg);color:var(--amber)}
+.sb-badge.module{background:var(--purple-bg);color:#a78bfa}
+.sb-pct{font-size:9px;color:var(--text3);min-width:28px;text-align:right}
+
+/* ── MAIN ── */
+.main{flex:1;padding:24px 28px;max-width:900px}
+
+/* ── FILTER BAR ── */
+.filter-bar{
+  display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;
+  align-items:center;
+  border-top:1px solid rgba(255,255,255,0.07);
+  padding-top:14px;
+}
+.filter-label{font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-right:4px}
+.filter-btn{
+  font-size:10px;font-family:var(--mono);
+  padding:4px 12px;border-radius:6px;
+  border:1px solid var(--border2);
+  background:transparent;color:var(--text2);
+  cursor:pointer;transition:all .15s;
+}
+.filter-btn:hover,.filter-btn.active{background:rgba(59,130,246,0.15);border-color:var(--accent);color:var(--accent2)}
+.filter-sep{width:1px;height:20px;background:var(--border);margin:0 4px}
+.search-wrap{margin-left:auto;position:relative}
+.search-input{
+  font-family:var(--mono);font-size:11px;
+  background:var(--surface2);
+  border:1px solid var(--border2);
+  color:var(--text);
+  padding:5px 12px 5px 30px;
+  border-radius:6px;
+  width:200px;
+  outline:none;
+  transition:border-color .15s;
+}
+.search-input:focus{border-color:var(--accent)}
+.search-icon{position:absolute;left:9px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:12px}
+
+/* ── PHASE BLOCK ── */
+.phase{
+  background:var(--surface);
+  border:1px solid var(--border);
+  border-radius:12px;
+  margin-bottom:14px;
+  overflow:hidden;
+  transition:border-color .15s;
+}
+.phase:hover{border-color:var(--border2)}
+.phase.phase-active{border-color:rgba(59,130,246,0.4)}
+.phase.phase-done{border-color:rgba(16,185,129,0.3);opacity:.7}
+
+.phase-hdr{
+  display:flex;align-items:center;gap:12px;
+  padding:14px 18px;
+  cursor:pointer;
+  user-select:none;
+  transition:background .12s;
+}
+.phase-hdr:hover{background:var(--surface2)}
+.phase-num{
+  font-family:var(--display);font-size:11px;font-weight:800;
+  width:32px;height:32px;border-radius:8px;
+  display:flex;align-items:center;justify-content:center;
+  background:var(--surface3);color:var(--text2);
+  flex-shrink:0;
+  border:1px solid var(--border2);
+}
+.phase.phase-done .phase-num{background:var(--green-bg);color:var(--green);border-color:rgba(16,185,129,0.3)}
+.phase.phase-active .phase-num{background:rgba(59,130,246,0.15);color:var(--accent2);border-color:rgba(59,130,246,0.4)}
+.phase.phase-module .phase-num{background:var(--purple-bg);color:#a78bfa;border-color:rgba(139,92,246,0.3)}
+
+.phase-info{flex:1}
+.phase-title{font-family:var(--display);font-size:14px;font-weight:700;color:var(--text)}
+.phase-subtitle{font-size:10px;color:var(--text3);margin-top:1px}
+.phase-right{display:flex;align-items:center;gap:10px}
+.phase-type-badge{font-size:9px;padding:2px 8px;border-radius:4px;font-weight:700;text-transform:uppercase;letter-spacing:.5px}
+.phase-type-badge.core{background:rgba(59,130,246,0.15);color:var(--accent2)}
+.phase-type-badge.module{background:var(--purple-bg);color:#a78bfa}
+.phase-type-badge.critical{background:rgba(239,68,68,0.12);color:#f87171}
+.phase-count{font-size:11px;color:var(--text3);min-width:45px;text-align:right}
+.phase-chevron{color:var(--text3);font-size:11px;transition:transform .2s;margin-left:2px}
+.phase-chevron.open{transform:rotate(90deg)}
+
+.phase-progress-bar{height:3px;background:var(--border)}
+.phase-progress-fill{height:100%;background:var(--accent);transition:width .4s}
+.phase.phase-done .phase-progress-fill{background:var(--green)}
+.phase.phase-module .phase-progress-fill{background:var(--purple)}
+
+.phase-body{display:none}
+.phase-body.open{display:block}
+
+/* ── TASK GROUP ── */
+.task-group{border-top:1px solid var(--border)}
+.group-hdr{
+  display:flex;align-items:center;gap:8px;
+  padding:9px 18px 9px 20px;
+  background:rgba(255,255,255,0.015);
+  cursor:pointer;
+  user-select:none;
+}
+.group-hdr:hover{background:rgba(255,255,255,0.03)}
+.group-title{font-size:10px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.8px;flex:1}
+.group-count{font-size:10px;color:var(--text3)}
+.group-chevron{font-size:9px;color:var(--text3);transition:transform .15s}
+.group-chevron.open{transform:rotate(90deg)}
+.group-body{display:none}
+.group-body.open{display:block}
+
+/* ── TASK ROW ── */
+.task{border-top:1px solid rgba(255,255,255,0.04);transition:background .1s}
+.task:hover{background:rgba(255,255,255,0.02)}
+.task.done{opacity:.45}
+.task.done .task-title{text-decoration:line-through;color:var(--text3)}
+.task.inprog{background:rgba(245,158,11,0.04)}
+.task.blocked{background:rgba(239,68,68,0.04)}
+
+.task-row{display:flex;align-items:flex-start;gap:10px;padding:10px 18px 10px 24px;cursor:pointer}
+
+/* Status box — click to cycle */
+.status-box{
+  width:18px;height:18px;border-radius:4px;
+  border:1.5px solid var(--border2);
+  flex-shrink:0;margin-top:1px;
+  display:flex;align-items:center;justify-content:center;
+  cursor:pointer;
+  transition:all .15s;
+  background:transparent;
+}
+.status-box:hover{border-color:var(--accent)}
+.task.done .status-box{background:var(--green);border-color:var(--green)}
+.task.inprog .status-box{background:var(--amber-bg);border-color:var(--amber)}
+.task.blocked .status-box{background:var(--red-bg);border-color:var(--red)}
+.status-icon{font-size:9px;font-weight:900;color:#fff;line-height:1}
+.status-dot{width:6px;height:6px;border-radius:50%;background:var(--amber)}
+
+.task-content{flex:1}
+.task-title{font-size:13px;font-weight:600;color:var(--text);line-height:1.5}
+.task-title code{
+  font-family:var(--mono);font-size:10px;
+  background:var(--surface3);color:var(--cyan);
+  padding:1px 6px;border-radius:3px;
+}
+.task-tags{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
+.tag{font-size:9px;padding:2px 7px;border-radius:3px;font-weight:700;text-transform:uppercase;letter-spacing:.4px}
+.tag-critical{background:rgba(239,68,68,0.12);color:#f87171}
+.tag-migration{background:rgba(139,92,246,0.12);color:#a78bfa}
+.tag-backend{background:rgba(59,130,246,0.1);color:var(--accent2)}
+.tag-frontend{background:rgba(6,182,212,0.1);color:var(--cyan)}
+.tag-service{background:rgba(16,185,129,0.1);color:var(--green)}
+.tag-test{background:rgba(245,158,11,0.1);color:var(--amber)}
+.tag-module{background:rgba(139,92,246,0.15);color:#c4b5fd}
+.tag-api{background:rgba(236,72,153,0.1);color:#f9a8d4}
+.tag-seed{background:rgba(234,179,8,0.1);color:#fde047}
+.tag-job{background:rgba(20,184,166,0.1);color:#5eead4}
+.tag-security{background:rgba(239,68,68,0.15);color:#fca5a5}
+
+.task-detail{display:none;padding:0 18px 14px 52px;background:rgba(0,0,0,0.15)}
+.task-detail.open{display:block}
+.detail-what{font-size:12px;color:var(--text2);line-height:1.7;margin-top:10px;border-left:2px solid var(--border2);padding-left:12px}
+.detail-rules{margin-top:8px}
+.detail-rules-label{font-size:9px;font-weight:700;color:var(--text3);text-transform:uppercase;letter-spacing:.8px;margin-bottom:4px}
+.rule-item{display:flex;gap:8px;font-size:11px;color:var(--text2);line-height:1.6;margin-bottom:2px}
+.rule-item::before{content:'→';color:var(--accent);flex-shrink:0}
+.warn-box{
+  background:rgba(245,158,11,0.08);
+  border:1px solid rgba(245,158,11,0.25);
+  border-radius:6px;padding:8px 12px;margin-top:10px;
+  font-size:11px;color:var(--amber);
+}
+.warn-box strong{font-weight:700;margin-right:6px}
+
+/* ── QUICK STATUS LEGEND ── */
+.legend{
+  display:flex;gap:16px;flex-wrap:wrap;
+  font-size:10px;color:var(--text3);
+  align-items:center;
+  margin-left:auto;
+}
+.legend-item{display:flex;align-items:center;gap:5px}
+.legend-box{width:12px;height:12px;border-radius:3px;border:1.5px solid}
+.legend-box.todo{border-color:var(--border2);background:transparent}
+.legend-box.inprog{border-color:var(--amber);background:var(--amber-bg)}
+.legend-box.blocked{border-color:var(--red);background:var(--red-bg)}
+.legend-box.done{border-color:var(--green);background:var(--green-bg)}
+
+/* ── EXPORT BUTTON ── */
+.export-btn{
+  font-family:var(--mono);font-size:10px;
+  background:rgba(59,130,246,0.15);
+  border:1px solid rgba(59,130,246,0.4);
+  color:var(--accent2);
+  padding:5px 14px;border-radius:6px;
+  cursor:pointer;transition:all .15s;
+}
+.export-btn:hover{background:rgba(59,130,246,0.25)}
+
+/* ── GOLDEN ORDER BOX ── */
+.golden-order{
+  background:linear-gradient(135deg,rgba(59,130,246,0.08),rgba(6,182,212,0.05));
+  border:1px solid rgba(59,130,246,0.25);
+  border-radius:10px;
+  padding:16px 20px;
+  margin-bottom:20px;
+}
+.golden-title{font-size:10px;font-weight:700;color:var(--accent2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:12px}
+.golden-steps{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.g-step{
+  display:flex;align-items:center;gap:6px;
+  background:var(--surface2);
+  border:1px solid var(--border2);
+  border-radius:6px;padding:5px 10px;
+  font-size:10px;color:var(--text2);
+}
+.g-step-num{
+  width:16px;height:16px;border-radius:4px;
+  background:var(--accent);color:#fff;
+  font-size:9px;font-weight:800;
+  display:flex;align-items:center;justify-content:center;
+  flex-shrink:0;
+}
+.g-arrow{color:var(--text3);font-size:11px}
+
+/* Rules bar */
+.rules-bar{
+  background:rgba(239,68,68,0.05);
+  border:1px solid rgba(239,68,68,0.2);
+  border-radius:10px;padding:14px 18px;
+  margin-bottom:20px;
+}
+.rules-title{font-size:10px;font-weight:700;color:#f87171;text-transform:uppercase;letter-spacing:.8px;margin-bottom:8px}
+.rules-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:4px}
+.rule-row{display:flex;gap:8px;font-size:10px;color:var(--text2);padding:2px 0}
+.rule-row-num{color:#f87171;font-weight:700;min-width:18px}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-track{background:transparent}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:99px}
+
+@media(max-width:720px){
+  .sidebar{display:none}
+  .main{padding:14px}
+  .golden-steps{gap:4px}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-top">
+    <div class="header-brand">
+      <div class="header-title">ERP <span>System</span> — Project Roadmap</div>
+      <div class="header-sub">Laravel 11 · Vue 3 SPA · Tailwind CSS · MariaDB 10.11 · 23 Phases</div>
+      <div class="header-meta">
+        <span class="meta-pill core">Core: 15 Phases</span>
+        <span class="meta-pill module">Modules: 6 Phases</span>
+        <span class="meta-pill">67 Tables</span>
+        <span class="meta-pill">30 Reports</span>
+        <span class="meta-pill">25 Absolute Rules</span>
+      </div>
+    </div>
+    <div style="display:flex;flex-direction:column;gap:8px;align-items:flex-end">
+      <button class="export-btn" onclick="exportStatus()">Export Progress</button>
+      <div class="legend">
+        <div class="legend-item"><div class="legend-box todo"></div>Not Started</div>
+        <div class="legend-item"><div class="legend-box inprog"></div>In Progress</div>
+        <div class="legend-item"><div class="legend-box blocked"></div>Blocked</div>
+        <div class="legend-item"><div class="legend-box done"></div>Done</div>
+      </div>
+    </div>
+  </div>
+  <div class="progress-section">
+    <div class="progress-row">
+      <span class="progress-label" id="pbar-label">0 / 0 tasks completed</span>
+      <span class="progress-pct" id="pbar-pct">0%</span>
+    </div>
+    <div class="progress-track"><div class="progress-fill" id="pbar-fill" style="width:0%"></div></div>
+    <div class="phase-stats" id="phase-stats"></div>
+  </div>
+  <div class="filter-bar">
+    <span class="filter-label">Show:</span>
+    <button class="filter-btn active" onclick="setFilter('all',this)">All</button>
+    <button class="filter-btn" onclick="setFilter('todo',this)">Not Started</button>
+    <button class="filter-btn" onclick="setFilter('inprog',this)">In Progress</button>
+    <button class="filter-btn" onclick="setFilter('blocked',this)">Blocked</button>
+    <button class="filter-btn" onclick="setFilter('done',this)">Done</button>
+    <div class="filter-sep"></div>
+    <div class="search-wrap">
+      <span class="search-icon">⌕</span>
+      <input class="search-input" type="text" placeholder="Search steps..." oninput="handleSearch(this.value)">
+    </div>
+  </div>
+</div>
+
+<div class="layout">
+  <nav class="sidebar" id="sidebar"></nav>
+  <main class="main" id="main-content"></main>
+</div>
+
+<script>
+const STORE_KEY = 'erp_v8_roadmap';
+let S = {};
+try { S = JSON.parse(localStorage.getItem(STORE_KEY) || '{}'); } catch(e) {}
+
+const PHASES = [
+{id:'p1',num:'01',title:'Environment Setup',subtitle:'Docker · Laravel · Vue · Tailwind · i18n',type:'core',
+ groups:[
+  {title:'Backend Environment',tasks:[
+    {id:'t1_1',title:'Install Docker Desktop and create docker-compose.yml',tags:['backend'],
+     what:'Set up Docker Compose with MariaDB 10.11, Redis 7, phpMyAdmin, and MailHog containers.',
+     rules:['MariaDB 10.11 LTS (not MySQL, not latest MariaDB)','Redis 7 Alpine for cache/queue/sessions','phpMyAdmin on port 8080 for DB inspection','MailHog on port 8025 for email testing']},
+    {id:'t1_2',title:'Create Laravel 11 project and configure .env',tags:['backend'],
+     what:'Run composer create-project. Configure .env for Docker services: DB, Redis, Mail.',
+     rules:['DB_CONNECTION must stay as mysql even with MariaDB','Redis settings for CACHE_STORE, QUEUE_CONNECTION, SESSION_DRIVER','Never commit .env to Git — verify .gitignore']},
+    {id:'t1_3',title:'Configure AppServiceProvider — strict SQL mode and string length',tags:['backend','critical'],
+     what:'Enable MariaDB strict SQL mode and set default string length to 191 for utf8mb4 FULLTEXT support.',
+     rules:['Schema::defaultStringLength(191) required for utf8mb4 FULLTEXT indexes','Strict mode: STRICT_TRANS_TABLES,NO_ZERO_IN_DATE,NO_ZERO_DATE,ERROR_FOR_DIVISION_BY_ZERO,NO_ENGINE_SUBSTITUTION']},
+    {id:'t1_4',title:'Create single catch-all web route and SPA Blade entry point',tags:['backend'],
+     what:'routes/web.php has ONE route: catch-all returning resources/views/app.blade.php. This is the only Blade file.',
+     rules:['Route catches ALL URLs — Vue Router handles all page navigation','app.blade.php loads compiled Vue SPA only','Zero PHP data passed through Blade to Vue']},
+  ]},
+  {title:'Frontend Environment',tasks:[
+    {id:'t1_5',title:'Create /frontend folder with Vite + Vue 3 template',tags:['frontend'],
+     what:'Run npm create vite@latest frontend -- --template vue inside the Laravel project root.',
+     rules:['Frontend lives at /frontend/ inside the Laravel project root','Single git repository for both backend and frontend']},
+    {id:'t1_6',title:'Install all npm packages',tags:['frontend'],
+     what:'Install all frontend dependencies in one step: Vue Router, Pinia, Axios, VeeValidate, Tailwind, Headless UI, Heroicons, Chart.js, Vue Toastification, Vue i18n, Day.js.',
+     rules:['Vue Router 4.x for SPA navigation','Pinia 2.x for state management','VeeValidate 4 + Yup for form validation','Tailwind CSS 3.x — utility first, no Bootstrap']},
+    {id:'t1_7',title:'Configure Tailwind CSS with custom component classes',tags:['frontend'],
+     what:'Set up tailwind.config.js, postcss.config.js, and create main.css with @layer components for reusable classes like .btn-primary, .form-input, .card.',
+     rules:['No Bootstrap or SmartAdmin — Tailwind only','All shared component styles defined in @layer components']},
+    {id:'t1_8',title:'Configure Vite proxy for API calls to Laravel',tags:['frontend'],
+     what:'Configure vite.config.js to proxy /api/* and /sanctum/* requests to Laravel on port 8000 during development.',
+     rules:['Never hardcode localhost:8000 in Vue components','Proxy handles CORS in development','Nginx handles routing in production']},
+    {id:'t1_9',title:'Set up Vue i18n with en.json translation file',tags:['frontend'],
+     what:'Install Vue i18n. Create /frontend/src/i18n/en.json as the base translation file. Configure i18n plugin in main.js.',
+     rules:['All user-visible strings use t("key") — never hardcoded','Language determined from business.locale setting','Adding a new language = one new JSON file, zero code changes']},
+  ]}
+ ]
+},
+
+{id:'p2',num:'02',title:'Backend Foundation',subtitle:'Base Classes · Traits · Exceptions · Middleware · Seeds',type:'core',
+ groups:[
+  {title:'Core Traits',tasks:[
+    {id:'t2_1',title:'Create HasUuid trait',tags:['backend','critical'],
+     what:'Auto-generates UUID v4 before model creation. Sets incrementing=false and keyType=string on every model.',
+     rules:['Every table uses UUID PK — no integer IDs','UUIDs stored as CHAR(36)','Unguessable IDs prevent data scraping']},
+    {id:'t2_2',title:'Create BelongsToTenant trait',tags:['backend','critical'],
+     what:'Adds a global Eloquent scope WHERE business_id = app("tenant")->id to every query. Auto-sets business_id on creation.',
+     rules:['This is the most critical security feature','Business A can NEVER see Business B data','Must be applied to every model except Business itself']},
+    {id:'t2_3',title:'Create HasUserTracking trait',tags:['backend'],
+     what:'Auto-sets created_by before creation and updated_by before every update from auth()->id().',
+     rules:['Enables full audit trail of who created/changed every record']},
+  ]},
+  {title:'Base Classes',tasks:[
+    {id:'t2_4',title:'Create BaseModel',tags:['backend','critical'],
+     what:'Abstract Eloquent model that all application models extend. Uses all three traits plus SoftDeletes.',
+     rules:['All models extend BaseModel except User and Business','User extends Authenticatable but applies traits manually','Business is tenant root — no BelongsToTenant']},
+    {id:'t2_5',title:'Create BaseRepository',tags:['backend'],
+     what:'Provides CRUD methods with Redis caching. Cache keys always include business_id.',
+     rules:['All database queries go through Repository classes','Cache keys MUST include business_id for tenant isolation','Cache busted on every create, update, delete operation']},
+    {id:'t2_6',title:'Create BaseApiController',tags:['backend'],
+     what:'Parent controller for all API controllers. Provides success(), paginated(), and error() response helper methods.',
+     rules:['All API responses use the standard envelope format','success() → { success:true, message, data }','paginated() → { success:true, data:[], meta:{} }','error() → { success:false, message }']},
+  ]},
+  {title:'Exception Handling',tasks:[
+    {id:'t2_7',title:'Create all 11 Domain Exception classes',tags:['backend','critical'],
+     what:'Custom exception classes in app/Exceptions/Domain/ for every business rule violation. All extend DomainException.',
+     rules:['InsufficientStockException — qty below requested','InsufficientLotQtyException — lot qty below requested','SerialNotFoundException — serial not in warehouse','SerialAlreadySoldException — serial not in_stock','DuplicateSerialException — serial already exists','InvalidStateTransitionException — invalid state change','UnbalancedJournalException — debits ≠ credits','LotExpiredException — selling from expired lot','LotRecalledException — selling from recalled lot','MinimumSellingPriceException — price below minimum','MaxDiscountExceededException — discount above user limit']},
+    {id:'t2_8',title:'Create global JSON exception handler',tags:['backend','critical'],
+     what:'Intercepts all exceptions for api/* requests and returns JSON — never HTML error pages.',
+     rules:['ModelNotFoundException → 404 JSON','ValidationException → 422 JSON with errors field','AuthenticationException → 401 JSON','DomainException → 400 JSON with message','All other exceptions → 500 JSON']},
+  ]},
+  {title:'Middleware and Auth',tasks:[
+    {id:'t2_9',title:'Create TenantResolver middleware',tags:['backend','critical'],
+     what:'Runs on every authenticated API request. Loads Business from user\'s business_id. Binds to app("tenant"). Rejects suspended/cancelled businesses.',
+     rules:['Must run before any controller that uses tenant data','Suspended business → 403 Forbidden','Cancelled business → 403 Forbidden']},
+    {id:'t2_10',title:'Run Group A migrations',tags:['backend','migration'],
+     what:'Create all 8 foundation tables: businesses, branches, warehouses, users, spatie permission tables, settings (all groups), audit_logs, custom_field_definitions.',
+     rules:['businesses table has locale column (VARCHAR 10, default en)','users table has commission_percentage and sales_target_amount columns','settings table supports all 10 groups including sms, sales, system','audit_logs has NO updated_at — append-only']},
+    {id:'t2_11',title:'Seed 7 roles + permissions, default settings, 21 COA accounts',tags:['backend','seed'],
+     what:'Seed all startup data: 7 roles with all resource.action permissions, default values for all setting groups, and 21 default chart of account entries.',
+     rules:['7 roles: super_admin, admin, manager, cashier, accountant, inventory_manager, sales_representative','Permission pattern: {resource}.{action}','All stock settings seeded with defaults including enable_lot_tracking=false','All 21 COA accounts marked is_system=1 — cannot be deleted']},
+    {id:'t2_12',title:'Build complete Auth API — 6 endpoints',tags:['backend','api','critical'],
+     what:'Login, logout, me, change-password, forgot-password, reset-password. Test ALL 6 before moving to Phase 3.',
+     rules:['Login: user AND business must both be active','On login: record last_login_at, write audit_log event=login','Rate limit: 5 failures per minute per IP → 429','me: returns user + business + all roles + all permissions','Forgot password: sends signed time-limited link via queue','Logout: destroys current token only — not all sessions'],
+     warn:'Test all 6 auth endpoints before proceeding. If auth is broken, nothing else works.'},
+  ]}
+ ]
+},
+
+{id:'p3',num:'03',title:'Frontend Foundation',subtitle:'Axios · Router · Layouts · Shared Components · Auth Pages',type:'core',
+ groups:[
+  {title:'Core Setup',tasks:[
+    {id:'t3_1',title:'Create shared Axios instance with interceptors',tags:['frontend','critical'],
+     what:'Single Axios instance in src/api/axios.js. Injects Bearer token on every request. On 401 clears token and redirects to login.',
+     rules:['ALL api files import from this shared instance — never import axios directly','Token stored in localStorage','On 401: clear token, redirect to /login']},
+    {id:'t3_2',title:'Create Vue Router with 3 layouts and auth guard',tags:['frontend','critical'],
+     what:'Define all routes grouped under AppLayout, AuthLayout, and POSLayout. Add beforeEach guard checking authStore.isLoggedIn.',
+     rules:['AppLayout: all authenticated pages except POS','AuthLayout: login, forgot, reset — no sidebar','POSLayout: full-screen, no sidebar, mini-header only','beforeEach: if requiresAuth and not logged in → redirect to /login with ?redirect= param','On login success: redirect back to intended URL']},
+    {id:'t3_3',title:'Build AppLayout, AuthLayout, POSLayout',tags:['frontend'],
+     what:'Three layout components. AppLayout has fixed sidebar + fixed topbar + RouterView. AuthLayout has centered card. POSLayout is full-screen with slim mini-header.',
+     rules:['AppLayout sidebar shows all navigation groups from the plan','POSLayout cannot be dismissed to sidebar by accident']},
+  ]},
+  {title:'Layout Components',tasks:[
+    {id:'t3_4',title:'Build AppSidebar with all navigation groups',tags:['frontend'],
+     what:'Left sidebar with all nav groups: Overview, Catalog, Inventory, Sales, Purchases, Contacts, Accounting, Reports, HR, Settings. RouterLink items with active state.',
+     rules:['Use Heroicons for nav icons','RouterLink activeClass highlights current page','POS link opens POSLayout route']},
+    {id:'t3_5',title:'Build AppTopbar with notification bell and user dropdown',tags:['frontend'],
+     what:'Fixed topbar with: notification bell (with unread count), user avatar with dropdown (Profile, Settings, Logout).',
+     rules:['Notification bell polls /api/v1/notifications/unread-count every 60 seconds','User dropdown uses Headless UI Menu for accessibility','Logout calls authStore.logout() then router.push("/login")']},
+    {id:'t3_6',title:'Build NotificationBell component',tags:['frontend'],
+     what:'Bell icon showing unread count badge. Opens dropdown with last 10 notifications. Mark individual as read. Mark all read.',
+     rules:['Polls unread count every 60 seconds','Click notification → PUT /api/v1/notifications/{id}/read','Mark all → POST /api/v1/notifications/read-all']},
+  ]},
+  {title:'Shared UI Components (build ALL before Phase 4)',tasks:[
+    {id:'t3_7',title:'Build AppTable — sortable, searchable, paginated',tags:['frontend','critical'],
+     what:'Reusable table with named slots per column, sortable headers, debounced search, pagination controls, loading overlay, empty state.',
+     rules:['Used on all 30+ list pages','Named slots: <template #colKey="{ row }">','Emits: search (350ms debounce), sort-change, page-change','Loading spinner overlays table when loading=true']},
+    {id:'t3_8',title:'Build AppModal — Headless UI Dialog',tags:['frontend'],
+     what:'Accessible modal using @headlessui/vue Dialog. Keyboard navigation, focus trap, ESC to close. Size variants. Footer slot.',
+     rules:['Never use plain HTML modal — Headless UI required for accessibility','Props: show, title, size (sm/md/lg/xl/2xl), persistent','Emits: close']},
+    {id:'t3_9',title:'Build form primitives: AppButton, AppInput, AppSelect, AppTextarea, AppToggle',tags:['frontend'],
+     what:'Five core form components. AppButton has variants (primary/secondary/danger/ghost), loading spinner, disabled state. Inputs have label + error + helper text.',
+     rules:['All use Tailwind utility classes — no Bootstrap','AppToggle uses Headless UI Switch for accessibility']},
+    {id:'t3_10',title:'Build AppBadge, AppPagination, AppSearchInput, AppCard, AppSpinner, ConfirmDialog, EmptyState',tags:['frontend'],
+     what:'Seven more shared components. AppBadge maps status to colors. AppPagination shows page links with ellipsis. AppSpinner is a full-screen overlay. ConfirmDialog shows item name.',
+     rules:['AppBadge: active/completed/paid = green, draft/pending = amber, cancelled/expired = red','ConfirmDialog message must include the item name','EmptyState requires icon, title, description, optional action button']},
+  ]},
+  {title:'Auth Store and Pages',tasks:[
+    {id:'t3_11',title:'Build Auth Pinia store',tags:['frontend','critical'],
+     what:'Central auth store: token (localStorage), user object, isLoggedIn getter, can(permission) and hasRole(role) helpers. Actions: login, logout, fetchMe.',
+     rules:['On app startup: if token exists call fetchMe() to restore session','fetchMe() must complete before any page renders','can() checks user.permissions array','hasRole() checks user.roles array']},
+    {id:'t3_12',title:'Build LoginPage, ForgotPasswordPage, ResetPasswordPage',tags:['frontend'],
+     what:'Login form with VeeValidate + Yup validation. Error message display. Loading state. Redirect to dashboard on success.',
+     rules:['Wrong credentials → show server error message','Successful login → redirect to ?redirect= param or /dashboard','Token stored in localStorage after login']},
+  ]}
+ ]
+},
+
+{id:'p4',num:'04',title:'Foundation Features',subtitle:'Users · Branches · Warehouses · Settings · Custom Fields',type:'core',
+ groups:[
+  {title:'Feature Build (Golden Order for each)',tasks:[
+    {id:'t4_1',title:'Build Users feature — full Golden Order',tags:['backend','frontend'],
+     what:'Complete user management with commission_percentage and sales_target_amount columns. CRUD, role assignment, invite email.',
+     rules:['Golden Order: Migration→Model→FormRequest→Resource→Repository→Service→Controller then API.js→Store→Vue page','Admin cannot delete themselves or last admin','Password hashed in service — never in controller','Invitation email sent via queue on create','max_discount enforced in SaleService — not here']},
+    {id:'t4_2',title:'Build Branches feature',tags:['backend','frontend'],
+     what:'Branches CRUD. Only one default per business. Code auto-generated as BR-001.',
+     rules:['Setting is_default=true must clear previous default in same DB::transaction()','Cannot delete if has sales, purchases, or employees']},
+    {id:'t4_3',title:'Build Warehouses feature',tags:['backend','frontend'],
+     what:'Warehouses CRUD. Linked to optional branch. Only one default per business.',
+     rules:['Setting is_default=true must clear previous default in same transaction','Cannot delete if has stock movements','allow_negative_stock controls whether stock can go below zero']},
+    {id:'t4_4',title:'Build Settings feature — all 10 groups',tags:['backend','frontend'],
+     what:'Tabbed settings page. Each tab loads/saves one group via API. Include all 10 groups: general, invoice, pos, stock, email, sms, notifications, loyalty, sales, system.',
+     rules:['GET /api/v1/settings/{group} to load each tab','PUT /api/v1/settings/{group} to save each tab','Redis cache busted on every save','Stock group controls lot/serial tracking system-wide']},
+    {id:'t4_5',title:'Build Custom Field Definitions feature',tags:['backend','frontend'],
+     what:'Admin-defined extra fields for products, customers, and suppliers. Values stored in custom_fields JSON column on each record.',
+     rules:['Supports field types: text, number, date, select, checkbox','Select type stores options list as JSON','Values stored in custom_fields JSON column — not as separate rows','Required field validation enforced in Form Requests']},
+  ]}
+ ]
+},
+
+{id:'p5',num:'05',title:'Tax and Contacts',subtitle:'Tax Rates · Tax Groups · Customers (FULLTEXT) · Suppliers',type:'core',
+ groups:[
+  {title:'Tax Configuration',tasks:[
+    {id:'t5_1',title:'Build Tax Rates and Tax Groups features',tags:['backend','frontend'],
+     what:'Tax rates (percentage or fixed). Tax groups combine multiple rates for compound taxes. Only one default rate per business.',
+     rules:['Tax rate is snapshot-stored on each sale line — changing rate later does not affect history','Cannot delete rate if used by any product or tax group']},
+  ]},
+  {title:'Contacts',tasks:[
+    {id:'t5_2',title:'Build Customer Groups feature',tags:['backend','frontend'],
+     what:'Customer groups with discount percentage and optional price group link.',
+     rules:['Price group on group auto-applies at POS when customer selected']},
+    {id:'t5_3',title:'Build Customers feature — FULLTEXT index + custom fields + documents',tags:['backend','frontend','critical'],
+     what:'Full customer management with FULLTEXT index on name/email/phone/mobile for fast POS search. CSV import. Custom fields. Document uploads.',
+     rules:['FULLTEXT index is REQUIRED — never use LIKE %term% on customers','POS customer search must use FULLTEXT and return in < 100ms','CSV import: validate each row independently — bad row does not fail entire import','Balance is computed from sales — never stored as column','Reward points balance computed from loyalty_transactions — never stored']},
+    {id:'t5_4',title:'Build Suppliers feature',tags:['backend','frontend'],
+     what:'Supplier management with custom fields and document uploads.',
+     rules:['Code auto-generated as SUPP-00001','Balance computed from purchases — never stored','CSV import supported']},
+  ]}
+ ]
+},
+
+{id:'p6',num:'06',title:'Product Catalog',subtitle:'Categories · Brands · Units · Price Groups · Rack Locations · Products (all 4 types)',type:'core',
+ groups:[
+  {title:'Catalog Support Tables',tasks:[
+    {id:'t6_1',title:'Build Categories (hierarchical), Brands, Units, Sub-Units, Variation Templates',tags:['backend','frontend'],
+     what:'All catalog support tables. Categories max 2 levels deep. Sub-units with conversion factor. Variation templates with values.',
+     rules:['Categories: max 2 levels — a child category cannot itself have children','Sub-unit conversion_factor: e.g. 12.0000 means 1 Box = 12 Pieces']},
+    {id:'t6_2',title:'Build Price Groups feature',tags:['backend','frontend'],
+     what:'Named pricing tiers (Wholesale, Retail). Per-product price overrides per group.',
+     rules:['Only one default price group per business','Price group auto-applies when customer with that group is selected at POS']},
+    {id:'t6_3',title:'Build Rack Locations feature',tags:['backend','frontend'],
+     what:'Optional shelf/bin/rack position tracking within a warehouse. Only active when stock.enable_rack_location setting is true.',
+     rules:['Code unique per warehouse','Products have a rack_location_id linking to their default shelf position','Only visible in UI when setting is enabled']},
+  ]},
+  {title:'Products — All 4 Types',tasks:[
+    {id:'t6_4',title:'Build Products feature — Single, Variable, Combo, Service types',tags:['backend','frontend','critical'],
+     what:'Full product management for all 4 types. ProductService enforces stock_tracking immutability. FULLTEXT index on name/sku/barcode. minimum_selling_price field.',
+     rules:['Single: standard product, one SKU','Variable: generates product_variations rows. Each variation has own SKU and price','Service: forces stock_tracking=none, track_inventory=false. Cannot be changed','Combo: always track_inventory=false, stock_tracking=none. Components handle their own stock','stock_tracking CANNOT change after any stock movement exists for that product','When stock_tracking=lot: has_expiry automatically set to 1','minimum_selling_price=0 means no minimum — SaleService only checks if value > 0 and setting enabled','FULLTEXT index required on (name, sku, barcode) — POS search must use it'],
+     warn:'Test the 4 product types and stock_tracking immutability before building Inventory.'},
+  ]}
+ ]
+},
+
+{id:'p7',num:'07',title:'Inventory Engine',subtitle:'StockMovementService · Lots · Serials · Counts · Barcodes',type:'core',
+ groups:[
+  {title:'Migrations and Models',tasks:[
+    {id:'t7_1',title:'Create Group E migrations — all 6 inventory tables',tags:['backend','migration','critical'],
+     what:'stock_movements (append-only), stock_levels (GENERATED available_qty), stock_lots (GENERATED qty_available), stock_serials (UNIQUE serial per business), stock_counts, stock_count_items (GENERATED difference).',
+     rules:['stock_movements: NO updated_at column — append-only','stock_levels.available_qty: GENERATED STORED as (quantity - reserved_quantity)','stock_lots.qty_available: GENERATED STORED as (qty_on_hand - qty_reserved)','stock_count_items.difference: GENERATED STORED as (counted_quantity - system_quantity)','stock_serials: UNIQUE constraint on (business_id, serial_number)','Add manufacturing_in and manufacturing_out to stock_movements type ENUM']},
+  ]},
+  {title:'StockMovementService — The Core Engine',tasks:[
+    {id:'t7_2',title:'Build StockMovementService — createMovement()',tags:['backend','service','critical'],
+     what:'The single entry point for ALL stock changes system-wide. Creates movement row, updates stock_levels, updates lots or serials based on mode.',
+     rules:['ONLY this method may modify stock_levels, stock_lots, stock_serials','None mode: update stock_levels only','Lot mode: update stock_lots.qty_on_hand + stock_levels.quantity','Serial mode: update stock_serials.status + stock_levels.quantity. Quantity always exactly 1','All writes in DB::transaction(). Use DB::lockForUpdate() to prevent race conditions','manufacturing_in: increases finished product stock','manufacturing_out: decreases component stock'],
+     warn:'This is the most critical service in the system. Test every mode before building Sales.'},
+    {id:'t7_3',title:'Build reserveStock(), deductStock(), releaseReservation(), returnToStock()',tags:['backend','service','critical'],
+     what:'The four methods called by SaleService for the two-step stock flow.',
+     rules:['reserveStock(): called on sale CONFIRM. Increases reserved_quantity only. Checks available_qty first','deductStock(): called on sale COMPLETE. Decreases quantity and reserved_quantity','releaseReservation(): called on sale CANCEL (if was confirmed). Decreases reserved_quantity','returnToStock(): called on sale return. Increases quantity. Restores lot/serial status','For lot mode: selectLots() picks which lots to use based on FIFO/FEFO/manual strategy','For serial mode: each serial must be in_stock status — throw SerialAlreadySoldException otherwise']},
+    {id:'t7_4',title:'Build transferStock() and selectLots()',tags:['backend','service'],
+     what:'transferStock() moves stock between warehouses. selectLots() implements FIFO/FEFO/manual lot picking with multi-lot spanning.',
+     rules:['Cannot transfer from and to the same warehouse','FIFO: order by received_at ASC','FEFO: order by expiry_date ASC — safest default for perishables','Manual: return available lots for user to pick','selectLots() must span multiple lots when one lot has insufficient qty','Transfer creates transfer_out + transfer_in movements in one transaction']},
+  ]},
+  {title:'Supporting Inventory Services',tasks:[
+    {id:'t7_5',title:'Build LotService — status transitions, expiry, recall',tags:['backend','service'],
+     what:'Manages lot status transitions. Enforces the strict state machine.',
+     rules:['Only allowed transitions: active→depleted (auto), active→expired (auto), active→recalled (manual), active→quarantine (manual), quarantine→active (manual), quarantine→recalled (manual)','Any other transition throws InvalidStateTransitionException','Recalled and quarantined lots CANNOT be sold']},
+    {id:'t7_6',title:'Build SerialService — history, write-off, search',tags:['backend','service'],
+     what:'Serial number lifecycle management. History lookup by serial number. Write-off with reason.',
+     rules:['Serial history shows: received from which purchase, sold in which sale, all movements in order','Write-off creates adjustment_out movement and sets status=written_off','Cannot write off a serial that is not in_stock']},
+    {id:'t7_7',title:'Build StockAdjustmentService and StockTransferService',tags:['backend','service'],
+     what:'Manual stock corrections (in/out/opening) and warehouse transfers. Both call StockMovementService.',
+     rules:['Adjustments: lot-mode requires lot_id, serial-mode requires serial_ids array','Opening stock creates the baseline for new products','Transfers: validate from ≠ to warehouse before any movement']},
+    {id:'t7_8',title:'Build StockCountService',tags:['backend','service'],
+     what:'Physical count sessions. Pre-populate system quantities on start. Finalize creates adjustment movements for all discrepancies.',
+     rules:['Start count: snapshot current system_quantity for each product/lot','Complete count: create adjustment_in for counted > system, adjustment_out for counted < system','Serial products: found=1 confirms in_stock, found=0 creates write-off movement','Completion in one DB::transaction()']},
+    {id:'t7_9',title:'Build BarcodeService — PDF label generation',tags:['backend','service'],
+     what:'Generate printable barcode label PDFs for products, lots (with expiry), and serials.',
+     rules:['Lot labels include lot_number and expiry_date','Serial labels use serial_number as the barcode value — one label per serial','Standard products use product barcode or SKU']},
+  ]},
+  {title:'Inventory Vue Components and Pages',tasks:[
+    {id:'t7_10',title:'Build LotSelector and SerialScanner Vue components',tags:['frontend','critical'],
+     what:'Two reusable inventory components used in POS and Sales. LotSelector shows available lots with FIFO/FEFO auto-select and multi-lot spanning. SerialScanner validates serials via API before accepting.',
+     rules:['LotSelector: allocated total must equal required qty before emitting','SerialScanner: validate each serial via GET /api/v1/inventory/serials?q=&exact=1 before adding chip','Both emit update:modelValue for v-model binding','SerialScanner auto-refocuses input after each successful scan']},
+    {id:'t7_11',title:'Build all Inventory Vue pages',tags:['frontend'],
+     what:'StockPage (mode-aware), AdjustmentsPage, TransfersPage, LotsPage, SerialsPage, StockCountPage, BarcodeLabelsPage.',
+     rules:['StockPage: show mode badge (Qty/Lot/Serial) per product. Red for low stock','LotsPage: amber row for expiring soon, red for recalled','SerialsPage: prominent instant search, lifecycle timeline in history modal','StockCountPage: system_quantity pre-loaded, difference column auto-calculated']},
+  ]}
+ ]
+},
+
+{id:'p8',num:'08',title:'Accounting — BEFORE Sales',subtitle:'COA · Double-Entry · Auto-Posting · All Journal Types',type:'core',
+ groups:[
+  {title:'Critical Path — Must complete before Phase 9',tasks:[
+    {id:'t8_1',title:'Create Group H migrations — 6 accounting tables',tags:['backend','migration','critical'],
+     what:'payment_accounts, account_transactions (append-only), chart_of_accounts, fiscal_years, journals (append-only), journal_entries (append-only).',
+     rules:['journals: NO updated_at — append-only','journal_entries: NO updated_at — append-only','Both are permanent ledger records — never edited','Add manufacturing type to journals ENUM']},
+    {id:'t8_2',title:'Seed 21 default Chart of Accounts on business creation',tags:['backend','seed','critical'],
+     what:'21 default COA entries are automatically created for every new business. All marked is_system=1.',
+     rules:['Seeded by a Business::created event observer — not manually','All 21 marked is_system=1 — cannot be deleted or renamed','Key accounts: 1000 Cash, 1100 AR, 1200 Inventory, 2000 AP, 4000 Revenue, 5000 COGS, 6100 Salary Expense'],
+     warn:'These accounts must exist before any sale can be completed. No journals can post without them.'},
+    {id:'t8_3',title:'Build AccountingService — postJournal() and reverseJournal()',tags:['backend','service','critical'],
+     what:'The single entry point for all journal posting. Validates balance before any write. reverseJournal() creates opposite entries — never edits originals.',
+     rules:['postJournal(): MUST validate sum(debit) = sum(credit) BEFORE writing anything','If unbalanced: throw UnbalancedJournalException — nothing is written','reverseJournal(): creates new journal with swapped debit/credit. Links via reversed_by_id','Never edit or delete a journal_entries row — ever'],
+     warn:'Build and test AccountingService before building SaleService. If accounting is wrong, every completed sale corrupts the books.'},
+    {id:'t8_4',title:'Build all auto-posting methods',tags:['backend','service','critical'],
+     what:'Methods called by SaleService, PurchaseService, PaymentService, ExpenseService, PayrollService to automatically post journals.',
+     rules:['postSaleJournal(): cash sale = DR Cash/CR Revenue + DR COGS/CR Inventory; credit sale = DR AR/CR Revenue + DR COGS/CR Inventory','postPurchaseJournal(): DR Inventory / CR AP','postPurchaseReturnJournal(): DR AP / CR Inventory','postCustomerPaymentJournal(): DR Cash / CR AR','postSupplierPaymentJournal(): DR AP / CR Cash','postExpenseJournal(): DR expense account / CR Cash','postPayrollJournal(): DR Salary Expense / CR Cash','postManufacturingJournal(): DR Inventory (finished) / CR Inventory (components at cost)']},
+    {id:'t8_5',title:'Build all Accounting API endpoints and Vue pages',tags:['backend','frontend'],
+     what:'Chart of Accounts (tree view, system accounts locked), Journals (list, detail, manual entry, reversal), Payment Accounts (with transfer modal).',
+     rules:['COA tree: grouped by type. System accounts show lock icon, no delete button','Manual journal entry: submit disabled when debits ≠ credits','Reversal: requires reason text, creates opposite journal','Payment account transfer: creates two account_transaction rows + one journal']},
+  ]}
+ ]
+},
+
+{id:'p9',num:'09',title:'Sales and POS',subtitle:'State Machine · Commission · Recurring · Delivery · POS · Quotations · Cash Register',type:'core',
+ groups:[
+  {title:'Migrations and Models',tasks:[
+    {id:'t9_1',title:'Create Group F migrations — all 11 sales tables',tags:['backend','migration'],
+     what:'sales (with all new v8 columns), sale_items, sale_item_lots, sale_item_serials, sale_payments (with gift_card_id), sale_returns, sale_return_items, cash_registers, cash_register_sessions (with denominations), sale_commissions, sale_targets.',
+     rules:['sales table: add commission_agent_id, parent_sale_id, delivery_status, is_recurring, recurring_interval, next_recurring_date, recurring_count, recurring_generated','sale_payments: add gift_card_id FK (nullable — for Modules/GiftCard/ integration)','cash_register_sessions: add denominations_at_close JSON column','sale_commissions: separate table linking sale to agent with commission amount','sale_targets: monthly targets per user with unique constraint']},
+  ]},
+  {title:'SaleService — Core State Machine',tasks:[
+    {id:'t9_2',title:'Build SaleService — createDraft and confirmSale',tags:['backend','service','critical'],
+     what:'createDraft validates items, calculates all totals with tax snapshots, generates sale_number. confirmSale reserves stock for all items.',
+     rules:['Sale number: type=quotation uses QT- prefix, all others use INV- prefix. Separate sequential counter per business per prefix','Min selling price check: if setting enabled and product.minimum_selling_price > 0 and entered price < minimum → throw MinimumSellingPriceException','Max discount check: if line discount > auth user max_discount → throw MaxDiscountExceededException','confirmSale: guard status===draft before calling StockMovementService.reserveStock()']},
+    {id:'t9_3',title:'Build SaleService — completeSale, cancelSale, processSaleReturn',tags:['backend','service','critical'],
+     what:'completeSale deducts stock, posts journal, records payments, creates commission, schedules next recurring. cancelSale releases reservation. processSaleReturn returns stock and posts reversal.',
+     rules:['completeSale: guard status===confirmed','completeSale order: deductStock → postSaleJournal → recordPayments → earnLoyaltyPoints → createCommission → scheduleNextRecurring','cancelSale: if status was confirmed call releaseReservation()','processSaleReturn: returnToStock + reverseJournal for return amount. NOT full reversal if partial return'],
+     warn:'Never skip the guard checks. Completing a cancelled sale corrupts stock and accounting permanently.'},
+    {id:'t9_4',title:'Build Commission logic in SaleService',tags:['backend','service'],
+     what:'On sale completion, if commission enabled and commission_agent_id is set, create sale_commission row.',
+     rules:['Commission snapshot: commission_percentage copied from user.commission_percentage at sale time','commission_type=invoice_value: commission = total_amount × commission_percentage / 100','commission_type=payment_received: commission deferred until full payment recorded','Commission rows created on COMPLETION only — never on draft or confirm']},
+    {id:'t9_5',title:'Build Recurring Sales logic and RecurringSaleJob',tags:['backend','service','job'],
+     what:'RecurringSaleJob runs daily. Finds sales where is_recurring=1, status=completed, next_recurring_date=today, and count not exhausted. Creates new draft sale.',
+     rules:['New sale: copies items from original, sets parent_sale_id to original','Increments recurring_generated on original','Recalculates next_recurring_date based on interval','New sale requires manual confirmation — not auto-completed']},
+  ]},
+  {title:'POS and Supporting Services',tasks:[
+    {id:'t9_6',title:'Build QuotationService',tags:['backend','service'],
+     what:'Quotations use QT- prefix. Convert to sale creates a draft sale with same items. Expired quotations cannot be converted.',
+     rules:['QT- prefix maintains its own sequential counter separate from INV-','Expired quotation (expiry_date < today) → cannot convert → throw InvalidStateTransitionException']},
+    {id:'t9_7',title:'Build CashRegisterService with denomination tracking',tags:['backend','service'],
+     what:'Open session records opening float. Close session records closing float with denomination breakdown (bills and coins counted).',
+     rules:['denominations_at_close stores JSON breakdown of cash counted at close','Discrepancy = closing_float - (opening_float + total_cash_sales)','POS must check for open session on mount — block sales if no session']},
+    {id:'t9_8',title:'Build customer display endpoint',tags:['backend','api'],
+     what:'Public GET endpoint returning current sale items and total for the customer-facing display screen. No auth required.',
+     rules:['Returns current open sale on that register (if any)','Returns business logo and name for branding','No authentication required — this runs on a second screen facing customers']},
+    {id:'t9_9',title:'Build PDF invoice generation',tags:['backend'],
+     what:'DomPDF invoice generation with all sale details including lot numbers and serial numbers per line.',
+     rules:['Lot-tracked line items show lot_number and expiry_date','Serial-tracked line items show all serial numbers','Invoice uses business logo from settings']},
+  ]},
+  {title:'Sales Vue Pages',tasks:[
+    {id:'t9_10',title:'Build SalesPage with state machine action buttons',tags:['frontend'],
+     what:'Sales list with inline state transition buttons per status. PaymentModal for split payments. ReturnModal for partial/full returns.',
+     rules:['Show only valid action buttons for current status','PaymentModal: submit disabled until total = balance_due','ReturnModal: lot/serial selection for tracked items','After state change: update only that row — no full reload']},
+    {id:'t9_11',title:'Build POSPage — full split-panel with LotSelector and SerialScanner',tags:['frontend','critical'],
+     what:'Full-screen POS. Left panel: product search (FULLTEXT), category filter pills, barcode scanner. Right panel: cart with lot/serial selection, discount, loyalty redemption, payment.',
+     rules:['Barcode scanner: detect rapid keystrokes < 50ms between chars ending in Enter','Lot product in cart: LotSelector shows below item line','Serial product in cart: SerialScanner shows below item line','canComplete: all lots allocated AND all serials confirmed AND payment >= total','Cash change: show when cashPaid > grandTotal','Hold sale: POST with status=suspended, clear cart'],
+     warn:'Test canComplete logic with real lot and serial products. Incorrect logic causes stock corruption.'},
+    {id:'t9_12',title:'Build QuotationsPage and Cash Register session flow',tags:['frontend'],
+     what:'Quotations list with convert action. Cash register open/close session modal with denomination entry at close.',
+     rules:['POS on mount: if no open session → force open-session modal, cannot dismiss','Close session modal shows denomination entry grid for counting bills/coins','Discrepancy highlighted if closing_float differs from expected']},
+  ]}
+ ]
+},
+
+{id:'p10',num:'10',title:'Purchases',subtitle:'POs · Receive (all 3 modes) · Returns · Documents',type:'core',
+ groups:[
+  {title:'Purchase Feature Build',tasks:[
+    {id:'t10_1',title:'Create Group G migrations — all 8 purchase tables',tags:['backend','migration'],
+     what:'purchases (with documents JSON), purchase_items, purchase_receives, purchase_receive_items, purchase_receive_lots, purchase_receive_serials, purchase_returns, purchase_return_items.',
+     rules:['purchases.documents: JSON array of uploaded file URLs','purchase_receive_lots: entered at receive time — lot_number, expiry_date, qty, unit_cost per lot','purchase_receive_serials: entered at receive time — serial_number, warranty_expires, unit_cost per serial']},
+    {id:'t10_2',title:'Build PurchaseService — all states and receive logic',tags:['backend','service','critical'],
+     what:'Complete purchase lifecycle. receive() handles all three stock tracking modes. Creates stock on receive — never on PO creation.',
+     rules:['Stock ONLY enters system on receive — not on PO creation','None mode: call StockMovementService.createMovement(purchase_receipt)','Lot mode: find or create stock_lots row (match lot_number+product+warehouse), then createMovement with lot_id','Serial mode: check for duplicate serial — throw DuplicateSerialException if exists — then create stock_serials row with status=in_stock, then createMovement with serial_id','After receive: post journal DR Inventory / CR AP','Purchase return: post journal DR AP / CR Inventory'],
+     warn:'Test partial receives: receive 40 of 100 ordered, then 60 more. Both events must update quantity_received correctly.'},
+    {id:'t10_3',title:'Build PurchasesPage with mode-aware receive modal',tags:['frontend'],
+     what:'Purchase list, create PO modal, receive modal that adapts based on stock_tracking mode.',
+     rules:['None mode receive: simple quantity input','Lot mode receive: Add Lot rows with lot_number, expiry_date, qty, unit_cost. Multiple lots per item.','Serial mode receive: SerialScanner with real-time duplicate detection','Partial receive updates quantity_received_so_far shown on PO']},
+  ]}
+ ]
+},
+
+{id:'p11',num:'11',title:'Payments and Expenses',subtitle:'PaymentService · ExpenseService · Sub-categories · Contact-linked Expenses',type:'core',
+ groups:[
+  {title:'Payment and Expense Features',tasks:[
+    {id:'t11_1',title:'Build PaymentService — sale and purchase payments',tags:['backend','service'],
+     what:'Records payments, updates paid_amount, recalculates payment_status, posts accounting journal.',
+     rules:['Sale payment: DR Cash/Bank / CR AR. Updates sale.paid_amount and payment_status','Purchase payment: DR AP / CR Cash. Updates purchase.paid_amount and payment_status','payment_status: unpaid if paid_amount=0, partial if 0 < paid=amount < total, paid if paid_amount >= total','Installment module must call this service — never write to sale_payments directly']},
+    {id:'t11_2',title:'Build ExpenseService — auto-posts journal, supports recurring and contact-link',tags:['backend','service'],
+     what:'Creates expense and automatically posts journal. Supports sub-categories. Supports contact-linked expenses.',
+     rules:['On create: DR linked COA account / CR linked payment account','is_recurring=1: RecurringExpenseJob auto-creates new expense on next due date','contact_id: can link expense to a customer or supplier for tracking']},
+    {id:'t11_3',title:'Build Expenses Vue page',tags:['frontend'],
+     what:'Expense list with create/edit modal. Category tree (including sub-categories). Contact selector. Recurring toggle.',
+     rules:['Expense category selector shows sub-categories indented under parents','Contact field optional — links to customer or supplier']},
+  ]}
+ ]
+},
+
+{id:'p12',num:'12',title:'Commission and Sales Targets',subtitle:'CommissionService · SaleTargetService · Reports',type:'core',
+ groups:[
+  {title:'Commission Feature',tasks:[
+    {id:'t12_1',title:'Build CommissionService and SaleTargetService',tags:['backend','service'],
+     what:'CommissionService creates sale_commission rows on sale completion and handles payment marking. SaleTargetService manages monthly targets.',
+     rules:['Commission created on COMPLETION only — not on draft or confirm','Payment: admin records as expense, links paid_via_expense_id on commission row','Target achieved_amount: computed from completed sales where commission_agent_id = user in that month','sale_targets.achieved_amount is COMPUTED at query time — never stored directly']},
+    {id:'t12_2',title:'Build Commission and Sales Target Vue pages',tags:['frontend'],
+     what:'Commission page: list of pending commissions with pay action. Sales Target page: monthly targets vs achieved per user.',
+     rules:['Commission pay: opens expense create modal with pre-filled amount','Sales Target page: progress bars showing % achieved per user']},
+  ]}
+ ]
+},
+
+{id:'p13',num:'13',title:'Loyalty Programme',subtitle:'Earn · Redeem at POS · Expiry · Loyalty Report',type:'core',
+ groups:[
+  {title:'Loyalty Feature',tasks:[
+    {id:'t13_1',title:'Build LoyaltyService',tags:['backend','service'],
+     what:'Earn points on sale completion. Redeem at POS. Daily expiry job. Balance always computed from transactions.',
+     rules:['Only active when loyalty.is_active setting is true','earnPoints(): floor(total × points_per_unit). Create earned loyalty_transaction','redeemPoints(): verify customer has enough points. Create redeemed transaction. Add to sale_payments with method=reward_points','Balance = SUM(points) from loyalty_transactions — never stored as column','LoyaltyPointsExpireJob: daily — find earned transactions where expires_at < today, create expired transactions cancelling those points']},
+    {id:'t13_2',title:'Integrate loyalty redemption into POS payment flow',tags:['frontend'],
+     what:'Add loyalty redemption panel to POS payment section. Show customer\'s current balance. Allow redeeming points as a payment method.',
+     rules:['Show balance only when a customer is selected','Redeem points button applies discount to cart total','Applied points show as reward_points payment method row']},
+  ]}
+ ]
+},
+
+{id:'p14',num:'14',title:'Reports and Dashboard',subtitle:'30 Reports · DashboardService · Redis Cache · Excel Export',type:'core',
+ groups:[
+  {title:'Dashboard and Reports Backend',tasks:[
+    {id:'t14_1',title:'Build DashboardService with Redis caching',tags:['backend','service'],
+     what:'All dashboard KPI metrics in a single API call. Cached in Redis per business with 5-minute TTL. Includes sales target achievement for current month.',
+     rules:['Cache key includes business_id — tenant isolated','TTL: 5 minutes','Cache busted when sale completed or purchase received','Metrics include: revenue today/month/year, purchases, gross profit, receivables, payables, cash, low stock count, expiring lots, top 5 products, last 10 sales, chart data, target achievement']},
+    {id:'t14_2',title:'Build ReportService — all 30 reports with Excel export',tags:['backend','service'],
+     what:'One method per report. All accept filter parameters. All exportable to Excel via ?format=xlsx. Reports 27-30 are new in v8.',
+     rules:['All 30 reports in Section 4.22 of the plan','Report 27: Sales Representative — commission per agent by period','Report 28: Sales Target — target vs achieved vs % per user per month','Report 29: Delivery — sales by delivery_status','Report 30: Recurring Sales — active subscriptions with next dates','Excel export: same endpoint with ?format=xlsx parameter']},
+  ]},
+  {title:'Dashboard and Report Vue Pages',tasks:[
+    {id:'t14_3',title:'Build DashboardPage with KPI cards and Chart.js charts',tags:['frontend'],
+     what:'12 KPI cards, revenue vs purchases bar chart (12 months), 30-day sales line chart, sales target progress, expiring lots alert, low stock alert.',
+     rules:['Single API call for all data','KPI cards: 4-column grid responsive down to 1-column mobile','Alert banners show only when count > 0','Charts use vue-chartjs']},
+    {id:'t14_4',title:'Build ReportPage shared wrapper and all 30 report pages',tags:['frontend'],
+     what:'Shared ReportPage.vue wrapper with collapsible filters panel, AppTable, Excel export button. All 30 report pages use this wrapper.',
+     rules:['ReportPage props: title, apiEndpoint, columns, filterDefs','Filter types: date-range, select, api-search, number, toggle','Export button calls same endpoint with ?format=xlsx','All 30 reports plus a ReportsHubPage showing all reports as category cards'],
+     warn:'Run at least 20 sales, 5 purchases, and 5 expenses before verifying reports. Empty data cannot be verified.'},
+  ]}
+ ]
+},
+
+{id:'p15',num:'15',title:'Notifications — Email and SMS',subtitle:'NotificationService · 10 Scheduled Jobs · SMS Providers',type:'core',
+ groups:[
+  {title:'Notification System',tasks:[
+    {id:'t15_1',title:'Build unified NotificationService (email + SMS)',tags:['backend','service'],
+     what:'Single service that dispatches notifications via email and optionally SMS based on sms.is_active setting.',
+     rules:['When sms.is_active=true: send email AND SMS for all notification types','SMS providers: Nexmo (Vonage), Twilio, custom REST API','SMS templates configurable per notification type']},
+    {id:'t15_2',title:'Build all 10 core scheduled jobs',tags:['backend','job'],
+     what:'LowStockAlertJob, LotExpiryAlertJob, LotExpiredJob, SalePaymentDueJob, PurchasePaymentDueJob, QuotationExpiryJob, RecurringExpenseJob, RecurringSaleJob, LoyaltyPointsExpireJob, AuditLogArchiveJob (monthly).',
+     rules:['LotExpiredJob: sets lot.status=expired for lots past expiry date','AuditLogArchiveJob: runs monthly, deletes records older than system.audit_log_retention_months','All jobs registered in routes/console.php scheduler','RecurringSaleJob: creates new draft sale linked via parent_sale_id']},
+    {id:'t15_3',title:'Build Notifications Vue pages and API',tags:['frontend'],
+     what:'Full notification inbox page. Filters by type and read status. Bulk mark as read.',
+     rules:['NotificationBell in topbar already built in Phase 3 — just verify it works','NotificationsPage: paginated list, row click marks read, mark all read button']},
+  ]}
+ ]
+},
+
+{id:'p16',num:'16',title:'HRM Module',subtitle:'Modules/HRM/ · Employees · Attendance · Leave · Payroll + Commission',type:'module',
+ groups:[
+  {title:'HRM Module Build',tasks:[
+    {id:'t16_1',title:'Create all 9 HRM migrations in Modules/HRM/',tags:['backend','migration','module'],
+     what:'departments, designations, employees, attendance_records, leave_types, leave_balances (with GENERATED remaining_days), leave_requests, payroll_runs, payroll_items (with sales_commission column).',
+     rules:['All in Modules/HRM/Database/Migrations/','payroll_items.sales_commission DECIMAL(15,2) default 0 — populated from sale_commissions','leave_balances.remaining_days: GENERATED STORED as (total_days - used_days)','attendance_records: UNIQUE constraint on (employee_id, date)']},
+    {id:'t16_2',title:'Build EmployeeService, AttendanceService, LeaveService',tags:['backend','service','module'],
+     what:'Employee CRUD. Attendance check-in/out with working hours calculation. Leave submission with balance check. Manager approval workflow.',
+     rules:['AttendanceService: working_hours = (check_out - check_in) in decimal hours - (break_minutes/60)','LeaveService: submission requires remaining_days >= requested total_days — throw DomainException if insufficient','Approval: used_days increases → remaining_days decreases automatically (GENERATED)']},
+    {id:'t16_3',title:'Build PayrollService — includes commission from sale_commissions',tags:['backend','service','module'],
+     what:'Monthly payroll calculation. For each employee: base salary, overtime, allowances, deductions, leave deductions, sales commission from sale_commissions. Finalise posts accounting journal.',
+     rules:['sales_commission: read pending sale_commissions for that user in that month and sum them','Finalising payroll marks those commission rows as paid (sets paid_at)','Finalize journal: DR Salary Expense (6100) / CR Cash (1000) for total net_pay','Payslip PDF: per employee, shows all components breakdown','Once finalized: payroll rows are read-only']},
+    {id:'t16_4',title:'Build all HRM Vue pages',tags:['frontend','module'],
+     what:'EmployeesPage, AttendancePage (monthly calendar), LeavePage (apply + approval), PayrollPage (calculate, review, finalize, download payslip).',
+     rules:['Attendance calendar: day cells color-coded (present=green, absent=red, late=amber, leave=blue)','Leave balance cards show total/used/remaining per type','Payroll table: all pay components per employee. Edit allowed only in draft status','Payslip download triggers PDF from /hrm/payroll/{id}/payslip/{eid}']},
+  ]}
+ ]
+},
+
+{id:'p17',num:'17',title:'Installment Module',subtitle:'Modules/Installment/ · Plans · Schedules · Payment Integration',type:'module',
+ groups:[
+  {title:'Installment Module Build',tasks:[
+    {id:'t17_1',title:'Create 2 installment migrations in Modules/Installment/',tags:['backend','migration','module'],
+     what:'installment_plans and installment_schedules tables.',
+     rules:['installment_plans: one active plan per payable at a time','installment_schedules: (status, due_date) index for daily overdue job']},
+    {id:'t17_2',title:'Build InstallmentService — calls core PaymentService',tags:['backend','service','module'],
+     what:'Creates plans (records down payment via PaymentService first, then generates schedule rows). Records schedule payments via PaymentService.',
+     rules:['NEVER write to sale_payments or purchase_payments directly','Down payment recorded through core PaymentService before plan creation','schedule.paid: calls PaymentService → links resulting payment_id on schedule row','Plan completes when all schedules are paid'],
+     warn:'Module MUST use core PaymentService. Direct writes to payment tables bypass accounting journals and corrupt financial records.'},
+    {id:'t17_3',title:'Build InstallmentOverdueJob and InstallmentPage Vue',tags:['backend','job','frontend','module'],
+     what:'Daily job sets overdue schedules. Vue page shows plans with expandable schedule rows and Record Payment action.',
+     rules:['InstallmentOverdueJob: status=pending + due_date < today → status=overdue','Vue page: "Create Plan" button on SalesPage and PurchasesPage (only when module enabled)']},
+  ]}
+ ]
+},
+
+{id:'p18',num:'18',title:'CRM Module',subtitle:'Modules/CRM/ · Leads · Follow-ups · Contact Portal · Campaigns',type:'module',
+ groups:[
+  {title:'CRM Module Build',tasks:[
+    {id:'t18_1',title:'Create 4 CRM migrations in Modules/CRM/',tags:['backend','migration','module'],
+     what:'crm_leads, crm_follow_ups, crm_contact_logins, crm_campaigns.',
+     rules:['crm_contact_logins: separate authentication from core users table','crm_leads: life_stage ENUM from new to won/lost']},
+    {id:'t18_2',title:'Build CRM services and contact portal auth',tags:['backend','service','module'],
+     what:'Lead management with life stage progression. Follow-up logging. Contact portal login (separate auth flow). Campaign sending.',
+     rules:['Converting won lead: creates a new Customer record in core contacts table','Contact portal: crm_contact_login users authenticate separately via a dedicated login endpoint','Portal users can only see their own transactions — read-only scope','CRMFollowUpReminderJob: daily job notifies assigned users of follow-ups due today']},
+    {id:'t18_3',title:'Build all CRM Vue pages',tags:['frontend','module'],
+     what:'Leads page (kanban-style by life_stage), Follow-ups page, Contact Portal config, Campaigns page.',
+     rules:['Leads kanban: drag cards between life_stage columns','Converting lead opens customer create modal pre-filled with lead data']},
+  ]}
+ ]
+},
+
+{id:'p19',num:'19',title:'Gift Card Module',subtitle:'Modules/GiftCard/ · Gift Cards · Coupons · POS Integration',type:'module',
+ groups:[
+  {title:'Gift Card Module Build',tasks:[
+    {id:'t19_1',title:'Create 2 gift card migrations in Modules/GiftCard/',tags:['backend','migration','module'],
+     what:'gift_cards and coupons tables.',
+     rules:['gift_cards.code: UNIQUE per business','coupons.code: UNIQUE per business']},
+    {id:'t19_2',title:'Build GiftCardService and CouponService',tags:['backend','service','module'],
+     what:'Gift card issuance, balance management, usage as payment. Coupon validation and usage tracking.',
+     rules:['Gift card payment: creates sale_payment with method=gift_card, reduces gift_card.balance','Cannot pay more than gift card balance — split payment covers remainder','Coupon: apply discount to sale total, increment used_count','Expired coupons (valid_until < today) cannot be applied','Coupons over usage_limit cannot be applied','Coupons cannot be applied to quotations']},
+    {id:'t19_3',title:'Integrate gift card into POS and build Vue pages',tags:['frontend','module'],
+     what:'Add gift_card payment method to POS PaymentModal. Gift card balance check. Gift card and coupon management pages.',
+     rules:['POS PaymentModal: gift_card option only when module is installed','Show current balance when gift card code is entered','Coupon code input on POS — validates and applies discount']},
+  ]}
+ ]
+},
+
+{id:'p20',num:'20',title:'Manufacturing Module',subtitle:'Modules/Manufacturing/ · Recipes · Production Runs · Stock Integration',type:'module',
+ groups:[
+  {title:'Manufacturing Module Build',tasks:[
+    {id:'t20_1',title:'Create 3 manufacturing migrations in Modules/Manufacturing/',tags:['backend','migration','module'],
+     what:'manufacturing_recipes, manufacturing_recipe_items, manufacturing_runs.',
+     rules:['manufacturing_runs.lot_number: for lot-tracked finished products','manufacturing_runs type added to stock_movements and journals ENUMs in Phase 7 and 8']},
+    {id:'t20_2',title:'Build ManufacturingService',tags:['backend','service','module'],
+     what:'Completing a run consumes raw material components and produces finished product stock. Calls StockMovementService and AccountingService.',
+     rules:['All movements in one DB::transaction()','Insufficient component stock → InsufficientStockException — nothing written','Creates manufacturing_out for each component','Creates manufacturing_in for finished product','Posts manufacturing journal automatically'],
+     warn:'Must use StockMovementService for all movements. Direct stock updates are forbidden.'},
+    {id:'t20_3',title:'Build Manufacturing Vue pages',tags:['frontend','module'],
+     what:'Recipes page (product + component list). Production Runs page (start run, enter quantity, complete to trigger movements).',
+     rules:['Recipe builder: search products as components, enter quantities','Run completion shows component consumption preview before confirming']},
+  ]}
+ ]
+},
+
+{id:'p21',num:'21',title:'Asset Management Module',subtitle:'Modules/AssetManagement/ · Assets · Categories · Maintenance · Warranty Alerts',type:'module',
+ groups:[
+  {title:'Asset Management Module Build',tasks:[
+    {id:'t21_1',title:'Create 3 asset migrations in Modules/AssetManagement/',tags:['backend','migration','module'],
+     what:'asset_categories, assets, asset_maintenances.',
+     rules:['assets.asset_code: UNIQUE per business','assets.status: in_use/in_maintenance/disposed/available']},
+    {id:'t21_2',title:'Build AssetService and AssetWarrantyExpiryJob',tags:['backend','service','job','module'],
+     what:'Asset CRUD with allocation to users. Maintenance log per asset. Daily job for warranty expiry alerts.',
+     rules:['Asset allocation: sets assigned_to_user_id and status=in_use','AssetWarrantyExpiryJob: daily — notify admin when warranty_expiry within 30 days']},
+    {id:'t21_3',title:'Build Asset Management Vue pages',tags:['frontend','module'],
+     what:'Assets list with status badges and QR code/barcode display. Asset detail with maintenance history timeline. Categories page.',
+     rules:['Asset detail shows full maintenance history as timeline','Asset allocation modal assigns to user']},
+  ]}
+ ]
+},
+
+{id:'p22',num:'22',title:'Testing and Security',subtitle:'80%+ PHPUnit Coverage · Security Hardening · N+1 Elimination · CORS',type:'core',
+ groups:[
+  {title:'Backend Tests',tasks:[
+    {id:'t22_1',title:'PHPUnit unit tests — StockMovementService (priority)',tags:['backend','test','critical'],
+     what:'Cover all stock tracking modes, FIFO/FEFO selection, lot spanning, expiry/recall blocking, concurrent race condition, manufacturing movements.',
+     rules:['Test all 3 modes: none, lot, serial','Test FIFO: older lot selected first','Test FEFO: nearest expiry selected first','Test lot spanning: lot A (3 units) + lot B (5 units), sell 7 → lot A fully consumed, lot B has 1','Test concurrent confirm: two simultaneous confirms for last item → only one succeeds','Test manufacturing: insufficient component stock → InsufficientStockException'],
+     warn:'A failing test must never be skipped. Fix the underlying code.'},
+    {id:'t22_2',title:'PHPUnit unit tests — AccountingService and SaleService',tags:['backend','test'],
+     what:'AccountingService: balance invariant, all auto-posting rules, reversal correctness. SaleService: complete state machine, commission, minimum price.',
+     rules:['Unbalanced journal → UnbalancedJournalException, nothing written','All 9 auto-posting scenarios tested','SaleService: test commission creation on completion, not on draft/confirm','SaleService: test minimum price enforcement','SaleService: test max discount enforcement']},
+    {id:'t22_3',title:'PHPUnit feature tests — all API endpoints',tags:['backend','test'],
+     what:'Feature tests for every endpoint. Cover: unauthenticated=401, wrong tenant=404, valid=correct DB state, invalid=422.',
+     rules:['TenantResolver test: Business A cannot read Business B data','Every endpoint tested for auth and tenant isolation','Valid input creates correct DB state','Invalid input returns 422 with errors field']},
+  ]},
+  {title:'Security Hardening',tasks:[
+    {id:'t22_4',title:'Security hardening — rate limiting, CORS, N+1 queries',tags:['backend','security'],
+     what:'Verify rate limiting on auth routes, configure CORS for production domain only, eliminate all N+1 queries via Laravel Telescope.',
+     rules:['Auth routes: max 5 req/min per IP','Other API routes: max 300 req/min per user','CORS: allowed_origins = production domain only — NOT *','No N+1 queries: use eager loading with with() on all list endpoints','File uploads: validate mime type and file size on all upload endpoints','APP_DEBUG=false in production .env']},
+  ]}
+ ]
+},
+
+{id:'p23',num:'23',title:'Production Deployment',subtitle:'Ubuntu 22.04 · Nginx · SSL · Supervisor · Backups · CI/CD · Sentry',type:'core',
+ groups:[
+  {title:'Server Configuration',tasks:[
+    {id:'t23_1',title:'Provision Ubuntu 22.04 server and install stack',tags:['backend','security'],
+     what:'Install Nginx, PHP 8.2-fpm, MariaDB 10.11 (not Docker), Redis, Supervisor. Configure for production.',
+     rules:['MariaDB 10.11 installed directly on server — not in Docker container','Nginx serves both the compiled Vue SPA and proxies /api/* to PHP-FPM','PHP 8.2-fpm with all required extensions','Redis server for production cache and queue']},
+    {id:'t23_2',title:'Configure SSL, queue workers, scheduler, and backups',tags:['backend','security'],
+     what:'Let\'s Encrypt SSL. Supervisor manages queue workers. Cron for Laravel scheduler. Daily MariaDB backup to S3.',
+     rules:['Let\'s Encrypt free SSL via certbot','Supervisor: auto-restart queue workers if they crash','Cron: * * * * * php artisan schedule:run every minute','Daily backup to S3 — TEST the restore process before going live'],
+     warn:'A backup you have never restored is not a real backup. Test restore process before first client.'},
+    {id:'t23_3',title:'Set up GitHub Actions CI/CD and Sentry error monitoring',tags:['backend','security'],
+     what:'GitHub Actions: run tests on every push, deploy on merge to main. Sentry for real-time error tracking.',
+     rules:['CI: run php artisan test on every push. Block merge if tests fail','CD: deploy on merge to main branch only','Sentry: error monitoring with Slack alerts for production errors']},
+  ]}
+ ]
+}
+];
+
+// ── STATE ENGINE ──────────────────────────────────────────────────────
+function getStatus(id){return S[id]||'todo'}
+function cycleStatus(id){
+  const order={todo:'inprog',inprog:'blocked',blocked:'done',done:'todo'};
+  S[id]=order[getStatus(id)];
+  save();renderAll();
+}
+function save(){try{localStorage.setItem(STORE_KEY,JSON.stringify(S))}catch(e){}}
+
+function allTasks(){
+  let total=0,done=0,inprog=0,blocked=0;
+  PHASES.forEach(p=>p.groups.forEach(g=>g.tasks.forEach(t=>{
+    total++;
+    const st=getStatus(t.id);
+    if(st==='done')done++;
+    else if(st==='inprog')inprog++;
+    else if(st==='blocked')blocked++;
+  })));
+  return{total,done,inprog,blocked};
+}
+function phaseTasks(p){
+  let total=0,done=0;
+  p.groups.forEach(g=>g.tasks.forEach(t=>{
+    total++;if(getStatus(t.id)==='done')done++;
+  }));
+  return{total,done};
+}
+function phaseStatus(p){
+  const{total,done}=phaseTasks(p);
+  if(done===0)return'todo';
+  if(done===total)return'done';
+  return'inprog';
+}
+
+let openPhases={},openGroups={},openDetails={};
+// default: open first phase only
+PHASES.forEach((p,i)=>{openPhases[p.id]=(i===0)});
+
+function esc(s){
+  return String(s||'')
+    .replace(/&/g,'&amp;')
+    .replace(/</g,'&lt;')
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;');
+}
+
+function tagHtml(tag){
+  const map={
+    critical:'tag-critical',migration:'tag-migration',backend:'tag-backend',
+    frontend:'tag-frontend',service:'tag-service',test:'tag-test',
+    module:'tag-module',api:'tag-api',seed:'tag-seed',job:'tag-job',security:'tag-security'
+  };
+  return`<span class="tag ${map[tag]||'tag-backend'}">${tag}</span>`;
+}
+
+function statusIcon(st){
+  if(st==='done')return'<span class="status-icon">✓</span>';
+  if(st==='inprog')return'<div class="status-dot"></div>';
+  if(st==='blocked')return'<span class="status-icon" style="color:var(--red)">✕</span>';
+  return'';
+}
+
+// search filter
+let searchTerm='';
+let statusFilter='all';
+
+function taskVisible(t){
+  if(statusFilter!=='all'&&getStatus(t.id)!==statusFilter)return false;
+  if(searchTerm){
+    const q=searchTerm.toLowerCase();
+    if(!t.title.toLowerCase().includes(q)&&
+       !(t.what||'').toLowerCase().includes(q)&&
+       !(t.tags||[]).join(' ').toLowerCase().includes(q))return false;
+  }
+  return true;
+}
+
+function renderTask(t){
+  const st=getStatus(t.id);
+  const open=openDetails[t.id];
+  const tags=(t.tags||[]).map(tagHtml).join('');
+  let detail='';
+  if(open){
+    const rules=(t.rules||[]).map(r=>`<div class="rule-item">${esc(r)}</div>`).join('');
+    const warn=t.warn?`<div class="warn-box"><strong>⚠ WARNING</strong>${esc(t.warn)}</div>`:'';
+    detail=`<div class="task-detail open">
+      <div class="detail-what">${esc(t.what||'')}</div>
+      ${rules?`<div class="detail-rules"><div class="detail-rules-label">Requirements &amp; Rules</div>${rules}</div>`:''}
+      ${warn}
+    </div>`;
+  }
+  return`<div class="task ${st}" id="task-${t.id}">
+    <div class="task-row" onclick="toggleDetail('${t.id}')">
+      <div class="status-box" onclick="event.stopPropagation();cycleStatus('${t.id}')" title="Click to change status">${statusIcon(st)}</div>
+      <div class="task-content">
+        <div class="task-title">${esc(t.title)}</div>
+        <div class="task-tags">${tags}</div>
+      </div>
+      <span style="font-size:10px;color:var(--text3);margin-left:8px">${open?'▲':'▼'}</span>
+    </div>
+    ${detail}
+  </div>`;
+}
+
+function renderGoldenOrder(){
+  const steps=[
+    {n:1,label:'Migration'},{n:2,label:'Model'},{n:3,label:'Form Request'},
+    {n:4,label:'API Resource'},{n:5,label:'Repository'},{n:6,label:'Service'},
+    {n:7,label:'API Controller'},{n:8,label:'API.js file'},{n:9,label:'Pinia Store'},
+    {n:10,label:'Vue Page'},{n:11,label:'Tests'}
+  ];
+  const stepsHtml=steps.map((s,i)=>`
+    <div class="g-step">
+      <div class="g-step-num">${s.n}</div>${esc(s.label)}
+    </div>
+    ${i<steps.length-1?'<span class="g-arrow">→</span>':''}
+  `).join('');
+  return`<div class="golden-order">
+    <div class="golden-title">⚡ Golden Order — Follow for EVERY Feature</div>
+    <div class="golden-steps">${stepsHtml}</div>
+  </div>`;
+}
+
+function renderRules(){
+  const rules=[
+    'Stock NEVER modified directly — always StockMovementService',
+    'journal_entries NEVER updated or deleted — use reverseJournal()',
+    'Business logic NEVER in Controllers — only in Services',
+    'Every multi-table write MUST use DB::transaction()',
+    'Always validate in Form Requests before Service',
+    'Always return data through API Resources — never raw Eloquent',
+    'Never commit .env to Git',
+    'Accounting MUST be built before Sales',
+    'All models MUST use BelongsToTenant',
+    'Redis keys MUST include business_id',
+    'Never LIKE %term% on products/customers — use FULLTEXT',
+    'stock_tracking CANNOT change after movements exist',
+    'Serial quantity is ALWAYS exactly 1 per movement',
+    'Duplicate serial numbers within one business NEVER allowed',
+    'Never sell from expired or recalled lots',
+    'Reserve on CONFIRM. Deduct only on COMPLETE',
+    'Use DB::lockForUpdate() when reading stock in transaction',
+    'Module models use app/ base classes — never duplicate',
+    'Never <a href> for SPA navigation — use RouterLink',
+    'Page components call store actions only — no direct api imports',
+    'Installment module calls core PaymentService only',
+    'Combo products: track_inventory=false, components handle own stock',
+    'Sale uses INV prefix. Quotation uses QT prefix. Separate counters.',
+    'Min price check in SaleService BEFORE stock reservation',
+    'Commission rows created on COMPLETION only',
+  ];
+  const rows=rules.map((r,i)=>`<div class="rule-row"><span class="rule-row-num">${i+1}.</span><span>${esc(r)}</span></div>`).join('');
+  return`<div class="rules-bar">
+    <div class="rules-title">🔒 25 Absolute Rules — Never Violate</div>
+    <div class="rules-grid">${rows}</div>
+  </div>`;
+}
+
+function renderMain(){
+  let html=renderGoldenOrder()+renderRules();  PHASES.forEach(p=>{
+    const{total,done}=phaseTasks(p);
+    const pct=total>0?Math.round(done/total*100):0;
+    const pStatus=phaseStatus(p);
+    const isOpen=openPhases[p.id];
+    const isModule=p.type==='module';
+    const isCrit=p.id==='p2'||p.id==='p8';
+
+    // check if phase has any visible tasks (for search/filter)
+    let hasVisible=false;
+    if(searchTerm||statusFilter!=='all'){
+      p.groups.forEach(g=>g.tasks.forEach(t=>{if(taskVisible(t))hasVisible=true}));
+    } else {hasVisible=true;}
+    if(!hasVisible)return;
+
+    let phaseClass='phase';
+    if(pStatus==='done')phaseClass+=' phase-done';
+    else if(pStatus==='inprog')phaseClass+=' phase-active';
+    if(isModule)phaseClass+=' phase-module';
+
+    const typeBadge=isCrit?
+      `<span class="phase-type-badge critical">Critical Path</span>`:
+      isModule?`<span class="phase-type-badge module">Optional Module</span>`:
+      `<span class="phase-type-badge core">Core</span>`;
+
+    let groupsHtml='';
+    p.groups.forEach(g=>{
+      const gid=p.id+'_'+g.title.replace(/\W/g,'_');
+      const gOpen=openGroups[gid]!==false;
+      const visible=g.tasks.filter(taskVisible);
+      if(visible.length===0)return;
+      const gdone=g.tasks.filter(t=>getStatus(t.id)==='done').length;
+      const tasksHtml=visible.map(renderTask).join('');
+      groupsHtml+=`<div class="task-group">
+        <div class="group-hdr" onclick="toggleGroup('${gid}')">
+          <span class="group-chevron ${gOpen?'open':''}">▶</span>
+          <span class="group-title">${esc(g.title)}</span>
+          <span class="group-count">${gdone}/${g.tasks.length}</span>
+        </div>
+        <div class="group-body ${gOpen?'open':''}">${tasksHtml}</div>
+      </div>`;
+    });
+
+    html+=`<div class="${phaseClass}" id="${p.id}">
+      <div class="phase-hdr" onclick="togglePhase('${p.id}')">
+        <div class="phase-num">${p.num}</div>
+        <div class="phase-info">
+          <div class="phase-title">${esc(p.title)}</div>
+          <div class="phase-subtitle">${esc(p.subtitle)}</div>
+        </div>
+        <div class="phase-right">
+          ${typeBadge}
+          <span class="phase-count">${done}/${total}</span>
+          <span class="phase-chevron ${isOpen?'open':''}">▶</span>
+        </div>
+      </div>
+      <div class="phase-progress-bar"><div class="phase-progress-fill" style="width:${pct}%"></div></div>
+      <div class="phase-body ${isOpen?'open':''}">${groupsHtml}</div>
+    </div>`;
+  });
+  document.getElementById('main-content').innerHTML=html;
+}
+
+function renderSidebar(){
+  let html='<div class="sb-section">Core Phases</div>';
+  PHASES.forEach(p=>{
+    if(p.type==='module'&&html.indexOf('MODULES')<0){
+      html+='<div class="sb-section">Optional Modules</div>';
+    }
+    const{total,done}=phaseTasks(p);
+    const pct=total>0?Math.round(done/total*100):0;
+    const pStatus=phaseStatus(p);
+    const badge=pStatus==='done'?'<span class="sb-badge done">done</span>':
+      pStatus==='inprog'?'<span class="sb-badge inprog">active</span>':
+      p.type==='module'?'<span class="sb-badge module">mod</span>':'';
+    html+=`<div class="sb-item ${openPhases[p.id]?'active':''}" onclick="scrollToPhase('${p.id}')">
+      <span class="sb-num">${p.num}</span>
+      <span class="sb-name">${esc(p.title)}</span>
+      ${badge}
+      <span class="sb-pct">${pct}%</span>
+    </div>`;
+  });
+  document.getElementById('sidebar').innerHTML=html;
+}
+
+function renderProgress(){
+  const{total,done,inprog,blocked}=allTasks();
+  const pct=total>0?Math.round(done/total*100):0;
+  document.getElementById('pbar-fill').style.width=pct+'%';
+  document.getElementById('pbar-label').textContent=`${done} / ${total} tasks completed`;
+  document.getElementById('pbar-pct').textContent=pct+'%';
+  const phasesDone=PHASES.filter(p=>phaseStatus(p)==='done').length;
+  const phasesActive=PHASES.filter(p=>phaseStatus(p)==='inprog').length;
+  document.getElementById('phase-stats').innerHTML=`
+    <div class="stat"><div class="stat-dot done"></div>${done} done</div>
+    <div class="stat"><div class="stat-dot inprog"></div>${inprog} in progress</div>
+    <div class="stat"><div class="stat-dot blocked"></div>${blocked} blocked</div>
+    <div class="stat"><div class="stat-dot todo"></div>${total-done-inprog-blocked} not started</div>
+    <div class="stat" style="margin-left:16px;color:var(--text3)">Phases: ${phasesDone} done · ${phasesActive} active · ${PHASES.length-phasesDone-phasesActive} pending</div>
+  `;
+}
+
+function renderAll(){renderProgress();renderSidebar();renderMain();}
+
+function togglePhase(id){
+  openPhases[id]=!openPhases[id];
+  save();renderAll();
+}
+function toggleGroup(id){
+  openGroups[id]=openGroups[id]===false?true:false;
+  save();renderAll();
+}
+function toggleDetail(id){
+  openDetails[id]=!openDetails[id];
+  save();
+  // partial re-render for performance
+  const t=PHASES.flatMap(p=>p.groups.flatMap(g=>g.tasks)).find(t=>t.id===id);
+  if(!t)return;
+  const el=document.getElementById('task-'+id);
+  if(!el)return;
+  const st=getStatus(id);
+  const open=openDetails[id];
+  const rules=(t.rules||[]).map(r=>`<div class="rule-item">${esc(r)}</div>`).join('');
+  const warn=t.warn?`<div class="warn-box"><strong>⚠ WARNING</strong>${esc(t.warn)}</div>`:'';
+  let detail='';
+  if(open){
+    detail=`<div class="task-detail open">
+      <div class="detail-what">${esc(t.what||'')}</div>
+      ${rules?`<div class="detail-rules"><div class="detail-rules-label">Requirements &amp; Rules</div>${rules}</div>`:''}
+      ${warn}
+    </div>`;
+  }
+  // rebuild the task row and detail
+  const tags=(t.tags||[]).map(tagHtml).join('');
+  el.className=`task ${st}`;
+  el.innerHTML=`<div class="task-row" onclick="toggleDetail('${t.id}')">
+    <div class="status-box" onclick="event.stopPropagation();cycleStatus('${t.id}')" title="Click to change status">${statusIcon(st)}</div>
+    <div class="task-content">
+      <div class="task-title">${esc(t.title)}</div>
+      <div class="task-tags">${tags}</div>
+    </div>
+    <span style="font-size:10px;color:var(--text3);margin-left:8px">${open?'▲':'▼'}</span>
+  </div>${detail}`;
+  renderProgress();
+  renderSidebar();
+}
+
+function scrollToPhase(id){
+  const el=document.getElementById(id);
+  if(el){el.scrollIntoView({behavior:'smooth',block:'start'});}
+  openPhases[id]=true;
+  renderAll();
+}
+
+function setFilter(f,btn){
+  statusFilter=f;
+  document.querySelectorAll('.filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  renderAll();
+}
+
+let searchTimeout;
+function handleSearch(v){
+  clearTimeout(searchTimeout);
+  searchTimeout=setTimeout(()=>{searchTerm=v;renderAll();},250);
+}
+
+function exportStatus(){
+  const rows=['Phase,Step,Status'];
+  PHASES.forEach(p=>{
+    p.groups.forEach(g=>{
+      g.tasks.forEach(t=>{
+        rows.push(`"${p.title}","${t.title}","${getStatus(t.id)}"`);
+      });
+    });
+  });
+  const blob=new Blob([rows.join('\n')],{type:'text/csv'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='erp-roadmap-progress.csv';
+  a.click();
+}
+
+// restore open group state
+PHASES.forEach(p=>{
+  p.groups.forEach(g=>{
+    const gid=p.id+'_'+g.title.replace(/\W/g,'_');
+    if(openGroups[gid]===undefined)openGroups[gid]=true;
+  });
+});
+
+// Initial render
+renderAll();
+</script>
+
+
+</body>
+</html>

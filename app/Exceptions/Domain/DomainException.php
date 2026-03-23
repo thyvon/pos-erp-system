@@ -2,9 +2,9 @@
 
 namespace App\Exceptions\Domain;
 
-use Exception;
+use RuntimeException;
 
-class DomainException extends Exception
+class DomainException extends RuntimeException
 {
     protected int $status = 400;
 

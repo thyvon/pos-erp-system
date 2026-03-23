@@ -12,14 +12,14 @@
     <template v-for="item in pages" :key="item.key">
       <span
         v-if="item.page === null"
-        class="inline-flex h-10 min-w-10 items-center justify-center rounded-2xl text-sm text-slate-400 dark:text-slate-500"
+        class="inline-flex h-10 min-w-10 items-center justify-center rounded-[5px] text-sm text-slate-400 dark:text-slate-500"
       >
         ...
       </span>
       <button
         v-else
         type="button"
-        class="inline-flex h-10 min-w-10 items-center justify-center rounded-2xl px-3 text-sm font-medium transition"
+        class="inline-flex h-10 min-w-10 items-center justify-center rounded-[5px] px-3 text-sm font-medium transition"
         :class="
           item.page === currentPage
             ? 'bg-slate-950 text-white dark:bg-cyan-400 dark:text-slate-950'

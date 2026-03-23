@@ -18,7 +18,7 @@ class BranchFactory extends Factory
         return [
             'business_id' => Business::factory(),
             'name' => fake()->company().' Branch',
-            'code' => strtoupper(fake()->unique()->bothify('BR###')),
+            'code' => sprintf('BR-%03d', fake()->unique()->numberBetween(1, 999)),
             'type' => 'retail',
             'phone' => fake()->phoneNumber(),
             'email' => fake()->companyEmail(),

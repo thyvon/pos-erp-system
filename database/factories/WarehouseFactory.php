@@ -20,7 +20,7 @@ class WarehouseFactory extends Factory
             'business_id' => Business::factory(),
             'branch_id' => null,
             'name' => fake()->company().' Warehouse',
-            'code' => strtoupper(fake()->unique()->bothify('WH###')),
+            'code' => sprintf('WH-%03d', fake()->unique()->numberBetween(1, 999)),
             'type' => 'main',
             'is_active' => true,
             'is_default' => false,

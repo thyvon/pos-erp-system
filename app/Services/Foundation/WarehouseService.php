@@ -3,6 +3,7 @@
 namespace App\Services\Foundation;
 
 use App\Exceptions\Domain\DomainException;
+use App\Models\Business;
 use App\Models\Warehouse;
 use App\Repositories\Foundation\WarehouseRepository;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -23,8 +24,16 @@ class WarehouseService
     public function create(array $data): Warehouse
     {
         return DB::transaction(function () use ($data): Warehouse {
+            $this->resolveBusiness();
+
+            if (blank($data['code'] ?? null)) {
+                $data['code'] = $this->generateCode();
+            }
+
             if (($data['is_default'] ?? false) === true) {
                 $this->clearDefaultWarehouses();
+            } elseif (! Warehouse::query()->exists()) {
+                $data['is_default'] = true;
             }
 
             /** @var Warehouse $warehouse */
@@ -37,6 +46,10 @@ class WarehouseService
     public function update(Warehouse $warehouse, array $data): Warehouse
     {
         return DB::transaction(function () use ($warehouse, $data): Warehouse {
+            if (array_key_exists('code', $data) && blank($data['code'])) {
+                $data['code'] = $warehouse->code;
+            }
+
             if (($data['is_default'] ?? false) === true) {
                 $this->clearDefaultWarehouses($warehouse->id);
             }
@@ -55,6 +68,19 @@ class WarehouseService
         }
 
         $this->warehouses->delete($warehouse);
+    }
+
+    protected function resolveBusiness(): Business
+    {
+        $business = app()->bound('tenant')
+            ? app('tenant')
+            : auth()->user()?->business;
+
+        if (! $business instanceof Business) {
+            throw new DomainException('Tenant context is required to manage warehouses.', 422);
+        }
+
+        return $business;
     }
 
     protected function clearDefaultWarehouses(?string $exceptId = null): void
@@ -77,5 +103,19 @@ class WarehouseService
         return DB::table('stock_movements')
             ->where('warehouse_id', $warehouse->id)
             ->exists();
+    }
+
+    protected function generateCode(): string
+    {
+        $lastCode = Warehouse::query()
+            ->where('code', 'like', 'WH-%')
+            ->orderByDesc('code')
+            ->value('code');
+
+        $nextNumber = $lastCode === null
+            ? 1
+            : ((int) substr($lastCode, 3)) + 1;
+
+        return sprintf('WH-%03d', $nextNumber);
     }
 }

@@ -22,6 +22,8 @@ class UserResource extends JsonResource
             'avatar_url' => $this->avatar_url,
             'status' => $this->status,
             'max_discount' => $this->max_discount,
+            'commission_percentage' => $this->commission_percentage,
+            'sales_target_amount' => $this->sales_target_amount,
             'last_login_at' => $this->last_login_at,
             'preferences' => $this->preferences,
             'business' => $this->whenLoaded('business', fn () => [
@@ -32,6 +34,7 @@ class UserResource extends JsonResource
                 'status' => $this->business?->status,
                 'currency' => $this->business?->currency,
                 'timezone' => $this->business?->timezone,
+                'locale' => $this->business?->locale,
             ]),
             'roles' => $this->getRoleNames()->values(),
             'permissions' => $this->getAllPermissions()->pluck('name')->values(),

@@ -1,6 +1,6 @@
 <template>
   <span
-    class="inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold capitalize tracking-wide"
+    class="inline-flex items-center rounded-[5px] px-3 py-1 text-xs font-semibold capitalize tracking-wide"
     :class="badgeClass"
   >
     <span class="mr-2 h-2 w-2 rounded-full" :class="dotClass"></span>

@@ -21,7 +21,7 @@ class UpdateBranchRequest extends FormRequest
             'name' => ['sometimes', 'required', 'string', 'max:255'],
             'code' => [
                 'sometimes',
-                'required',
+                'nullable',
                 'string',
                 'max:50',
                 Rule::unique('branches', 'code')

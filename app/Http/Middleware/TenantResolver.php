@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Exceptions\Domain\DomainException;
 use Closure;
 use Throwable;
 use Illuminate\Http\Request;
@@ -24,6 +25,10 @@ class TenantResolver
         $tenant = $this->resolveTenant($businessId);
 
         if ($tenant !== null) {
+            if (isset($tenant->status) && $tenant->status !== 'active') {
+                throw new DomainException('This business is not active.', 403);
+            }
+
             app()->instance('tenant', $tenant);
         }
 

@@ -20,8 +20,9 @@ class LocalAdminUserSeeder extends Seeder
                 'legal_name' => 'ERP Demo Business Co., Ltd.',
                 'phone' => '012345678',
                 'currency' => 'USD',
-                'timezone' => 'Asia/Phnom_Penh',
+                'timezone' => 'UTC',
                 'country' => 'KH',
+                'locale' => 'en',
                 'address' => [
                     'line1' => 'Phnom Penh',
                     'city' => 'Phnom Penh',
@@ -49,9 +50,11 @@ class LocalAdminUserSeeder extends Seeder
             'phone' => '012345678',
             'status' => 'active',
             'max_discount' => 100,
+            'commission_percentage' => 0,
+            'sales_target_amount' => 0,
             'preferences' => [
                 'locale' => 'en',
-                'timezone' => 'Asia/Phnom_Penh',
+                'timezone' => 'UTC',
             ],
         ]);
 

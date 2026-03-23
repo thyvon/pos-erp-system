@@ -21,7 +21,8 @@ class BusinessFactory extends Factory
             'phone' => fake()->phoneNumber(),
             'currency' => 'USD',
             'country' => 'KH',
-            'timezone' => 'Asia/Phnom_Penh',
+            'timezone' => 'UTC',
+            'locale' => 'en',
             'address' => [
                 'line1' => fake()->streetAddress(),
                 'city' => fake()->city(),
@@ -33,7 +34,6 @@ class BusinessFactory extends Factory
             'max_branches' => 5,
             'financial_year' => [
                 'start_month' => 1,
-                'start_day' => 1,
             ],
             'settings_cache' => [],
         ];

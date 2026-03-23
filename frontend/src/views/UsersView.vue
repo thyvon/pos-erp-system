@@ -1,7 +1,7 @@
 <template>
   <AppLayout
     title="Users"
-    subtitle="Manage user access, roles, and account status."
+    subtitle="Manage access, commission, and targets inside the updated frosted workspace."
     :breadcrumbs="[
       { label: 'Dashboard', to: '/dashboard' },
       { label: 'Users' },
@@ -44,7 +44,7 @@
         </template>
 
         <template #role="{ row }">
-          <span class="inline-flex rounded-full bg-cyan-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-cyan-700 dark:bg-cyan-950/60 dark:text-cyan-300">
+          <span class="inline-flex rounded-[5px] bg-cyan-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-cyan-700 dark:bg-cyan-950/60 dark:text-cyan-300">
             {{ row.roles?.[0] || 'n/a' }}
           </span>
         </template>
@@ -146,6 +146,20 @@
             </div>
           </div>
 
+          <div class="erp-form-grid">
+            <div>
+              <label class="erp-label" for="commission_percentage">Commission %</label>
+              <Field id="commission_percentage" name="commission_percentage" type="number" min="0" max="100" class="erp-input" />
+              <ErrorMessage name="commission_percentage" class="erp-helper text-rose-500 dark:text-rose-400" />
+            </div>
+
+            <div>
+              <label class="erp-label" for="sales_target_amount">Monthly sales target</label>
+              <Field id="sales_target_amount" name="sales_target_amount" type="number" min="0" class="erp-input" />
+              <ErrorMessage name="sales_target_amount" class="erp-helper text-rose-500 dark:text-rose-400" />
+            </div>
+          </div>
+
           <div class="erp-form-actions">
             <button type="button" class="erp-button-secondary" :disabled="store.saving" @click="closeModal">
               Cancel
@@ -188,7 +202,7 @@ import { useUsersStore } from '@stores/users'
 const auth = useAuthStore()
 const store = useUsersStore()
 
-const roles = ['super_admin', 'admin', 'manager', 'cashier', 'accountant', 'hr']
+const roles = ['super_admin', 'admin', 'manager', 'cashier', 'accountant', 'inventory_manager', 'sales_representative']
 
 const columns = [
   { key: 'full_name', label: 'User' },
@@ -228,6 +242,8 @@ const formValues = computed(() => ({
   status: modal.user?.status ?? 'active',
   password: '',
   max_discount: modal.user?.max_discount ?? 0,
+  commission_percentage: modal.user?.commission_percentage ?? 0,
+  sales_target_amount: modal.user?.sales_target_amount ?? 0,
 }))
 
 const schema = computed(() =>
@@ -243,6 +259,8 @@ const schema = computed(() =>
         ? yup.string().required().min(8)
         : yup.string().nullable().transform((value) => value || null).min(8),
     max_discount: yup.number().min(0).max(100).required(),
+    commission_percentage: yup.number().min(0).max(100).required(),
+    sales_target_amount: yup.number().min(0).required(),
   })
 )
 

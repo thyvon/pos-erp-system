@@ -42,6 +42,8 @@ class User extends Authenticatable
         'avatar_url',
         'status',
         'max_discount',
+        'commission_percentage',
+        'sales_target_amount',
         'last_login_at',
         'preferences',
     ];
@@ -68,6 +70,9 @@ class User extends Authenticatable
             'last_login_at' => 'datetime',
             'password' => 'hashed',
             'preferences' => 'array',
+            'max_discount' => 'decimal:2',
+            'commission_percentage' => 'decimal:2',
+            'sales_target_amount' => 'decimal:2',
         ];
     }
 

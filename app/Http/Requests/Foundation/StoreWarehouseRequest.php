@@ -20,7 +20,7 @@ class StoreWarehouseRequest extends FormRequest
             'branch_id' => ['nullable', 'uuid', Rule::exists('branches', 'id')->where(fn ($query) => $query->where('business_id', $businessId))],
             'name' => ['required', 'string', 'max:255'],
             'code' => [
-                'required',
+                'nullable',
                 'string',
                 'max:50',
                 Rule::unique('warehouses', 'code')->where(fn ($query) => $query->where('business_id', $businessId)),

@@ -52,7 +52,7 @@
 
           <tbody v-else-if="!loading">
             <tr>
-              <td :colspan="columns.length" class="px-6 py-16 text-center">
+              <td :colspan="columns.length" class="px-4 py-12 text-center">
                 <div class="mx-auto max-w-sm">
                   <div class="text-base font-semibold text-slate-950 dark:text-white">No records found</div>
                   <div class="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">
@@ -66,8 +66,8 @@
       </div>
     </div>
 
-    <div class="flex flex-col gap-4 border-t border-slate-200/70 px-5 py-4 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
-      <div class="flex flex-col gap-3 text-sm text-slate-500 dark:text-slate-400 sm:flex-row sm:items-center">
+    <div class="flex flex-col gap-3 border-t border-slate-200/70 px-4 py-3 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
+      <div class="flex flex-col gap-2.5 text-sm text-slate-500 dark:text-slate-400 sm:flex-row sm:items-center">
         <span>Page {{ currentPage }} of {{ lastPage }}</span>
         <label class="flex items-center gap-2">
           <span>Rows</span>

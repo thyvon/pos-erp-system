@@ -70,6 +70,8 @@ class UserApiTest extends TestCase
             'role' => 'manager',
             'status' => 'active',
             'max_discount' => 10,
+            'commission_percentage' => 5,
+            'sales_target_amount' => 2500,
         ]);
 
         $response
@@ -81,6 +83,8 @@ class UserApiTest extends TestCase
             'business_id' => $business->id,
             'email' => 'jane@example.com',
             'status' => 'active',
+            'commission_percentage' => 5.00,
+            'sales_target_amount' => 2500.00,
         ]);
 
         $this->assertSame(['manager'], User::where('email', 'jane@example.com')->firstOrFail()->getRoleNames()->all());
@@ -106,5 +110,22 @@ class UserApiTest extends TestCase
             'id' => $targetUser->id,
             'status' => 'inactive',
         ]);
+    }
+
+    public function test_destroy_rejects_deleting_the_last_active_admin(): void
+    {
+        $business = Business::factory()->create();
+        $actor = User::factory()->for($business)->create();
+        $actor->assignRole('manager');
+        $admin = User::factory()->for($business)->create();
+        $admin->assignRole('admin');
+
+        Sanctum::actingAs($actor);
+
+        $response = $this->deleteJson("/api/v1/users/{$admin->id}");
+
+        $response
+            ->assertStatus(422)
+            ->assertJsonPath('success', false);
     }
 }

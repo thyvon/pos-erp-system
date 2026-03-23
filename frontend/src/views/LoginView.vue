@@ -1,24 +1,41 @@
 <template>
-  <div class="min-h-screen bg-slate-950 px-4 py-8 text-white sm:px-6 lg:px-8">
+  <div class="relative min-h-screen overflow-hidden px-3 py-6 sm:px-5 lg:px-6">
+    <div class="erp-glass-orb left-[-6rem] top-[8rem] h-64 w-64 bg-sky-300/30"></div>
+    <div class="erp-glass-orb right-[-5rem] top-[4rem] h-72 w-72 bg-orange-200/30" style="animation-delay: -5s"></div>
+    <div class="erp-glass-orb bottom-[4rem] left-[22%] h-52 w-52 bg-blue-200/20" style="animation-delay: -9s"></div>
+
     <AppAlert v-model:show="showToast" type="danger" title="Login failed" :message="toastMessage" />
 
-    <div class="mx-auto grid min-h-[calc(100vh-4rem)] max-w-6xl items-center gap-8 lg:grid-cols-[1.1fr_0.9fr]">
+    <div class="mx-auto grid min-h-[calc(100vh-3rem)] max-w-6xl items-center gap-6 lg:grid-cols-[1.1fr_0.9fr]">
       <section class="hidden lg:block">
         <div class="max-w-xl">
-          <div class="inline-flex items-center rounded-full border border-cyan-400/20 bg-cyan-400/10 px-4 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-300">
+          <div class="erp-glass-band inline-flex items-center px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-sky-700 dark:text-sky-200">
             ERP platform
           </div>
-          <h1 class="mt-6 text-5xl font-semibold tracking-tight text-white">
-            Standalone Vue frontend for the ERP.
+          <h1 class="mt-6 text-5xl font-semibold tracking-tight text-slate-950 dark:text-white">
+            A softer sign-in screen for the ERP control center.
           </h1>
-          <p class="mt-6 text-lg leading-8 text-slate-300">
-            This frontend runs separately from Laravel and consumes the backend only through the API layer.
+          <p class="mt-6 text-lg leading-8 text-slate-600 dark:text-slate-300">
+            The visual direction uses frosted panels, layered light, and calmer spacing so the first impression feels more like a product and less like a starter template.
           </p>
+
+          <div class="mt-8 grid grid-cols-2 gap-3">
+            <div class="erp-card p-4">
+              <div class="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Mode</div>
+              <div class="mt-3 text-2xl font-semibold text-slate-950 dark:text-white">API first</div>
+              <p class="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">Vue talks to Laravel only through the backend endpoints.</p>
+            </div>
+            <div class="erp-card p-4">
+              <div class="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Style</div>
+              <div class="mt-3 text-2xl font-semibold text-slate-950 dark:text-white">Glass UI</div>
+              <p class="mt-2 text-sm leading-6 text-slate-500 dark:text-slate-400">Reusable frosted surfaces for future ERP pages.</p>
+            </div>
+          </div>
         </div>
       </section>
 
       <section class="mx-auto w-full max-w-lg">
-        <div class="rounded-[2rem] border border-white/10 bg-white/95 p-6 text-slate-900 shadow-glow backdrop-blur sm:p-8 dark:bg-slate-900/95 dark:text-white">
+        <div class="erp-card rounded-[5px] p-5 text-slate-900 sm:p-6 dark:text-white">
           <div class="flex items-start justify-between gap-4">
             <div>
               <div class="text-xs font-semibold uppercase tracking-[0.18em] text-cyan-600 dark:text-cyan-400">Welcome back</div>
@@ -28,12 +45,12 @@
               </p>
             </div>
 
-            <div class="rounded-2xl bg-slate-950 px-3 py-2 text-xs font-semibold uppercase tracking-[0.18em] text-white dark:bg-cyan-400 dark:text-slate-950">
+            <div class="erp-glass-band px-2.5 py-1.5 text-xs font-semibold uppercase tracking-[0.18em] text-slate-700 dark:text-cyan-100">
               SPA
             </div>
           </div>
 
-          <Form class="mt-8 space-y-5" :validation-schema="schema" @submit="submit">
+          <Form class="mt-6 space-y-4" :validation-schema="schema" @submit="submit">
             <div>
               <label class="erp-label" for="email">Email</label>
               <Field id="email" name="email" type="email" class="erp-input" placeholder="admin@example.com" />
@@ -55,7 +72,7 @@
             </button>
           </Form>
 
-          <div class="mt-6 rounded-3xl border border-slate-200 bg-slate-50 px-4 py-4 dark:border-slate-800 dark:bg-slate-950">
+          <div class="mt-5 rounded-[5px] border border-white/50 bg-white/55 px-3 py-3 backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
             <div class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
               Local test credentials
             </div>

@@ -25,6 +25,8 @@ class UpdateUserRequest extends FormRequest
             'avatar_url' => ['nullable', 'url', 'max:500'],
             'status' => ['sometimes', 'required', 'in:active,inactive,suspended'],
             'max_discount' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'commission_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
+            'sales_target_amount' => ['nullable', 'numeric', 'min:0'],
             'preferences' => ['nullable', 'array'],
             'role' => ['nullable', 'string', 'exists:roles,name'],
         ];

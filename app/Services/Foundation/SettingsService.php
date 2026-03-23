@@ -5,6 +5,7 @@ namespace App\Services\Foundation;
 use App\Exceptions\Domain\DomainException;
 use App\Models\Setting;
 use App\Repositories\Foundation\SettingRepository;
+use Throwable;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Redis;
 
@@ -18,7 +19,7 @@ class SettingsService
     {
         $businessId = $this->resolveBusinessId();
         $cacheKey = $this->cacheKey($businessId, $group, $key);
-        $cached = Redis::get($cacheKey);
+        $cached = $this->readCache($cacheKey);
 
         if ($cached !== null) {
             return $this->decodeCachedValue($cached);
@@ -31,7 +32,7 @@ class SettingsService
         }
 
         $value = $this->castValue($setting);
-        Redis::set($cacheKey, json_encode(['type' => $setting->type, 'value' => $value], JSON_THROW_ON_ERROR));
+        $this->writeCache($cacheKey, json_encode(['type' => $setting->type, 'value' => $value], JSON_THROW_ON_ERROR));
 
         return $value;
     }
@@ -71,7 +72,7 @@ class SettingsService
     {
         $businessId = $this->resolveBusinessId();
         $groupCacheKey = $this->groupCacheKey($businessId, $group);
-        $cached = Redis::get($groupCacheKey);
+        $cached = $this->readCache($groupCacheKey);
 
         if ($cached !== null) {
             return json_decode($cached, true, 512, JSON_THROW_ON_ERROR);
@@ -88,13 +89,13 @@ class SettingsService
         foreach ($settings as $setting) {
             $value = $this->castValue($setting);
             $payload[$setting->key] = $value;
-            Redis::set(
+            $this->writeCache(
                 $this->cacheKey($businessId, $group, $setting->key),
                 json_encode(['type' => $setting->type, 'value' => $value], JSON_THROW_ON_ERROR)
             );
         }
 
-        Redis::set($groupCacheKey, json_encode($payload, JSON_THROW_ON_ERROR));
+        $this->writeCache($groupCacheKey, json_encode($payload, JSON_THROW_ON_ERROR));
 
         return $payload;
     }
@@ -135,8 +136,12 @@ class SettingsService
 
     protected function forgetCache(string $businessId, string $group, string $key): void
     {
-        Redis::del($this->cacheKey($businessId, $group, $key));
-        Redis::del($this->groupCacheKey($businessId, $group));
+        try {
+            Redis::del($this->cacheKey($businessId, $group, $key));
+            Redis::del($this->groupCacheKey($businessId, $group));
+        } catch (Throwable) {
+            // Cache failures should not block settings writes.
+        }
     }
 
     protected function castValue(Setting $setting): mixed
@@ -179,5 +184,23 @@ class SettingsService
         $payload = json_decode($cached, true, 512, JSON_THROW_ON_ERROR);
 
         return $payload['value'] ?? null;
+    }
+
+    protected function readCache(string $key): ?string
+    {
+        try {
+            return Redis::get($key);
+        } catch (Throwable) {
+            return null;
+        }
+    }
+
+    protected function writeCache(string $key, string $value): void
+    {
+        try {
+            Redis::set($key, $value);
+        } catch (Throwable) {
+            // Cache failures should not block successful responses.
+        }
     }
 }

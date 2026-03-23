@@ -19,7 +19,7 @@ class StoreBranchRequest extends FormRequest
         return [
             'name' => ['required', 'string', 'max:255'],
             'code' => [
-                'required',
+                'nullable',
                 'string',
                 'max:50',
                 Rule::unique('branches', 'code')->where(fn ($query) => $query->where('business_id', $businessId)),
