@@ -128,7 +128,7 @@
   }
 
   .erp-card {
-    @apply rounded-[5px] backdrop-blur-2xl transition duration-300;
+    @apply rounded-[15px] backdrop-blur-2xl transition duration-300;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.48));
     border: 1px solid var(--erp-border);
     box-shadow: var(--erp-shadow);
@@ -148,14 +148,14 @@
   }
 
   .erp-panel-float {
-    @apply rounded-[5px] backdrop-blur-2xl;
+    @apply rounded-[15px] backdrop-blur-2xl;
     background: linear-gradient(180deg, var(--erp-bg-strong), var(--erp-bg-soft));
     border: 1px solid var(--erp-border);
     box-shadow: var(--erp-shadow);
   }
 
   .erp-sidebar-panel {
-    @apply rounded-[5px] p-3;
+    @apply rounded-[15px] p-3;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.06));
     border: 1px solid rgba(255, 255, 255, 0.14);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08);
@@ -219,7 +219,7 @@
   }
 
   .erp-sidebar-collapse {
-    @apply h-10 w-10 items-center justify-center rounded-[5px] text-sm font-semibold transition;
+    @apply h-10 w-10 items-center justify-center rounded-[15px] text-sm font-semibold transition;
     background: rgba(255, 255, 255, 0.08);
     border: 1px solid rgba(255, 255, 255, 0.12);
     color: rgba(240, 248, 255, 0.88);
@@ -266,7 +266,7 @@
   }
 
   .erp-sidebar-link {
-    @apply flex items-center justify-between rounded-[5px] px-3 py-2.5 text-sm font-medium transition;
+    @apply flex items-center justify-between rounded-[15px] px-3 py-2.5 text-sm font-medium transition;
     color: rgba(39, 64, 95, 0.88);
     border: 1px solid transparent;
   }
@@ -297,18 +297,18 @@
   }
 
   .erp-nav-icon {
-    @apply inline-flex h-10 w-10 items-center justify-center rounded-[5px] text-sm;
+    @apply inline-flex h-10 w-10 items-center justify-center rounded-[15px] text-sm;
     background: rgba(255, 255, 255, 0.42);
     border: 1px solid rgba(186, 202, 226, 0.72);
     color: rgba(39, 64, 95, 0.86);
   }
 
   .erp-nav-badge {
-    @apply inline-flex rounded-[5px] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em];
+    @apply inline-flex rounded-[15px] px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.16em];
   }
 
   .erp-user-avatar {
-    @apply flex shrink-0 items-center justify-center overflow-hidden rounded-[5px] bg-gradient-to-br from-cyan-300 to-blue-500 font-semibold text-slate-950 shadow-soft;
+    @apply flex shrink-0 items-center justify-center overflow-hidden rounded-[15px] bg-gradient-to-br from-cyan-300 to-blue-500 font-semibold text-slate-950 shadow-soft;
   }
 
   .erp-user-avatar-sidebar {
@@ -516,7 +516,7 @@
   }
 
   .erp-topbar-button {
-    @apply inline-flex items-center gap-2 rounded-[5px] px-2.5 py-2 text-sm font-medium transition;
+    @apply inline-flex items-center gap-2 rounded-[15px] px-2.5 py-2 text-sm font-medium transition;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(244, 248, 255, 0.7));
     border: 1px solid rgba(255, 255, 255, 0.75);
     box-shadow: 0 12px 24px rgba(81, 104, 145, 0.12);
@@ -543,7 +543,7 @@
 
   .erp-input,
   .erp-select {
-    @apply block w-full rounded-[5px] px-3 py-2.5 text-sm outline-none transition;
+    @apply block w-full rounded-[15px] px-3 py-2.5 text-sm outline-none transition;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(247, 250, 255, 0.72));
     border: 1px solid rgba(193, 205, 224, 0.8);
     box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.66);
@@ -645,7 +645,7 @@
   }
 
   .erp-button-primary {
-    @apply inline-flex items-center justify-center gap-2 rounded-[5px] px-3 py-2 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex items-center justify-center gap-2 rounded-[15px] px-3 py-2 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60;
     background: linear-gradient(135deg, #3678ff, #61b7ff);
     box-shadow: 0 18px 32px rgba(58, 123, 255, 0.28);
   }
@@ -662,7 +662,7 @@
   }
 
   .erp-button-secondary {
-    @apply inline-flex items-center justify-center gap-2 rounded-[5px] px-3 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex items-center justify-center gap-2 rounded-[15px] px-3 py-2 text-sm font-medium transition disabled:cursor-not-allowed disabled:opacity-60;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(242, 246, 252, 0.7));
     border: 1px solid rgba(194, 205, 223, 0.8);
     color: #38506e;
@@ -681,12 +681,12 @@
   }
 
   .erp-button-danger {
-    @apply inline-flex items-center justify-center gap-2 rounded-[5px] px-3 py-2 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60;
+    @apply inline-flex items-center justify-center gap-2 rounded-[15px] px-3 py-2 text-sm font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-60;
     background: linear-gradient(135deg, #f35578, #ff7b7b);
   }
 
   .erp-button-icon {
-    @apply inline-flex h-10 w-10 items-center justify-center rounded-[5px] text-sm transition disabled:cursor-not-allowed disabled:opacity-50;
+    @apply inline-flex h-10 w-10 items-center justify-center rounded-[15px] text-sm transition disabled:cursor-not-allowed disabled:opacity-50;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(242, 246, 252, 0.72));
     border: 1px solid rgba(193, 205, 224, 0.84);
     color: #3b4f69;
@@ -705,7 +705,7 @@
   }
 
   .erp-table-shell {
-    @apply overflow-hidden rounded-[5px] backdrop-blur-2xl;
+    @apply overflow-hidden rounded-[15px] backdrop-blur-2xl;
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.5));
     border: 1px solid var(--erp-border);
     box-shadow: var(--erp-shadow);
@@ -791,7 +791,7 @@
   }
 
   .erp-glass-band {
-    @apply rounded-[5px];
+    @apply rounded-[15px];
     background: linear-gradient(180deg, rgba(255, 255, 255, 0.72), rgba(255, 255, 255, 0.42));
     border: 1px solid rgba(255, 255, 255, 0.8);
     box-shadow: 0 16px 30px rgba(84, 103, 138, 0.14);
