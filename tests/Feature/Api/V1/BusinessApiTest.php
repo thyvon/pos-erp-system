@@ -94,6 +94,6 @@ class BusinessApiTest extends TestCase
         $response
             ->assertForbidden()
             ->assertJsonPath('success', false)
-            ->assertJsonPath('message', 'This action is unauthorized.');
+            ->assertJsonPath('message', 'You do not have permission.');
     }
 }

@@ -4,6 +4,7 @@ namespace App\Services\Foundation;
 
 use App\Exceptions\Domain\DomainException;
 use App\Models\Business;
+use App\Models\User;
 use App\Models\Warehouse;
 use App\Repositories\Foundation\WarehouseRepository;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -16,9 +17,9 @@ class WarehouseService
     {
     }
 
-    public function paginate(array $filters): LengthAwarePaginator
+    public function paginate(array $filters, User|array|null $branchAccessScope = null): LengthAwarePaginator
     {
-        return $this->warehouses->paginateFiltered($filters);
+        return $this->warehouses->paginateFiltered($filters, $branchAccessScope);
     }
 
     public function create(array $data): Warehouse

@@ -28,7 +28,7 @@ class UserRepository extends BaseRepository
         $perPage = max(1, min($perPage, 100));
 
         return $this->query()
-            ->with(['business', 'roles', 'permissions', 'branches', 'defaultBranch'])
+            ->with(['roles', 'permissions', 'branches', 'defaultBranch'])
             ->whereDoesntHave('roles', fn ($roleQuery) => $roleQuery->where('name', 'super_admin'))
             ->when(
                 filled($filters['search'] ?? null),

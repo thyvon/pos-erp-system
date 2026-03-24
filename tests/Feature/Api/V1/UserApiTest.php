@@ -196,7 +196,7 @@ class UserApiTest extends TestCase
         $response
             ->assertForbidden()
             ->assertJsonPath('success', false)
-            ->assertJsonPath('message', 'This action is unauthorized.');
+            ->assertJsonPath('message', 'You do not have permission.');
     }
 
     public function test_admin_cannot_create_user_with_super_admin_role(): void
@@ -242,7 +242,7 @@ class UserApiTest extends TestCase
         $response = $this->deleteJson("/api/v1/users/{$admin->id}");
 
         $response
-            ->assertStatus(422)
+            ->assertStatus(403)
             ->assertJsonPath('success', false);
     }
 

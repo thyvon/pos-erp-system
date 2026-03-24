@@ -18,7 +18,7 @@ class BusinessRepository extends BaseRepository
         /** @var Business|null $business */
         $business = $this->query()
             ->withCount(['users', 'branches', 'warehouses'])
-            ->with(['users' => fn ($query) => $query->withoutGlobalScopes()->orderBy('created_at')])
+            ->with(['owner'])
             ->find($businessId);
 
         return $business;
@@ -29,7 +29,7 @@ class BusinessRepository extends BaseRepository
         /** @var Business $business */
         $business = $this->query()
             ->withCount(['users', 'branches', 'warehouses'])
-            ->with(['users' => fn ($query) => $query->withoutGlobalScopes()->orderBy('created_at')])
+            ->with(['owner'])
             ->findOrFail($businessId);
 
         return $business;
@@ -42,7 +42,7 @@ class BusinessRepository extends BaseRepository
 
         return $this->query()
             ->withCount(['users', 'branches', 'warehouses'])
-            ->with(['users' => fn ($query) => $query->withoutGlobalScopes()->orderBy('created_at')])
+            ->with(['owner'])
             ->when(
                 filled($filters['search'] ?? null),
                 function ($query) use ($filters): void {

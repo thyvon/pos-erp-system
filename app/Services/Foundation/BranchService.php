@@ -5,6 +5,7 @@ namespace App\Services\Foundation;
 use App\Exceptions\Domain\DomainException;
 use App\Models\Branch;
 use App\Models\Business;
+use App\Models\User;
 use App\Repositories\Foundation\BranchRepository;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -16,9 +17,9 @@ class BranchService
     {
     }
 
-    public function paginate(array $filters, ?array $accessibleBranchIds = null): LengthAwarePaginator
+    public function paginate(array $filters, User|array|null $branchAccessScope = null): LengthAwarePaginator
     {
-        return $this->branches->paginateFiltered($filters, $accessibleBranchIds);
+        return $this->branches->paginateFiltered($filters, $branchAccessScope);
     }
 
     public function create(Business $business, array $data, ?string $assignToUserId = null): Branch

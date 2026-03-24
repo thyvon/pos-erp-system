@@ -6,6 +6,7 @@ use App\Traits\HasUuid;
 use App\Support\Foundation\DefaultSettings;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
+use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Support\Facades\Schema;
@@ -44,6 +45,13 @@ class Business extends Model
     public function users(): HasMany
     {
         return $this->hasMany(User::class);
+    }
+
+    public function owner(): HasOne
+    {
+        return $this->hasOne(User::class)
+            ->withoutGlobalScopes()
+            ->oldestOfMany('created_at');
     }
 
     public function branches(): HasMany

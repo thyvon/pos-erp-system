@@ -32,9 +32,8 @@ class ManagedBusinessResource extends JsonResource
                 'branches_count' => (int) ($this->branches_count ?? 0),
                 'warehouses_count' => (int) ($this->warehouses_count ?? 0),
             ],
-            'owner' => $this->when($this->relationLoaded('users') && $this->users->isNotEmpty(), function () {
-                $owner = $this->users->first();
-
+            'owner' => $this->whenLoaded('owner', function () {
+                $owner = $this->owner;
                 return [
                     'id' => $owner?->id,
                     'full_name' => trim(($owner?->first_name ?? '').' '.($owner?->last_name ?? '')),

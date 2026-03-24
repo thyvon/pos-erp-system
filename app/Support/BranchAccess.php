@@ -18,8 +18,26 @@ class BranchAccess
 
     public static function scopeBranchQuery(Builder $query, User|array|null $userOrBranchIds, string $column = 'id'): Builder
     {
-        $branchIds = $userOrBranchIds instanceof User || $userOrBranchIds === null
-            ? static::accessibleBranchIds($userOrBranchIds)
+        if ($userOrBranchIds instanceof User) {
+            if ($userOrBranchIds->hasRole('super_admin')) {
+                return $query;
+            }
+
+            $qualifiedColumn = str_contains($column, '.')
+                ? $column
+                : $query->qualifyColumn($column);
+
+            return $query->whereExists(function ($subQuery) use ($qualifiedColumn, $userOrBranchIds): void {
+                $subQuery
+                    ->selectRaw('1')
+                    ->from('branch_user')
+                    ->where('branch_user.user_id', $userOrBranchIds->getKey())
+                    ->whereColumn('branch_user.branch_id', $qualifiedColumn);
+            });
+        }
+
+        $branchIds = $userOrBranchIds === null
+            ? null
             : array_values(array_unique($userOrBranchIds));
 
         if ($branchIds === null) {

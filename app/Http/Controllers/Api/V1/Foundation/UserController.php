@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api\V1\Foundation;
 use App\Http\Controllers\Api\V1\BaseApiController;
 use App\Http\Requests\Foundation\StoreUserRequest;
 use App\Http\Requests\Foundation\UpdateUserRequest;
+use App\Http\Resources\Foundation\UserListResource;
 use App\Http\Resources\Foundation\UserResource;
 use App\Models\User;
 use App\Services\Foundation\UserService;
@@ -26,7 +27,7 @@ class UserController extends BaseApiController
             'per_page',
         ]));
 
-        return $this->paginated($users, UserResource::class);
+        return $this->paginated($users, UserListResource::class);
     }
 
     public function options(): JsonResponse

@@ -26,7 +26,7 @@ class WarehouseController extends BaseApiController
             'type',
             'branch_id',
             'per_page',
-        ]));
+        ]), $request->user());
 
         return $this->paginated($warehouses, WarehouseResource::class);
     }

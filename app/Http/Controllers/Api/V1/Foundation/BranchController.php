@@ -10,7 +10,6 @@ use App\Http\Resources\Foundation\BranchResource;
 use App\Models\Branch;
 use App\Models\Business;
 use App\Services\Foundation\BranchService;
-use App\Support\BranchAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -24,12 +23,11 @@ class BranchController extends BaseApiController
     {
         $this->authorize('viewAny', Branch::class);
 
-        $accessibleBranchIds = BranchAccess::accessibleBranchIds($request->user());
         $branches = $this->branchService->paginate($request->only([
             'search',
             'is_active',
             'per_page',
-        ]), $accessibleBranchIds);
+        ]), $request->user());
 
         return $this->paginated($branches, BranchResource::class);
     }

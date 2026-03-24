@@ -3,6 +3,7 @@
 namespace App\Repositories\Foundation;
 
 use App\Models\Warehouse;
+use App\Models\User;
 use App\Repositories\BaseRepository;
 use App\Support\BranchAccess;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -14,7 +15,7 @@ class WarehouseRepository extends BaseRepository
         parent::__construct($model);
     }
 
-    public function paginateFiltered(array $filters): LengthAwarePaginator
+    public function paginateFiltered(array $filters, User|array|null $branchAccessScope = null): LengthAwarePaginator
     {
         $perPage = (int) ($filters['per_page'] ?? 15);
         $perPage = max(1, min($perPage, 100));
@@ -44,7 +45,7 @@ class WarehouseRepository extends BaseRepository
             ->orderByDesc('is_default')
             ->orderBy('name');
 
-        BranchAccess::scopeBranchQuery($query, auth()->user(), 'branch_id');
+        BranchAccess::scopeBranchQuery($query, $branchAccessScope, 'branch_id');
 
         return $query->paginate($perPage)->withQueryString();
     }
