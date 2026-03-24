@@ -6,8 +6,8 @@ use App\Exceptions\Domain\DomainException;
 use App\Models\Setting;
 use App\Repositories\Foundation\SettingRepository;
 use Throwable;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Redis;
 
 class SettingsService
 {
@@ -22,7 +22,7 @@ class SettingsService
         $cached = $this->readCache($cacheKey);
 
         if ($cached !== null) {
-            return $this->decodeCachedValue($cached);
+            return $cached;
         }
 
         $setting = $this->settings->findByGroupAndKey($group, $key);
@@ -32,7 +32,7 @@ class SettingsService
         }
 
         $value = $this->castValue($setting);
-        $this->writeCache($cacheKey, json_encode(['type' => $setting->type, 'value' => $value], JSON_THROW_ON_ERROR));
+        $this->writeCache($cacheKey, $value);
 
         return $value;
     }
@@ -74,8 +74,8 @@ class SettingsService
         $groupCacheKey = $this->groupCacheKey($businessId, $group);
         $cached = $this->readCache($groupCacheKey);
 
-        if ($cached !== null) {
-            return json_decode($cached, true, 512, JSON_THROW_ON_ERROR);
+        if (is_array($cached)) {
+            return $cached;
         }
 
         $settings = $this->settings->getGroup($group);
@@ -89,13 +89,10 @@ class SettingsService
         foreach ($settings as $setting) {
             $value = $this->castValue($setting);
             $payload[$setting->key] = $value;
-            $this->writeCache(
-                $this->cacheKey($businessId, $group, $setting->key),
-                json_encode(['type' => $setting->type, 'value' => $value], JSON_THROW_ON_ERROR)
-            );
+            $this->writeCache($this->cacheKey($businessId, $group, $setting->key), $value);
         }
 
-        $this->writeCache($groupCacheKey, json_encode($payload, JSON_THROW_ON_ERROR));
+        $this->writeCache($groupCacheKey, $payload);
 
         return $payload;
     }
@@ -137,8 +134,8 @@ class SettingsService
     protected function forgetCache(string $businessId, string $group, string $key): void
     {
         try {
-            Redis::del($this->cacheKey($businessId, $group, $key));
-            Redis::del($this->groupCacheKey($businessId, $group));
+            Cache::forget($this->cacheKey($businessId, $group, $key));
+            Cache::forget($this->groupCacheKey($businessId, $group));
         } catch (Throwable) {
             // Cache failures should not block settings writes.
         }
@@ -179,26 +176,19 @@ class SettingsService
         };
     }
 
-    protected function decodeCachedValue(string $cached): mixed
-    {
-        $payload = json_decode($cached, true, 512, JSON_THROW_ON_ERROR);
-
-        return $payload['value'] ?? null;
-    }
-
-    protected function readCache(string $key): ?string
+    protected function readCache(string $key): mixed
     {
         try {
-            return Redis::get($key);
+            return Cache::get($key);
         } catch (Throwable) {
             return null;
         }
     }
 
-    protected function writeCache(string $key, string $value): void
+    protected function writeCache(string $key, mixed $value): void
     {
         try {
-            Redis::set($key, $value);
+            Cache::forever($key, $value);
         } catch (Throwable) {
             // Cache failures should not block successful responses.
         }

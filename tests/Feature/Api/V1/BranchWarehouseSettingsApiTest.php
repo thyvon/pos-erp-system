@@ -11,11 +11,10 @@ use Database\Seeders\DefaultSettingsSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Redis;
 use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
-use Throwable;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -108,7 +107,7 @@ class BranchWarehouseSettingsApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
-        $branch = Branch::factory()->for($business)->create();
+        $branch = Branch::factory()->for($business)->create(['code' => 'LEGACY001']);
         $admin->branches()->sync([$branch->id]);
         $admin->forceFill(['default_branch_id' => $branch->id])->save();
 
@@ -124,7 +123,51 @@ class BranchWarehouseSettingsApiTest extends TestCase
             ->assertJsonPath('data.code', 'BR-001');
     }
 
-    public function test_get_settings_group_returns_values_and_populates_redis_cache(): void
+    public function test_branch_delete_is_blocked_when_branch_has_assigned_users(): void
+    {
+        $business = Business::factory()->create();
+        $admin = User::factory()->for($business)->create();
+        $admin->assignRole('admin');
+        $branch = Branch::factory()->for($business)->create();
+        $admin->branches()->sync([$branch->id]);
+        $admin->forceFill(['default_branch_id' => $branch->id])->save();
+
+        $staff = User::factory()->for($business)->create();
+        $staff->assignRole('cashier');
+        $staff->branches()->sync([$branch->id]);
+        $staff->forceFill(['default_branch_id' => $branch->id])->save();
+
+        Sanctum::actingAs($admin);
+
+        $response = $this->deleteJson("/api/v1/branches/{$branch->id}");
+
+        $response
+            ->assertStatus(422)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('message', 'Branch cannot be deleted because it is still assigned to users.');
+    }
+
+    public function test_branch_delete_is_blocked_when_branch_has_warehouses(): void
+    {
+        $business = Business::factory()->create();
+        $admin = User::factory()->for($business)->create();
+        $admin->assignRole('admin');
+        $branch = Branch::factory()->for($business)->create();
+        $admin->branches()->sync([$branch->id]);
+        $admin->forceFill(['default_branch_id' => $branch->id])->save();
+        Warehouse::factory()->forBranch($branch)->create();
+
+        Sanctum::actingAs($admin);
+
+        $response = $this->deleteJson("/api/v1/branches/{$branch->id}");
+
+        $response
+            ->assertStatus(422)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('message', 'Branch cannot be deleted because it still has warehouses.');
+    }
+
+    public function test_get_settings_group_returns_values_and_populates_cache(): void
     {
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
@@ -145,12 +188,8 @@ class BranchWarehouseSettingsApiTest extends TestCase
             ->assertJsonPath('data.enable_lot_tracking', false)
             ->assertJsonPath('data.enable_serial_tracking', false);
 
-        try {
-            $cacheValue = Redis::get("settings:{$business->id}:stock:enable_lot_tracking");
-            $this->assertNotNull($cacheValue);
-        } catch (Throwable) {
-            $this->assertTrue(true);
-        }
+        $cacheValue = Cache::get("settings:{$business->id}:stock:enable_lot_tracking");
+        $this->assertFalse($cacheValue);
     }
 
     public function test_warehouse_delete_is_blocked_when_stock_movements_exist(): void
@@ -240,6 +279,6 @@ class BranchWarehouseSettingsApiTest extends TestCase
         $response
             ->assertForbidden()
             ->assertJsonPath('success', false)
-            ->assertJsonPath('message', 'This action is unauthorized.');
+            ->assertJsonPath('message', 'You do not have permission.');
     }
 }

@@ -14,7 +14,7 @@ class BranchRepository extends BaseRepository
         parent::__construct($model);
     }
 
-    public function paginateFiltered(array $filters): LengthAwarePaginator
+    public function paginateFiltered(array $filters, ?array $accessibleBranchIds = null): LengthAwarePaginator
     {
         $perPage = (int) ($filters['per_page'] ?? 15);
         $perPage = max(1, min($perPage, 100));
@@ -42,7 +42,7 @@ class BranchRepository extends BaseRepository
             ->orderByDesc('is_default')
             ->orderBy('name');
 
-        BranchAccess::scopeBranchQuery($query, auth()->user());
+        BranchAccess::scopeBranchQuery($query, $accessibleBranchIds);
 
         return $query->paginate($perPage)->withQueryString();
     }

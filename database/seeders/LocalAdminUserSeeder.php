@@ -41,12 +41,46 @@ class LocalAdminUserSeeder extends Seeder
             ]
         );
 
-        $user = User::withTrashed()->firstOrNew(['email' => 'admin@example.com']);
+        $branchIds = Branch::query()
+            ->where('business_id', $business->id)
+            ->pluck('id')
+            ->all();
+
+        $this->createOrUpdateUser(
+            business: $business,
+            branchIds: $branchIds,
+            email: 'admin@example.com',
+            firstName: 'Business',
+            lastName: 'Admin',
+            role: 'admin'
+        );
+
+        $this->createOrUpdateUser(
+            business: $business,
+            branchIds: $branchIds,
+            email: 'superadmin@example.com',
+            firstName: 'System',
+            lastName: 'Super Admin',
+            role: 'super_admin'
+        );
+
+        $this->call(DefaultSettingsSeeder::class);
+    }
+
+    protected function createOrUpdateUser(
+        Business $business,
+        array $branchIds,
+        string $email,
+        string $firstName,
+        string $lastName,
+        string $role
+    ): void {
+        $user = User::withTrashed()->firstOrNew(['email' => $email]);
 
         $user->fill([
             'business_id' => $business->id,
-            'first_name' => 'System',
-            'last_name' => 'Admin',
+            'first_name' => $firstName,
+            'last_name' => $lastName,
             'password' => Hash::make('password'),
             'phone' => '012345678',
             'status' => 'active',
@@ -61,19 +95,16 @@ class LocalAdminUserSeeder extends Seeder
 
         $user->deleted_at = null;
         $user->save();
-        $user->syncRoles(['super_admin']);
-        $branchIds = Branch::query()
-            ->where('business_id', $business->id)
-            ->pluck('id')
-            ->all();
+        $user->syncRoles([$role]);
 
-        if ($branchIds !== []) {
-            $user->branches()->sync($branchIds);
-            $user->forceFill([
-                'default_branch_id' => $branchIds[0],
-            ])->save();
+        if ($branchIds === []) {
+            $user->forceFill(['default_branch_id' => null])->save();
+            return;
         }
 
-        $this->call(DefaultSettingsSeeder::class);
+        $user->branches()->sync($branchIds);
+        $user->forceFill([
+            'default_branch_id' => $branchIds[0],
+        ])->save();
     }
 }
