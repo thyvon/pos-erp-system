@@ -11,7 +11,13 @@ use App\Models\TaxRate;
 use App\Models\TaxGroup;
 use App\Models\CustomerGroup;
 use App\Models\Customer;
+use App\Models\Category;
+use App\Models\Brand;
+use App\Models\Unit;
+use App\Models\VariationTemplate;
+use App\Models\RackLocation;
 use App\Models\PriceGroup;
+use App\Models\Product;
 use App\Models\Supplier;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
@@ -31,7 +37,13 @@ use App\Policies\TaxRatePolicy;
 use App\Policies\TaxGroupPolicy;
 use App\Policies\CustomerGroupPolicy;
 use App\Policies\CustomerPolicy;
+use App\Policies\CategoryPolicy;
+use App\Policies\BrandPolicy;
+use App\Policies\UnitPolicy;
+use App\Policies\VariationTemplatePolicy;
+use App\Policies\RackLocationPolicy;
 use App\Policies\PriceGroupPolicy;
+use App\Policies\ProductPolicy;
 use App\Policies\SupplierPolicy;
 use App\Policies\UserPolicy;
 use App\Policies\WarehousePolicy;
@@ -50,7 +62,13 @@ class AuthServiceProvider extends ServiceProvider
         TaxGroup::class => TaxGroupPolicy::class,
         CustomerGroup::class => CustomerGroupPolicy::class,
         Customer::class => CustomerPolicy::class,
+        Category::class => CategoryPolicy::class,
+        Brand::class => BrandPolicy::class,
+        Unit::class => UnitPolicy::class,
+        VariationTemplate::class => VariationTemplatePolicy::class,
+        RackLocation::class => RackLocationPolicy::class,
         PriceGroup::class => PriceGroupPolicy::class,
+        Product::class => ProductPolicy::class,
         Supplier::class => SupplierPolicy::class,
         User::class => UserPolicy::class,
         Role::class => RolePolicy::class,

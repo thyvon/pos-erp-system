@@ -2,22 +2,29 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@stores/auth'
 
 const AdminBusinessesView = () => import('@views/AdminBusinessesView.vue')
+const BrandsView = () => import('@views/BrandsView.vue')
 const BranchesView = () => import('@views/BranchesView.vue')
 const LoginView = () => import('@views/LoginView.vue')
 const ForgotPasswordView = () => import('@views/ForgotPasswordView.vue')
 const ResetPasswordView = () => import('@views/ResetPasswordView.vue')
 const NoBranchAccessView = () => import('@views/NoBranchAccessView.vue')
 const CustomFieldsView = () => import('@views/CustomFieldsView.vue')
+const CategoriesView = () => import('@views/CategoriesView.vue')
 const CustomerGroupsView = () => import('@views/CustomerGroupsView.vue')
 const CustomersView = () => import('@views/CustomersView.vue')
 const DashboardView = () => import('@views/DashboardView.vue')
 const PriceGroupsView = () => import('@views/PriceGroupsView.vue')
+const ProductFormView = () => import('@views/ProductFormView.vue')
+const ProductsView = () => import('@views/ProductsView.vue')
 const RolesView = () => import('@views/RolesView.vue')
 const SettingsView = () => import('@views/SettingsView.vue')
 const SuppliersView = () => import('@views/SuppliersView.vue')
 const TaxGroupsView = () => import('@views/TaxGroupsView.vue')
 const TaxRatesView = () => import('@views/TaxRatesView.vue')
+const UnitsView = () => import('@views/UnitsView.vue')
 const UsersView = () => import('@views/UsersView.vue')
+const VariationTemplatesView = () => import('@views/VariationTemplatesView.vue')
+const RackLocationsView = () => import('@views/RackLocationsView.vue')
 const WarehousesView = () => import('@views/WarehousesView.vue')
 
 const router = createRouter({
@@ -121,6 +128,54 @@ const router = createRouter({
       name: 'suppliers',
       component: SuppliersView,
       meta: { requiresAuth: true, requiredPermission: 'suppliers.index' },
+    },
+    {
+      path: '/catalog/products',
+      name: 'products',
+      component: ProductsView,
+      meta: { requiresAuth: true, requiredPermission: 'products.index' },
+    },
+    {
+      path: '/catalog/products/create',
+      name: 'product-create',
+      component: ProductFormView,
+      meta: { requiresAuth: true, requiredPermission: 'products.create' },
+    },
+    {
+      path: '/catalog/products/:id/edit',
+      name: 'product-edit',
+      component: ProductFormView,
+      meta: { requiresAuth: true, requiredPermission: 'products.edit' },
+    },
+    {
+      path: '/catalog/categories',
+      name: 'categories',
+      component: CategoriesView,
+      meta: { requiresAuth: true, requiredPermission: 'categories.index' },
+    },
+    {
+      path: '/catalog/brands',
+      name: 'brands',
+      component: BrandsView,
+      meta: { requiresAuth: true, requiredPermission: 'brands.index' },
+    },
+    {
+      path: '/catalog/units',
+      name: 'units',
+      component: UnitsView,
+      meta: { requiresAuth: true, requiredPermission: 'units.index' },
+    },
+    {
+      path: '/catalog/variation-templates',
+      name: 'variation-templates',
+      component: VariationTemplatesView,
+      meta: { requiresAuth: true, requiredPermission: 'variation_templates.index' },
+    },
+    {
+      path: '/catalog/rack-locations',
+      name: 'rack-locations',
+      component: RackLocationsView,
+      meta: { requiresAuth: true, requiredPermission: 'rack_locations.index' },
     },
     {
       path: '/catalog/price-groups',

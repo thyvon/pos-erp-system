@@ -723,6 +723,17 @@ customer_groups, customers, suppliers — unchanged from v9. These are business-
 
 All catalog tables unchanged from v9. Products, categories, brands, units, price groups, rack locations — all business-wide. No branch_id on catalog tables.
 
+Design clarification for units and packaging:
+
+- `units` and `sub_units` are business-wide measurement vocabulary only.
+- Generic sub-unit conversions are valid when the conversion is stable across all products that use the same base unit.
+- If two products need the same sub-unit label with different pack sizes, do not force that into the global `sub_units` table.
+- Example:
+  - Product A: `Can` -> `Case` = `24`
+  - Product B: `Can` -> `Case` = `48`
+- This must be handled at the Product phase with product-specific packaging/conversion records, not by a single global `Case` conversion under `Can`.
+- Therefore, Product phase must support product-level pack definitions / unit conversions for selling, purchasing, barcodes, and price points.
+
 ---
 
 ### GROUP E — INVENTORY (6 tables)

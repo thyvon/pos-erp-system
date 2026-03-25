@@ -4,29 +4,33 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Warehouse extends BaseModel
+class ProductPackaging extends BaseModel
 {
     use HasFactory;
 
     protected $fillable = [
         'business_id',
-        'branch_id',
+        'product_id',
         'name',
-        'code',
-        'type',
-        'is_active',
+        'short_name',
+        'conversion_factor',
+        'sku',
+        'barcode',
+        'selling_price',
+        'purchase_price',
         'is_default',
-        'allow_negative_stock',
+        'is_active',
     ];
 
     protected function casts(): array
     {
         return [
-            'is_active' => 'boolean',
+            'conversion_factor' => 'decimal:4',
+            'selling_price' => 'decimal:2',
+            'purchase_price' => 'decimal:2',
             'is_default' => 'boolean',
-            'allow_negative_stock' => 'boolean',
+            'is_active' => 'boolean',
         ];
     }
 
@@ -35,13 +39,8 @@ class Warehouse extends BaseModel
         return $this->belongsTo(Business::class);
     }
 
-    public function branch(): BelongsTo
+    public function product(): BelongsTo
     {
-        return $this->belongsTo(Branch::class);
-    }
-
-    public function rackLocations(): HasMany
-    {
-        return $this->hasMany(RackLocation::class);
+        return $this->belongsTo(Product::class);
     }
 }

@@ -6,27 +6,23 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Warehouse extends BaseModel
+class Unit extends BaseModel
 {
     use HasFactory;
 
     protected $fillable = [
         'business_id',
-        'branch_id',
+        'created_by',
+        'updated_by',
         'name',
-        'code',
-        'type',
-        'is_active',
-        'is_default',
-        'allow_negative_stock',
+        'short_name',
+        'allow_decimal',
     ];
 
     protected function casts(): array
     {
         return [
-            'is_active' => 'boolean',
-            'is_default' => 'boolean',
-            'allow_negative_stock' => 'boolean',
+            'allow_decimal' => 'boolean',
         ];
     }
 
@@ -35,13 +31,8 @@ class Warehouse extends BaseModel
         return $this->belongsTo(Business::class);
     }
 
-    public function branch(): BelongsTo
+    public function subUnits(): HasMany
     {
-        return $this->belongsTo(Branch::class);
-    }
-
-    public function rackLocations(): HasMany
-    {
-        return $this->hasMany(RackLocation::class);
+        return $this->hasMany(SubUnit::class, 'parent_unit_id')->orderBy('name');
     }
 }

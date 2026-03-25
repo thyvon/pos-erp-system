@@ -4,29 +4,32 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Database\Eloquent\Relations\HasMany;
 
-class Warehouse extends BaseModel
+class ProductVariation extends BaseModel
 {
     use HasFactory;
 
     protected $fillable = [
         'business_id',
-        'branch_id',
+        'product_id',
         'name',
-        'code',
-        'type',
+        'variation_value_ids',
+        'sku',
+        'barcode',
+        'selling_price',
+        'purchase_price',
+        'minimum_selling_price',
         'is_active',
-        'is_default',
-        'allow_negative_stock',
     ];
 
     protected function casts(): array
     {
         return [
+            'variation_value_ids' => 'array',
+            'selling_price' => 'decimal:2',
+            'purchase_price' => 'decimal:2',
+            'minimum_selling_price' => 'decimal:2',
             'is_active' => 'boolean',
-            'is_default' => 'boolean',
-            'allow_negative_stock' => 'boolean',
         ];
     }
 
@@ -35,13 +38,8 @@ class Warehouse extends BaseModel
         return $this->belongsTo(Business::class);
     }
 
-    public function branch(): BelongsTo
+    public function product(): BelongsTo
     {
-        return $this->belongsTo(Branch::class);
-    }
-
-    public function rackLocations(): HasMany
-    {
-        return $this->hasMany(RackLocation::class);
+        return $this->belongsTo(Product::class);
     }
 }

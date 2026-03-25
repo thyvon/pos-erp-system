@@ -89,6 +89,26 @@ class Business extends Model
         return $this->hasMany(PriceGroup::class);
     }
 
+    public function brands(): HasMany
+    {
+        return $this->hasMany(Brand::class);
+    }
+
+    public function units(): HasMany
+    {
+        return $this->hasMany(Unit::class);
+    }
+
+    public function variationTemplates(): HasMany
+    {
+        return $this->hasMany(VariationTemplate::class);
+    }
+
+    public function rackLocations(): HasMany
+    {
+        return $this->hasMany(RackLocation::class);
+    }
+
     public function customers(): HasMany
     {
         return $this->hasMany(Customer::class);
