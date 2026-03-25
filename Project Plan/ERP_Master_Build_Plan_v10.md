@@ -11,7 +11,7 @@
 - Removed users.branch_id single-column approach — replaced by branch_users many-to-many
 - Added BranchScopeMiddleware — loads array of allowed branch IDs into app('branch_scope')
 - Users with no branch_users rows are blocked (403) until admin assigns at least one branch
-- admin and accountant always bypass branch filtering — they see all branches
+- admin always bypasses branch filtering — accountant follows assigned branch access
 - Branch filter uses WHERE branch_id IN (...) not WHERE branch_id = single value
 - Stock transfer special rule: warehouse dropdowns show all business warehouses, but list is filtered to user's allowed branches
 - When creating records, user selects branch from dropdown showing only their allowed branches
@@ -72,7 +72,7 @@ A multi-tenant retail ERP system sold commercially to small and medium businesse
 | admin | Full access to own business. Always sees all branches. Cannot delete self or last admin. |
 | manager | Most features. Sees only branches assigned via branch_users. Cannot edit COA or system settings. |
 | cashier | POS and own-shift reports only. Sees only branches assigned via branch_users. Max discount enforced. |
-| accountant | Journals, COA, payments, financial reports only. Always sees all branches — never branch-restricted. |
+| accountant | Journals, COA, payments, financial reports only. Uses assigned branch access via branch_users unless a module is explicitly business-wide. |
 | inventory_manager | Inventory, products, purchases. Sees only branches assigned via branch_users. |
 | sales_representative | Sales creation and own commission report only. Sees only branches assigned via branch_users. |
 
@@ -82,7 +82,7 @@ A multi-tenant retail ERP system sold commercially to small and medium businesse
 
 **All data is tenant-scoped first.** BelongsToTenant trait adds WHERE business_id = app('tenant')->id to every Eloquent query automatically.
 
-**Branch-scoped second.** BranchScopeMiddleware loads the user's allowed branch IDs from branch_users into app('branch_scope'). All qualifying queries automatically filter to WHERE branch_id IN (allowed ids). admin and accountant are never branch-restricted.
+**Branch-scoped second.** BranchScopeMiddleware loads the user's allowed branch IDs from branch_users into app('branch_scope'). All qualifying queries automatically filter to WHERE branch_id IN (allowed ids). admin is never branch-restricted; accountant follows assigned branch access unless a module explicitly bypasses branch scope.
 
 **Every important action is audited.** AuditService writes to audit_logs on every create, update, delete, state change, login, payment, and stock movement. No important event is silent.
 
@@ -158,7 +158,7 @@ Wall 3 — Branch Scope (automatic, via BranchScopeMiddleware)
   Loads allowed branch IDs from branch_users into app('branch_scope')
   Adds WHERE branch_id IN (allowed_ids) to all qualifying queries
   → User with no assigned branches gets 403 blocked
-  → admin and accountant bypass this wall entirely
+  → admin bypasses this wall entirely
      ↓
 Form Request Validation
   → Is the input data valid?
@@ -263,18 +263,18 @@ Admin manages branch access on the user edit page — a checklist of all branche
 |---|---|---|
 | super_admin | ignored — always bypass | Sees all branches, no filter |
 | admin | ignored — always bypass | Sees all branches, no filter |
-| accountant | ignored — always bypass | Sees all branches — needed for cross-branch accounting |
+| accountant | assigned rows apply | Sees only assigned branches in branch-scoped modules |
 | Other role, has rows | e.g. Branch A + Branch B | Sees only Branch A and Branch B data merged |
 | Other role, no rows | none | **403 Forbidden** — blocked until admin assigns at least one branch |
 
-The bypass for admin and accountant is enforced in BranchScopeMiddleware by checking the user's role before doing any branch lookup.
+The bypass for admin is enforced in BranchScopeMiddleware by checking the user's role before doing any branch lookup.
 
 #### BranchScopeMiddleware
 
 `app/Http/Middleware/BranchScopeMiddleware.php` runs on every authenticated API request, **after TenantResolver**.
 
 Logic:
-1. If user is super_admin, admin, or accountant → set `app('branch_scope')` = null (no filter)
+1. If user is super_admin or admin → set `app('branch_scope')` = null (no filter)
 2. Else load the user's branch IDs from branch_users → `['uuid-a', 'uuid-b']`
 3. If the array is empty → abort 403 with message "No branch access assigned. Contact your administrator."
 4. Else set `app('branch_scope')` = array of allowed branch IDs
@@ -293,7 +293,7 @@ BranchScopeMiddleware must run after TenantResolver. It must run before any cont
 `app/Traits/BelongsToBranch.php` is applied to models that have a `branch_id` column.
 
 The trait adds a global Eloquent scope:
-- If `app('branch_scope')` is null → no filter added (admin/accountant see everything)
+- If `app('branch_scope')` is null → no filter added (admin sees everything)
 - If `app('branch_scope')` is an array → adds `WHERE branch_id IN (array)` to every query
 
 This is automatic. No controller or service needs to add branch filtering manually.
@@ -331,7 +331,7 @@ Stock transfers move stock between warehouses and can cross branches by design. 
 
 All reports that accept a `branch_id` filter:
 1. If the user is branch-scoped: the branch filter dropdown shows only their allowed branches. They cannot request data for a branch outside their access. ReportService enforces this — it ignores any branch_id in the request that is not in the user's allowed list.
-2. If the user is not branch-scoped (admin, accountant): the branch filter is a full dropdown of all branches, optional.
+2. If the user is not branch-scoped (admin): the branch filter is a full dropdown of all branches, optional.
 
 This logic lives in ReportService, not in the controller.
 
@@ -339,8 +339,8 @@ This logic lives in ReportService, not in the controller.
 
 When a user creates a sale, purchase, or expense:
 - The branch field is a **required dropdown** showing only the user's allowed branches.
-- If the user is admin or accountant, the dropdown shows all branches.
-- The selected branch_id is sent in the request. The Form Request validates that the branch_id is in the user's allowed list (or that the user is admin/accountant).
+- If the user is admin, the dropdown shows all branches.
+- The selected branch_id is sent in the request. The Form Request validates that the branch_id is in the user's allowed list (or that the user is admin).
 - BelongsToBranch does NOT auto-set branch_id on create — because the user must explicitly pick which branch the record belongs to when they have access to multiple.
 
 #### Branch Scope Does Not Replace Tenant Scope
@@ -368,10 +368,10 @@ Tenant scope always applies first. Branch scope applies second.
 ```
 
 - `authStore.user.allowed_branches` — array of branches the user can access
-- If the array is empty and the user is not admin/accountant → show a "No branch access" error page
+- If the array is empty and the user is not admin → show a "No branch access" error page
 - Branch selector dropdowns on create forms show only branches from `allowed_branches`
 - List pages include a branch filter dropdown populated from `allowed_branches`
-- Admin and accountant always see all branches — their `allowed_branches` is ignored, a full branch list is loaded separately
+- Admin always sees all branches — `allowed_branches` is ignored and a full branch list is loaded separately
 
 ---
 
@@ -688,7 +688,7 @@ Columns: id, business_id (INDEX), first_name, last_name, email (UNIQUE), passwor
 Indexes: (business_id, status), (business_id, email).
 
 Rules:
-- super_admin, admin, and accountant are never added to branch_users — they always bypass branch filtering.
+- super_admin and admin are never added to branch_users — they always bypass branch filtering.
 - manager, cashier, inventory_manager, sales_representative must have at least one row in branch_users to access the system. Zero rows = 403 on every request.
 
 **branch_users** — pivot table. Defines which branches a user can access.
@@ -873,14 +873,14 @@ See Section 2.6 for the full specification. Summary of enforcement rules:
 
 - BranchScopeMiddleware runs after TenantResolver on every authenticated request.
 - It loads the user's allowed branch IDs from branch_users into app('branch_scope') as an array.
-- admin and accountant always bypass branch filtering — app('branch_scope') is set to null for them.
+- admin always bypasses branch filtering — app('branch_scope') is set to null for admin.
 - Any other role with zero rows in branch_users gets a 403 abort immediately in BranchScopeMiddleware.
 - BelongsToBranch trait adds WHERE branch_id IN (allowed_ids) automatically on all qualifying models.
 - Stock transfer list is filtered by FROM or TO warehouse belonging to an allowed branch.
 - Stock transfer warehouse dropdowns always show all warehouses in the business (cross-branch transfers allowed).
 - Reports enforce the user's allowed branch list in ReportService — users cannot request data for branches outside their access.
 - Branch selector on create forms (sale, purchase, expense) shows only the user's allowed branches.
-- The /auth/me response includes allowed_branches: [{ id, name }, ...] or [] for admin/accountant (full list fetched separately).
+- The /auth/me response includes allowed_branches: [{ id, name }, ...] or [] for admin (full list fetched separately).
 
 ### 4.5 — Settings
 
@@ -997,7 +997,7 @@ The /auth/me response now includes:
 }
 ```
 
-For admin and accountant, allowed_branches is an empty array — the frontend loads the full branch list separately via GET /api/v1/branches when needed.
+For admin, allowed_branches is an empty array — the frontend loads the full branch list separately via GET /api/v1/branches when needed.
 
 ---
 
@@ -1074,10 +1074,10 @@ components/ui/*.vue — purely presentational.
 
 **Branch awareness in the frontend:**
 - `authStore.user.allowed_branches` contains an array of `{ id, name }` objects — the branches this user is allowed to access.
-- If `allowed_branches` is empty and the user is not admin/accountant → show a full-screen "No Branch Access" error page. Do not allow navigation to any other page until admin assigns at least one branch.
-- Branch selector dropdowns on create forms (sale, purchase, expense) are populated from `allowed_branches` only. Admin and accountant load the full branch list from GET /api/v1/branches instead.
+- If `allowed_branches` is empty and the user is not admin → show a full-screen "No Branch Access" error page. Do not allow navigation to any other page until admin assigns at least one branch.
+- Branch selector dropdowns on create forms (sale, purchase, expense) are populated from `allowed_branches` only. Admin loads the full branch list from GET /api/v1/branches instead.
 - List pages (sales, purchases, expenses) include a branch filter dropdown populated from `allowed_branches`. Selecting a branch filters the list to that branch only. Clearing the filter shows all allowed branches merged.
-- Admin and accountant always see all branches — no restriction in the UI.
+- Admin always sees all branches — no restriction in the UI.
 
 **Frontend authorization using `can()`:**
 The `authStore.can('permission.string')` helper is used to show or hide buttons and nav items. This is purely cosmetic — it improves UX but provides zero security. The backend Policy is the only real security layer.
@@ -1109,7 +1109,7 @@ BaseModel, BaseRepository, BaseApiController.
 All 11 domain exception classes.
 Global JSON exception handler — must convert AuthorizationException to 403 JSON.
 TenantResolver middleware.
-BranchScopeMiddleware — runs after TenantResolver. Loads allowed branch IDs from branch_users into app('branch_scope'). Bypasses admin and accountant. Aborts 403 if non-admin user has zero branch_users rows.
+BranchScopeMiddleware — runs after TenantResolver. Loads allowed branch IDs from branch_users into app('branch_scope'). Bypasses admin only. Aborts 403 if a branch-scoped user has zero branch_users rows.
 AuditService and AuditLogJob — queue-dispatched. Test that a failed audit write does not break the calling operation.
 Group A migrations — including branch_users pivot table and updated audit_logs table with branch_id and expanded event ENUM. No branch_id column on users.
 Seed 7 roles + all permissions from Section 4.3 (including audit_logs.view), all setting groups, 21 COA accounts.
@@ -1128,15 +1128,15 @@ Shared Axios instance. Vue Router with all layouts and auth guard.
 AppSidebar, AppTopbar, NotificationBell.
 All shared UI components. Auth Pinia store with can(), hasRole(), and branch helpers.
 LoginPage, ForgotPasswordPage, ResetPasswordPage.
-Branch awareness: authStore reads allowed_branches array from /auth/me response. If allowed_branches is empty and user is not admin/accountant → redirect to a "No Branch Access" error page with a message to contact the administrator.
+Branch awareness: authStore reads allowed_branches array from /auth/me response. If allowed_branches is empty and user is not admin → redirect to a "No Branch Access" error page with a message to contact the administrator.
 
 **Phase 4 — Foundation Features**
 Users, Branches, Warehouses, Settings, Custom Field Definitions.
 BelongsToBranch: NOT applied to these — they are business-wide configuration.
-branch_users management: User edit page includes a branch access checklist. Admin can assign zero or many branches per user. UserService rejects branch assignment for admin and accountant roles.
+branch_users management: User edit page includes a branch access checklist. Admin can assign zero or many branches per user. UserService rejects branch assignment for admin roles only; accountant can be assigned branches.
 Audit events: user created/updated/deleted/role_assigned/status_changed/branch_access_changed. Settings updated.
 Policies: UserPolicy, BranchPolicy, WarehousePolicy, SettingsPolicy, CustomFieldPolicy, AuditLogPolicy.
-UserPolicy updated: admin cannot add branch_users rows for another admin or accountant.
+UserPolicy updated: admin cannot add branch_users rows for another admin.
 Vue pages: user edit form shows branch access checklist. Branch selector on create-record forms shows only allowed_branches.
 
 **Phase 5 — Tax and Contacts**
@@ -1162,7 +1162,7 @@ Tests: Branch-scoped inventory_manager can only view and adjust stock in warehou
 
 **Phase 8 — Accounting (Must finish before Phase 9)**
 Group H migrations. AccountingService. COA seeding. All accounting Vue pages.
-BelongsToBranch: NOT applied — accounting is business-wide. Accountants see all branches.
+BelongsToBranch: NOT applied — accounting is business-wide. Accounting data remains business-wide, but accountant is not a global bypass role in branch-scoped modules.
 Audit events: journal_posted, journal_reversed, coa_created, coa_updated, coa_deleted, payment_account_transfer.
 Policies: JournalPolicy, ChartOfAccountPolicy, PaymentAccountPolicy, FiscalYearPolicy.
 
@@ -1324,7 +1324,7 @@ Ubuntu 22.04. Nginx. PHP 8.2-fpm. MariaDB 10.11 (not Docker). Redis. Supervisor.
 
 | Policy | Key Rules |
 |---|---|
-| UserPolicy | create/edit: admin only. delete: admin only, not self, not last admin. branch access: admin cannot add branch_users rows for another admin or accountant. |
+| UserPolicy | create/edit: admin only. delete: admin only, not self, not last admin. branch access: admin cannot add branch_users rows for another admin. |
 | BranchPolicy | delete: not if has sales, purchases, or employees. |
 | WarehousePolicy | delete: not if has stock movements. |
 | ProductPolicy | delete: not if has movements. update: block stock_tracking change if movements exist. |
@@ -1482,6 +1482,6 @@ This section is the master list of all audit events. Every event listed here MUS
 *End of Master Build Plan v10*
 
 **Version:** 10.0
-**From v9:** Added Branch Data Filter Layer (Section 2.6) — branch_users pivot table (many-to-many), BranchScopeMiddleware loads array of allowed branch IDs, WHERE branch_id IN (...) filter, admin/accountant bypass, zero-rows = 403 block, stock transfer cross-branch special rule, branch selector on create forms, branch filter on list pages. Added Audit Layer (Section 2.7) — AuditService, AuditLogJob, Auditable trait, complete audit event catalogue including branch_access_changed. Added AuditLogPage to frontend. Added audit_logs.branch_id column. Added audit event requirements to every Phase in Section 10. Added 3 new absolute rules (29-31). Added Section 13 — Complete Audit Event Reference. Added audit_logs.view to permission matrix.
+**From v9:** Added Branch Data Filter Layer (Section 2.6) — branch_users pivot table (many-to-many), BranchScopeMiddleware loads array of allowed branch IDs, WHERE branch_id IN (...) filter, admin bypass, zero-rows = 403 block, stock transfer cross-branch special rule, branch selector on create forms, branch filter on list pages. Added Audit Layer (Section 2.7) — AuditService, AuditLogJob, Auditable trait, complete audit event catalogue including branch_access_changed. Added AuditLogPage to frontend. Added audit_logs.branch_id column. Added audit event requirements to every Phase in Section 10. Added 3 new absolute rules (29-31). Added Section 13 — Complete Audit Event Reference. Added audit_logs.view to permission matrix.
 **Contains:** Project overview, architecture, branch data filter layer (multi-branch per user), audit layer, authorization architecture, full database schema, all business rules with Policy and audit rules, complete API endpoint list, 23-phase build order with Policies and audit events per phase, 31 absolute rules, complete Policy reference, complete Audit Event Reference.
 **Does not contain:** Code, implementation details — those are Codex's responsibility.

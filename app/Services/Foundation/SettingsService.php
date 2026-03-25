@@ -3,16 +3,21 @@
 namespace App\Services\Foundation;
 
 use App\Exceptions\Domain\DomainException;
+use App\Models\Business;
 use App\Models\Setting;
+use App\Models\User;
 use App\Repositories\Foundation\SettingRepository;
-use Throwable;
+use App\Support\Audit\AuditLogger;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class SettingsService
 {
-    public function __construct(protected SettingRepository $settings)
-    {
+    public function __construct(
+        protected SettingRepository $settings,
+        protected AuditLogger $auditLogger,
+    ) {
     }
 
     public function get(string $group, string $key): mixed
@@ -97,15 +102,32 @@ class SettingsService
         return $payload;
     }
 
-    public function updateGroup(string $group, array $settings): array
+    public function updateGroup(string $group, array $settings, ?User $actor = null): array
     {
+        $before = $this->snapshotGroup($group);
+        $businessId = $this->resolveBusinessId();
+
         DB::transaction(function () use ($group, $settings): void {
             foreach ($settings as $key => $value) {
                 $this->set($group, (string) $key, $value);
             }
         });
 
-        return $this->getGroup($group);
+        $updated = $this->getGroup($group);
+
+        if ($before !== $updated) {
+            $this->auditLogger->log(
+                'settings_updated',
+                Business::class,
+                $businessId,
+                $actor,
+                $businessId,
+                ['group' => $group, 'settings' => $before],
+                ['group' => $group, 'settings' => $updated],
+            );
+        }
+
+        return $updated;
     }
 
     protected function resolveBusinessId(): string
@@ -192,5 +214,12 @@ class SettingsService
         } catch (Throwable) {
             // Cache failures should not block successful responses.
         }
+    }
+
+    protected function snapshotGroup(string $group): array
+    {
+        return $this->settings->getGroup($group)
+            ->mapWithKeys(fn (Setting $setting) => [$setting->key => $this->castValue($setting)])
+            ->all();
     }
 }

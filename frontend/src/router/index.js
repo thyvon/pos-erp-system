@@ -1,17 +1,24 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@stores/auth'
-import AdminBusinessesView from '@views/AdminBusinessesView.vue'
-import BranchesView from '@views/BranchesView.vue'
-import LoginView from '@views/LoginView.vue'
-import ForgotPasswordView from '@views/ForgotPasswordView.vue'
-import ResetPasswordView from '@views/ResetPasswordView.vue'
-import NoBranchAccessView from '@views/NoBranchAccessView.vue'
-import CustomFieldsView from '@views/CustomFieldsView.vue'
-import DashboardView from '@views/DashboardView.vue'
-import RolesView from '@views/RolesView.vue'
-import SettingsView from '@views/SettingsView.vue'
-import UsersView from '@views/UsersView.vue'
-import WarehousesView from '@views/WarehousesView.vue'
+
+const AdminBusinessesView = () => import('@views/AdminBusinessesView.vue')
+const BranchesView = () => import('@views/BranchesView.vue')
+const LoginView = () => import('@views/LoginView.vue')
+const ForgotPasswordView = () => import('@views/ForgotPasswordView.vue')
+const ResetPasswordView = () => import('@views/ResetPasswordView.vue')
+const NoBranchAccessView = () => import('@views/NoBranchAccessView.vue')
+const CustomFieldsView = () => import('@views/CustomFieldsView.vue')
+const CustomerGroupsView = () => import('@views/CustomerGroupsView.vue')
+const CustomersView = () => import('@views/CustomersView.vue')
+const DashboardView = () => import('@views/DashboardView.vue')
+const PriceGroupsView = () => import('@views/PriceGroupsView.vue')
+const RolesView = () => import('@views/RolesView.vue')
+const SettingsView = () => import('@views/SettingsView.vue')
+const SuppliersView = () => import('@views/SuppliersView.vue')
+const TaxGroupsView = () => import('@views/TaxGroupsView.vue')
+const TaxRatesView = () => import('@views/TaxRatesView.vue')
+const UsersView = () => import('@views/UsersView.vue')
+const WarehousesView = () => import('@views/WarehousesView.vue')
 
 const router = createRouter({
   history: createWebHistory(),
@@ -84,6 +91,42 @@ const router = createRouter({
       name: 'custom-fields',
       component: CustomFieldsView,
       meta: { requiresAuth: true, requiredPermission: 'custom_fields.index' },
+    },
+    {
+      path: '/tax-rates',
+      name: 'tax-rates',
+      component: TaxRatesView,
+      meta: { requiresAuth: true, requiredPermission: 'tax_rates.index' },
+    },
+    {
+      path: '/tax-groups',
+      name: 'tax-groups',
+      component: TaxGroupsView,
+      meta: { requiresAuth: true, requiredPermission: 'tax_groups.index' },
+    },
+    {
+      path: '/customer-groups',
+      name: 'customer-groups',
+      component: CustomerGroupsView,
+      meta: { requiresAuth: true, requiredPermission: 'customer_groups.index' },
+    },
+    {
+      path: '/customers',
+      name: 'customers',
+      component: CustomersView,
+      meta: { requiresAuth: true, requiredPermission: 'customers.index' },
+    },
+    {
+      path: '/suppliers',
+      name: 'suppliers',
+      component: SuppliersView,
+      meta: { requiresAuth: true, requiredPermission: 'suppliers.index' },
+    },
+    {
+      path: '/catalog/price-groups',
+      name: 'price-groups',
+      component: PriceGroupsView,
+      meta: { requiresAuth: true, requiredPermission: 'price_groups.index' },
     },
     {
       path: '/users',

@@ -53,4 +53,13 @@ class UserPolicy
 
         return $user->can('users.delete');
     }
+
+    public function assignBranchAccess(User $user, string $targetRole): bool
+    {
+        if ($user->hasRole('admin') && $targetRole === 'admin') {
+            return false;
+        }
+
+        return true;
+    }
 }

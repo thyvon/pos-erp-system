@@ -4,6 +4,17 @@ import path from 'node:path'
 
 export default defineConfig({
   plugins: [vue()],
+  build: {
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          framework: ['vue', 'vue-router', 'pinia', 'vue-i18n'],
+          forms: ['vee-validate', 'yup'],
+          http: ['axios'],
+        },
+      },
+    },
+  },
   resolve: {
     alias: {
       '@': path.resolve(__dirname, './src'),

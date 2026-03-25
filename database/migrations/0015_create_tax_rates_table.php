@@ -1,0 +1,31 @@
+<?php
+
+use Illuminate\Database\Migrations\Migration;
+use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\Schema;
+
+return new class extends Migration
+{
+    public function up(): void
+    {
+        Schema::create('tax_rates', function (Blueprint $table): void {
+            $table->uuid('id')->primary();
+            $table->foreignUuid('business_id')->constrained('businesses')->cascadeOnDelete();
+            $table->string('name', 150);
+            $table->decimal('rate', 10, 2);
+            $table->enum('type', ['percentage', 'fixed'])->default('percentage');
+            $table->boolean('is_default')->default(false);
+            $table->boolean('is_active')->default(true);
+            $table->timestamps();
+            $table->softDeletes();
+
+            $table->unique(['business_id', 'name']);
+            $table->index(['business_id', 'deleted_at', 'is_active', 'is_default', 'name'], 'tax_rates_listing_index');
+        });
+    }
+
+    public function down(): void
+    {
+        Schema::dropIfExists('tax_rates');
+    }
+};

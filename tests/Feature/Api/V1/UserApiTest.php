@@ -8,6 +8,7 @@ use App\Models\User;
 use Spatie\Permission\Models\Permission;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -143,6 +144,166 @@ class UserApiTest extends TestCase
             $createdUser->branches()->pluck('branches.id')->all()
         );
         $this->assertSame(['reports.financial'], $createdUser->permissions()->pluck('name')->all());
+    }
+
+    public function test_store_allows_creating_branch_scoped_user_with_zero_branches(): void
+    {
+        $business = Business::factory()->create();
+        $admin = User::factory()->for($business)->create();
+        $admin->assignRole('admin');
+        $branch = Branch::factory()->for($business)->create();
+        $admin->branches()->sync([$branch->id]);
+        $admin->forceFill(['default_branch_id' => $branch->id])->save();
+
+        Sanctum::actingAs($admin);
+
+        $response = $this->postJson('/api/v1/users', [
+            'first_name' => 'No',
+            'last_name' => 'Branch',
+            'email' => 'no-branch@example.com',
+            'password' => 'secret123',
+            'role' => 'cashier',
+            'status' => 'active',
+            'branch_ids' => [],
+            'default_branch_id' => null,
+        ]);
+
+        $response
+            ->assertCreated()
+            ->assertJsonPath('data.email', 'no-branch@example.com')
+            ->assertJsonPath('data.branch_ids', [])
+            ->assertJsonPath('data.default_branch_id', null);
+    }
+
+    public function test_admin_cannot_assign_branch_access_to_admin_role(): void
+    {
+        $business = Business::factory()->create();
+        $actor = User::factory()->for($business)->create();
+        $actor->assignRole('admin');
+        $branch = Branch::factory()->for($business)->create();
+        $actor->branches()->sync([$branch->id]);
+        $actor->forceFill(['default_branch_id' => $branch->id])->save();
+
+        Sanctum::actingAs($actor);
+
+        $response = $this->postJson('/api/v1/users', [
+            'first_name' => 'Another',
+            'last_name' => 'Admin',
+            'email' => 'another-admin@example.com',
+            'password' => 'secret123',
+            'role' => 'admin',
+            'status' => 'active',
+            'branch_ids' => [$branch->id],
+            'default_branch_id' => $branch->id,
+        ]);
+
+        $response
+            ->assertForbidden()
+            ->assertJsonPath('success', false);
+    }
+
+    public function test_admin_can_assign_branch_access_to_accountant_role(): void
+    {
+        $business = Business::factory()->create();
+        $actor = User::factory()->for($business)->create();
+        $actor->assignRole('admin');
+        $branch = Branch::factory()->for($business)->create();
+        $actor->branches()->sync([$branch->id]);
+        $actor->forceFill(['default_branch_id' => $branch->id])->save();
+
+        Sanctum::actingAs($actor);
+
+        $response = $this->postJson('/api/v1/users', [
+            'first_name' => 'Branch',
+            'last_name' => 'Accountant',
+            'email' => 'branch-accountant@example.com',
+            'password' => 'secret123',
+            'role' => 'accountant',
+            'status' => 'active',
+            'branch_ids' => [$branch->id],
+            'default_branch_id' => $branch->id,
+        ]);
+
+        $response
+            ->assertCreated()
+            ->assertJsonPath('data.roles.0', 'accountant')
+            ->assertJsonPath('data.branch_ids.0', $branch->id)
+            ->assertJsonPath('data.default_branch_id', $branch->id);
+    }
+
+    public function test_update_to_admin_role_clears_existing_branch_access(): void
+    {
+        $business = Business::factory()->create();
+        $actor = User::factory()->for($business)->create();
+        $actor->assignRole('admin');
+        $branch = Branch::factory()->for($business)->create();
+        $actor->branches()->sync([$branch->id]);
+        $actor->forceFill(['default_branch_id' => $branch->id])->save();
+
+        $target = User::factory()->for($business)->create();
+        $target->assignRole('manager');
+        $target->branches()->sync([$branch->id]);
+        $target->forceFill(['default_branch_id' => $branch->id])->save();
+
+        Sanctum::actingAs($actor);
+
+        $response = $this->putJson("/api/v1/users/{$target->id}", [
+            'role' => 'admin',
+            'status' => 'active',
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('data.roles.0', 'admin')
+            ->assertJsonPath('data.branch_ids', [])
+            ->assertJsonPath('data.default_branch_id', null);
+    }
+
+    public function test_user_create_update_and_delete_write_phase_four_audit_events(): void
+    {
+        $business = Business::factory()->create();
+        $admin = User::factory()->for($business)->create();
+        $admin->assignRole('admin');
+        $branchA = Branch::factory()->for($business)->create(['name' => 'Branch A']);
+        $branchB = Branch::factory()->for($business)->create(['name' => 'Branch B']);
+        $admin->branches()->sync([$branchA->id, $branchB->id]);
+        $admin->forceFill(['default_branch_id' => $branchA->id])->save();
+
+        Sanctum::actingAs($admin);
+
+        $createResponse = $this->postJson('/api/v1/users', [
+            'first_name' => 'Audit',
+            'last_name' => 'Target',
+            'email' => 'audit-target@example.com',
+            'password' => 'secret123',
+            'role' => 'manager',
+            'status' => 'active',
+            'branch_ids' => [$branchA->id],
+            'default_branch_id' => $branchA->id,
+        ]);
+
+        $createResponse->assertCreated();
+        $createdId = $createResponse->json('data.id');
+
+        $this->assertTrue(DB::table('audit_logs')->where('event', 'user_created')->where('auditable_id', $createdId)->exists());
+        $this->assertTrue(DB::table('audit_logs')->where('event', 'role_assigned')->where('auditable_id', $createdId)->exists());
+        $this->assertTrue(DB::table('audit_logs')->where('event', 'branch_access_changed')->where('auditable_id', $createdId)->exists());
+
+        $updateResponse = $this->putJson("/api/v1/users/{$createdId}", [
+            'status' => 'inactive',
+            'branch_ids' => [$branchB->id],
+            'default_branch_id' => $branchB->id,
+        ]);
+
+        $updateResponse->assertOk();
+
+        $this->assertTrue(DB::table('audit_logs')->where('event', 'user_updated')->where('auditable_id', $createdId)->exists());
+        $this->assertTrue(DB::table('audit_logs')->where('event', 'status_changed')->where('auditable_id', $createdId)->exists());
+
+        $deleteResponse = $this->deleteJson("/api/v1/users/{$createdId}");
+
+        $deleteResponse->assertOk();
+        $this->assertTrue(DB::table('audit_logs')->where('event', 'user_deleted')->where('auditable_id', $createdId)->exists());
     }
 
     public function test_destroy_soft_deletes_the_user(): void

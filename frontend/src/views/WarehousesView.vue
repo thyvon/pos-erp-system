@@ -98,10 +98,16 @@
           <div class="grid gap-4 md:grid-cols-2">
             <div>
               <label class="erp-label" for="branch_id">Branch</label>
-              <Field id="branch_id" as="select" name="branch_id" class="erp-select">
-                <option value="">No branch</option>
-                <option v-for="branch in branchOptions" :key="branch.id" :value="branch.id">{{ branch.name }}</option>
-              </Field>
+              <AppSelect
+                :model-value="values.branch_id || null"
+                :options="branchSelectOptions"
+                searchable
+                clearable
+                placeholder="No branch"
+                search-placeholder="Search branches"
+                empty-text="No branches found."
+                @update:model-value="setFieldValue('branch_id', $event || '')"
+              />
               <ErrorMessage name="branch_id" class="erp-helper text-rose-500 dark:text-rose-400" />
             </div>
             <div>
@@ -177,6 +183,7 @@ import { ErrorMessage, Field, Form } from 'vee-validate'
 import * as yup from 'yup'
 import AppAlert from '@components/ui/AppAlert.vue'
 import AppModal from '@components/ui/AppModal.vue'
+import AppSelect from '@components/ui/AppSelect.vue'
 import ConfirmDelete from '@components/ui/ConfirmDelete.vue'
 import DataTable from '@components/ui/DataTable.vue'
 import StatusBadge from '@components/ui/StatusBadge.vue'
@@ -212,6 +219,10 @@ const alert = reactive({ show: false, type: 'success', title: 'Success', message
 const modal = reactive({ show: false, mode: 'create', warehouse: null })
 const deleteDialog = reactive({ show: false, warehouse: null, itemName: '' })
 const branchOptions = ref([])
+const branchSelectOptions = computed(() => branchOptions.value.map((branch) => ({
+  value: branch.id,
+  label: branch.name,
+})))
 const formKey = ref(0)
 
 const formValues = computed(() => ({

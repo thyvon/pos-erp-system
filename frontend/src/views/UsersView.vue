@@ -153,10 +153,15 @@
                   <div class="erp-form-grid">
                     <div>
                       <label class="erp-label" for="role">Role</label>
-                      <Field id="role" as="select" name="role" class="erp-select">
-                        <option value="">Select role</option>
-                        <option v-for="role in roles" :key="role.name" :value="role.name">{{ role.name }}</option>
-                      </Field>
+                      <AppSelect
+                        :model-value="values.role || null"
+                        :options="roleOptions"
+                        searchable
+                        :placeholder="t('usersPage.selectRole')"
+                        :search-placeholder="t('usersPage.searchRoles')"
+                        :empty-text="t('usersPage.noRolesFound')"
+                        @update:model-value="handleRoleChange(setFieldValue, $event)"
+                      />
                       <ErrorMessage name="role" class="erp-helper text-rose-500 dark:text-rose-400" />
                     </div>
 
@@ -192,30 +197,32 @@
 
                   <div>
                     <div class="erp-label">{{ t('usersPage.extraPermissions') }}</div>
-                    <div class="mt-3 space-y-3">
+                    <div class="mt-3">
+                      <AppSelect
+                        :model-value="values.direct_permissions"
+                        :options="permissionOptions"
+                        multiple
+                        searchable
+                        clearable
+                        :placeholder="t('usersPage.selectPermissions')"
+                        :search-placeholder="t('usersPage.searchPermissions')"
+                        :empty-text="t('usersPage.noPermissionsFound')"
+                        @update:model-value="setFieldValue('direct_permissions', $event)"
+                      />
+                      <div class="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                        {{ t('usersPage.extraPermissionsHelp') }}
+                      </div>
                       <div
-                        v-for="group in permissionGroups"
-                        :key="group.group"
-                        class="rounded-[5px] border border-slate-200/70 p-3 dark:border-slate-800/70"
+                        v-if="values.direct_permissions.length"
+                        class="mt-3 flex flex-wrap gap-2"
                       >
-                        <div class="text-xs font-semibold uppercase tracking-[0.16em] text-slate-500 dark:text-slate-400">
-                          {{ group.group }}
-                        </div>
-                        <div class="mt-3 grid gap-2 md:grid-cols-2">
-                          <label
-                            v-for="permission in group.permissions"
-                            :key="permission"
-                            class="flex items-center gap-2 rounded-[5px] px-2 py-1.5 text-sm text-slate-700 dark:text-slate-200"
-                          >
-                            <input
-                              type="checkbox"
-                              class="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
-                              :checked="values.direct_permissions.includes(permission)"
-                              @change="toggleArrayValue('direct_permissions', permission, values.direct_permissions, setFieldValue, $event.target.checked)"
-                            />
-                            <span>{{ permission }}</span>
-                          </label>
-                        </div>
+                        <span
+                          v-for="permission in values.direct_permissions"
+                          :key="permission"
+                          class="inline-flex rounded-[5px] bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                        >
+                          {{ permission }}
+                        </span>
                       </div>
                     </div>
                   </div>
@@ -226,9 +233,10 @@
                 <div>
                   <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Branch access</div>
                   <div class="mt-1 text-sm text-slate-600 dark:text-slate-300">Users can only access the branches assigned here.</div>
+                  <div class="mt-1 text-sm text-slate-500 dark:text-slate-400">{{ t('usersPage.branchAccessOptional') }}</div>
                 </div>
 
-                <div class="mt-4 space-y-4">
+                <div v-if="roleUsesScopedBranchAccess(values.role)" class="mt-4 space-y-4">
                   <div>
                     <label class="erp-label" for="default_branch_id">{{ t('usersPage.defaultBranch') }}</label>
                     <Field id="default_branch_id" as="select" name="default_branch_id" class="erp-select">
@@ -274,6 +282,12 @@
                     </div>
                     <ErrorMessage name="branch_ids" class="erp-helper text-rose-500 dark:text-rose-400" />
                   </div>
+                </div>
+                <div
+                  v-else
+                  class="mt-4 rounded-[5px] border border-cyan-200/80 bg-cyan-50/80 px-3 py-2 text-sm text-cyan-700 dark:border-cyan-900/70 dark:bg-cyan-950/30 dark:text-cyan-300"
+                >
+                  {{ t('usersPage.branchAccessNotUsed') }}
                 </div>
               </section>
             </div>
@@ -344,6 +358,7 @@ import { ErrorMessage, Field, Form } from 'vee-validate'
 import * as yup from 'yup'
 import AppAlert from '@components/ui/AppAlert.vue'
 import AppModal from '@components/ui/AppModal.vue'
+import AppSelect from '@components/ui/AppSelect.vue'
 import ConfirmDelete from '@components/ui/ConfirmDelete.vue'
 import DataTable from '@components/ui/DataTable.vue'
 import StatusBadge from '@components/ui/StatusBadge.vue'
@@ -363,6 +378,20 @@ const showActionsColumn = computed(() => canEditUser.value || canDeleteUser.valu
 const roles = computed(() => store.accessOptions.roles || [])
 const branches = computed(() => store.accessOptions.branches || [])
 const permissionGroups = computed(() => store.accessOptions.permissions || [])
+const roleOptions = computed(() => roles.value.map((role) => ({
+  value: role.name,
+  label: role.name,
+})))
+const permissionOptions = computed(() =>
+  permissionGroups.value.flatMap((group) =>
+    group.permissions.map((permission) => ({
+      value: permission,
+      label: permission,
+      group: group.group,
+      keywords: `${group.group} ${permission}`,
+    }))
+  )
+)
 
 const columns = computed(() => {
   const baseColumns = [
@@ -402,8 +431,6 @@ const deleteDialog = reactive({
 
 const formKey = ref(0)
 
-const defaultBranchId = computed(() => branches.value.find((branch) => branch.is_default)?.id || branches.value[0]?.id || '')
-
 const formValues = computed(() => ({
   first_name: modal.user?.first_name ?? '',
   last_name: modal.user?.last_name ?? '',
@@ -416,8 +443,8 @@ const formValues = computed(() => ({
   commission_percentage: modal.user?.commission_percentage ?? 0,
   sales_target_amount: modal.user?.sales_target_amount ?? 0,
   direct_permissions: modal.user?.direct_permissions ?? [],
-  branch_ids: modal.user?.branch_ids ?? (defaultBranchId.value ? [defaultBranchId.value] : []),
-  default_branch_id: modal.user?.default_branch_id ?? defaultBranchId.value,
+  branch_ids: modal.user?.branch_ids ?? [],
+  default_branch_id: modal.user?.default_branch_id ?? '',
 }))
 
 const schema = computed(() =>
@@ -436,8 +463,8 @@ const schema = computed(() =>
     commission_percentage: yup.number().min(0).max(100).required(),
     sales_target_amount: yup.number().min(0).required(),
     direct_permissions: yup.array().of(yup.string()).default([]),
-    branch_ids: yup.array().of(yup.string()).min(1, t('usersPage.validation.oneBranch')).required(),
-    default_branch_id: yup.string().required(t('usersPage.validation.defaultBranch')),
+    branch_ids: yup.array().of(yup.string()).default([]),
+    default_branch_id: yup.string().nullable().transform((value) => value || null),
   })
 )
 
@@ -470,17 +497,7 @@ const selectedRolePermissions = (roleName) =>
 const selectedBranches = (branchIds = []) =>
   branches.value.filter((branch) => branchIds.includes(branch.id))
 
-const toggleArrayValue = (fieldName, value, currentValues, setFieldValue, checked) => {
-  const nextValues = new Set(currentValues || [])
-
-  if (checked) {
-    nextValues.add(value)
-  } else {
-    nextValues.delete(value)
-  }
-
-  setFieldValue(fieldName, Array.from(nextValues))
-}
+const roleUsesScopedBranchAccess = (roleName) => !['super_admin', 'admin'].includes(roleName || '')
 
 const toggleBranchSelection = (branchId, values, setFieldValue, checked) => {
   const nextBranchIds = new Set(values.branch_ids || [])
@@ -496,6 +513,15 @@ const toggleBranchSelection = (branchId, values, setFieldValue, checked) => {
 
   if (!normalizedBranchIds.includes(values.default_branch_id)) {
     setFieldValue('default_branch_id', normalizedBranchIds[0] || '')
+  }
+}
+
+const handleRoleChange = (setFieldValue, roleName) => {
+  setFieldValue('role', roleName)
+
+  if (!roleUsesScopedBranchAccess(roleName)) {
+    setFieldValue('branch_ids', [])
+    setFieldValue('default_branch_id', '')
   }
 }
 
@@ -556,10 +582,18 @@ const handlePerPageChange = async (perPage) => {
 
 const submitForm = async (values) => {
   try {
+    const normalizedBranchIds = [...new Set(values.branch_ids || [])]
     const payload = {
       ...values,
       direct_permissions: [...new Set(values.direct_permissions || [])],
-      branch_ids: [...new Set(values.branch_ids || [])],
+      branch_ids: normalizedBranchIds,
+    }
+
+    if (!roleUsesScopedBranchAccess(payload.role)) {
+      payload.branch_ids = []
+      payload.default_branch_id = null
+    } else if (!normalizedBranchIds.includes(payload.default_branch_id)) {
+      payload.default_branch_id = normalizedBranchIds[0] || null
     }
 
     if (modal.mode === 'create') {

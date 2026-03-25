@@ -40,8 +40,10 @@ class UserController extends BaseApiController
     public function store(StoreUserRequest $request): JsonResponse
     {
         $this->authorize('create', User::class);
+        $validated = $request->validated();
+        $this->authorizeBranchAccessAssignment($validated, $validated['role']);
 
-        $user = $this->userService->create($request->validated());
+        $user = $this->userService->create($validated, $request->user());
 
         return $this->success(new UserResource($user), 'User created successfully.', 201);
     }
@@ -56,18 +58,38 @@ class UserController extends BaseApiController
     public function update(UpdateUserRequest $request, User $user): JsonResponse
     {
         $this->authorize('update', $user);
+        $validated = $request->validated();
+        $this->authorizeBranchAccessAssignment(
+            $validated,
+            $validated['role'] ?? (string) $user->getRoleNames()->first()
+        );
 
-        $user = $this->userService->update($user, $request->validated());
+        $user = $this->userService->update($user, $validated, $request->user());
 
         return $this->success(new UserResource($user), 'User updated successfully.');
     }
 
-    public function destroy(User $user): JsonResponse
+    public function destroy(Request $request, User $user): JsonResponse
     {
         $this->authorize('delete', $user);
 
-        $this->userService->destroy($user);
+        $this->userService->destroy($user, $request->user());
 
         return $this->success(null, 'User deleted successfully.');
+    }
+
+    protected function authorizeBranchAccessAssignment(array $data, string $targetRole): void
+    {
+        $branchIds = array_values(array_filter(
+            (array) ($data['branch_ids'] ?? []),
+            static fn ($branchId) => filled($branchId)
+        ));
+        $defaultBranchId = $data['default_branch_id'] ?? null;
+
+        if ($branchIds === [] && ! filled($defaultBranchId)) {
+            return;
+        }
+
+        $this->authorize('assignBranchAccess', [User::class, $targetRole]);
     }
 }

@@ -25,7 +25,7 @@ class SettingsController extends BaseApiController
     {
         $this->authorize('updateAny', Setting::class);
 
-        $settings = $this->settingsService->updateGroup($group, $request->validated('settings'));
+        $settings = $this->settingsService->updateGroup($group, $request->validated('settings'), $request->user());
 
         return $this->success($settings, __('Settings updated successfully.'));
     }

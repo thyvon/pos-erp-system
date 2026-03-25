@@ -257,6 +257,15 @@ class BranchWarehouseSettingsApiTest extends TestCase
             ->assertOk()
             ->assertJsonPath('data.enable_lot_tracking', true)
             ->assertJsonPath('data.lot_expiry_alert_days', 45);
+
+        $auditLog = DB::table('audit_logs')
+            ->where('event', 'settings_updated')
+            ->where('auditable_id', $business->id)
+            ->latest('created_at')
+            ->first();
+
+        $this->assertNotNull($auditLog);
+        $this->assertSame($admin->id, $auditLog->user_id);
     }
 
     public function test_settings_group_update_returns_forbidden_without_settings_edit_permission(): void

@@ -162,30 +162,86 @@
                 {{ group.label }}
               </div>
               <div class="mt-2.5 space-y-1.5">
-                <component
-                  :is="item.to ? RouterLink : 'a'"
-                  v-for="item in group.items"
-                  :key="item.label"
-                  :to="item.to"
-                  :href="item.to ? undefined : 'javascript:void(0)'"
-                  class="erp-sidebar-link"
-                  :class="item.to ? isActive(item.to) : ''"
-                  :title="sidebarCollapsed ? item.label : undefined"
-                  @click="sidebarOpen = false"
-                >
-                  <div class="flex items-center gap-3" :class="sidebarCollapsed ? 'w-full justify-center' : ''">
-                    <span class="erp-nav-icon">
-                      <i :class="item.icon"></i>
-                    </span>
-                    <div v-if="!sidebarCollapsed">
-                      <div class="text-sm font-medium">{{ item.label }}</div>
-                      <div class="text-xs text-slate-500">{{ item.description }}</div>
+                <div v-for="item in group.items" :key="item.key || item.label" class="space-y-1.5">
+                  <button
+                    v-if="item.children?.length"
+                    type="button"
+                    class="erp-sidebar-link w-full"
+                    :class="isItemActive(item) ? 'erp-sidebar-link-active' : ''"
+                    :title="sidebarCollapsed ? item.label : undefined"
+                    @click="toggleNavItem(item.key)"
+                  >
+                    <div class="flex items-center gap-3" :class="sidebarCollapsed ? 'w-full justify-center' : ''">
+                      <span class="erp-nav-icon">
+                        <i :class="item.icon"></i>
+                      </span>
+                      <div v-if="!sidebarCollapsed" class="min-w-0 text-left">
+                        <div class="text-sm font-medium">{{ item.label }}</div>
+                        <div class="text-xs text-slate-500">{{ item.description }}</div>
+                      </div>
                     </div>
+                    <div v-if="!sidebarCollapsed" class="flex items-center gap-2">
+                      <span class="erp-nav-badge" :class="item.statusClass">
+                        {{ item.status }}
+                      </span>
+                      <i
+                        class="fa-solid fa-chevron-down text-[11px] text-slate-500 transition"
+                        :class="isNavItemExpanded(item) ? 'rotate-180' : ''"
+                      ></i>
+                    </div>
+                  </button>
+
+                  <div
+                    v-if="item.children?.length && !sidebarCollapsed && isNavItemExpanded(item)"
+                    class="ml-5 space-y-1 border-l border-slate-200/70 pl-3 dark:border-slate-800/80"
+                  >
+                    <RouterLink
+                      v-for="child in item.children"
+                      :key="child.key || child.label"
+                      :to="child.to"
+                      class="erp-sidebar-link"
+                      :class="isItemActive(child) ? 'erp-sidebar-link-active' : ''"
+                      @click="sidebarOpen = false"
+                    >
+                      <div class="flex min-w-0 items-center gap-3">
+                        <span class="erp-nav-icon">
+                          <i :class="child.icon"></i>
+                        </span>
+                        <div class="min-w-0">
+                          <div class="text-sm font-medium">{{ child.label }}</div>
+                          <div class="text-xs text-slate-500">{{ child.description }}</div>
+                        </div>
+                      </div>
+                      <span class="erp-nav-badge" :class="child.statusClass">
+                        {{ child.status }}
+                      </span>
+                    </RouterLink>
                   </div>
-                  <span v-if="!sidebarCollapsed" class="erp-nav-badge" :class="item.statusClass">
-                    {{ item.status }}
-                  </span>
-                </component>
+
+                  <component
+                    v-if="!item.children?.length"
+                    :is="item.to ? RouterLink : 'a'"
+                    :to="item.to"
+                    :href="item.to ? undefined : 'javascript:void(0)'"
+                    class="erp-sidebar-link"
+                    :class="isItemActive(item) ? 'erp-sidebar-link-active' : ''"
+                    :title="sidebarCollapsed ? item.label : undefined"
+                    @click="sidebarOpen = false"
+                  >
+                    <div class="flex items-center gap-3" :class="sidebarCollapsed ? 'w-full justify-center' : ''">
+                      <span class="erp-nav-icon">
+                        <i :class="item.icon"></i>
+                      </span>
+                      <div v-if="!sidebarCollapsed">
+                        <div class="text-sm font-medium">{{ item.label }}</div>
+                        <div class="text-xs text-slate-500">{{ item.description }}</div>
+                      </div>
+                    </div>
+                    <span v-if="!sidebarCollapsed" class="erp-nav-badge" :class="item.statusClass">
+                      {{ item.status }}
+                    </span>
+                  </component>
+                </div>
               </div>
             </section>
           </div>
@@ -358,6 +414,7 @@ const isDesktop = computed(() => viewportWidth.value >= 1024)
 const isDark = ref(document.documentElement.classList.contains('dark'))
 const userMenuOpen = ref(false)
 const userMenuRef = ref(null)
+const expandedNavItems = ref({})
 const themeKey = 'erp_theme'
 const appName = import.meta.env.VITE_APP_NAME || 'ERP System'
 const currentYear = new Date().getFullYear()
@@ -408,8 +465,27 @@ const userInitials = computed(() => {
   return parts.map((part) => part[0]).join('').toUpperCase()
 })
 
-const isActive = (path) =>
-  route.path.startsWith(path) ? 'erp-sidebar-link-active' : ''
+const isPathActive = (path) => route.path.startsWith(path)
+
+const isItemActive = (item) => {
+  if (item.to && isPathActive(item.to)) {
+    return true
+  }
+
+  if (item.children?.length) {
+    return item.children.some((child) => isItemActive(child))
+  }
+
+  return false
+}
+
+const isNavItemExpanded = (item) => {
+  if (!item.children?.length) {
+    return false
+  }
+
+  return isItemActive(item) || Boolean(expandedNavItems.value[item.key])
+}
 
 const desktopSidebarStyle = computed(() => ({
   width: sidebarCollapsed.value ? '6rem' : '19rem',
@@ -448,6 +524,22 @@ const footerDesktopStyle = computed(() => ({
 }))
 
 const currentLocaleLabel = computed(() => (locale.value === 'km' ? 'KM' : 'EN'))
+
+const toggleNavItem = (key) => {
+  if (!key) {
+    return
+  }
+
+  if (sidebarCollapsed.value) {
+    sidebarCollapsed.value = false
+    localStorage.setItem('erp_sidebar_collapsed', 'false')
+  }
+
+  expandedNavItems.value = {
+    ...expandedNavItems.value,
+    [key]: !expandedNavItems.value[key],
+  }
+}
 
 const navGroups = computed(() => {
   const base = [
@@ -544,6 +636,70 @@ const navGroups = computed(() => {
           icon: 'fa-solid fa-gear',
         },
         {
+          key: 'contacts',
+          label: t('layout.nav.contacts.label'),
+          description: t('layout.nav.contacts.description'),
+          short: 'CT',
+          status: t('status.ready'),
+          statusClass: 'bg-cyan-400/15 text-cyan-200',
+          icon: 'fa-solid fa-address-card',
+          children: [
+            {
+              key: 'customer-groups',
+              label: t('layout.nav.customerGroups.label'),
+              description: t('layout.nav.customerGroups.description'),
+              short: 'CG',
+              to: '/customer-groups',
+              permission: 'customer_groups.index',
+              status: t('status.ready'),
+              statusClass: 'bg-cyan-400/15 text-cyan-200',
+              icon: 'fa-solid fa-user-tag',
+            },
+            {
+              key: 'customers',
+              label: t('layout.nav.customers.label'),
+              description: t('layout.nav.customers.description'),
+              short: 'CU',
+              to: '/customers',
+              permission: 'customers.index',
+              status: t('status.ready'),
+              statusClass: 'bg-cyan-400/15 text-cyan-200',
+              icon: 'fa-solid fa-address-book',
+            },
+            {
+              key: 'suppliers',
+              label: t('layout.nav.suppliers.label'),
+              description: t('layout.nav.suppliers.description'),
+              short: 'SP',
+              to: '/suppliers',
+              permission: 'suppliers.index',
+              status: t('status.ready'),
+              statusClass: 'bg-cyan-400/15 text-cyan-200',
+              icon: 'fa-solid fa-truck-field',
+            },
+          ],
+        },
+        {
+          label: t('layout.nav.taxRates.label'),
+          description: t('layout.nav.taxRates.description'),
+          short: 'TX',
+          to: '/tax-rates',
+          permission: 'tax_rates.index',
+          status: t('status.ready'),
+          statusClass: 'bg-cyan-400/15 text-cyan-200',
+          icon: 'fa-solid fa-percent',
+        },
+        {
+          label: t('layout.nav.taxGroups.label'),
+          description: t('layout.nav.taxGroups.description'),
+          short: 'TG',
+          to: '/tax-groups',
+          permission: 'tax_groups.index',
+          status: t('status.ready'),
+          statusClass: 'bg-cyan-400/15 text-cyan-200',
+          icon: 'fa-solid fa-layer-group',
+        },
+        {
           label: t('layout.nav.customFields.label'),
           description: t('layout.nav.customFields.description'),
           short: 'CF',
@@ -555,19 +711,39 @@ const navGroups = computed(() => {
         },
       ],
     })
+
+    base.push({
+      label: t('layout.groups.catalog'),
+      items: [
+        {
+          key: 'catalog',
+          label: t('layout.nav.catalog.label'),
+          description: t('layout.nav.catalog.description'),
+          short: 'CA',
+          status: t('status.ready'),
+          statusClass: 'bg-cyan-400/15 text-cyan-200',
+          icon: 'fa-solid fa-boxes-stacked',
+          children: [
+            {
+              key: 'price-groups',
+              label: t('layout.nav.priceGroups.label'),
+              description: t('layout.nav.priceGroups.description'),
+              short: 'PG',
+              to: '/catalog/price-groups',
+              permission: 'price_groups.index',
+              status: t('status.ready'),
+              statusClass: 'bg-cyan-400/15 text-cyan-200',
+              icon: 'fa-solid fa-tags',
+            },
+          ],
+        },
+      ],
+    })
   }
 
   base.push({
     label: t('layout.groups.roadmap'),
     items: [
-      {
-        label: t('layout.nav.catalog.label'),
-        description: t('layout.nav.catalog.description'),
-        short: 'CG',
-        status: t('status.planned'),
-        statusClass: 'bg-slate-400/15 text-slate-300',
-        icon: 'fa-solid fa-boxes-stacked',
-      },
       {
         label: t('layout.nav.inventory.label'),
         description: t('layout.nav.inventory.description'),
@@ -590,11 +766,21 @@ const navGroups = computed(() => {
   return base
     .map((group) => ({
       ...group,
-      items: group.items.filter(
-        (item) =>
-          (!item.permission || auth.can(item.permission)) &&
-          (!item.permissionAny || auth.canAny(item.permissionAny))
-      ),
+      items: group.items
+        .map((item) => ({
+          ...item,
+          children: item.children?.filter(
+            (child) =>
+              (!child.permission || auth.can(child.permission)) &&
+              (!child.permissionAny || auth.canAny(child.permissionAny))
+          ),
+        }))
+        .filter(
+          (item) =>
+            ((!item.permission || auth.can(item.permission)) &&
+              (!item.permissionAny || auth.canAny(item.permissionAny))) ||
+            (item.children && item.children.length > 0)
+        ),
     }))
     .filter((group) => group.items.length > 0)
 })

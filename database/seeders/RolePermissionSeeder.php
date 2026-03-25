@@ -49,6 +49,8 @@ class RolePermissionSeeder extends Seeder
     protected function permissionNames(): array
     {
         return [
+            'audit_logs.index',
+
             'roles.index',
             'roles.create',
             'roles.edit',
@@ -78,6 +80,26 @@ class RolePermissionSeeder extends Seeder
             'custom_fields.create',
             'custom_fields.edit',
             'custom_fields.delete',
+
+            'tax_rates.index',
+            'tax_rates.create',
+            'tax_rates.edit',
+            'tax_rates.delete',
+
+            'tax_groups.index',
+            'tax_groups.create',
+            'tax_groups.edit',
+            'tax_groups.delete',
+
+            'customer_groups.index',
+            'customer_groups.create',
+            'customer_groups.edit',
+            'customer_groups.delete',
+
+            'price_groups.index',
+            'price_groups.create',
+            'price_groups.edit',
+            'price_groups.delete',
 
             'settings.index',
             'settings.edit',
@@ -213,6 +235,9 @@ class RolePermissionSeeder extends Seeder
                 'customers.index',
                 'customers.create',
                 'customers.edit',
+                'price_groups.index',
+                'price_groups.create',
+                'price_groups.edit',
                 'suppliers.index',
                 'suppliers.create',
                 'suppliers.edit',
@@ -303,6 +328,7 @@ class RolePermissionSeeder extends Seeder
                 'products.index',
                 'products.create',
                 'products.edit',
+                'price_groups.index',
                 'suppliers.index',
                 'suppliers.create',
                 'suppliers.edit',

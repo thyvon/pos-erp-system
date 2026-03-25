@@ -30,10 +30,10 @@ export const useAuthStore = defineStore('auth', {
       return permissions.some((permission) => state.user?.permissions?.includes(permission))
     },
 
-    /** super_admin, admin, accountant: full business branch visibility (v10); use /branches for lists. */
+    /** super_admin and admin: full business branch visibility; use /branches for lists. */
     isBranchScopeBypassed: (state) => {
       const roles = state.user?.roles || []
-      return ['super_admin', 'admin', 'accountant'].some((r) => roles.includes(r))
+      return ['super_admin', 'admin'].some((r) => roles.includes(r))
     },
 
     /**
@@ -45,7 +45,7 @@ export const useAuthStore = defineStore('auth', {
         return []
       }
 
-      if (['super_admin', 'admin', 'accountant'].some((r) => state.user.roles?.includes(r))) {
+      if (['super_admin', 'admin'].some((r) => state.user.roles?.includes(r))) {
         return []
       }
 
@@ -62,7 +62,7 @@ export const useAuthStore = defineStore('auth', {
         return false
       }
 
-      if (['super_admin', 'admin', 'accountant'].some((r) => state.user.roles?.includes(r))) {
+      if (['super_admin', 'admin'].some((r) => state.user.roles?.includes(r))) {
         return false
       }
 

@@ -68,4 +68,34 @@ class Business extends Model
     {
         return $this->hasMany(Setting::class);
     }
+
+    public function taxRates(): HasMany
+    {
+        return $this->hasMany(TaxRate::class);
+    }
+
+    public function taxGroups(): HasMany
+    {
+        return $this->hasMany(TaxGroup::class);
+    }
+
+    public function customerGroups(): HasMany
+    {
+        return $this->hasMany(CustomerGroup::class);
+    }
+
+    public function priceGroups(): HasMany
+    {
+        return $this->hasMany(PriceGroup::class);
+    }
+
+    public function customers(): HasMany
+    {
+        return $this->hasMany(Customer::class);
+    }
+
+    public function suppliers(): HasMany
+    {
+        return $this->hasMany(Supplier::class);
+    }
 }

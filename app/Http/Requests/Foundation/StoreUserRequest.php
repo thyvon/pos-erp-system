@@ -29,7 +29,7 @@ class StoreUserRequest extends FormRequest
             'role' => ['required', 'string', 'exists:roles,name', Rule::notIn(['super_admin'])],
             'direct_permissions' => ['nullable', 'array'],
             'direct_permissions.*' => ['string', 'exists:permissions,name'],
-            'branch_ids' => ['required', 'array', 'min:1'],
+            'branch_ids' => ['nullable', 'array'],
             'branch_ids.*' => ['string', 'distinct', 'exists:branches,id'],
             'default_branch_id' => ['nullable', 'string', 'exists:branches,id'],
         ];
