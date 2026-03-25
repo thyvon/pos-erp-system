@@ -1,10 +1,10 @@
 <template>
   <AppLayout
-    title="Users"
-    subtitle="Manage access, roles, extra permissions, and branch visibility for each user."
+    :title="t('usersPage.title')"
+    :subtitle="t('usersPage.subtitle')"
     :breadcrumbs="[
-      { label: 'Dashboard', to: '/dashboard' },
-      { label: 'Users' },
+      { label: t('dashboard.breadcrumb'), to: '/dashboard' },
+      { label: t('usersPage.breadcrumb') },
     ]"
   >
     <div class="space-y-6">
@@ -16,7 +16,7 @@
       />
 
       <DataTable
-        title="Users"
+        :title="t('usersPage.tableTitle')"
         :columns="columns"
         :rows="store.items"
         :loading="store.loading"
@@ -32,26 +32,26 @@
         <template #toolbar>
           <button v-if="canCreateUser" type="button" class="erp-button-primary" @click="openCreateModal">
             <i class="fa-solid fa-plus"></i>
-            New user
+            {{ t('usersPage.newUser') }}
           </button>
         </template>
 
         <template #full_name="{ row }">
           <div>
             <div class="font-semibold text-slate-950 dark:text-white">{{ row.full_name }}</div>
-            <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ row.phone || 'No phone' }}</div>
+            <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ row.phone || t('usersPage.noPhone') }}</div>
           </div>
         </template>
 
         <template #role="{ row }">
           <span class="inline-flex rounded-[5px] bg-cyan-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-cyan-700 dark:bg-cyan-950/60 dark:text-cyan-300">
-            {{ row.roles?.[0] || 'n/a' }}
+            {{ row.roles?.[0] || t('usersPage.notApplicable') }}
           </span>
         </template>
 
         <template #default_branch="{ row }">
           <div class="text-sm text-slate-700 dark:text-slate-200">
-            {{ row.default_branch?.name || 'Not set' }}
+            {{ row.default_branch?.name || t('usersPage.notSet') }}
           </div>
         </template>
 
@@ -74,7 +74,7 @@
         </template>
 
         <template #status="{ row }">
-          <StatusBadge :status="row.status" />
+          <StatusBadge :status="row.status" :label="statusLabel(row.status)" />
         </template>
 
         <template #actions="{ row }">
@@ -97,7 +97,7 @@
 
       <AppModal
         :show="modal.show"
-        :title="modal.mode === 'create' ? 'Create user' : 'Edit user'"
+        :title="modal.mode === 'create' ? t('usersPage.createUser') : t('usersPage.editUser')"
         icon="user account"
         size="xl"
         @close="closeModal"
@@ -112,7 +112,7 @@
           <div class="space-y-6">
             <div class="erp-form-grid">
               <div>
-                <label class="erp-label" for="first_name">First name</label>
+                <label class="erp-label" for="first_name">{{ t('usersPage.firstName') }}</label>
                 <Field id="first_name" name="first_name" class="erp-input" />
                 <ErrorMessage name="first_name" class="erp-helper text-rose-500 dark:text-rose-400" />
               </div>
@@ -126,7 +126,7 @@
 
             <div class="erp-form-grid">
               <div>
-                <label class="erp-label" for="email">Email</label>
+                <label class="erp-label" for="email">{{ t('usersPage.email') }}</label>
                 <Field id="email" name="email" type="email" class="erp-input" />
                 <ErrorMessage name="email" class="erp-helper text-rose-500 dark:text-rose-400" />
               </div>
@@ -142,8 +142,10 @@
               <section class="rounded-[5px] border border-slate-200/80 p-4 dark:border-slate-800/80">
                 <div class="flex items-center justify-between gap-3">
                   <div>
-                    <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Role access</div>
-                    <div class="mt-1 text-sm text-slate-600 dark:text-slate-300">Assign one base role, then add extra permissions if needed.</div>
+                    <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+                      {{ t('usersPage.roleSectionTitle') }}
+                    </div>
+                    <div class="mt-1 text-sm text-slate-600 dark:text-slate-300">{{ t('usersPage.roleSectionHint') }}</div>
                   </div>
                 </div>
 
@@ -159,11 +161,11 @@
                     </div>
 
                     <div>
-                      <label class="erp-label" for="status">Status</label>
+                      <label class="erp-label" for="status">{{ t('usersPage.status') }}</label>
                       <Field id="status" as="select" name="status" class="erp-select">
-                        <option value="active">Active</option>
-                        <option value="inactive">Inactive</option>
-                        <option value="suspended">Suspended</option>
+                        <option value="active">{{ t('usersPage.statusActive') }}</option>
+                        <option value="inactive">{{ t('usersPage.statusInactive') }}</option>
+                        <option value="suspended">{{ t('usersPage.statusSuspended') }}</option>
                       </Field>
                       <ErrorMessage name="status" class="erp-helper text-rose-500 dark:text-rose-400" />
                     </div>
@@ -183,13 +185,13 @@
                         v-if="selectedRolePermissions(values.role).length === 0"
                         class="text-sm text-slate-500 dark:text-slate-400"
                       >
-                        Select a role to preview its base permissions.
+                        {{ t('usersPage.selectRolePreview') }}
                       </span>
                     </div>
                   </div>
 
                   <div>
-                    <div class="erp-label">Extra permissions</div>
+                    <div class="erp-label">{{ t('usersPage.extraPermissions') }}</div>
                     <div class="mt-3 space-y-3">
                       <div
                         v-for="group in permissionGroups"
@@ -228,9 +230,9 @@
 
                 <div class="mt-4 space-y-4">
                   <div>
-                    <label class="erp-label" for="default_branch_id">Default branch</label>
+                    <label class="erp-label" for="default_branch_id">{{ t('usersPage.defaultBranch') }}</label>
                     <Field id="default_branch_id" as="select" name="default_branch_id" class="erp-select">
-                      <option value="">Select default branch</option>
+                      <option value="">{{ t('usersPage.selectDefaultBranch') }}</option>
                       <option
                         v-for="branch in selectedBranches(values.branch_ids)"
                         :key="branch.id"
@@ -243,7 +245,7 @@
                   </div>
 
                   <div>
-                    <div class="erp-label">Assigned branches</div>
+                    <div class="erp-label">{{ t('usersPage.assignedBranches') }}</div>
                     <div class="mt-3 space-y-2">
                       <label
                         v-for="branch in branches"
@@ -266,7 +268,7 @@
                           v-if="branch.is_default"
                           class="inline-flex rounded-[5px] bg-emerald-100 px-2 py-1 text-[11px] font-medium text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300"
                         >
-                          Business default
+                          {{ t('usersPage.businessDefault') }}
                         </span>
                       </label>
                     </div>
@@ -279,9 +281,9 @@
             <div class="erp-form-grid">
               <div>
                 <label class="erp-label" for="password">
-                  Password
+                  {{ t('usersPage.password') }}
                   <span class="ml-2 text-xs text-slate-500 dark:text-slate-400">
-                    {{ modal.mode === 'create' ? '(required)' : '(leave blank to keep current)' }}
+                    {{ modal.mode === 'create' ? t('usersPage.passwordRequiredHint') : t('usersPage.passwordOptionalHint') }}
                   </span>
                 </label>
                 <Field id="password" name="password" type="password" class="erp-input" />
@@ -289,7 +291,7 @@
               </div>
 
               <div>
-                <label class="erp-label" for="max_discount">Max discount %</label>
+                <label class="erp-label" for="max_discount">{{ t('usersPage.maxDiscount') }}</label>
                 <Field id="max_discount" name="max_discount" type="number" min="0" max="100" class="erp-input" />
                 <ErrorMessage name="max_discount" class="erp-helper text-rose-500 dark:text-rose-400" />
               </div>
@@ -297,13 +299,13 @@
 
             <div class="erp-form-grid">
               <div>
-                <label class="erp-label" for="commission_percentage">Commission %</label>
+                <label class="erp-label" for="commission_percentage">{{ t('usersPage.commission') }}</label>
                 <Field id="commission_percentage" name="commission_percentage" type="number" min="0" max="100" class="erp-input" />
                 <ErrorMessage name="commission_percentage" class="erp-helper text-rose-500 dark:text-rose-400" />
               </div>
 
               <div>
-                <label class="erp-label" for="sales_target_amount">Monthly sales target</label>
+                <label class="erp-label" for="sales_target_amount">{{ t('usersPage.monthlySalesTarget') }}</label>
                 <Field id="sales_target_amount" name="sales_target_amount" type="number" min="0" class="erp-input" />
                 <ErrorMessage name="sales_target_amount" class="erp-helper text-rose-500 dark:text-rose-400" />
               </div>
@@ -311,14 +313,14 @@
 
             <div class="erp-form-actions">
               <button type="button" class="erp-button-secondary" :disabled="store.saving" @click="closeModal">
-                Cancel
+                {{ t('usersPage.cancel') }}
               </button>
               <button type="submit" class="erp-button-primary" :disabled="store.saving || store.optionsLoading">
                 <span
                   v-if="store.saving"
                   class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white dark:border-slate-950/25 dark:border-t-slate-950"
                 ></span>
-                {{ modal.mode === 'create' ? 'Create user' : 'Save changes' }}
+                {{ modal.mode === 'create' ? t('usersPage.createUser') : t('usersPage.saveChanges') }}
               </button>
             </div>
           </div>
@@ -346,9 +348,11 @@ import ConfirmDelete from '@components/ui/ConfirmDelete.vue'
 import DataTable from '@components/ui/DataTable.vue'
 import StatusBadge from '@components/ui/StatusBadge.vue'
 import AppLayout from '@layouts/AppLayout.vue'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@stores/auth'
 import { useUsersStore } from '@stores/users'
 
+const { t } = useI18n()
 const auth = useAuthStore()
 const store = useUsersStore()
 
@@ -362,16 +366,16 @@ const permissionGroups = computed(() => store.accessOptions.permissions || [])
 
 const columns = computed(() => {
   const baseColumns = [
-    { key: 'full_name', label: 'User' },
-    { key: 'email', label: 'Email' },
-    { key: 'role', label: 'Role' },
-    { key: 'default_branch', label: 'Default Branch' },
-    { key: 'branches', label: 'Branch Access' },
-    { key: 'status', label: 'Status' },
+    { key: 'full_name', label: t('usersPage.columns.user') },
+    { key: 'email', label: t('usersPage.columns.email') },
+    { key: 'role', label: t('usersPage.columns.role') },
+    { key: 'default_branch', label: t('usersPage.columns.defaultBranch') },
+    { key: 'branches', label: t('usersPage.columns.branchAccess') },
+    { key: 'status', label: t('usersPage.columns.status') },
   ]
 
   if (showActionsColumn.value) {
-    baseColumns.push({ key: 'actions', label: 'Actions' })
+    baseColumns.push({ key: 'actions', label: t('usersPage.columns.actions') })
   }
 
   return baseColumns
@@ -380,7 +384,7 @@ const columns = computed(() => {
 const alert = reactive({
   show: false,
   type: 'success',
-  title: 'Success',
+  title: '',
   message: '',
 })
 
@@ -432,16 +436,32 @@ const schema = computed(() =>
     commission_percentage: yup.number().min(0).max(100).required(),
     sales_target_amount: yup.number().min(0).required(),
     direct_permissions: yup.array().of(yup.string()).default([]),
-    branch_ids: yup.array().of(yup.string()).min(1, 'Assign at least one branch.').required(),
-    default_branch_id: yup.string().required('Default branch is required.'),
+    branch_ids: yup.array().of(yup.string()).min(1, t('usersPage.validation.oneBranch')).required(),
+    default_branch_id: yup.string().required(t('usersPage.validation.defaultBranch')),
   })
 )
 
 const showToast = (type, message) => {
   alert.type = type
-  alert.title = type === 'danger' ? 'Error' : type === 'warning' ? 'Warning' : 'Success'
+  alert.title =
+    type === 'danger' ? t('common.error') : type === 'warning' ? t('common.warning') : t('common.success')
   alert.message = message
   alert.show = true
+}
+
+const statusLabel = (status) => {
+  const s = String(status || '').toLowerCase()
+  if (s === 'active') {
+    return t('usersPage.statusActive')
+  }
+  if (s === 'inactive') {
+    return t('usersPage.statusInactive')
+  }
+  if (s === 'suspended') {
+    return t('usersPage.statusSuspended')
+  }
+
+  return String(status || '')
 }
 
 const selectedRolePermissions = (roleName) =>
@@ -544,19 +564,19 @@ const submitForm = async (values) => {
 
     if (modal.mode === 'create') {
       await store.createUser(payload)
-      showToast('success', 'User created successfully.')
+      showToast('success', t('usersPage.toast.created'))
     } else {
       if (!payload.password) {
         delete payload.password
       }
 
       await store.updateUser(modal.user.id, payload)
-      showToast('success', 'User updated successfully.')
+      showToast('success', t('usersPage.toast.updated'))
     }
 
     closeModal()
   } catch (error) {
-    showToast('danger', error.response?.data?.message || 'Unable to save the user.')
+    showToast('danger', error.response?.data?.message || t('usersPage.toast.saveFailed'))
   }
 }
 
@@ -567,10 +587,10 @@ const confirmDelete = async () => {
 
   try {
     await store.deleteUser(deleteDialog.user.id)
-    showToast('success', 'User deleted successfully.')
+    showToast('success', t('usersPage.toast.deleted'))
     closeDeleteModal()
   } catch (error) {
-    showToast('danger', error.response?.data?.message || 'Unable to delete the user.')
+    showToast('danger', error.response?.data?.message || t('usersPage.toast.deleteFailed'))
   }
 }
 

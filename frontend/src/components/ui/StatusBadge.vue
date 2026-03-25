@@ -13,10 +13,12 @@ import { computed } from 'vue'
 
 const props = defineProps({
   status: { type: String, default: '' },
+  /** When set, shown instead of the raw status string (e.g. translated label). */
+  label: { type: String, default: '' },
 })
 
 const normalizedStatus = computed(() => String(props.status || '').trim().toLowerCase())
-const label = computed(() => normalizedStatus.value || 'unknown')
+const label = computed(() => props.label || normalizedStatus.value || 'unknown')
 
 const badgeClass = computed(() => {
   if (['active', 'completed', 'paid', 'success'].includes(normalizedStatus.value)) {

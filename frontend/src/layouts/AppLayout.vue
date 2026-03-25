@@ -59,8 +59,18 @@
           <div class="flex items-center gap-2 sm:gap-3">
             <div class="erp-glass-band hidden items-center gap-2.5 px-3 py-1.5 text-sm text-slate-600 dark:text-slate-300 xl:flex">
               <div class="h-2.5 w-2.5 rounded-full bg-emerald-500"></div>
-              <span>Backend connected</span>
+              <span>{{ t('layout.backendConnected') }}</span>
             </div>
+            <NotificationBell />
+            <button
+              type="button"
+              class="erp-topbar-button"
+              :title="t('common.language')"
+              @click="toggleLocale"
+            >
+              <i class="fa-solid fa-language"></i>
+              <span>{{ currentLocaleLabel }}</span>
+            </button>
             <button type="button" class="erp-topbar-button" @click="toggleTheme">
               <i class="fa-solid" :class="isDark ? 'fa-sun' : 'fa-moon'"></i>
             </button>
@@ -232,6 +242,7 @@
                 <div class="h-2.5 w-2.5 rounded-full bg-emerald-500"></div>
                 <span>{{ t('layout.backendConnected') }}</span>
               </div>
+              <NotificationBell />
               <button type="button" class="erp-topbar-button" :title="t('common.language')" @click="toggleLocale">
                 <i class="fa-solid fa-language"></i>
                 <span>{{ currentLocaleLabel }}</span>
@@ -317,6 +328,7 @@ import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@stores/auth'
 import { applyLocale, getIntlLocale } from '@/i18n'
+import NotificationBell from '@components/ui/NotificationBell.vue'
 
 const props = defineProps({
   title: {

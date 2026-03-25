@@ -4,7 +4,11 @@
 
 @layer base {
   :root {
-    --erp-font-sans: "SF Pro Display", "SF Pro Text", "Avenir Next", "Segoe UI Variable", "Segoe UI", sans-serif;
+    /*
+     * Mixed Khmer + Latin: browser uses the first family with a glyph for each code point.
+     * Roboto covers English/Latin; Khmer falls through to Kantumruy Pro.
+     */
+    --erp-font-sans: "Roboto", "Kantumruy Pro", system-ui, -apple-system, "Segoe UI", sans-serif;
     --erp-bg: #eef3fb;
     --erp-bg-soft: rgba(255, 255, 255, 0.56);
     --erp-bg-strong: rgba(255, 255, 255, 0.82);

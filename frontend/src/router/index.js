@@ -3,6 +3,9 @@ import { useAuthStore } from '@stores/auth'
 import AdminBusinessesView from '@views/AdminBusinessesView.vue'
 import BranchesView from '@views/BranchesView.vue'
 import LoginView from '@views/LoginView.vue'
+import ForgotPasswordView from '@views/ForgotPasswordView.vue'
+import ResetPasswordView from '@views/ResetPasswordView.vue'
+import NoBranchAccessView from '@views/NoBranchAccessView.vue'
 import CustomFieldsView from '@views/CustomFieldsView.vue'
 import DashboardView from '@views/DashboardView.vue'
 import RolesView from '@views/RolesView.vue'
@@ -21,7 +24,26 @@ const router = createRouter({
       path: '/login',
       name: 'login',
       component: LoginView,
-      meta: { guestOnly: true },
+      meta: { guestOnly: true, allowWithoutBranches: true },
+    },
+    {
+      path: '/forgot-password',
+      name: 'forgot-password',
+      component: ForgotPasswordView,
+      meta: { guestOnly: true, allowWithoutBranches: true },
+    },
+    {
+      path: '/reset-password',
+      name: 'reset-password',
+      component: ResetPasswordView,
+      /** Allow token reset whether or not a session exists (email link flows). */
+      meta: { allowWithoutBranches: true },
+    },
+    {
+      path: '/no-branch-access',
+      name: 'no-branch-access',
+      component: NoBranchAccessView,
+      meta: { requiresAuth: true, allowWithoutBranches: true },
     },
     {
       path: '/dashboard',
@@ -93,6 +115,16 @@ router.beforeEach(async (to) => {
     return { name: 'login' }
   }
 
+  if (
+    auth.isLoggedIn &&
+    auth.user &&
+    to.meta.requiresAuth &&
+    !to.meta.allowWithoutBranches &&
+    auth.needsBranchAccessBlock
+  ) {
+    return { name: 'no-branch-access' }
+  }
+
   if (to.meta.requiresSuperAdmin && !auth.isSuperAdmin) {
     return { name: 'dashboard' }
   }
@@ -106,6 +138,10 @@ router.beforeEach(async (to) => {
   }
 
   if (to.meta.guestOnly && auth.isLoggedIn) {
+    if (auth.needsBranchAccessBlock) {
+      return { name: 'no-branch-access' }
+    }
+
     return { name: 'dashboard' }
   }
 

@@ -77,6 +77,15 @@
               ></span>
               {{ t('login.signIn') }}
             </button>
+
+            <div class="text-center">
+              <RouterLink
+                class="text-sm font-medium text-sky-600 hover:text-sky-500 dark:text-sky-400"
+                :to="{ name: 'forgot-password' }"
+              >
+                {{ t('auth.forgotLink') }}
+              </RouterLink>
+            </div>
           </Form>
 
           <div class="mt-5 rounded-[5px] border border-white/50 bg-white/55 px-3 py-3 backdrop-blur-xl dark:border-white/10 dark:bg-white/5">
@@ -94,7 +103,7 @@
 
 <script setup>
 import { computed, ref } from 'vue'
-import { useRouter } from 'vue-router'
+import { RouterLink, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { ErrorMessage, Field, Form } from 'vee-validate'
 import * as yup from 'yup'

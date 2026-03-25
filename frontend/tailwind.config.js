@@ -4,6 +4,9 @@ export default {
   content: ['./index.html', './src/**/*.{js,vue}'],
   theme: {
     extend: {
+      fontFamily: {
+        sans: ['Roboto', '"Kantumruy Pro"', 'system-ui', 'sans-serif'],
+      },
       colors: {
         ink: {
           50: '#f8fafc',
