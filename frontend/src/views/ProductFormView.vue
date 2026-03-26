@@ -196,121 +196,197 @@
                     />
                   </div>
                 </div>
+
+                <div class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    <div>
+                        <label class="erp-label" for="profit_margin">Profit margin %</label>
+                        <Field id="profit_margin" name="profit_margin" type="number" min="0" step="0.01" class="erp-input" />
+                    </div>
+                </div>
               </section>
 
-              <section
-                v-if="values.type === 'variable'"
-                id="product-variations"
-                class="rounded-[5px] border border-slate-200/80 p-4 dark:border-slate-800/80"
-              >
-                <div class="mb-4">
-                  <div class="text-sm font-semibold text-slate-950 dark:text-white">Product variations</div>
-                  <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                    Select one or more templates and choose values under each template. Rows are generated automatically from the selected combinations.
-                  </div>
+            <section
+            v-if="values.type === 'variable'"
+            id="product-variations"
+            class="rounded-[5px] border border-slate-200/80 p-4 dark:border-slate-800/80"
+            >
+            <div class="mb-4">
+                <div class="text-sm font-semibold text-slate-950 dark:text-white">Product variations</div>
+                <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                Select one or more templates and choose values under each template. Rows are generated automatically from the selected combinations.
                 </div>
+            </div>
 
-                <div v-if="selectedVariationTemplates(values).length" class="space-y-4">
-                  <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                    <div
-                      v-for="template in selectedVariationTemplates(values)"
-                      :key="template.id"
-                      class="rounded-[5px] border border-slate-200/80 p-4 dark:border-slate-800/80"
-                    >
-                      <label class="erp-label">{{ template.name }} values</label>
-                      <AppSelect
-                        :model-value="values.variation_value_map?.[template.id] || []"
-                        :options="variationValueOptions(template.id)"
-                        multiple
-                        searchable
-                        placeholder="Select values"
-                        search-placeholder="Search values"
-                        @update:model-value="handleVariationValuesChange(values, setFieldValue, template.id, $event || [])"
-                      />
-                      <div class="erp-helper text-slate-500 dark:text-slate-400">
-                        Pick all values you want included in the matrix.
-                      </div>
+            <div v-if="selectedVariationTemplates(values).length" class="space-y-4">
+                <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                <div
+                    v-for="template in selectedVariationTemplates(values)"
+                    :key="template.id"
+                    class="rounded-[5px] border border-slate-200/80 p-4 dark:border-slate-800/80"
+                >
+                    <label class="erp-label">{{ template.name }} values</label>
+                    <AppSelect
+                    :model-value="values.variation_value_map?.[template.id] || []"
+                    :options="variationValueOptions(template.id)"
+                    multiple
+                    searchable
+                    placeholder="Select values"
+                    search-placeholder="Search values"
+                    @update:model-value="handleVariationValuesChange(values, setFieldValue, template.id, $event || [])"
+                    />
+                    <div class="erp-helper text-slate-500 dark:text-slate-400">
+                    Pick all values you want included in the matrix.
                     </div>
-                  </div>
-
-                  <div
-                    v-if="!(values.variations || []).length"
-                    class="rounded-[5px] border border-amber-200/70 bg-amber-50/80 px-4 py-3 text-sm text-amber-700 dark:border-amber-900/70 dark:bg-amber-950/25 dark:text-amber-200"
-                  >
-                    Select at least one value from every chosen template to generate variation rows.
-                  </div>
-
-                  <div v-else class="space-y-4">
-                    <div
-                      v-for="(variation, index) in values.variations"
-                      :key="variation.id || variation.combination_key || index"
-                      class="rounded-[5px] border border-slate-200/80 p-4 dark:border-slate-800/80"
-                    >
-                      <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-[minmax(12rem,1.2fr)_minmax(14rem,1.6fr)_minmax(10rem,1fr)_minmax(10rem,1fr)_minmax(8rem,0.9fr)_minmax(8rem,0.9fr)_minmax(8rem,0.9fr)_auto]">
-                        <div class="min-w-0">
-                          <label class="erp-label">Variant</label>
-                          <Field :name="`variations[${index}].name`" class="erp-input" readonly />
-                          <ErrorMessage :name="`variations[${index}].name`" class="erp-helper text-rose-500 dark:text-rose-400" />
-                        </div>
-                        <div class="min-w-0">
-                          <label class="erp-label">Selected values</label>
-                          <div class="erp-input flex min-h-[46px] flex-wrap items-center gap-1.5">
-                            <span
-                              v-for="valueLabel in variationValueLabels(variation.variation_value_ids)"
-                              :key="valueLabel"
-                              class="inline-flex rounded-[10px] bg-cyan-100 px-2 py-1 text-[11px] font-medium text-cyan-700 dark:bg-cyan-950/50 dark:text-cyan-300"
-                            >
-                              {{ valueLabel }}
-                            </span>
-                          </div>
-                        </div>
-                        <div class="min-w-0">
-                          <label class="erp-label">Variation SKU</label>
-                          <Field :name="`variations[${index}].sku`" class="erp-input" />
-                          <ErrorMessage :name="`variations[${index}].sku`" class="erp-helper text-rose-500 dark:text-rose-400" />
-                        </div>
-                        <div class="min-w-0">
-                          <label class="erp-label">Barcode</label>
-                          <Field :name="`variations[${index}].barcode`" class="erp-input" />
-                        </div>
-                        <div class="min-w-0">
-                          <label class="erp-label">Sell</label>
-                          <Field :name="`variations[${index}].selling_price`" type="number" min="0" step="0.01" class="erp-input" />
-                        </div>
-                        <div class="min-w-0">
-                          <label class="erp-label">Buy</label>
-                          <Field :name="`variations[${index}].purchase_price`" type="number" min="0" step="0.01" class="erp-input" />
-                        </div>
-                        <div class="min-w-0">
-                          <label class="erp-label">Min</label>
-                          <Field :name="`variations[${index}].minimum_selling_price`" type="number" min="0" step="0.01" class="erp-input" />
-                        </div>
-                        <div class="flex items-end xl:justify-end">
-                          <label class="flex items-center gap-3 rounded-[5px] border border-slate-200 px-3 py-2.5 text-sm text-slate-700 dark:border-slate-800 dark:text-slate-300">
-                            <input
-                              type="checkbox"
-                              class="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
-                              :checked="variation.is_active !== false"
-                              @change="setFieldValue(`variations[${index}].is_active`, $event.target.checked)"
-                            />
-                            <span>Active</span>
-                          </label>
-                        </div>
-                      </div>
-                    </div>
-                  </div>
+                </div>
                 </div>
 
                 <div
-                  v-else
-                  class="rounded-[5px] border border-slate-200/70 bg-slate-50/80 px-4 py-3 text-sm text-slate-600 dark:border-slate-800/80 dark:bg-slate-900/70 dark:text-slate-300"
+                v-if="!(values.variations || []).length"
+                class="rounded-[5px] border border-amber-200/70 bg-amber-50/80 px-4 py-3 text-sm text-amber-700 dark:border-amber-900/70 dark:bg-amber-950/25 dark:text-amber-200"
                 >
-                  Choose one or more variation templates in the right-side Catalog setup panel to begin.
+                Select at least one value from every chosen template to generate variation rows.
                 </div>
 
-                <ErrorMessage name="variation_template_ids" class="erp-helper text-rose-500 dark:text-rose-400" />
-                <ErrorMessage name="variations" class="erp-helper text-rose-500 dark:text-rose-400" />
-              </section>
+                <div v-else class="overflow-x-auto rounded-[5px] border border-slate-200/80 dark:border-slate-800/80">
+
+                <!-- Header row — desktop only -->
+                <div class="hidden xl:grid gap-3 border-b border-slate-200/80 bg-slate-50/80 px-4 py-2 text-xs font-semibold text-slate-500 dark:border-slate-800/80 dark:bg-slate-900/50 dark:text-slate-400 xl:grid-cols-[minmax(12rem,1.2fr)_minmax(14rem,1.6fr)_minmax(10rem,1fr)_minmax(10rem,1fr)_minmax(8rem,0.9fr)_minmax(8rem,0.9fr)_minmax(8rem,0.9fr)_auto]">
+                    <div>Variant</div>
+                    <div>Selected values</div>
+                    <div>Variation SKU</div>
+                    <div>Barcode</div>
+                    <div>Sell</div>
+                    <div>Buy</div>
+                    <div>Min</div>
+                    <div></div>
+                </div>
+
+                <!-- Data rows -->
+                <div
+                    v-for="(variation, index) in values.variations"
+                    :key="variation.id || variation.combination_key || index"
+                    class="border-b border-slate-200/80 last:border-b-0 dark:border-slate-800/80"
+                >
+                    <!-- Mobile card layout -->
+                    <div class="flex flex-col gap-3 p-4 xl:hidden">
+                    <div class="flex items-start justify-between gap-3">
+                        <div class="min-w-0 flex-1">
+                        <div class="mb-1 text-xs font-semibold text-slate-500 dark:text-slate-400">Variant</div>
+                        <Field :name="`variations[${index}].name`" class="erp-input" readonly />
+                        <ErrorMessage :name="`variations[${index}].name`" class="erp-helper text-rose-500 dark:text-rose-400" />
+                        </div>
+                        <label class="mt-5 flex shrink-0 items-center gap-2 rounded-[5px] border border-slate-200 px-3 py-2.5 text-sm text-slate-700 dark:border-slate-800 dark:text-slate-300">
+                        <input
+                            type="checkbox"
+                            class="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
+                            :checked="variation.is_active !== false"
+                            @change="setFieldValue(`variations[${index}].is_active`, $event.target.checked)"
+                        />
+                        <span>Active</span>
+                        </label>
+                    </div>
+
+                    <div>
+                        <div class="mb-1 text-xs font-semibold text-slate-500 dark:text-slate-400">Selected values</div>
+                        <div class="erp-input flex min-h-[46px] flex-wrap items-center gap-1.5">
+                        <span
+                            v-for="valueLabel in variationValueLabels(variation.variation_value_ids)"
+                            :key="valueLabel"
+                            class="inline-flex rounded-[10px] bg-cyan-100 px-2 py-1 text-[11px] font-medium text-cyan-700 dark:bg-cyan-950/50 dark:text-cyan-300"
+                        >
+                            {{ valueLabel }}
+                        </span>
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-2 gap-3">
+                        <div>
+                        <div class="mb-1 text-xs font-semibold text-slate-500 dark:text-slate-400">Variation SKU</div>
+                        <Field :name="`variations[${index}].sku`" class="erp-input" />
+                        <ErrorMessage :name="`variations[${index}].sku`" class="erp-helper text-rose-500 dark:text-rose-400" />
+                        </div>
+                        <div>
+                        <div class="mb-1 text-xs font-semibold text-slate-500 dark:text-slate-400">Barcode</div>
+                        <Field :name="`variations[${index}].barcode`" class="erp-input" />
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-3 gap-3">
+                        <div>
+                        <div class="mb-1 text-xs font-semibold text-slate-500 dark:text-slate-400">Sell</div>
+                        <Field :name="`variations[${index}].selling_price`" type="number" min="0" step="0.01" class="erp-input" />
+                        </div>
+                        <div>
+                        <div class="mb-1 text-xs font-semibold text-slate-500 dark:text-slate-400">Buy</div>
+                        <Field :name="`variations[${index}].purchase_price`" type="number" min="0" step="0.01" class="erp-input" />
+                        </div>
+                        <div>
+                        <div class="mb-1 text-xs font-semibold text-slate-500 dark:text-slate-400">Min</div>
+                        <Field :name="`variations[${index}].minimum_selling_price`" type="number" min="0" step="0.01" class="erp-input" />
+                        </div>
+                    </div>
+                    </div>
+
+                    <!-- Desktop table row layout -->
+                    <div class="hidden xl:grid gap-3 px-4 py-3 xl:grid-cols-[minmax(12rem,1.2fr)_minmax(14rem,1.6fr)_minmax(10rem,1fr)_minmax(10rem,1fr)_minmax(8rem,0.9fr)_minmax(8rem,0.9fr)_minmax(8rem,0.9fr)_auto]">
+                    <div class="min-w-0">
+                        <Field :name="`variations[${index}].name`" class="erp-input" readonly />
+                        <ErrorMessage :name="`variations[${index}].name`" class="erp-helper text-rose-500 dark:text-rose-400" />
+                    </div>
+                    <div class="min-w-0">
+                        <div class="erp-input flex min-h-[46px] flex-wrap items-center gap-1.5">
+                        <span
+                            v-for="valueLabel in variationValueLabels(variation.variation_value_ids)"
+                            :key="valueLabel"
+                            class="inline-flex rounded-[10px] bg-cyan-100 px-2 py-1 text-[11px] font-medium text-cyan-700 dark:bg-cyan-950/50 dark:text-cyan-300"
+                        >
+                            {{ valueLabel }}
+                        </span>
+                        </div>
+                    </div>
+                    <div class="min-w-0">
+                        <Field :name="`variations[${index}].sku`" class="erp-input" />
+                        <ErrorMessage :name="`variations[${index}].sku`" class="erp-helper text-rose-500 dark:text-rose-400" />
+                    </div>
+                    <div class="min-w-0">
+                        <Field :name="`variations[${index}].barcode`" class="erp-input" />
+                    </div>
+                    <div class="min-w-0">
+                        <Field :name="`variations[${index}].selling_price`" type="number" min="0" step="0.01" class="erp-input" />
+                    </div>
+                    <div class="min-w-0">
+                        <Field :name="`variations[${index}].purchase_price`" type="number" min="0" step="0.01" class="erp-input" />
+                    </div>
+                    <div class="min-w-0">
+                        <Field :name="`variations[${index}].minimum_selling_price`" type="number" min="0" step="0.01" class="erp-input" />
+                    </div>
+                    <div class="flex items-center xl:justify-end">
+                        <label class="flex items-center gap-3 rounded-[5px] border border-slate-200 px-3 py-2.5 text-sm text-slate-700 dark:border-slate-800 dark:text-slate-300">
+                        <input
+                            type="checkbox"
+                            class="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
+                            :checked="variation.is_active !== false"
+                            @change="setFieldValue(`variations[${index}].is_active`, $event.target.checked)"
+                        />
+                        <span>Active</span>
+                        </label>
+                    </div>
+                    </div>
+                </div>
+
+                </div>
+            </div>
+
+            <div
+                v-else
+                class="rounded-[5px] border border-slate-200/70 bg-slate-50/80 px-4 py-3 text-sm text-slate-600 dark:border-slate-800/80 dark:bg-slate-900/70 dark:text-slate-300"
+            >
+                Choose one or more variation templates in the right-side Catalog setup panel to begin.
+            </div>
+
+            <ErrorMessage name="variation_template_ids" class="erp-helper text-rose-500 dark:text-rose-400" />
+            <ErrorMessage name="variations" class="erp-helper text-rose-500 dark:text-rose-400" />
+            </section>
 
               <section
                 v-if="values.type === 'combo'"
@@ -998,6 +1074,8 @@ const schema = yup.object({
   type: yup.string().required().oneOf(['single', 'variable', 'service', 'combo']),
   barcode_type: yup.string().required().oneOf(['C128', 'EAN13', 'QR']),
   stock_tracking: yup.string().required().oneOf(['none', 'lot', 'serial']),
+  profit_margin: yup.number().nullable().min(0).max(999999.99)
+    .transform((value, originalValue) => (originalValue === '' ? null : value)),
   selling_price: yup.number().nullable().transform((value, originalValue) => (originalValue === '' ? null : value)).when('type', {
     is: 'variable',
     then: (baseSchema) => baseSchema.nullable(),

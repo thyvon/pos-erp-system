@@ -52,15 +52,46 @@ class ProductService
         }
 
         return [
-            'categories' => Category::query()->with('parent:id,name')->orderBy('sort_order')->orderBy('name')->get(),
-            'brands' => Brand::query()->orderBy('name')->get(),
-            'units' => Unit::query()->with('subUnits')->orderBy('name')->get(),
-            'tax_rates' => TaxRate::query()->where('is_active', true)->orderByDesc('is_default')->orderBy('name')->get(),
-            'price_groups' => PriceGroup::query()->orderByDesc('is_default')->orderBy('name')->get(),
-            'variation_templates' => VariationTemplate::query()->with('values')->orderBy('name')->get(),
+            'categories' => Category::query()
+                ->select(['id', 'business_id', 'parent_id', 'name', 'sort_order'])
+                ->with('parent:id,name')
+                ->orderBy('sort_order')
+                ->orderBy('name')
+                ->get(),
+            'brands' => Brand::query()
+                ->select(['id', 'business_id', 'name'])
+                ->orderBy('name')
+                ->get(),
+            'units' => Unit::query()
+                ->select(['id', 'business_id', 'name', 'short_name', 'allow_decimal'])
+                ->withCount('subUnits')
+                ->with(['subUnits:id,parent_unit_id,name,short_name,conversion_factor'])
+                ->orderBy('name')
+                ->get(),
+            'tax_rates' => TaxRate::query()
+                ->select(['id', 'business_id', 'name', 'rate', 'type', 'is_default', 'is_active'])
+                ->where('is_active', true)
+                ->orderByDesc('is_default')
+                ->orderBy('name')
+                ->get(),
+            'price_groups' => PriceGroup::query()
+                ->select(['id', 'business_id', 'name', 'is_default'])
+                ->orderByDesc('is_default')
+                ->orderBy('name')
+                ->get(),
+            'variation_templates' => VariationTemplate::query()
+                ->select(['id', 'business_id', 'name'])
+                ->withCount('values')
+                ->with(['values:id,business_id,variation_template_id,name,sort_order'])
+                ->orderBy('name')
+                ->get(),
             'rack_locations_enabled' => $rackLocationsEnabled,
             'rack_locations' => $rackLocationsEnabled
-                ? RackLocation::query()->with('warehouse:id,name')->orderBy('name')->get()
+                ? RackLocation::query()
+                    ->select(['id', 'business_id', 'warehouse_id', 'name', 'code'])
+                    ->with('warehouse:id,name,code')
+                    ->orderBy('name')
+                    ->get()
                 : collect(),
             'custom_fields' => CustomFieldDefinition::query()
                 ->where('module', 'products')
@@ -68,7 +99,8 @@ class ProductService
                 ->orderBy('field_label')
                 ->get(),
             'combo_products' => Product::query()
-                ->with('variations')
+                ->select(['id', 'business_id', 'name', 'sku', 'type'])
+                ->with(['variations:id,product_id,name,sku'])
                 ->where('type', '!=', 'combo')
                 ->orderBy('name')
                 ->get(),

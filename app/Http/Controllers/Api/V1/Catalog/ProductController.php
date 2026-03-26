@@ -6,6 +6,7 @@ use App\Http\Requests\Catalog\StoreProductRequest;
 use App\Http\Requests\Catalog\UpdateProductRequest;
 use App\Http\Resources\Catalog\BrandResource;
 use App\Http\Resources\Catalog\CategoryResource;
+use App\Http\Resources\Catalog\ProductListResource;
 use App\Http\Resources\Catalog\ProductResource;
 use App\Http\Resources\Catalog\PriceGroupResource;
 use App\Http\Resources\Catalog\RackLocationResource;
@@ -38,7 +39,7 @@ class ProductController extends BaseCatalogController
             'per_page',
         ]));
 
-        return $this->paginated($items, ProductResource::class);
+        return $this->paginated($items, ProductListResource::class);
     }
 
     public function formOptions(Request $request): JsonResponse

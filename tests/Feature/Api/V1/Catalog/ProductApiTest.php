@@ -94,6 +94,7 @@ class ProductApiTest extends TestCase
             'barcode_type' => 'C128',
             'type' => 'variable',
             'variation_template_id' => $template->id,
+            'variation_template_ids' => [$template->id],
             'stock_tracking' => 'none',
             'selling_price' => 2,
             'purchase_price' => 1,
@@ -130,8 +131,10 @@ class ProductApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $unit = Unit::factory()->create(['business_id' => $business->id]);
         $childProduct = Product::factory()->create([
             'business_id' => $business->id,
+            'unit_id' => $unit->id,
             'type' => 'single',
             'track_inventory' => true,
             'stock_tracking' => 'none',
@@ -142,6 +145,7 @@ class ProductApiTest extends TestCase
         $response = $this->postJson('/api/v1/products', [
             'name' => 'Lunch Combo',
             'sku' => 'COMBO-001',
+            'unit_id' => $unit->id,
             'barcode_type' => 'C128',
             'type' => 'combo',
             'stock_tracking' => 'serial',
@@ -162,5 +166,67 @@ class ProductApiTest extends TestCase
             ->assertJsonPath('data.type', 'combo')
             ->assertJsonPath('data.track_inventory', false)
             ->assertJsonPath('data.stock_tracking', 'none');
+    }
+
+    public function test_index_does_not_require_status_filter(): void
+    {
+        $business = Business::factory()->create();
+        $admin = User::factory()->for($business)->create();
+        $admin->assignRole('admin');
+
+        Product::factory()->create([
+            'business_id' => $business->id,
+            'name' => 'Visible Product',
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $response = $this->getJson('/api/v1/products');
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonFragment(['name' => 'Visible Product']);
+    }
+
+    public function test_soft_deleted_product_sku_can_be_reused(): void
+    {
+        $business = Business::factory()->create();
+        $admin = User::factory()->for($business)->create();
+        $admin->assignRole('admin');
+        $unit = Unit::factory()->create(['business_id' => $business->id]);
+
+        Sanctum::actingAs($admin);
+
+        $createResponse = $this->postJson('/api/v1/products', [
+            'unit_id' => $unit->id,
+            'name' => 'Reusable SKU Product',
+            'sku' => 'REUSE-001',
+            'barcode_type' => 'C128',
+            'type' => 'single',
+            'stock_tracking' => 'none',
+            'selling_price' => 25,
+            'purchase_price' => 10,
+            'tax_type' => 'exclusive',
+            'track_inventory' => true,
+        ]);
+
+        $productId = $createResponse->json('data.id');
+
+        $this->deleteJson("/api/v1/products/{$productId}")
+            ->assertOk();
+
+        $this->postJson('/api/v1/products', [
+            'unit_id' => $unit->id,
+            'name' => 'Reusable SKU Product Again',
+            'sku' => 'REUSE-001',
+            'barcode_type' => 'C128',
+            'type' => 'single',
+            'stock_tracking' => 'none',
+            'selling_price' => 30,
+            'purchase_price' => 12,
+            'tax_type' => 'exclusive',
+            'track_inventory' => true,
+        ])->assertCreated();
     }
 }

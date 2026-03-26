@@ -2,6 +2,7 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -49,7 +50,9 @@ return new class extends Migration
             $table->index(['business_id', 'type', 'is_active'], 'products_listing_type_index');
             $table->index(['business_id', 'category_id', 'brand_id'], 'products_listing_category_brand_index');
             $table->index(['business_id', 'stock_tracking'], 'products_listing_stock_tracking_index');
-            $table->fullText(['name', 'sku', 'barcode'], 'products_search_fulltext');
+            if (DB::getDriverName() !== 'sqlite') {
+                $table->fullText(['name', 'sku', 'barcode'], 'products_search_fulltext');
+            }
         });
 
         Schema::create('product_variations', function (Blueprint $table): void {

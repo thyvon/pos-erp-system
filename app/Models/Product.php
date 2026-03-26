@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\HandlesSoftDeleteUniqueAttributes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -9,6 +10,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 class Product extends BaseModel
 {
     use HasFactory;
+    use HandlesSoftDeleteUniqueAttributes;
 
     protected $fillable = [
         'business_id',
@@ -123,5 +125,12 @@ class Product extends BaseModel
     public function packagingOptions(): HasMany
     {
         return $this->hasMany(ProductPackaging::class)->orderByDesc('is_default')->orderBy('name');
+    }
+
+    public function softDeleteUniqueColumns(): array
+    {
+        return [
+            'sku' => 100,
+        ];
     }
 }

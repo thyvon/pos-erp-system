@@ -19,18 +19,32 @@ class ProductRepository extends BaseRepository
     {
         $perPage = (int) ($filters['per_page'] ?? 15);
         $perPage = max(1, min($perPage, 100));
+        $isActive = $filters['is_active'] ?? null;
 
         $query = $this->query()
             ->with([
                 'category:id,name',
                 'brand:id,name',
-                'unit:id,name,short_name',
-                'subUnit:id,parent_unit_id,name,short_name,conversion_factor',
-                'variationTemplate:id,name',
-                'priceGroup:id,name,is_default',
-                'variations:id,product_id,name,sku,selling_price,purchase_price',
             ])
             ->withCount(['variations', 'comboItems', 'packagingOptions'])
+            ->addSelect([
+                'variable_selling_price_min' => DB::table('product_variations')
+                    ->selectRaw('min(selling_price)')
+                    ->whereColumn('product_variations.product_id', 'products.id')
+                    ->whereNull('product_variations.deleted_at'),
+                'variable_selling_price_max' => DB::table('product_variations')
+                    ->selectRaw('max(selling_price)')
+                    ->whereColumn('product_variations.product_id', 'products.id')
+                    ->whereNull('product_variations.deleted_at'),
+                'variable_purchase_price_min' => DB::table('product_variations')
+                    ->selectRaw('min(purchase_price)')
+                    ->whereColumn('product_variations.product_id', 'products.id')
+                    ->whereNull('product_variations.deleted_at'),
+                'variable_purchase_price_max' => DB::table('product_variations')
+                    ->selectRaw('max(purchase_price)')
+                    ->whereColumn('product_variations.product_id', 'products.id')
+                    ->whereNull('product_variations.deleted_at'),
+            ])
             ->when(
                 filled($filters['type'] ?? null),
                 fn (Builder $builder) => $builder->where('type', $filters['type'])
@@ -40,8 +54,8 @@ class ProductRepository extends BaseRepository
                 fn (Builder $builder) => $builder->where('stock_tracking', $filters['stock_tracking'])
             )
             ->when(
-                $filters['is_active'] !== '' && $filters['is_active'] !== null,
-                fn (Builder $builder) => $builder->where('is_active', filter_var($filters['is_active'], FILTER_VALIDATE_BOOL))
+                $isActive !== '' && $isActive !== null,
+                fn (Builder $builder) => $builder->where('is_active', filter_var($isActive, FILTER_VALIDATE_BOOL))
             )
             ->when(
                 filled($filters['category_id'] ?? null),

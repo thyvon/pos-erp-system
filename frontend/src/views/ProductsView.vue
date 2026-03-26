@@ -11,7 +11,7 @@
     <div class="space-y-6">
       <AppAlert v-model:show="alert.show" :type="alert.type" :title="alert.title" :message="alert.message" />
 
-      <section class="overflow-hidden rounded-[5px] border border-slate-200/80 bg-white/75 shadow-[0_18px_45px_rgba(56,77,112,0.08)] backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-950/70">
+      <section class="relative z-10 overflow-visible rounded-[5px] border border-slate-200/80 bg-white/75 shadow-[0_18px_45px_rgba(56,77,112,0.08)] backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-950/70">
         <button
           type="button"
           class="flex w-full items-center justify-between gap-4 px-4 py-4 text-left transition hover:bg-slate-50/70 dark:hover:bg-slate-900/60"
@@ -168,9 +168,9 @@
         <template #pricing="{ row }">
           <div class="text-sm text-slate-700 dark:text-slate-200">
             <template v-if="row.type === 'variable'">
-              <div>Sell: {{ formatVariantPriceRange(row.variations, 'selling_price') }}</div>
+              <div>Sell: {{ formatVariantPriceRange(row, 'selling') }}</div>
               <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                Buy: {{ formatVariantPriceRange(row.variations, 'purchase_price') }}
+                Buy: {{ formatVariantPriceRange(row, 'purchase') }}
               </div>
             </template>
             <template v-else>
@@ -329,17 +329,13 @@ const formatMoney = (value) => {
   }).format(Number.isNaN(amount) ? 0 : amount)
 }
 
-const formatVariantPriceRange = (variations, field) => {
-  const prices = (variations || [])
-    .map((variation) => Number.parseFloat(variation?.[field] ?? 0))
-    .filter((value) => Number.isFinite(value))
+const formatVariantPriceRange = (product, field) => {
+  const min = Number.parseFloat(product?.[`variable_${field}_price_min`] ?? '')
+  const max = Number.parseFloat(product?.[`variable_${field}_price_max`] ?? '')
 
-  if (!prices.length) {
+  if (!Number.isFinite(min) || !Number.isFinite(max)) {
     return 'By variants'
   }
-
-  const min = Math.min(...prices)
-  const max = Math.max(...prices)
 
   if (min === max) {
     return formatMoney(min)

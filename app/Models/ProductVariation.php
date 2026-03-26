@@ -2,12 +2,14 @@
 
 namespace App\Models;
 
+use App\Traits\HandlesSoftDeleteUniqueAttributes;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class ProductVariation extends BaseModel
 {
     use HasFactory;
+    use HandlesSoftDeleteUniqueAttributes;
 
     protected $fillable = [
         'business_id',
@@ -41,5 +43,12 @@ class ProductVariation extends BaseModel
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function softDeleteUniqueColumns(): array
+    {
+        return [
+            'sku' => 100,
+        ];
     }
 }
