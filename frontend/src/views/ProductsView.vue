@@ -1,7 +1,7 @@
 <template>
   <AppLayout
     title="Products"
-    subtitle="Manage sellable items, variable products, combo bundles, and product-specific pack sizes."
+    subtitle="Manage sellable items, variable products, combo bundles, and product conversion factors."
     :breadcrumbs="[
       { label: 'Dashboard', to: '/dashboard' },
       { label: 'Catalog' },
@@ -134,7 +134,6 @@
             <div class="font-semibold text-slate-950 dark:text-white">{{ row.name }}</div>
             <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">
               {{ row.sku || 'Auto-generated SKU' }}
-              <span v-if="row.barcode"> · {{ row.barcode }}</span>
             </div>
           </div>
         </template>
@@ -151,8 +150,11 @@
               <template v-else-if="row.type === 'combo'">
                 {{ row.combo_items_count }} component{{ row.combo_items_count === 1 ? '' : 's' }}
               </template>
+              <template v-else-if="row.type === 'service'">
+                Service item
+              </template>
               <template v-else>
-                {{ row.packagings_count }} pack size{{ row.packagings_count === 1 ? '' : 's' }}
+                Factor x{{ formatConversionFactor(row.conversion_factor) }}
               </template>
             </div>
           </div>
@@ -350,6 +352,16 @@ const formatType = (type) => ({
   service: 'Service',
   combo: 'Combo',
 }[type] || type)
+
+const formatConversionFactor = (value) => {
+  const numeric = Number(value ?? 1)
+
+  if (!Number.isFinite(numeric)) {
+    return '1'
+  }
+
+  return Number.isInteger(numeric) ? String(numeric) : numeric.toFixed(4).replace(/\.?0+$/, '')
+}
 
 const formatStockTracking = (type) => ({
   none: 'None',

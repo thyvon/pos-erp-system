@@ -30,7 +30,6 @@ class ProductFactory extends Factory
             'name' => fake()->unique()->words(3, true),
             'description' => fake()->sentence(),
             'sku' => strtoupper(fake()->unique()->bothify('PRD-####')),
-            'barcode' => fake()->unique()->ean13(),
             'barcode_type' => 'C128',
             'type' => 'single',
             'stock_tracking' => 'none',
@@ -46,7 +45,6 @@ class ProductFactory extends Factory
             'is_for_selling' => true,
             'is_active' => true,
             'weight' => null,
-            'image_url' => null,
             'custom_fields' => [],
         ];
     }

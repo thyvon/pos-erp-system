@@ -4,7 +4,7 @@
     :subtitle="pageSubtitle"
     :breadcrumbs="breadcrumbs"
   >
-    <div class="space-y-6">
+    <div class="space-y-5">
       <AppAlert v-model:show="alert.show" :type="alert.type" :title="alert.title" :message="alert.message" />
 
       <div class="flex flex-wrap items-center justify-between gap-3">
@@ -17,7 +17,7 @@
         </button>
       </div>
 
-      <section class="relative overflow-hidden rounded-[5px] border border-slate-200/80 bg-white/75 p-6 shadow-[0_18px_45px_rgba(56,77,112,0.08)] backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-950/70">
+      <section class="relative overflow-hidden rounded-[5px] border border-slate-200/80 bg-white/75 p-4 lg:p-5 shadow-[0_18px_45px_rgba(56,77,112,0.08)] backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-950/70">
         <LoadingSpinner
           :show="pageLoading"
           title="Loading product"
@@ -40,14 +40,13 @@
           :initial-values="formValues"
           @submit="submitForm"
         >
-          <div class="grid gap-6 xl:grid-cols-[minmax(0,1fr)_21rem]">
-            <div class="space-y-6">
-              <section id="product-general" class="rounded-[5px] border border-slate-200/80 p-4 dark:border-slate-800/80">
+          <div class="space-y-5">
+              <section id="product-general" class="erp-form-section">
                 <div class="mb-4 flex flex-wrap items-start justify-between gap-3">
                   <div>
                     <div class="text-sm font-semibold text-slate-950 dark:text-white">General information</div>
                     <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                      Start with the product identity, type, SKU, and barcode setup.
+                      Start with the product identity, description, and media details.
                     </div>
                   </div>
                   <div class="flex flex-wrap gap-2 text-xs">
@@ -60,9 +59,9 @@
                   </div>
                 </div>
 
-                <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   <div class="xl:col-span-2">
-                    <label class="erp-label" for="name">Product name</label>
+                    <label class="erp-label" for="name">Product name <span class="text-rose-500">*</span></label>
                     <Field id="name" name="name" class="erp-input" />
                     <ErrorMessage name="name" class="erp-helper text-rose-500 dark:text-rose-400" />
                   </div>
@@ -74,44 +73,72 @@
                     </div>
                     <ErrorMessage name="sku" class="erp-helper text-rose-500 dark:text-rose-400" />
                   </div>
-                  <div>
-                    <label class="erp-label" for="barcode">Barcode</label>
-                    <Field id="barcode" name="barcode" class="erp-input" />
-                    <ErrorMessage name="barcode" class="erp-helper text-rose-500 dark:text-rose-400" />
-                  </div>
                 </div>
 
-                <div class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                  <div>
-                    <label class="erp-label" for="type">Product type</label>
-                    <AppSelect
-                      :model-value="values.type || null"
-                      :options="typeFormOptions"
-                      placeholder="Select type"
-                      @update:model-value="handleProductTypeChange(values, setFieldValue, $event || 'single')"
-                    />
-                    <ErrorMessage name="type" class="erp-helper text-rose-500 dark:text-rose-400" />
+                <div class="mt-4 space-y-4">
+                  <div class="grid gap-4 md:grid-cols-2 xl:max-w-3xl">
+                    <div>
+                      <label class="erp-label" for="barcode_type">Barcode type</label>
+                      <AppSelect
+                        :model-value="values.barcode_type || null"
+                        :options="barcodeTypeOptions"
+                        placeholder="Select barcode type"
+                        @update:model-value="setFieldValue('barcode_type', $event || 'C128')"
+                      />
+                      <ErrorMessage name="barcode_type" class="erp-helper text-rose-500 dark:text-rose-400" />
+                    </div>
+                    <div>
+                      <label class="erp-label" for="type">Product type <span class="text-rose-500">*</span></label>
+                      <AppSelect
+                        :model-value="values.type || null"
+                        :options="typeFormOptions"
+                        placeholder="Select type"
+                        @update:model-value="handleProductTypeChange(values, setFieldValue, $event || 'single')"
+                      />
+                      <ErrorMessage name="type" class="erp-helper text-rose-500 dark:text-rose-400" />
+                    </div>
                   </div>
-                  <div>
-                    <label class="erp-label" for="barcode_type">Barcode type</label>
-                    <AppSelect
-                      :model-value="values.barcode_type || null"
-                      :options="barcodeTypeOptions"
-                      placeholder="Select barcode type"
-                      @update:model-value="setFieldValue('barcode_type', $event || 'C128')"
-                    />
-                    <ErrorMessage name="barcode_type" class="erp-helper text-rose-500 dark:text-rose-400" />
+
+                  <div class="text-xs text-slate-500 dark:text-slate-400">
+                    Product type changes variations, combo items, and stock behavior.
                   </div>
-                  <div class="md:col-span-2">
+
+                  <div>
                     <label class="erp-label" for="description">Description</label>
-                    <Field id="description" name="description" as="textarea" rows="3" class="erp-input min-h-[6rem]" />
+                    <RichTextEditor
+                      :model-value="values.description || ''"
+                      placeholder="Write a product description, highlights, or selling notes."
+                      @update:model-value="setFieldValue('description', $event)"
+                    />
                   </div>
                 </div>
 
-                <div class="mt-4 grid gap-4 md:grid-cols-2">
+                <div class="mt-4 grid gap-4 md:grid-cols-[minmax(0,1.3fr)_minmax(0,0.7fr)]">
                   <div>
-                    <label class="erp-label" for="image_url">Image URL</label>
-                    <Field id="image_url" name="image_url" class="erp-input" />
+                    <label class="erp-label" for="image_file">Product image</label>
+                    <input
+                      id="image_file"
+                      type="file"
+                      accept="image/*"
+                      class="erp-input file:mr-3 file:rounded-[5px] file:border-0 file:bg-cyan-50 file:px-3 file:py-2 file:text-sm file:font-medium file:text-cyan-700 dark:file:bg-cyan-950/40 dark:file:text-cyan-200"
+                      @change="handleProductImageChange(setFieldValue, $event)"
+                    />
+                    <div class="erp-helper text-slate-500 dark:text-slate-400">
+                      JPG, PNG, WEBP up to 5MB.
+                    </div>
+                    <div
+                      v-if="values.image_preview_url"
+                      class="mt-3 flex items-center gap-3 rounded-[5px] border border-slate-200/80 bg-slate-50/70 p-3 dark:border-slate-800/80 dark:bg-slate-900/60"
+                    >
+                      <img
+                        :src="values.image_preview_url"
+                        alt="Product preview"
+                        class="h-16 w-16 rounded-[5px] object-cover"
+                      />
+                      <div class="text-xs text-slate-500 dark:text-slate-400">
+                        Product image preview
+                      </div>
+                    </div>
                   </div>
                   <div>
                     <label class="erp-label" for="weight">Weight</label>
@@ -120,7 +147,72 @@
                 </div>
               </section>
 
-              <section id="product-pricing" class="rounded-[5px] border border-slate-200/80 p-4 dark:border-slate-800/80">
+              <section class="erp-form-section">
+                <div class="text-sm font-semibold text-slate-950 dark:text-white">Catalog setup</div>
+                <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  Classify the product before you set prices, stock rules, or variations.
+                </div>
+                <div class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                  <div>
+                    <label class="erp-label" for="category_id">Category</label>
+                    <AppSelect
+                      :model-value="values.category_id || null"
+                      :options="categoryOptions"
+                      clearable
+                      searchable
+                      placeholder="Select category"
+                      search-placeholder="Search categories"
+                      @update:model-value="setFieldValue('category_id', $event || '')"
+                    />
+                  </div>
+                  <div>
+                    <label class="erp-label" for="brand_id">Brand</label>
+                    <AppSelect
+                      :model-value="values.brand_id || null"
+                      :options="brandOptions"
+                      clearable
+                      searchable
+                      placeholder="Select brand"
+                      search-placeholder="Search brands"
+                      @update:model-value="setFieldValue('brand_id', $event || '')"
+                    />
+                  </div>
+                  <div v-if="supportsUnits(values.type)" class="xl:col-span-1">
+                    <label class="erp-label" for="unit_id">Base unit <span class="text-rose-500">*</span></label>
+                    <AppSelect
+                      :model-value="values.unit_id || null"
+                      :options="unitOptions"
+                      clearable
+                      searchable
+                      placeholder="Select unit"
+                      search-placeholder="Search units"
+                      @update:model-value="handleUnitChange(values, setFieldValue, $event)"
+                    />
+                    <ErrorMessage name="unit_id" class="erp-helper text-rose-500 dark:text-rose-400" />
+                  </div>
+                  <div v-if="supportsUnits(values.type)" class="xl:col-span-1">
+                    <label class="erp-label" for="sub_unit_id">Generic sub-unit</label>
+                    <AppSelect
+                      :model-value="values.sub_unit_id || null"
+                      :options="subUnitOptions(values.unit_id)"
+                      clearable
+                      searchable
+                      placeholder="Optional sub-unit"
+                      search-placeholder="Search sub-units"
+                      :disabled="!values.unit_id"
+                      @update:model-value="setFieldValue('sub_unit_id', $event || '')"
+                    />
+                  </div>
+                  <div
+                    v-if="!supportsUnits(values.type)"
+                    class="rounded-[5px] border border-slate-200/80 bg-slate-50/80 px-4 py-3 text-sm text-slate-600 md:col-span-2 xl:col-span-2 dark:border-slate-800/80 dark:bg-slate-900/70 dark:text-slate-300"
+                  >
+                    Services do not require unit or variation-template setup.
+                  </div>
+                </div>
+              </section>
+
+              <section id="product-pricing" class="erp-form-section">
                 <div class="mb-4">
                   <div class="text-sm font-semibold text-slate-950 dark:text-white">Pricing and tax</div>
                   <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">
@@ -135,12 +227,12 @@
 
                 <div v-if="values.type !== 'variable'" class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                   <div>
-                    <label class="erp-label" for="selling_price">Selling price</label>
-                    <Field id="selling_price" name="selling_price" type="number" min="0" step="0.01" class="erp-input" />
+                    <label class="erp-label" for="selling_price">Base sell price <span class="text-rose-500">*</span></label>
+                    <Field id="selling_price" name="selling_price" type="number" min="0" step="0.01" class="erp-input" @input="handleBaseSellingPriceInput(values, setFieldValue, $event)" />
                     <ErrorMessage name="selling_price" class="erp-helper text-rose-500 dark:text-rose-400" />
                   </div>
                   <div>
-                    <label class="erp-label" for="purchase_price">Purchase price</label>
+                    <label class="erp-label" for="purchase_price">Base buy price <span class="text-rose-500">*</span></label>
                     <Field id="purchase_price" name="purchase_price" type="number" min="0" step="0.01" class="erp-input" />
                     <ErrorMessage name="purchase_price" class="erp-helper text-rose-500 dark:text-rose-400" />
                   </div>
@@ -151,6 +243,48 @@
                   <div>
                     <label class="erp-label" for="profit_margin">Profit margin %</label>
                     <Field id="profit_margin" name="profit_margin" type="number" min="0" step="0.01" class="erp-input" />
+                  </div>
+                </div>
+
+                <div v-if="values.type === 'single'" class="mt-4 rounded-[5px] border border-slate-200/80 bg-slate-50/70 p-3 dark:border-slate-800/80 dark:bg-slate-900/50">
+                  <div class="mb-3 text-xs font-medium text-slate-500 dark:text-slate-400">
+                    Optional selling sub-unit. Stock remains in the base unit, while sell/buy prices below apply only to the selected sub-unit.
+                  </div>
+                  <label class="mb-4 flex items-center gap-3 rounded-[5px] border border-slate-200 px-4 py-3 text-sm text-slate-700 dark:border-slate-800 dark:text-slate-300">
+                    <input
+                      type="checkbox"
+                      class="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
+                      :checked="Boolean(values.use_sub_unit)"
+                      @change="handleUseSubUnitToggle(values, setFieldValue, $event.target.checked)"
+                    />
+                    <span>Use sub-unit pricing for this product</span>
+                  </label>
+
+                  <div v-if="values.use_sub_unit" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+                    <div>
+                      <label class="erp-label" for="conversion_sub_unit_id">Sub-unit</label>
+                      <AppSelect
+                        :model-value="values.conversion_sub_unit_id || null"
+                        :options="subUnitOptions(values.unit_id)"
+                        clearable
+                        searchable
+                        placeholder="Select sub-unit"
+                        search-placeholder="Search sub-units"
+                        :disabled="!values.unit_id"
+                        @update:model-value="handleProductConversionUnitChange(values, setFieldValue, $event)"
+                      />
+                      <div class="erp-helper text-slate-500 dark:text-slate-400">
+                        Choose the alternate selling unit under the selected base unit.
+                      </div>
+                    </div>
+                    <div>
+                      <label class="erp-label" for="sub_unit_selling_price">Sub-unit sell price</label>
+                      <Field id="sub_unit_selling_price" name="sub_unit_selling_price" type="number" min="0" step="0.01" class="erp-input" :disabled="!values.conversion_sub_unit_id" />
+                    </div>
+                    <div>
+                      <label class="erp-label" for="sub_unit_purchase_price">Sub-unit buy price</label>
+                      <Field id="sub_unit_purchase_price" name="sub_unit_purchase_price" type="number" min="0" step="0.01" class="erp-input" :disabled="!values.conversion_sub_unit_id" />
+                    </div>
                   </div>
                 </div>
 
@@ -175,7 +309,7 @@
                     />
                   </div>
                   <div>
-                    <label class="erp-label" for="tax_type">Tax type</label>
+                    <label class="erp-label" for="tax_type">Tax type <span class="text-rose-500">*</span></label>
                     <AppSelect
                       :model-value="values.tax_type || null"
                       :options="taxTypeOptions"
@@ -196,19 +330,12 @@
                     />
                   </div>
                 </div>
-
-                <div class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-                    <div>
-                        <label class="erp-label" for="profit_margin">Profit margin %</label>
-                        <Field id="profit_margin" name="profit_margin" type="number" min="0" step="0.01" class="erp-input" />
-                    </div>
-                </div>
               </section>
 
             <section
             v-if="values.type === 'variable'"
             id="product-variations"
-            class="rounded-[5px] border border-slate-200/80 p-4 dark:border-slate-800/80"
+            class="erp-form-section"
             >
             <div class="mb-4">
                 <div class="text-sm font-semibold text-slate-950 dark:text-white">Product variations</div>
@@ -217,14 +344,39 @@
                 </div>
             </div>
 
+            <div class="mb-4 max-w-xl">
+                <label class="erp-label" for="variation_template_ids">Variation templates <span class="text-rose-500">*</span></label>
+                <AppSelect
+                :model-value="values.variation_template_ids || []"
+                :options="variationTemplateOptions"
+                multiple
+                searchable
+                clearable
+                placeholder="Select templates"
+                search-placeholder="Search templates"
+                @update:model-value="handleVariationTemplatesChange(values, setFieldValue, $event || [])"
+                />
+                <ErrorMessage name="variation_template_ids" class="erp-helper text-rose-500 dark:text-rose-400" />
+            </div>
+
             <div v-if="selectedVariationTemplates(values).length" class="space-y-4">
+                <label class="flex items-center gap-3 rounded-[5px] border border-slate-200 px-4 py-3 text-sm text-slate-700 dark:border-slate-800 dark:text-slate-300">
+                  <input
+                    type="checkbox"
+                    class="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
+                    :checked="Boolean(values.use_sub_unit)"
+                    @change="handleUseSubUnitToggle(values, setFieldValue, $event.target.checked)"
+                  />
+                  <span>Use sub-unit pricing for generated variations</span>
+                </label>
+
                 <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                 <div
                     v-for="template in selectedVariationTemplates(values)"
                     :key="template.id"
-                    class="rounded-[5px] border border-slate-200/80 p-4 dark:border-slate-800/80"
+                    class="erp-form-subcard"
                 >
-                    <label class="erp-label">{{ template.name }} values</label>
+                    <label class="erp-label">{{ template.name }} values <span class="text-rose-500">*</span></label>
                     <AppSelect
                     :model-value="values.variation_value_map?.[template.id] || []"
                     :options="variationValueOptions(template.id)"
@@ -250,15 +402,26 @@
                 <div v-else class="overflow-x-auto rounded-[5px] border border-slate-200/80 dark:border-slate-800/80">
 
                 <!-- Header row — desktop only -->
-                <div class="hidden xl:grid gap-3 border-b border-slate-200/80 bg-slate-50/80 px-4 py-2 text-xs font-semibold text-slate-500 dark:border-slate-800/80 dark:bg-slate-900/50 dark:text-slate-400 xl:grid-cols-[minmax(12rem,1.2fr)_minmax(14rem,1.6fr)_minmax(10rem,1fr)_minmax(10rem,1fr)_minmax(8rem,0.9fr)_minmax(8rem,0.9fr)_minmax(8rem,0.9fr)_auto]">
-                    <div>Variant</div>
+                <div
+                  class="hidden xl:grid gap-3 border-b border-slate-200/80 bg-slate-50/80 px-3 py-2 text-xs font-semibold text-slate-500 dark:border-slate-800/80 dark:bg-slate-900/50 dark:text-slate-400"
+                  :class="values.use_sub_unit
+                    ? 'xl:grid-cols-[minmax(13rem,1.25fr)_minmax(9rem,0.9fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(7rem,0.65fr)_minmax(10rem,0.9fr)_minmax(8rem,0.75fr)]'
+                    : 'xl:grid-cols-[minmax(13rem,1.25fr)_minmax(9rem,0.9fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(7rem,0.65fr)_minmax(10rem,0.9fr)_minmax(8rem,0.75fr)]'"
+                >
                     <div>Selected values</div>
                     <div>Variation SKU</div>
-                    <div>Barcode</div>
-                    <div>Sell</div>
-                    <div>Buy</div>
+                    <template v-if="values.use_sub_unit">
+                      <div>Sub-unit</div>
+                    </template>
+                    <div>Base sell <span class="text-rose-500">*</span></div>
+                    <div>Base buy <span class="text-rose-500">*</span></div>
+                    <template v-if="values.use_sub_unit">
+                      <div>Sub sell</div>
+                      <div>Sub buy</div>
+                    </template>
                     <div>Min</div>
-                    <div></div>
+                    <div>Image</div>
+                    <div>Active</div>
                 </div>
 
                 <!-- Data rows -->
@@ -268,12 +431,13 @@
                     class="border-b border-slate-200/80 last:border-b-0 dark:border-slate-800/80"
                 >
                     <!-- Mobile card layout -->
-                    <div class="flex flex-col gap-3 p-4 xl:hidden">
+                    <div class="flex flex-col gap-3 p-3 xl:hidden">
+                    <Field :name="`variations[${index}].name`" type="hidden" />
                     <div class="flex items-start justify-between gap-3">
                         <div class="min-w-0 flex-1">
-                        <div class="mb-1 text-xs font-semibold text-slate-500 dark:text-slate-400">Variant</div>
-                        <Field :name="`variations[${index}].name`" class="erp-input" readonly />
-                        <ErrorMessage :name="`variations[${index}].name`" class="erp-helper text-rose-500 dark:text-rose-400" />
+                          <div class="text-sm font-semibold text-slate-900 dark:text-white">
+                            {{ variation.name }}
+                          </div>
                         </div>
                         <label class="mt-5 flex shrink-0 items-center gap-2 rounded-[5px] border border-slate-200 px-3 py-2.5 text-sm text-slate-700 dark:border-slate-800 dark:text-slate-300">
                         <input
@@ -299,40 +463,89 @@
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-2 gap-3">
+                    <div>
                         <div>
-                        <div class="mb-1 text-xs font-semibold text-slate-500 dark:text-slate-400">Variation SKU</div>
-                        <Field :name="`variations[${index}].sku`" class="erp-input" />
-                        <ErrorMessage :name="`variations[${index}].sku`" class="erp-helper text-rose-500 dark:text-rose-400" />
-                        </div>
-                        <div>
-                        <div class="mb-1 text-xs font-semibold text-slate-500 dark:text-slate-400">Barcode</div>
-                        <Field :name="`variations[${index}].barcode`" class="erp-input" />
+                          <div class="mb-1 text-xs font-semibold text-slate-500 dark:text-slate-400">Variation SKU</div>
+                          <Field :name="`variations[${index}].sku`" class="erp-input" />
+                          <div class="erp-helper text-slate-500 dark:text-slate-400">Leave blank for auto SKU.</div>
+                          <ErrorMessage :name="`variations[${index}].sku`" class="erp-helper text-rose-500 dark:text-rose-400" />
                         </div>
                     </div>
 
-                    <div class="grid grid-cols-3 gap-3">
+                    <div v-if="values.use_sub_unit">
                         <div>
-                        <div class="mb-1 text-xs font-semibold text-slate-500 dark:text-slate-400">Sell</div>
-                        <Field :name="`variations[${index}].selling_price`" type="number" min="0" step="0.01" class="erp-input" />
+                        <div class="mb-1 text-xs font-semibold text-slate-500 dark:text-slate-400">Sub-unit</div>
+                        <AppSelect
+                          :model-value="variation.conversion_sub_unit_id || null"
+                          :options="subUnitOptions(values.unit_id)"
+                          clearable
+                          searchable
+                          placeholder="Sub-unit"
+                          search-placeholder="Search sub-units"
+                          :disabled="!values.unit_id"
+                          @update:model-value="handleVariationConversionUnitChange(values, setFieldValue, index, $event)"
+                        />
+                        </div>
+                    </div>
+
+                    <div class="grid grid-cols-5 gap-3">
+                        <div>
+                        <div class="mb-1 text-xs font-semibold text-slate-500 dark:text-slate-400">Base sell <span class="text-rose-500">*</span></div>
+                        <Field :name="`variations[${index}].selling_price`" type="number" min="0" step="0.01" class="erp-input" @input="handleVariationSellingPriceInput(values, setFieldValue, index, $event)" />
                         </div>
                         <div>
-                        <div class="mb-1 text-xs font-semibold text-slate-500 dark:text-slate-400">Buy</div>
+                        <div class="mb-1 text-xs font-semibold text-slate-500 dark:text-slate-400">Base buy <span class="text-rose-500">*</span></div>
                         <Field :name="`variations[${index}].purchase_price`" type="number" min="0" step="0.01" class="erp-input" />
                         </div>
+                        <template v-if="values.use_sub_unit">
+                          <div>
+                          <div class="mb-1 text-xs font-semibold text-slate-500 dark:text-slate-400">Sub sell</div>
+                          <Field :name="`variations[${index}].sub_unit_selling_price`" type="number" min="0" step="0.01" class="erp-input" :disabled="!variation.conversion_sub_unit_id" />
+                          </div>
+                          <div>
+                          <div class="mb-1 text-xs font-semibold text-slate-500 dark:text-slate-400">Sub buy</div>
+                          <Field :name="`variations[${index}].sub_unit_purchase_price`" type="number" min="0" step="0.01" class="erp-input" :disabled="!variation.conversion_sub_unit_id" />
+                          </div>
+                        </template>
                         <div>
                         <div class="mb-1 text-xs font-semibold text-slate-500 dark:text-slate-400">Min</div>
                         <Field :name="`variations[${index}].minimum_selling_price`" type="number" min="0" step="0.01" class="erp-input" />
                         </div>
                     </div>
+
+                    <div class="flex items-end justify-between gap-3">
+                        <div class="flex-1">
+                          <div class="mb-1 text-xs font-semibold text-slate-500 dark:text-slate-400">Variation image</div>
+                          <input
+                            type="file"
+                            accept="image/*"
+                            class="erp-input file:mr-2 file:rounded-[5px] file:border-0 file:bg-cyan-50 file:px-2.5 file:py-1.5 file:text-xs file:font-medium file:text-cyan-700 dark:file:bg-cyan-950/40 dark:file:text-cyan-200"
+                            @change="handleVariationImageChange(values, setFieldValue, index, $event)"
+                          />
+                        </div>
+                        <label class="mt-5 flex shrink-0 items-center gap-2 rounded-[5px] border border-slate-200 px-3 py-2.5 text-sm text-slate-700 dark:border-slate-800 dark:text-slate-300">
+                        <input
+                            type="checkbox"
+                            class="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
+                            :checked="variation.is_active !== false"
+                            @change="setFieldValue(`variations[${index}].is_active`, $event.target.checked)"
+                        />
+                        <span>Active</span>
+                        </label>
+                    </div>
+                    <div v-if="variation.image_preview_url" class="mt-1">
+                      <img :src="variation.image_preview_url" alt="Variation preview" class="h-14 w-14 rounded-[5px] object-cover" />
+                    </div>
                     </div>
 
                     <!-- Desktop table row layout -->
-                    <div class="hidden xl:grid gap-3 px-4 py-3 xl:grid-cols-[minmax(12rem,1.2fr)_minmax(14rem,1.6fr)_minmax(10rem,1fr)_minmax(10rem,1fr)_minmax(8rem,0.9fr)_minmax(8rem,0.9fr)_minmax(8rem,0.9fr)_auto]">
-                    <div class="min-w-0">
-                        <Field :name="`variations[${index}].name`" class="erp-input" readonly />
-                        <ErrorMessage :name="`variations[${index}].name`" class="erp-helper text-rose-500 dark:text-rose-400" />
-                    </div>
+                    <div
+                      class="hidden xl:grid gap-3 px-3 py-2.5"
+                      :class="values.use_sub_unit
+                        ? 'xl:grid-cols-[minmax(13rem,1.25fr)_minmax(9rem,0.9fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(7rem,0.65fr)_minmax(10rem,0.9fr)_minmax(8rem,0.75fr)]'
+                        : 'xl:grid-cols-[minmax(13rem,1.25fr)_minmax(9rem,0.9fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(7rem,0.65fr)_minmax(10rem,0.9fr)_minmax(8rem,0.75fr)]'"
+                    >
+                    <Field :name="`variations[${index}].name`" type="hidden" />
                     <div class="min-w-0">
                         <div class="erp-input flex min-h-[46px] flex-wrap items-center gap-1.5">
                         <span
@@ -346,19 +559,50 @@
                     </div>
                     <div class="min-w-0">
                         <Field :name="`variations[${index}].sku`" class="erp-input" />
+                        <div class="erp-helper text-slate-500 dark:text-slate-400">Auto if blank.</div>
                         <ErrorMessage :name="`variations[${index}].sku`" class="erp-helper text-rose-500 dark:text-rose-400" />
                     </div>
+                    <template v-if="values.use_sub_unit">
+                      <div class="min-w-0">
+                          <AppSelect
+                            :model-value="variation.conversion_sub_unit_id || null"
+                            :options="subUnitOptions(values.unit_id)"
+                            clearable
+                            searchable
+                            placeholder="Sub-unit"
+                            search-placeholder="Search sub-units"
+                            :disabled="!values.unit_id"
+                            @update:model-value="handleVariationConversionUnitChange(values, setFieldValue, index, $event)"
+                          />
+                      </div>
+                    </template>
                     <div class="min-w-0">
-                        <Field :name="`variations[${index}].barcode`" class="erp-input" />
-                    </div>
-                    <div class="min-w-0">
-                        <Field :name="`variations[${index}].selling_price`" type="number" min="0" step="0.01" class="erp-input" />
+                        <Field :name="`variations[${index}].selling_price`" type="number" min="0" step="0.01" class="erp-input" @input="handleVariationSellingPriceInput(values, setFieldValue, index, $event)" />
                     </div>
                     <div class="min-w-0">
                         <Field :name="`variations[${index}].purchase_price`" type="number" min="0" step="0.01" class="erp-input" />
                     </div>
+                    <template v-if="values.use_sub_unit">
+                      <div class="min-w-0">
+                          <Field :name="`variations[${index}].sub_unit_selling_price`" type="number" min="0" step="0.01" class="erp-input" :disabled="!variation.conversion_sub_unit_id" />
+                      </div>
+                      <div class="min-w-0">
+                          <Field :name="`variations[${index}].sub_unit_purchase_price`" type="number" min="0" step="0.01" class="erp-input" :disabled="!variation.conversion_sub_unit_id" />
+                      </div>
+                    </template>
                     <div class="min-w-0">
                         <Field :name="`variations[${index}].minimum_selling_price`" type="number" min="0" step="0.01" class="erp-input" />
+                    </div>
+                    <div class="min-w-0">
+                        <input
+                          type="file"
+                          accept="image/*"
+                          class="erp-input mb-2 file:mr-2 file:rounded-[5px] file:border-0 file:bg-cyan-50 file:px-2.5 file:py-1.5 file:text-xs file:font-medium file:text-cyan-700 dark:file:bg-cyan-950/40 dark:file:text-cyan-200"
+                          @change="handleVariationImageChange(values, setFieldValue, index, $event)"
+                        />
+                        <div v-if="variation.image_preview_url" class="mb-2">
+                          <img :src="variation.image_preview_url" alt="Variation preview" class="h-12 w-12 rounded-[5px] object-cover" />
+                        </div>
                     </div>
                     <div class="flex items-center xl:justify-end">
                         <label class="flex items-center gap-3 rounded-[5px] border border-slate-200 px-3 py-2.5 text-sm text-slate-700 dark:border-slate-800 dark:text-slate-300">
@@ -381,7 +625,7 @@
                 v-else
                 class="rounded-[5px] border border-slate-200/70 bg-slate-50/80 px-4 py-3 text-sm text-slate-600 dark:border-slate-800/80 dark:bg-slate-900/70 dark:text-slate-300"
             >
-                Choose one or more variation templates in the right-side Catalog setup panel to begin.
+                Choose one or more variation templates above to begin.
             </div>
 
             <ErrorMessage name="variation_template_ids" class="erp-helper text-rose-500 dark:text-rose-400" />
@@ -391,7 +635,7 @@
               <section
                 v-if="values.type === 'combo'"
                 id="product-combo"
-                class="rounded-[5px] border border-slate-200/80 p-4 dark:border-slate-800/80"
+                class="erp-form-section"
               >
                 <div class="mb-4 flex items-center justify-between gap-4">
                   <div>
@@ -410,10 +654,10 @@
                   <div
                     v-for="(comboItem, index) in values.combo_items"
                     :key="comboItem.id || index"
-                    class="grid gap-4 rounded-[5px] border border-slate-200/80 p-4 md:grid-cols-[1.5fr_1.5fr_0.8fr_auto] dark:border-slate-800/80"
+                    class="grid gap-3 rounded-[5px] border border-slate-200/80 p-3 md:grid-cols-[1.5fr_1.5fr_0.8fr_auto] dark:border-slate-800/80"
                   >
                     <div>
-                      <label class="erp-label">Component product</label>
+                      <label class="erp-label">Component product <span class="text-rose-500">*</span></label>
                       <AppSelect
                         :model-value="comboItem.child_product_id || null"
                         :options="comboProductOptions(values.id)"
@@ -437,7 +681,7 @@
                       />
                     </div>
                     <div>
-                      <label class="erp-label">Quantity</label>
+                      <label class="erp-label">Quantity <span class="text-rose-500">*</span></label>
                       <Field :name="`combo_items[${index}].quantity`" type="number" min="0.0001" step="0.0001" class="erp-input" />
                     </div>
                     <div class="flex items-end">
@@ -451,92 +695,10 @@
                 <ErrorMessage name="combo_items" class="erp-helper text-rose-500 dark:text-rose-400" />
               </section>
 
-              <section id="product-packaging" class="rounded-[5px] border border-slate-200/80 p-4 dark:border-slate-800/80">
-                <div class="mb-4 flex items-center justify-between gap-4">
-                  <div>
-                    <div class="text-sm font-semibold text-slate-950 dark:text-white">Pack sizes</div>
-                    <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                      Product-level packs handle cases like 24 cans per case and 48 cans per case.
-                    </div>
-                  </div>
-                  <button type="button" class="erp-button-secondary" @click="addPackaging(values, setFieldValue)">
-                    <i class="fa-solid fa-plus"></i>
-                    Add pack size
-                  </button>
-                </div>
-
-                <div v-if="values.packagings?.length" class="space-y-4">
-                  <div
-                    v-for="(packaging, index) in values.packagings"
-                    :key="packaging.id || index"
-                    class="rounded-[5px] border border-slate-200/80 p-4 dark:border-slate-800/80"
-                  >
-                    <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                      <div>
-                        <label class="erp-label">Pack name</label>
-                        <Field :name="`packagings[${index}].name`" class="erp-input" />
-                      </div>
-                      <div>
-                        <label class="erp-label">Short name</label>
-                        <Field :name="`packagings[${index}].short_name`" class="erp-input" />
-                      </div>
-                      <div>
-                        <label class="erp-label">Conversion factor</label>
-                        <Field :name="`packagings[${index}].conversion_factor`" type="number" min="0.0001" step="0.0001" class="erp-input" />
-                      </div>
-                      <div>
-                        <label class="erp-label">Pack SKU</label>
-                        <Field :name="`packagings[${index}].sku`" class="erp-input" />
-                      </div>
-                    </div>
-
-                    <div class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-                      <div>
-                        <label class="erp-label">Pack barcode</label>
-                        <Field :name="`packagings[${index}].barcode`" class="erp-input" />
-                      </div>
-                      <div>
-                        <label class="erp-label">Pack selling price</label>
-                        <Field :name="`packagings[${index}].selling_price`" type="number" min="0" step="0.01" class="erp-input" />
-                      </div>
-                      <div>
-                        <label class="erp-label">Pack purchase price</label>
-                        <Field :name="`packagings[${index}].purchase_price`" type="number" min="0" step="0.01" class="erp-input" />
-                      </div>
-                      <div class="flex items-end justify-between gap-3">
-                        <div class="flex flex-wrap items-center gap-3">
-                          <label class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-                            <input
-                              type="checkbox"
-                              class="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
-                              :checked="Boolean(packaging.is_default)"
-                              @change="setPackagingDefault(values, setFieldValue, index, $event.target.checked)"
-                            />
-                            <span>Default</span>
-                          </label>
-                          <label class="flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
-                            <input
-                              type="checkbox"
-                              class="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
-                              :checked="packaging.is_active !== false"
-                              @change="setFieldValue(`packagings[${index}].is_active`, $event.target.checked)"
-                            />
-                            <span>Active</span>
-                          </label>
-                        </div>
-                        <button type="button" class="erp-button-icon" @click="removePackaging(values, setFieldValue, index)">
-                          <i class="fa-solid fa-trash-can"></i>
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </section>
-
               <section
                 v-if="customFieldDefinitions.length"
                 id="product-custom-fields"
-                class="rounded-[5px] border border-slate-200/80 p-4 dark:border-slate-800/80"
+                class="erp-form-section"
               >
                 <div class="mb-4">
                   <div class="text-sm font-semibold text-slate-950 dark:text-white">Custom fields</div>
@@ -578,116 +740,43 @@
                   </div>
                 </div>
               </section>
-            </div>
 
-            <aside class="space-y-4 xl:sticky xl:top-24 xl:self-start">
-              <section class="rounded-[5px] border border-slate-200/80 bg-slate-50/80 p-4 dark:border-slate-800/80 dark:bg-slate-900/70">
-                <div class="text-sm font-semibold text-slate-950 dark:text-white">Form navigation</div>
-                <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  Jump between sections instead of scrolling through one long form.
-                </div>
-                <div class="mt-4 grid gap-2">
-                  <button type="button" class="rounded-[5px] border border-slate-200/80 bg-white px-3 py-2 text-left text-sm text-slate-700 transition hover:border-cyan-200 hover:text-cyan-700 dark:border-slate-700 dark:bg-slate-950/70 dark:text-slate-200 dark:hover:border-cyan-800 dark:hover:text-cyan-300" @click="scrollToSection('product-general')">General information</button>
-                  <button type="button" class="rounded-[5px] border border-slate-200/80 bg-white px-3 py-2 text-left text-sm text-slate-700 transition hover:border-cyan-200 hover:text-cyan-700 dark:border-slate-700 dark:bg-slate-950/70 dark:text-slate-200 dark:hover:border-cyan-800 dark:hover:text-cyan-300" @click="scrollToSection('product-pricing')">Pricing and tax</button>
-                  <button v-if="values.type === 'variable'" type="button" class="rounded-[5px] border border-slate-200/80 bg-white px-3 py-2 text-left text-sm text-slate-700 transition hover:border-cyan-200 hover:text-cyan-700 dark:border-slate-700 dark:bg-slate-950/70 dark:text-slate-200 dark:hover:border-cyan-800 dark:hover:text-cyan-300" @click="scrollToSection('product-variations')">Variations</button>
-                  <button v-if="values.type === 'combo'" type="button" class="rounded-[5px] border border-slate-200/80 bg-white px-3 py-2 text-left text-sm text-slate-700 transition hover:border-cyan-200 hover:text-cyan-700 dark:border-slate-700 dark:bg-slate-950/70 dark:text-slate-200 dark:hover:border-cyan-800 dark:hover:text-cyan-300" @click="scrollToSection('product-combo')">Combo components</button>
-                  <button type="button" class="rounded-[5px] border border-slate-200/80 bg-white px-3 py-2 text-left text-sm text-slate-700 transition hover:border-cyan-200 hover:text-cyan-700 dark:border-slate-700 dark:bg-slate-950/70 dark:text-slate-200 dark:hover:border-cyan-800 dark:hover:text-cyan-300" @click="scrollToSection('product-packaging')">Pack sizes</button>
-                  <button v-if="customFieldDefinitions.length" type="button" class="rounded-[5px] border border-slate-200/80 bg-white px-3 py-2 text-left text-sm text-slate-700 transition hover:border-cyan-200 hover:text-cyan-700 dark:border-slate-700 dark:bg-slate-950/70 dark:text-slate-200 dark:hover:border-cyan-800 dark:hover:text-cyan-300" @click="scrollToSection('product-custom-fields')">Custom fields</button>
-                </div>
-              </section>
-
-              <section class="rounded-[5px] border border-slate-200/80 p-4 dark:border-slate-800/80">
-                <div class="text-sm font-semibold text-slate-950 dark:text-white">Catalog setup</div>
-                <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                  Connect the product to the right category, brand, unit, and variation templates.
-                </div>
-                <div class="mt-4 space-y-4">
-                  <div>
-                    <label class="erp-label" for="category_id">Category</label>
-                    <AppSelect
-                      :model-value="values.category_id || null"
-                      :options="categoryOptions"
-                      clearable
-                      searchable
-                      placeholder="Select category"
-                      search-placeholder="Search categories"
-                      @update:model-value="setFieldValue('category_id', $event || '')"
-                    />
-                  </div>
-                  <div>
-                    <label class="erp-label" for="brand_id">Brand</label>
-                    <AppSelect
-                      :model-value="values.brand_id || null"
-                      :options="brandOptions"
-                      clearable
-                      searchable
-                      placeholder="Select brand"
-                      search-placeholder="Search brands"
-                      @update:model-value="setFieldValue('brand_id', $event || '')"
-                    />
-                  </div>
-                  <div>
-                    <label class="erp-label" for="unit_id">Base unit</label>
-                    <AppSelect
-                      :model-value="values.unit_id || null"
-                      :options="unitOptions"
-                      clearable
-                      searchable
-                      placeholder="Select unit"
-                      search-placeholder="Search units"
-                      @update:model-value="handleUnitChange(values, setFieldValue, $event)"
-                    />
-                    <ErrorMessage name="unit_id" class="erp-helper text-rose-500 dark:text-rose-400" />
-                  </div>
-                  <div>
-                    <label class="erp-label" for="sub_unit_id">Generic sub-unit</label>
-                    <AppSelect
-                      :model-value="values.sub_unit_id || null"
-                      :options="subUnitOptions(values.unit_id)"
-                      clearable
-                      searchable
-                      placeholder="Optional sub-unit"
-                      search-placeholder="Search sub-units"
-                      :disabled="!values.unit_id"
-                      @update:model-value="setFieldValue('sub_unit_id', $event || '')"
-                    />
-                  </div>
-                  <div>
-                    <label class="erp-label" for="variation_template_ids">Variation templates</label>
-                    <AppSelect
-                      :model-value="values.variation_template_ids || []"
-                      :options="variationTemplateOptions"
-                      multiple
-                      searchable
-                      clearable
-                      placeholder="Select templates"
-                      search-placeholder="Search templates"
-                      :disabled="values.type !== 'variable'"
-                      @update:model-value="handleVariationTemplatesChange(values, setFieldValue, $event || [])"
-                    />
-                    <ErrorMessage name="variation_template_ids" class="erp-helper text-rose-500 dark:text-rose-400" />
-                  </div>
-                </div>
-              </section>
-
-              <section class="rounded-[5px] border border-slate-200/80 p-4 dark:border-slate-800/80">
+              <section class="erp-form-section">
                 <div class="text-sm font-semibold text-slate-950 dark:text-white">Selling and stock behavior</div>
                 <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">
                   Decide how the product is sold, tracked, and monitored once it is live.
                 </div>
-                <div class="mt-4 space-y-4">
-                  <div>
+                <div class="mt-4 grid gap-4 xl:grid-cols-[minmax(0,1.25fr)_minmax(0,0.95fr)]">
+                  <div class="space-y-4">
+                  <div v-if="supportsInventorySetup(values.type)" class="space-y-3">
+                    <label class="flex items-center gap-3 rounded-[5px] border border-slate-200 px-4 py-3 text-sm text-slate-700 dark:border-slate-800 dark:text-slate-300">
+                      <input
+                        type="checkbox"
+                        class="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
+                        :checked="Boolean(values.track_inventory)"
+                        @change="handleTrackInventoryChange(values, setFieldValue, $event.target.checked)"
+                      />
+                      <span>Track inventory</span>
+                    </label>
+                  </div>
+                  <template v-if="supportsInventorySetup(values.type)">
+                  <div v-if="values.track_inventory">
                     <label class="erp-label" for="stock_tracking">Stock tracking</label>
                     <AppSelect
                       :model-value="values.stock_tracking || null"
                       :options="stockTrackingFormOptions"
                       placeholder="Select stock mode"
-                      :disabled="!values.track_inventory || ['service', 'combo'].includes(values.type)"
                       @update:model-value="setFieldValue('stock_tracking', $event || 'none')"
                     />
                     <ErrorMessage name="stock_tracking" class="erp-helper text-rose-500 dark:text-rose-400" />
                   </div>
-                  <div>
+                  <div
+                    v-else
+                    class="rounded-[5px] border border-slate-200/80 bg-slate-50/80 px-4 py-3 text-sm text-slate-600 dark:border-slate-800/80 dark:bg-slate-900/70 dark:text-slate-300"
+                  >
+                    Turn on <span class="font-medium">Track inventory</span> to configure stock mode, rack location, and stock alerts.
+                  </div>
+                  <div v-if="values.track_inventory">
                     <label class="erp-label" for="rack_location_id">Rack location</label>
                     <AppSelect
                       :model-value="values.rack_location_id || null"
@@ -703,7 +792,7 @@
                       Rack locations are currently disabled in stock settings.
                     </div>
                   </div>
-                  <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-1">
+                  <div v-if="values.track_inventory" class="grid gap-4 md:grid-cols-2 xl:grid-cols-1">
                     <div>
                       <label class="erp-label" for="alert_quantity">Alert quantity</label>
                       <Field id="alert_quantity" name="alert_quantity" type="number" min="0" step="0.001" class="erp-input" />
@@ -713,22 +802,25 @@
                       <Field id="max_stock_level" name="max_stock_level" type="number" min="0" step="0.001" class="erp-input" />
                     </div>
                   </div>
+                  </template>
+                  <div
+                    v-else
+                    class="rounded-[5px] border border-cyan-200/70 bg-cyan-50/70 px-4 py-3 text-sm text-cyan-700 dark:border-cyan-900/70 dark:bg-cyan-950/25 dark:text-cyan-200"
+                  >
+                    <template v-if="values.type === 'combo'">
+                      Combo products do not track their own stock. Inventory is controlled by their component products.
+                    </template>
+                    <template v-else>
+                      Services do not use stock tracking, expiry, or rack location controls.
+                    </template>
+                  </div>
+                  </div>
                   <div class="space-y-3">
-                    <label class="flex items-center gap-3 rounded-[5px] border border-slate-200 px-4 py-3 text-sm text-slate-700 dark:border-slate-800 dark:text-slate-300">
-                      <input
-                        type="checkbox"
-                        class="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
-                        :checked="Boolean(values.track_inventory)"
-                        @change="handleTrackInventoryChange(values, setFieldValue, $event.target.checked)"
-                      />
-                      <span>Track inventory</span>
-                    </label>
-                    <label class="flex items-center gap-3 rounded-[5px] border border-slate-200 px-4 py-3 text-sm text-slate-700 dark:border-slate-800 dark:text-slate-300">
+                    <label v-if="supportsInventorySetup(values.type) && values.track_inventory" class="flex items-center gap-3 rounded-[5px] border border-slate-200 px-4 py-3 text-sm text-slate-700 dark:border-slate-800 dark:text-slate-300">
                       <input
                         type="checkbox"
                         class="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
                         :checked="Boolean(values.has_expiry)"
-                        :disabled="['service', 'combo'].includes(values.type)"
                         @change="setFieldValue('has_expiry', $event.target.checked)"
                       />
                       <span>Track expiry information</span>
@@ -760,20 +852,19 @@
                 <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">
                   Save when the product setup is complete, or go back to the list.
                 </div>
-                <div class="mt-4 flex flex-col gap-3">
-                  <button type="submit" class="erp-button-primary justify-center" :disabled="store.saving || store.optionsLoading">
+                <div class="mt-4 flex flex-col gap-3 sm:flex-row sm:justify-end">
+                  <button type="button" class="erp-button-secondary justify-center sm:min-w-[10rem]" :disabled="store.saving" @click="goBack">
+                    Cancel
+                  </button>
+                  <button type="submit" class="erp-button-primary justify-center sm:min-w-[12rem]" :disabled="store.saving || store.optionsLoading">
                     <span
                       v-if="store.saving"
                       class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white dark:border-slate-950/25 dark:border-t-slate-950"
                     ></span>
                     {{ isEditMode ? 'Save product' : 'Create product' }}
                   </button>
-                  <button type="button" class="erp-button-secondary justify-center" :disabled="store.saving" @click="goBack">
-                    Cancel
-                  </button>
                 </div>
               </section>
-            </aside>
           </div>
         </Form>
       </section>
@@ -789,6 +880,7 @@ import { useRoute, useRouter } from 'vue-router'
 import AppAlert from '@components/ui/AppAlert.vue'
 import LoadingSpinner from '@components/ui/LoadingSpinner.vue'
 import AppSelect from '@components/ui/AppSelect.vue'
+import RichTextEditor from '@components/ui/RichTextEditor.vue'
 import AppLayout from '@layouts/AppLayout.vue'
 import { useProductsStore } from '@stores/products'
 
@@ -806,8 +898,8 @@ const isEditMode = computed(() => route.name === 'product-edit')
 const pageTitle = computed(() => (isEditMode.value ? 'Edit product' : 'Create product'))
 const pageSubtitle = computed(() =>
   isEditMode.value
-    ? 'Update product details, pricing rules, variations, combos, and pack sizes.'
-    : 'Create a new product with the right pricing, stock behavior, and catalog relationships.'
+    ? 'Update product details, pricing rules, variations, combos, and conversion factors.'
+    : 'Create a new product with the right pricing, stock behavior, and conversion factors.'
 )
 const breadcrumbs = computed(() => [
   { label: 'Dashboard', to: '/dashboard' },
@@ -953,8 +1045,52 @@ const subUnitOptions = (unitId) => {
   return (unit?.sub_units || []).map((subUnit) => ({
     value: subUnit.id,
     label: `${subUnit.name} (${subUnit.short_name})`,
-    description: `Factor ${subUnit.conversion_factor}`,
   }))
+}
+
+const findSubUnit = (unitId, subUnitId) => {
+  if (!unitId || !subUnitId) {
+    return null
+  }
+
+  const unit = (store.formOptions.units || []).find((item) => item.id === unitId)
+
+  return (unit?.sub_units || []).find((subUnit) => subUnit.id === subUnitId) || null
+}
+
+const factorFromSubUnit = (unitId, subUnitId) => {
+  const subUnit = findSubUnit(unitId, subUnitId)
+
+  if (!subUnit?.conversion_factor) {
+    return '1.0000'
+  }
+
+  return Number(subUnit.conversion_factor).toFixed(4)
+}
+
+const selectedTaxRate = (taxRateId) =>
+  (store.formOptions.tax_rates || []).find((taxRate) => taxRate.id === taxRateId) || null
+
+const isBlankPrice = (value) => value === '' || value === null || value === undefined
+
+const derivedSubSellPrice = (baseSellPrice, unitId, subUnitId, taxType = 'exclusive', taxRateId = null) => {
+  if (isBlankPrice(baseSellPrice) || !subUnitId) {
+    return ''
+  }
+
+  const factor = Number(factorFromSubUnit(unitId, subUnitId) || 1)
+  const base = Number(baseSellPrice || 0)
+  let derived = base * factor
+
+  if (taxType === 'inclusive') {
+    const taxRate = selectedTaxRate(taxRateId)
+
+    if (taxRate?.type === 'percentage' && Number.isFinite(Number(taxRate.rate))) {
+      derived *= 1 + (Number(taxRate.rate) / 100)
+    }
+  }
+
+  return Number.isFinite(derived) ? derived.toFixed(2) : ''
 }
 
 const defaultCustomFieldValue = (definition) => {
@@ -1018,13 +1154,18 @@ const formValues = computed(() => {
     name: current?.name ?? '',
     description: current?.description ?? '',
     sku: current?.sku ?? '',
-    barcode: current?.barcode ?? '',
     barcode_type: current?.barcode_type ?? 'C128',
+    use_sub_unit: current?.type === 'variable'
+      ? (current?.variations || []).some((variation) => Boolean(variation.conversion_sub_unit_id))
+      : Boolean(current?.conversion_sub_unit_id),
+    conversion_sub_unit_id: current?.conversion_sub_unit_id ?? '',
     type: current?.type ?? 'single',
     stock_tracking: current?.stock_tracking ?? 'none',
     has_expiry: current?.has_expiry ?? false,
     selling_price: current?.type === 'variable' ? '' : (current?.selling_price ?? '0.00'),
     purchase_price: current?.type === 'variable' ? '' : (current?.purchase_price ?? '0.00'),
+    sub_unit_selling_price: current?.type === 'variable' ? '' : (current?.sub_unit_selling_price ?? ''),
+    sub_unit_purchase_price: current?.type === 'variable' ? '' : (current?.sub_unit_purchase_price ?? ''),
     minimum_selling_price: current?.type === 'variable' ? '' : (current?.minimum_selling_price ?? ''),
     profit_margin: current?.profit_margin ?? '',
     tax_type: current?.tax_type ?? 'exclusive',
@@ -1035,14 +1176,21 @@ const formValues = computed(() => {
     is_active: current?.is_active ?? true,
     weight: current?.weight ?? '',
     image_url: current?.image_url ?? '',
+    image_file: null,
+    image_preview_url: current?.image_url ?? '',
     variations: (current?.variations || []).map((variation) => ({
       id: variation.id,
       name: variation.name,
       variation_value_ids: variation.variation_value_ids || [],
       sku: variation.sku,
-      barcode: variation.barcode ?? '',
+      image_url: variation.image_url ?? '',
+      image_file: null,
+      image_preview_url: variation.image_url ?? '',
+      conversion_sub_unit_id: variation.conversion_sub_unit_id ?? '',
       selling_price: variation.selling_price ?? '',
       purchase_price: variation.purchase_price ?? '',
+      sub_unit_selling_price: variation.sub_unit_selling_price ?? '',
+      sub_unit_purchase_price: variation.sub_unit_purchase_price ?? '',
       minimum_selling_price: variation.minimum_selling_price ?? '',
       is_active: variation.is_active !== false,
     })),
@@ -1051,18 +1199,6 @@ const formValues = computed(() => {
       child_product_id: comboItem.child_product_id,
       child_variation_id: comboItem.child_variation_id ?? '',
       quantity: comboItem.quantity ?? '1.0000',
-    })),
-    packagings: (current?.packagings || []).map((packaging) => ({
-      id: packaging.id,
-      name: packaging.name,
-      short_name: packaging.short_name ?? '',
-      conversion_factor: packaging.conversion_factor ?? '1.0000',
-      sku: packaging.sku ?? '',
-      barcode: packaging.barcode ?? '',
-      selling_price: packaging.selling_price ?? '',
-      purchase_price: packaging.purchase_price ?? '',
-      is_default: Boolean(packaging.is_default),
-      is_active: packaging.is_active !== false,
     })),
     ...customFieldValues,
   }
@@ -1073,6 +1209,11 @@ const schema = yup.object({
   sku: yup.string().nullable().max(100),
   type: yup.string().required().oneOf(['single', 'variable', 'service', 'combo']),
   barcode_type: yup.string().required().oneOf(['C128', 'EAN13', 'QR']),
+  unit_id: yup.string().nullable().when('type', {
+    is: (type) => type !== 'service',
+    then: (baseSchema) => baseSchema.required('Base unit is required.'),
+    otherwise: (baseSchema) => baseSchema.nullable(),
+  }),
   stock_tracking: yup.string().required().oneOf(['none', 'lot', 'serial']),
   profit_margin: yup.number().nullable().min(0).max(999999.99)
     .transform((value, originalValue) => (originalValue === '' ? null : value)),
@@ -1114,19 +1255,15 @@ const showToast = (type, message) => {
   })
 }
 
-const scrollToSection = (sectionId) => {
-  document.getElementById(sectionId)?.scrollIntoView({
-    behavior: 'smooth',
-    block: 'start',
-  })
-}
-
 const formatType = (type) => ({
   single: 'Single',
   variable: 'Variable',
   service: 'Service',
   combo: 'Combo',
 }[type] || type)
+
+const supportsUnits = (type) => type !== 'service'
+const supportsInventorySetup = (type) => !['service', 'combo'].includes(type)
 
 const selectedVariationTemplates = (values) => {
   const templateIds = values.variation_template_ids || []
@@ -1198,9 +1335,14 @@ const buildGeneratedVariations = (currentVariations, templateIds, variationValue
       combination_key: key,
       variation_value_ids: orderedIds,
       sku: existing?.sku ?? '',
-      barcode: existing?.barcode ?? '',
+      image_url: existing?.image_url ?? '',
+      image_file: null,
+      image_preview_url: existing?.image_url ?? '',
+      conversion_sub_unit_id: existing?.conversion_sub_unit_id ?? '',
       selling_price: existing?.selling_price ?? '0.00',
       purchase_price: existing?.purchase_price ?? '0.00',
+      sub_unit_selling_price: existing?.sub_unit_selling_price ?? '',
+      sub_unit_purchase_price: existing?.sub_unit_purchase_price ?? '',
       minimum_selling_price: existing?.minimum_selling_price ?? '',
       is_active: existing?.is_active !== false,
     }
@@ -1255,38 +1397,6 @@ const removeComboItem = (values, setFieldValue, index) => {
   setFieldValue('combo_items', (values.combo_items || []).filter((_, itemIndex) => itemIndex !== index))
 }
 
-const addPackaging = (values, setFieldValue) => {
-  setFieldValue('packagings', [
-    ...(values.packagings || []),
-    {
-      id: null,
-      name: '',
-      short_name: '',
-      conversion_factor: '1.0000',
-      sku: '',
-      barcode: '',
-      selling_price: '',
-      purchase_price: '',
-      is_default: (values.packagings || []).length === 0,
-      is_active: true,
-    },
-  ])
-}
-
-const removePackaging = (values, setFieldValue, index) => {
-  setFieldValue('packagings', (values.packagings || []).filter((_, itemIndex) => itemIndex !== index))
-}
-
-const setPackagingDefault = (values, setFieldValue, index, checked) => {
-  setFieldValue(
-    'packagings',
-    (values.packagings || []).map((packaging, itemIndex) => ({
-      ...packaging,
-      is_default: itemIndex === index ? checked : false,
-    }))
-  )
-}
-
 const handleProductTypeChange = (values, setFieldValue, type) => {
   setFieldValue('type', type)
 
@@ -1315,6 +1425,38 @@ const handleTrackInventoryChange = (values, setFieldValue, checked) => {
   }
 }
 
+const toPreviewUrl = (file) => {
+  if (!(file instanceof File)) {
+    return ''
+  }
+
+  return URL.createObjectURL(file)
+}
+
+const handleProductImageChange = (setFieldValue, event) => {
+  const file = event.target.files?.[0] ?? null
+  setFieldValue('image_file', file)
+  setFieldValue('image_preview_url', file ? toPreviewUrl(file) : '')
+}
+
+const handleVariationImageChange = (values, setFieldValue, index, event) => {
+  const file = event.target.files?.[0] ?? null
+  const nextVariations = [...(values.variations || [])]
+  const currentVariation = nextVariations[index]
+
+  if (!currentVariation) {
+    return
+  }
+
+  nextVariations[index] = {
+    ...currentVariation,
+    image_file: file,
+    image_preview_url: file ? toPreviewUrl(file) : '',
+  }
+
+  setFieldValue('variations', nextVariations)
+}
+
 const handleUnitChange = (values, setFieldValue, unitId) => {
   setFieldValue('unit_id', unitId || '')
 
@@ -1323,6 +1465,123 @@ const handleUnitChange = (values, setFieldValue, unitId) => {
   if (!validSubUnits.has(values.sub_unit_id)) {
     setFieldValue('sub_unit_id', '')
   }
+
+  if (!validSubUnits.has(values.conversion_sub_unit_id)) {
+    setFieldValue('conversion_sub_unit_id', '')
+    setFieldValue('sub_unit_selling_price', '')
+    setFieldValue('sub_unit_purchase_price', '')
+  }
+
+  const nextVariations = (values.variations || []).map((variation) => {
+    if (validSubUnits.has(variation.conversion_sub_unit_id)) {
+      return variation
+    }
+
+    return {
+      ...variation,
+      conversion_sub_unit_id: '',
+      sub_unit_selling_price: '',
+      sub_unit_purchase_price: '',
+    }
+  })
+
+  setFieldValue('variations', nextVariations)
+}
+
+const handleUseSubUnitToggle = (values, setFieldValue, checked) => {
+  setFieldValue('use_sub_unit', checked)
+
+  if (checked) {
+    return
+  }
+
+  setFieldValue('conversion_sub_unit_id', '')
+  setFieldValue('sub_unit_selling_price', '')
+  setFieldValue('sub_unit_purchase_price', '')
+
+  const nextVariations = (values.variations || []).map((variation) => ({
+    ...variation,
+    conversion_sub_unit_id: '',
+    sub_unit_selling_price: '',
+    sub_unit_purchase_price: '',
+  }))
+
+  setFieldValue('variations', nextVariations)
+}
+
+const handleProductConversionUnitChange = (values, setFieldValue, subUnitId) => {
+  setFieldValue('conversion_sub_unit_id', subUnitId || '')
+
+  if (!subUnitId) {
+    setFieldValue('sub_unit_selling_price', '')
+    setFieldValue('sub_unit_purchase_price', '')
+    return
+  }
+
+  if (isBlankPrice(values.sub_unit_selling_price)) {
+    setFieldValue(
+      'sub_unit_selling_price',
+      derivedSubSellPrice(values.selling_price, values.unit_id, subUnitId, values.tax_type, values.tax_rate_id)
+    )
+  }
+}
+
+const handleVariationConversionUnitChange = (values, setFieldValue, index, subUnitId) => {
+  const nextVariations = [...(values.variations || [])]
+  const currentVariation = nextVariations[index]
+
+  if (!currentVariation) {
+    return
+  }
+
+  nextVariations[index] = {
+    ...currentVariation,
+    conversion_sub_unit_id: subUnitId || '',
+    sub_unit_selling_price: subUnitId
+      ? (isBlankPrice(currentVariation.sub_unit_selling_price)
+        ? derivedSubSellPrice(currentVariation.selling_price, values.unit_id, subUnitId, values.tax_type, values.tax_rate_id)
+        : currentVariation.sub_unit_selling_price)
+      : '',
+    sub_unit_purchase_price: subUnitId ? currentVariation.sub_unit_purchase_price : '',
+  }
+
+  setFieldValue('variations', nextVariations)
+}
+
+const handleBaseSellingPriceInput = (values, setFieldValue, event) => {
+  if (!values.use_sub_unit || !values.conversion_sub_unit_id || !isBlankPrice(values.sub_unit_selling_price)) {
+    return
+  }
+
+  setFieldValue(
+    'sub_unit_selling_price',
+    derivedSubSellPrice(
+      event?.target?.value ?? values.selling_price,
+      values.unit_id,
+      values.conversion_sub_unit_id,
+      values.tax_type,
+      values.tax_rate_id
+    )
+  )
+}
+
+const handleVariationSellingPriceInput = (values, setFieldValue, index, event) => {
+  const currentVariation = values.variations?.[index]
+
+  if (!currentVariation || !currentVariation.conversion_sub_unit_id || !isBlankPrice(currentVariation.sub_unit_selling_price)) {
+    return
+  }
+
+  setFieldValue(
+    `variations[${index}].sub_unit_selling_price`,
+    derivedSubSellPrice(
+      event?.target?.value ?? currentVariation.selling_price,
+      values.unit_id,
+      currentVariation.conversion_sub_unit_id,
+      values.tax_type,
+      values.tax_rate_id
+    )
+  )
 }
 
 const handleComboProductChange = (values, setFieldValue, index, productId) => {
@@ -1351,13 +1610,15 @@ const buildPayload = (values) => {
     name: values.name,
     description: values.description || null,
     sku: values.sku,
-    barcode: values.barcode || null,
-    barcode_type: values.barcode_type,
+    barcode_type: values.barcode_type || 'C128',
+    conversion_sub_unit_id: values.type === 'single' ? (values.conversion_sub_unit_id || null) : null,
     type: values.type,
     stock_tracking: values.track_inventory ? values.stock_tracking : 'none',
     has_expiry: Boolean(values.has_expiry),
     selling_price: values.type === 'variable' ? null : (values.selling_price || 0),
     purchase_price: values.type === 'variable' ? null : (values.purchase_price || 0),
+    sub_unit_selling_price: values.type === 'single' && values.conversion_sub_unit_id ? (values.sub_unit_selling_price || null) : null,
+    sub_unit_purchase_price: values.type === 'single' && values.conversion_sub_unit_id ? (values.sub_unit_purchase_price || null) : null,
     minimum_selling_price: values.type === 'variable' ? null : (values.minimum_selling_price || null),
     profit_margin: values.profit_margin || null,
     tax_type: values.tax_type,
@@ -1367,7 +1628,7 @@ const buildPayload = (values) => {
     is_for_selling: Boolean(values.is_for_selling),
     is_active: Boolean(values.is_active),
     weight: values.weight || null,
-    image_url: values.image_url || null,
+    image_file: values.image_file || null,
     custom_fields: customFields,
     variations: values.type === 'variable'
       ? (values.variations || []).map((variation) => ({
@@ -1375,9 +1636,12 @@ const buildPayload = (values) => {
           name: variation.name,
           variation_value_ids: variation.variation_value_ids || [],
           sku: variation.sku,
-          barcode: variation.barcode || null,
+          image_file: variation.image_file || null,
+          conversion_sub_unit_id: variation.conversion_sub_unit_id || null,
           selling_price: variation.selling_price || 0,
           purchase_price: variation.purchase_price || 0,
+          sub_unit_selling_price: variation.conversion_sub_unit_id ? (variation.sub_unit_selling_price || null) : null,
+          sub_unit_purchase_price: variation.conversion_sub_unit_id ? (variation.sub_unit_purchase_price || null) : null,
           minimum_selling_price: variation.minimum_selling_price || null,
           is_active: variation.is_active !== false,
         }))
@@ -1390,18 +1654,6 @@ const buildPayload = (values) => {
           quantity: comboItem.quantity || 1,
         }))
       : [],
-    packagings: (values.packagings || []).map((packaging) => ({
-      id: packaging.id || null,
-      name: packaging.name,
-      short_name: packaging.short_name || null,
-      conversion_factor: packaging.conversion_factor || 1,
-      sku: packaging.sku || null,
-      barcode: packaging.barcode || null,
-      selling_price: packaging.selling_price || null,
-      purchase_price: packaging.purchase_price || null,
-      is_default: Boolean(packaging.is_default),
-      is_active: packaging.is_active !== false,
-    })),
   }
 }
 

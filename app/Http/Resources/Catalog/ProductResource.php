@@ -5,7 +5,6 @@ namespace App\Http\Resources\Catalog;
 use App\Http\Resources\Foundation\TaxRateResource;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
-
 class ProductResource extends JsonResource
 {
     public function toArray(Request $request): array
@@ -17,6 +16,7 @@ class ProductResource extends JsonResource
             'brand_id' => $this->brand_id,
             'unit_id' => $this->unit_id,
             'sub_unit_id' => $this->sub_unit_id,
+            'conversion_sub_unit_id' => $this->conversion_sub_unit_id,
             'tax_rate_id' => $this->tax_rate_id,
             'rack_location_id' => $this->rack_location_id,
             'variation_template_id' => $this->variation_template_id,
@@ -25,13 +25,16 @@ class ProductResource extends JsonResource
             'name' => $this->name,
             'description' => $this->description,
             'sku' => $this->sku,
-            'barcode' => $this->barcode,
             'barcode_type' => $this->barcode_type,
+            'conversion_unit' => $this->whenLoaded('conversionSubUnit', fn () => $this->conversionSubUnit ? $this->conversionSubUnit->name : null, null),
+            'conversion_factor' => $this->whenLoaded('conversionSubUnit', fn () => $this->conversionSubUnit && $this->conversionSubUnit->conversion_factor !== null ? (string) $this->conversionSubUnit->conversion_factor : '1.0000', '1.0000'),
             'type' => $this->type,
             'stock_tracking' => $this->stock_tracking,
             'has_expiry' => (bool) $this->has_expiry,
             'selling_price' => $this->selling_price !== null ? (string) $this->selling_price : null,
             'purchase_price' => $this->purchase_price !== null ? (string) $this->purchase_price : null,
+            'sub_unit_selling_price' => $this->sub_unit_selling_price !== null ? (string) $this->sub_unit_selling_price : null,
+            'sub_unit_purchase_price' => $this->sub_unit_purchase_price !== null ? (string) $this->sub_unit_purchase_price : null,
             'minimum_selling_price' => $this->minimum_selling_price !== null ? (string) $this->minimum_selling_price : null,
             'profit_margin' => $this->profit_margin !== null ? (string) $this->profit_margin : null,
             'tax_type' => $this->tax_type,
@@ -41,7 +44,7 @@ class ProductResource extends JsonResource
             'is_for_selling' => (bool) $this->is_for_selling,
             'is_active' => (bool) $this->is_active,
             'weight' => $this->weight !== null ? (string) $this->weight : null,
-            'image_url' => $this->image_url,
+            'image_url' => $this->primaryImage?->publicUrl(),
             'custom_fields' => $this->custom_fields ?? [],
             'category' => $this->whenLoaded('category', fn () => $this->category ? [
                 'id' => $this->category->id,
@@ -80,10 +83,8 @@ class ProductResource extends JsonResource
             ] : null),
             'variations' => ProductVariationResource::collection($this->whenLoaded('variations')),
             'combo_items' => ComboItemResource::collection($this->whenLoaded('comboItems')),
-            'packagings' => ProductPackagingResource::collection($this->whenLoaded('packagingOptions')),
             'variations_count' => (int) ($this->variations_count ?? 0),
             'combo_items_count' => (int) ($this->combo_items_count ?? 0),
-            'packagings_count' => (int) ($this->packaging_options_count ?? 0),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

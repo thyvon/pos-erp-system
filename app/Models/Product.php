@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\HandlesSoftDeleteUniqueAttributes;
+use App\Traits\HasFileAssets;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\Relations\HasMany;
@@ -11,6 +12,7 @@ class Product extends BaseModel
 {
     use HasFactory;
     use HandlesSoftDeleteUniqueAttributes;
+    use HasFileAssets;
 
     protected $fillable = [
         'business_id',
@@ -18,6 +20,7 @@ class Product extends BaseModel
         'brand_id',
         'unit_id',
         'sub_unit_id',
+        'conversion_sub_unit_id',
         'tax_rate_id',
         'rack_location_id',
         'variation_template_id',
@@ -28,13 +31,14 @@ class Product extends BaseModel
         'name',
         'description',
         'sku',
-        'barcode',
         'barcode_type',
         'type',
         'stock_tracking',
         'has_expiry',
         'selling_price',
         'purchase_price',
+        'sub_unit_selling_price',
+        'sub_unit_purchase_price',
         'minimum_selling_price',
         'profit_margin',
         'tax_type',
@@ -44,7 +48,6 @@ class Product extends BaseModel
         'is_for_selling',
         'is_active',
         'weight',
-        'image_url',
         'custom_fields',
     ];
 
@@ -54,6 +57,8 @@ class Product extends BaseModel
             'has_expiry' => 'boolean',
             'selling_price' => 'decimal:2',
             'purchase_price' => 'decimal:2',
+            'sub_unit_selling_price' => 'decimal:2',
+            'sub_unit_purchase_price' => 'decimal:2',
             'minimum_selling_price' => 'decimal:2',
             'profit_margin' => 'decimal:2',
             'track_inventory' => 'boolean',
@@ -92,6 +97,11 @@ class Product extends BaseModel
         return $this->belongsTo(SubUnit::class, 'sub_unit_id');
     }
 
+    public function conversionSubUnit(): BelongsTo
+    {
+        return $this->belongsTo(SubUnit::class, 'conversion_sub_unit_id');
+    }
+
     public function taxRate(): BelongsTo
     {
         return $this->belongsTo(TaxRate::class);
@@ -124,7 +134,15 @@ class Product extends BaseModel
 
     public function packagingOptions(): HasMany
     {
-        return $this->hasMany(ProductPackaging::class)->orderByDesc('is_default')->orderBy('name');
+        return $this->hasMany(ProductPackaging::class)
+            ->whereNull('product_variation_id')
+            ->orderByDesc('is_default')
+            ->orderBy('name');
+    }
+
+    public function unitConversions(): HasMany
+    {
+        return $this->packagingOptions();
     }
 
     public function softDeleteUniqueColumns(): array

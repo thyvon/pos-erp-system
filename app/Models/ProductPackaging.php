@@ -14,11 +14,11 @@ class ProductPackaging extends BaseModel
     protected $fillable = [
         'business_id',
         'product_id',
+        'product_variation_id',
         'name',
         'short_name',
         'conversion_factor',
         'sku',
-        'barcode',
         'selling_price',
         'purchase_price',
         'is_default',
@@ -44,6 +44,11 @@ class ProductPackaging extends BaseModel
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function variation(): BelongsTo
+    {
+        return $this->belongsTo(ProductVariation::class, 'product_variation_id');
     }
 
     public function softDeleteUniqueColumns(): array

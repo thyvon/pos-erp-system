@@ -28,6 +28,11 @@ class UpdateProductRequest extends FormRequest
         );
     }
 
+    protected function prepareForValidation(): void
+    {
+        $this->merge($this->decodeJsonPayload());
+    }
+
     // ─────────────────────────────────────────────────────────────────
     // Rules applied to every product type
     // ─────────────────────────────────────────────────────────────────
@@ -39,7 +44,6 @@ class UpdateProductRequest extends FormRequest
             'description'    => ['nullable', 'string'],
             'type'           => ['sometimes', 'required', Rule::in(['single', 'variable', 'service', 'combo'])],
             'barcode_type'   => ['sometimes', 'required', Rule::in(['C128', 'EAN13', 'QR'])],
-            'barcode'        => ['nullable', 'string', 'max:100'],
             'stock_tracking' => ['sometimes', 'required', Rule::in(['none', 'lot', 'serial'])],
             'tax_type'       => ['sometimes', 'required', Rule::in(['inclusive', 'exclusive'])],
 
@@ -82,6 +86,12 @@ class UpdateProductRequest extends FormRequest
                     fn ($q) => $q->where('business_id', $businessId)->whereNull('deleted_at')
                 ),
             ],
+            'conversion_sub_unit_id' => [
+                'nullable', 'uuid',
+                Rule::exists('sub_units', 'id')->where(
+                    fn ($q) => $q->where('business_id', $businessId)->whereNull('deleted_at')
+                ),
+            ],
 
             // Scalars
             'has_expiry'            => ['nullable', 'boolean'],
@@ -90,29 +100,14 @@ class UpdateProductRequest extends FormRequest
             'is_active'             => ['nullable', 'boolean'],
             'alert_quantity'        => ['nullable', 'numeric', 'min:0', 'max:9999999999.999'],
             'max_stock_level'       => ['nullable', 'numeric', 'min:0', 'max:9999999999.999'],
+            'sub_unit_selling_price' => ['nullable', 'numeric', 'min:0', 'max:9999999999.99'],
+            'sub_unit_purchase_price' => ['nullable', 'numeric', 'min:0', 'max:9999999999.99'],
             'minimum_selling_price' => ['nullable', 'numeric', 'min:0', 'max:9999999999.99'],
             'profit_margin'         => ['nullable', 'numeric', 'min:0', 'max:999999.99'],
             'weight'                => ['nullable', 'numeric', 'min:0', 'max:999999999.999'],
-            'image_url'             => ['nullable', 'string', 'max:500'],
+            'image_file'            => ['nullable', 'file', 'image', 'max:5120'],
             'custom_fields'         => ['nullable', 'array'],
 
-            // Packagings (optional on all types, supports existing record IDs)
-            'packagings'                     => ['nullable', 'array'],
-            'packagings.*.id'                => [
-                'nullable', 'uuid',
-                Rule::exists('product_packagings', 'id')->where(
-                    fn ($q) => $q->where('business_id', $businessId)->whereNull('deleted_at')
-                ),
-            ],
-            'packagings.*.name'              => ['required_with:packagings', 'string', 'max:100'],
-            'packagings.*.short_name'        => ['nullable', 'string', 'max:50'],
-            'packagings.*.conversion_factor' => ['required_with:packagings', 'numeric', 'gt:0', 'max:9999999999.9999'],
-            'packagings.*.sku'               => ['nullable', 'string', 'max:100'],
-            'packagings.*.barcode'           => ['nullable', 'string', 'max:100'],
-            'packagings.*.selling_price'     => ['nullable', 'numeric', 'min:0', 'max:9999999999.99'],
-            'packagings.*.purchase_price'    => ['nullable', 'numeric', 'min:0', 'max:9999999999.99'],
-            'packagings.*.is_default'        => ['nullable', 'boolean'],
-            'packagings.*.is_active'         => ['nullable', 'boolean'],
         ];
     }
 
@@ -201,10 +196,19 @@ class UpdateProductRequest extends FormRequest
                     fn ($q) => $q->where('business_id', $businessId)->whereNull('deleted_at')
                 ),
             ],
-            'variations.*.sku'                   => ['required_with:variations', 'string', 'max:100'],
-            'variations.*.barcode'               => ['nullable', 'string', 'max:100'],
+            'variations.*.sku'                   => ['nullable', 'string', 'max:100'],
+            'variations.*.conversion_sub_unit_id' => [
+                'nullable', 'uuid',
+                Rule::exists('sub_units', 'id')->where(
+                    fn ($q) => $q->where('business_id', $businessId)->whereNull('deleted_at')
+                ),
+            ],
+            'variation_image_files'              => ['nullable', 'array'],
+            'variation_image_files.*'            => ['nullable', 'file', 'image', 'max:5120'],
             'variations.*.selling_price'         => ['required_with:variations', 'numeric', 'min:0', 'max:9999999999.99'],
             'variations.*.purchase_price'        => ['required_with:variations', 'numeric', 'min:0', 'max:9999999999.99'],
+            'variations.*.sub_unit_selling_price' => ['nullable', 'numeric', 'min:0', 'max:9999999999.99'],
+            'variations.*.sub_unit_purchase_price' => ['nullable', 'numeric', 'min:0', 'max:9999999999.99'],
             'variations.*.minimum_selling_price' => ['nullable', 'numeric', 'min:0', 'max:9999999999.99'],
             'variations.*.is_active'             => ['nullable', 'boolean'],
         ];
@@ -261,5 +265,27 @@ class UpdateProductRequest extends FormRequest
             ],
             'combo_items.*.quantity'           => ['required_with:combo_items', 'numeric', 'gt:0', 'max:9999999999.9999'],
         ];
+    }
+
+    protected function decodeJsonPayload(): array
+    {
+        $fields = ['variation_template_ids', 'variations', 'combo_items', 'custom_fields'];
+        $decoded = [];
+
+        foreach ($fields as $field) {
+            $value = $this->input($field);
+
+            if (! is_string($value) || trim($value) === '') {
+                continue;
+            }
+
+            $json = json_decode($value, true);
+
+            if (json_last_error() === JSON_ERROR_NONE) {
+                $decoded[$field] = $json;
+            }
+        }
+
+        return $decoded;
     }
 }

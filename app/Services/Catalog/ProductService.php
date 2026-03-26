@@ -19,6 +19,7 @@ use App\Models\User;
 use App\Models\VariationTemplate;
 use App\Models\VariationValue;
 use App\Repositories\Catalog\ProductRepository;
+use App\Services\Foundation\FileAssetService;
 use App\Services\Foundation\SettingsService;
 use App\Support\Audit\AuditLogger;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -32,6 +33,7 @@ class ProductService
     public function __construct(
         protected ProductRepository $products,
         protected SettingsService $settings,
+        protected FileAssetService $fileAssets,
         protected AuditLogger $auditLogger,
     ) {
     }
@@ -114,18 +116,21 @@ class ProductService
             'brand:id,name',
             'unit:id,name,short_name',
             'subUnit:id,parent_unit_id,name,short_name,conversion_factor',
+            'conversionSubUnit:id,parent_unit_id,name,short_name,conversion_factor',
             'taxRate',
             'rackLocation:id,warehouse_id,name,code',
             'rackLocation.warehouse:id,name',
             'variationTemplate:id,business_id,name',
             'variationTemplate.values:id,business_id,variation_template_id,name,sort_order',
             'priceGroup:id,name,is_default',
+            'primaryImage',
             'variations',
+            'variations.primaryImage',
+            'variations.conversionSubUnit:id,parent_unit_id,name,short_name,conversion_factor',
             'comboItems',
             'comboItems.childProduct:id,name,sku,type',
             'comboItems.childVariation:id,product_id,name,sku',
-            'packagingOptions',
-        ])->loadCount(['variations', 'comboItems', 'packagingOptions']);
+        ])->loadCount(['variations', 'comboItems']);
     }
 
     public function create(string $businessId, array $data, ?User $actor = null): Product
@@ -137,9 +142,9 @@ class ProductService
             /** @var Product $product */
             $product = $this->products->create($payload);
 
-            $this->syncVariations($businessId, $product, $data['variations'] ?? []);
+            $this->syncProductImage($product, $data['image_file'] ?? null);
+            $this->syncVariations($businessId, $product, $data['variations'] ?? [], $data['variation_image_files'] ?? []);
             $this->syncComboItems($businessId, $product, $data['combo_items'] ?? []);
-            $this->syncPackagings($businessId, $product, $data['packagings'] ?? []);
             $this->syncDerivedPricing($product);
 
             $product = $this->loadDetails($product);
@@ -175,9 +180,9 @@ class ProductService
             /** @var Product $updatedProduct */
             $updatedProduct = $this->products->update($product, $payload);
 
-            $this->syncVariations($businessId, $updatedProduct, $data['variations'] ?? []);
+            $this->syncProductImage($updatedProduct, $data['image_file'] ?? null);
+            $this->syncVariations($businessId, $updatedProduct, $data['variations'] ?? [], $data['variation_image_files'] ?? []);
             $this->syncComboItems($businessId, $updatedProduct, $data['combo_items'] ?? []);
-            $this->syncPackagings($businessId, $updatedProduct, $data['packagings'] ?? []);
             $this->syncDerivedPricing($updatedProduct);
 
             $updatedProduct = $this->loadDetails($updatedProduct);
@@ -225,6 +230,12 @@ class ProductService
             $this->ensureProductCanBeDeleted($loaded);
             $before = $this->auditPayload($loaded);
 
+            foreach ($loaded->variations as $variation) {
+                $this->fileAssets->deleteAll($variation);
+            }
+
+            $this->fileAssets->deleteAll($loaded);
+
             $this->products->delete($product);
 
             $this->auditLogger->log(
@@ -259,6 +270,9 @@ class ProductService
             'brand_id' => $this->nullableString($data['brand_id'] ?? $product?->brand_id),
             'unit_id' => $this->nullableString($data['unit_id'] ?? $product?->unit_id),
             'sub_unit_id' => $this->nullableString($data['sub_unit_id'] ?? $product?->sub_unit_id),
+            'conversion_sub_unit_id' => in_array($type, ['service', 'combo'], true)
+                ? null
+                : $this->nullableString($data['conversion_sub_unit_id'] ?? $product?->conversion_sub_unit_id),
             'tax_rate_id' => $this->nullableString($data['tax_rate_id'] ?? $product?->tax_rate_id),
             'rack_location_id' => $this->nullableString($data['rack_location_id'] ?? $product?->rack_location_id),
             'variation_template_id' => $type === 'variable' ? ($variationTemplateIds[0] ?? null) : null,
@@ -267,7 +281,6 @@ class ProductService
             'name' => $data['name'] ?? $product?->name,
             'description' => array_key_exists('description', $data) ? $data['description'] : $product?->description,
             'sku' => $this->resolveProductSku($businessId, $data, $product),
-            'barcode' => array_key_exists('barcode', $data) ? $data['barcode'] : $product?->barcode,
             'barcode_type' => $data['barcode_type'] ?? $product?->barcode_type ?? 'C128',
             'type' => $type,
             'stock_tracking' => $stockTracking,
@@ -280,6 +293,12 @@ class ProductService
             'purchase_price' => $type === 'variable'
                 ? $this->decimalOrDefault($product?->purchase_price ?? 0)
                 : $this->decimalOrDefault($data['purchase_price'] ?? $product?->purchase_price ?? 0),
+            'sub_unit_selling_price' => in_array($type, ['service', 'combo'], true) || empty($data['conversion_sub_unit_id'] ?? $product?->conversion_sub_unit_id)
+                ? null
+                : $this->nullableDecimal($data['sub_unit_selling_price'] ?? $product?->sub_unit_selling_price),
+            'sub_unit_purchase_price' => in_array($type, ['service', 'combo'], true) || empty($data['conversion_sub_unit_id'] ?? $product?->conversion_sub_unit_id)
+                ? null
+                : $this->nullableDecimal($data['sub_unit_purchase_price'] ?? $product?->sub_unit_purchase_price),
             'minimum_selling_price' => $type === 'variable'
                 ? $this->nullableDecimal($product?->minimum_selling_price)
                 : $this->nullableDecimal($data['minimum_selling_price'] ?? $product?->minimum_selling_price),
@@ -295,7 +314,6 @@ class ProductService
                 ? (bool) $data['is_active']
                 : (bool) ($product?->is_active ?? true),
             'weight' => $this->nullableDecimal($data['weight'] ?? $product?->weight, 3),
-            'image_url' => array_key_exists('image_url', $data) ? $data['image_url'] : $product?->image_url,
             'custom_fields' => array_key_exists('custom_fields', $data) ? ($data['custom_fields'] ?? []) : ($product?->custom_fields ?? []),
         ];
     }
@@ -343,6 +361,25 @@ class ProductService
             }
         }
 
+        $conversionSubUnitId = $payload['conversion_sub_unit_id'] ?? null;
+
+        if ($conversionSubUnitId !== null) {
+            /** @var SubUnit|null $conversionSubUnit */
+            $conversionSubUnit = SubUnit::withoutGlobalScopes()
+                ->where('business_id', $businessId)
+                ->where('id', $conversionSubUnitId)
+                ->whereNull('deleted_at')
+                ->first();
+
+            if (! $conversionSubUnit) {
+                throw new DomainException('Selected conversion unit is invalid for this business.', 422);
+            }
+
+            if ($unitId === null || (string) $conversionSubUnit->parent_unit_id !== (string) $unitId) {
+                throw new DomainException('Selected conversion unit does not belong to the chosen base unit.', 422);
+            }
+        }
+
         if ($type === 'variable' && $variationTemplateIds === []) {
             throw new DomainException('Variable products require at least one variation template.', 422);
         }
@@ -356,9 +393,12 @@ class ProductService
         }
     }
 
-    protected function syncVariations(string $businessId, Product $product, array $variations): void
+    protected function syncVariations(string $businessId, Product $product, array $variations, array $variationImageFiles = []): void
     {
         if ($product->type !== 'variable') {
+            foreach ($product->variations()->get() as $variation) {
+                $this->fileAssets->deleteAll($variation);
+            }
             $product->variations()->delete();
             return;
         }
@@ -375,7 +415,7 @@ class ProductService
         $seenCombinations = [];
         $seenSkus = [];
 
-        foreach ($variations as $variationData) {
+        foreach (array_values($variations) as $index => $variationData) {
             $variationId = $variationData['id'] ?? null;
             $normalizedIds = $this->normalizeVariationValueIds(
                 $businessId,
@@ -384,7 +424,15 @@ class ProductService
             );
             $combinationKey = implode('|', $normalizedIds);
             $nameKey = Str::lower(trim((string) ($variationData['name'] ?? '')));
-            $skuKey = Str::lower(trim((string) ($variationData['sku'] ?? '')));
+            $resolvedSku = $this->resolveVariationSku(
+                $businessId,
+                (string) $product->sku,
+                $variationData,
+                $index,
+                $variationId,
+                $seenSkus
+            );
+            $skuKey = Str::lower(trim($resolvedSku));
 
             if ($nameKey === '' || in_array($nameKey, $seenNames, true)) {
                 throw new DomainException('Variation names must be unique within the same product.', 422);
@@ -394,11 +442,28 @@ class ProductService
                 throw new DomainException('Each variation must use a unique combination of variation values.', 422);
             }
 
-            if ($skuKey === '' || in_array($skuKey, $seenSkus, true)) {
+            if (in_array($skuKey, $seenSkus, true)) {
                 throw new DomainException('Variation SKUs must be unique within the same product.', 422);
             }
 
-            $this->ensureVariationSkuIsUnique($businessId, (string) $variationData['sku'], $variationId);
+            $conversionSubUnitId = $this->nullableString($variationData['conversion_sub_unit_id'] ?? null);
+
+            if ($conversionSubUnitId !== null) {
+                /** @var SubUnit|null $conversionSubUnit */
+                $conversionSubUnit = SubUnit::withoutGlobalScopes()
+                    ->where('business_id', $businessId)
+                    ->where('id', $conversionSubUnitId)
+                    ->whereNull('deleted_at')
+                    ->first();
+
+                if (! $conversionSubUnit) {
+                    throw new DomainException('Selected variation conversion unit is invalid for this business.', 422);
+                }
+
+                if ($product->unit_id === null || (string) $conversionSubUnit->parent_unit_id !== (string) $product->unit_id) {
+                    throw new DomainException('Selected variation conversion unit does not belong to the chosen base unit.', 422);
+                }
+            }
 
             if (
                 array_key_exists('minimum_selling_price', $variationData)
@@ -411,12 +476,18 @@ class ProductService
             $payload = [
                 'business_id' => $businessId,
                 'product_id' => $product->id,
+                'conversion_sub_unit_id' => $conversionSubUnitId,
                 'name' => $variationData['name'],
                 'variation_value_ids' => $normalizedIds,
-                'sku' => $variationData['sku'],
-                'barcode' => $variationData['barcode'] ?? null,
+                'sku' => $resolvedSku,
                 'selling_price' => $this->decimalOrDefault($variationData['selling_price']),
                 'purchase_price' => $this->decimalOrDefault($variationData['purchase_price']),
+                'sub_unit_selling_price' => $conversionSubUnitId !== null
+                    ? $this->nullableDecimal($variationData['sub_unit_selling_price'] ?? null)
+                    : null,
+                'sub_unit_purchase_price' => $conversionSubUnitId !== null
+                    ? $this->nullableDecimal($variationData['sub_unit_purchase_price'] ?? null)
+                    : null,
                 'minimum_selling_price' => $this->nullableDecimal($variationData['minimum_selling_price'] ?? null),
                 'is_active' => array_key_exists('is_active', $variationData) ? (bool) $variationData['is_active'] : true,
             ];
@@ -431,9 +502,19 @@ class ProductService
 
                 $existingVariation->fill($payload);
                 $existingVariation->save();
+                $this->fileAssets->replaceSingleImage(
+                    $existingVariation,
+                    $variationImageFiles[$index] ?? null,
+                    'products/'.$businessId.'/variations'
+                );
                 $seenIds[] = $existingVariation->id;
             } else {
                 $created = $product->variations()->create($payload);
+                $this->fileAssets->replaceSingleImage(
+                    $created,
+                    $variationImageFiles[$index] ?? null,
+                    'products/'.$businessId.'/variations'
+                );
                 $seenIds[] = $created->id;
             }
 
@@ -446,7 +527,85 @@ class ProductService
 
         if ($deleteIds->isNotEmpty()) {
             $this->ensureVariationsCanBeDeleted($deleteIds->all());
+            $product->variations()
+                ->whereIn('id', $deleteIds)
+                ->get()
+                ->each(function (ProductVariation $variation): void {
+                    $this->fileAssets->deleteAll($variation);
+                });
             $product->variations()->whereIn('id', $deleteIds)->delete();
+        }
+    }
+
+    protected function syncRootUnitConversions(string $businessId, Product $product, array $data): void
+    {
+        if ($product->type === 'variable') {
+            $product->unitConversions()->delete();
+            return;
+        }
+
+        $this->syncPackagings(
+            $businessId,
+            $product,
+            $data['unit_conversions'] ?? $data['packagings'] ?? []
+        );
+    }
+
+    protected function syncVariationUnitConversions(
+        string $businessId,
+        Product $product,
+        ProductVariation $variation,
+        array $unitConversions
+    ): void {
+        $existing = $variation->unitConversions()->get()->keyBy('id');
+        $seenIds = [];
+        $seenNames = [];
+
+        foreach ($unitConversions as $unitConversionData) {
+            $conversionId = $unitConversionData['id'] ?? null;
+            $nameKey = Str::lower(trim((string) ($unitConversionData['name'] ?? '')));
+
+            if ($nameKey === '' || in_array($nameKey, $seenNames, true)) {
+                throw new DomainException('Unit conversion names must be unique within the same variation.', 422);
+            }
+
+            $payload = [
+                'business_id' => $businessId,
+                'product_id' => $product->id,
+                'product_variation_id' => $variation->id,
+                'name' => $unitConversionData['name'],
+                'short_name' => null,
+                'conversion_factor' => number_format((float) $unitConversionData['conversion_factor'], 4, '.', ''),
+                'sku' => null,
+                'selling_price' => $this->nullableDecimal($unitConversionData['selling_price'] ?? null),
+                'purchase_price' => $this->nullableDecimal($unitConversionData['purchase_price'] ?? null),
+                'is_default' => false,
+                'is_active' => array_key_exists('is_active', $unitConversionData) ? (bool) $unitConversionData['is_active'] : true,
+            ];
+
+            if ($conversionId !== null) {
+                /** @var ProductPackaging|null $existingConversion */
+                $existingConversion = $existing->get($conversionId);
+
+                if (! $existingConversion) {
+                    throw new DomainException('Selected variation unit conversion is invalid.', 422);
+                }
+
+                $existingConversion->fill($payload);
+                $existingConversion->save();
+                $seenIds[] = $existingConversion->id;
+            } else {
+                $created = $variation->unitConversions()->create($payload);
+                $seenIds[] = $created->id;
+            }
+
+            $seenNames[] = $nameKey;
+        }
+
+        $deleteIds = $existing->keys()->diff($seenIds)->values();
+
+        if ($deleteIds->isNotEmpty()) {
+            $variation->unitConversions()->whereIn('id', $deleteIds)->delete();
         }
     }
 
@@ -540,40 +699,29 @@ class ProductService
 
     protected function syncPackagings(string $businessId, Product $product, array $packagings): void
     {
-        $existing = $product->packagingOptions()->get()->keyBy('id');
+        $existing = $product->unitConversions()->get()->keyBy('id');
         $seenIds = [];
         $seenNames = [];
-        $seenSkus = [];
 
         foreach ($packagings as $packagingData) {
             $packagingId = $packagingData['id'] ?? null;
             $nameKey = Str::lower(trim((string) ($packagingData['name'] ?? '')));
-            $skuKey = Str::lower(trim((string) ($packagingData['sku'] ?? '')));
 
             if ($nameKey === '' || in_array($nameKey, $seenNames, true)) {
-                throw new DomainException('Packaging names must be unique within the same product.', 422);
-            }
-
-            if ($skuKey !== '') {
-                if (in_array($skuKey, $seenSkus, true)) {
-                    throw new DomainException('Packaging SKUs must be unique within the same product.', 422);
-                }
-
-                $this->ensurePackagingSkuIsUnique($businessId, (string) $packagingData['sku'], $packagingId);
-                $seenSkus[] = $skuKey;
+                throw new DomainException('Unit conversion names must be unique within the same product.', 422);
             }
 
             $payload = [
                 'business_id' => $businessId,
                 'product_id' => $product->id,
+                'product_variation_id' => null,
                 'name' => $packagingData['name'],
-                'short_name' => $packagingData['short_name'] ?? null,
+                'short_name' => null,
                 'conversion_factor' => number_format((float) $packagingData['conversion_factor'], 4, '.', ''),
-                'sku' => $packagingData['sku'] ?? null,
-                'barcode' => $packagingData['barcode'] ?? null,
+                'sku' => null,
                 'selling_price' => $this->nullableDecimal($packagingData['selling_price'] ?? null),
                 'purchase_price' => $this->nullableDecimal($packagingData['purchase_price'] ?? null),
-                'is_default' => array_key_exists('is_default', $packagingData) ? (bool) $packagingData['is_default'] : false,
+                'is_default' => false,
                 'is_active' => array_key_exists('is_active', $packagingData) ? (bool) $packagingData['is_active'] : true,
             ];
 
@@ -593,7 +741,7 @@ class ProductService
                 $existingPackaging->save();
                 $seenIds[] = $existingPackaging->id;
             } else {
-                $created = $product->packagingOptions()->create($payload);
+                $created = $product->unitConversions()->create($payload);
                 $seenIds[] = $created->id;
             }
 
@@ -603,10 +751,8 @@ class ProductService
         $deleteIds = $existing->keys()->diff($seenIds)->values();
 
         if ($deleteIds->isNotEmpty()) {
-            $product->packagingOptions()->whereIn('id', $deleteIds)->delete();
+            $product->unitConversions()->whereIn('id', $deleteIds)->delete();
         }
-
-        $this->ensureProductHasDefaultPackaging($product);
     }
 
     protected function ensureBelongsToBusiness(string $businessId, Product $product): void
@@ -760,6 +906,42 @@ class ProductService
         }
     }
 
+    protected function resolveVariationSku(
+        string $businessId,
+        string $parentSku,
+        array $variationData,
+        int $index,
+        ?string $ignoreId = null,
+        array $seenSkus = []
+    ): string {
+        $providedSku = trim((string) ($variationData['sku'] ?? ''));
+
+        if ($providedSku !== '') {
+            $this->ensureVariationSkuIsUnique($businessId, $providedSku, $ignoreId);
+
+            return $providedSku;
+        }
+
+        $baseSku = trim($parentSku) !== '' ? trim($parentSku) : 'VAR';
+        $sequence = $index + 1;
+
+        do {
+            $candidate = sprintf('%s-%02d', $baseSku, $sequence);
+            $candidateKey = Str::lower($candidate);
+            $existsInCurrentPayload = in_array($candidateKey, $seenSkus, true);
+            $existsInDatabase = ProductVariation::withoutGlobalScopes()
+                ->where('business_id', $businessId)
+                ->where('sku', $candidate)
+                ->whereNull('deleted_at')
+                ->when($ignoreId !== null, fn ($query) => $query->where('id', '!=', $ignoreId))
+                ->exists();
+
+            $sequence++;
+        } while ($existsInCurrentPayload || $existsInDatabase);
+
+        return $candidate;
+    }
+
     protected function ensurePackagingSkuIsUnique(string $businessId, string $sku, ?string $ignoreId = null): void
     {
         $query = ProductPackaging::withoutGlobalScopes()
@@ -871,6 +1053,15 @@ class ProductService
         ])->save();
     }
 
+    protected function syncProductImage(Product $product, mixed $uploadedFile): void
+    {
+        $this->fileAssets->replaceSingleImage(
+            $product,
+            $uploadedFile,
+            'products/'.$product->business_id.'/items'
+        );
+    }
+
     protected function ensureRackLocationsEnabled(): void
     {
         try {
@@ -910,11 +1101,14 @@ class ProductService
             'business_id' => $product->business_id,
             'name' => $product->name,
             'sku' => $product->sku,
-            'barcode' => $product->barcode,
+            'conversion_sub_unit_id' => $product->conversion_sub_unit_id,
+            'conversion_factor' => $product->conversionSubUnit?->conversion_factor !== null ? (string) $product->conversionSubUnit->conversion_factor : '1.0000',
             'type' => $product->type,
             'stock_tracking' => $product->stock_tracking,
             'selling_price' => $product->selling_price !== null ? (string) $product->selling_price : null,
             'purchase_price' => $product->purchase_price !== null ? (string) $product->purchase_price : null,
+            'sub_unit_selling_price' => $product->sub_unit_selling_price !== null ? (string) $product->sub_unit_selling_price : null,
+            'sub_unit_purchase_price' => $product->sub_unit_purchase_price !== null ? (string) $product->sub_unit_purchase_price : null,
             'minimum_selling_price' => $product->minimum_selling_price !== null ? (string) $product->minimum_selling_price : null,
             'track_inventory' => (bool) $product->track_inventory,
             'is_active' => (bool) $product->is_active,
@@ -922,6 +1116,7 @@ class ProductService
             'brand_id' => $product->brand_id,
             'unit_id' => $product->unit_id,
             'sub_unit_id' => $product->sub_unit_id,
+            'conversion_sub_unit_id' => $product->conversion_sub_unit_id,
             'tax_rate_id' => $product->tax_rate_id,
             'rack_location_id' => $product->rack_location_id,
             'variation_template_id' => $product->variation_template_id,
@@ -932,7 +1127,11 @@ class ProductService
                 'name' => $variation->name,
                 'variation_value_ids' => array_values($variation->variation_value_ids ?? []),
                 'sku' => $variation->sku,
+                'conversion_sub_unit_id' => $variation->conversion_sub_unit_id,
+                'conversion_factor' => $variation->conversionSubUnit?->conversion_factor !== null ? (string) $variation->conversionSubUnit->conversion_factor : '1.0000',
                 'selling_price' => $variation->selling_price !== null ? (string) $variation->selling_price : null,
+                'sub_unit_selling_price' => $variation->sub_unit_selling_price !== null ? (string) $variation->sub_unit_selling_price : null,
+                'sub_unit_purchase_price' => $variation->sub_unit_purchase_price !== null ? (string) $variation->sub_unit_purchase_price : null,
             ])->values()->all(),
             'combo_items' => $product->comboItems->map(fn (ComboItem $comboItem) => [
                 'id' => $comboItem->id,

@@ -3,23 +3,28 @@
 namespace App\Models;
 
 use App\Traits\HandlesSoftDeleteUniqueAttributes;
+use App\Traits\HasFileAssets;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class ProductVariation extends BaseModel
 {
     use HasFactory;
     use HandlesSoftDeleteUniqueAttributes;
+    use HasFileAssets;
 
     protected $fillable = [
         'business_id',
         'product_id',
+        'conversion_sub_unit_id',
         'name',
         'variation_value_ids',
         'sku',
-        'barcode',
         'selling_price',
         'purchase_price',
+        'sub_unit_selling_price',
+        'sub_unit_purchase_price',
         'minimum_selling_price',
         'is_active',
     ];
@@ -30,6 +35,8 @@ class ProductVariation extends BaseModel
             'variation_value_ids' => 'array',
             'selling_price' => 'decimal:2',
             'purchase_price' => 'decimal:2',
+            'sub_unit_selling_price' => 'decimal:2',
+            'sub_unit_purchase_price' => 'decimal:2',
             'minimum_selling_price' => 'decimal:2',
             'is_active' => 'boolean',
         ];
@@ -43,6 +50,18 @@ class ProductVariation extends BaseModel
     public function product(): BelongsTo
     {
         return $this->belongsTo(Product::class);
+    }
+
+    public function conversionSubUnit(): BelongsTo
+    {
+        return $this->belongsTo(SubUnit::class, 'conversion_sub_unit_id');
+    }
+
+    public function unitConversions(): HasMany
+    {
+        return $this->hasMany(ProductPackaging::class, 'product_variation_id')
+            ->orderByDesc('is_default')
+            ->orderBy('name');
     }
 
     public function softDeleteUniqueColumns(): array

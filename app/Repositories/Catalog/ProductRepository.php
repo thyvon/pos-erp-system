@@ -25,8 +25,10 @@ class ProductRepository extends BaseRepository
             ->with([
                 'category:id,name',
                 'brand:id,name',
+                'conversionSubUnit:id,name,short_name',
+                'primaryImage',
             ])
-            ->withCount(['variations', 'comboItems', 'packagingOptions'])
+            ->withCount(['variations', 'comboItems'])
             ->addSelect([
                 'variable_selling_price_min' => DB::table('product_variations')
                     ->selectRaw('min(selling_price)')
@@ -84,22 +86,10 @@ class ProductRepository extends BaseRepository
         $driver = DB::getDriverName();
 
         if (in_array($driver, ['mysql', 'mariadb'], true)) {
-            $booleanTerms = collect(preg_split('/\s+/', $search) ?: [])
-                ->filter(fn (?string $term) => filled($term))
-                ->map(fn (string $term) => '+'.$term.'*')
-                ->implode(' ');
-
-            $query->where(function (Builder $builder) use ($booleanTerms, $search): void {
-                $builder->whereRaw(
-                    'MATCH(name,sku,barcode) AGAINST (? IN BOOLEAN MODE)',
-                    [$booleanTerms]
-                );
-
-                if (preg_match('/^[0-9A-Za-z+\\-\\s]+$/', $search) === 1) {
-                    $builder
-                        ->orWhere('sku', 'like', $search.'%')
-                        ->orWhere('barcode', 'like', $search.'%');
-                }
+            $query->where(function (Builder $builder) use ($search): void {
+                $builder
+                    ->where('name', 'like', "%{$search}%")
+                    ->orWhere('sku', 'like', "%{$search}%");
             });
 
             return;
@@ -109,8 +99,7 @@ class ProductRepository extends BaseRepository
         $query->where(function (Builder $builder) use ($search): void {
             $builder
                 ->where('name', 'like', "%{$search}%")
-                ->orWhere('sku', 'like', "%{$search}%")
-                ->orWhere('barcode', 'like', "%{$search}%");
+                ->orWhere('sku', 'like', "%{$search}%");
         });
     }
 }

@@ -17,7 +17,6 @@ class ProductPackagingResource extends JsonResource
             'short_name' => $this->short_name,
             'conversion_factor' => $this->conversion_factor !== null ? (string) $this->conversion_factor : null,
             'sku' => $this->sku,
-            'barcode' => $this->barcode,
             'selling_price' => $this->selling_price !== null ? (string) $this->selling_price : null,
             'purchase_price' => $this->purchase_price !== null ? (string) $this->purchase_price : null,
             'is_default' => (bool) $this->is_default,
