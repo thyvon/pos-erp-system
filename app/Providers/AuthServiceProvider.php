@@ -18,6 +18,11 @@ use App\Models\VariationTemplate;
 use App\Models\RackLocation;
 use App\Models\PriceGroup;
 use App\Models\Product;
+use App\Models\StockAdjustment;
+use App\Models\StockCount;
+use App\Models\StockLot;
+use App\Models\StockSerial;
+use App\Models\StockTransfer;
 use App\Models\Supplier;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
@@ -44,6 +49,11 @@ use App\Policies\VariationTemplatePolicy;
 use App\Policies\RackLocationPolicy;
 use App\Policies\PriceGroupPolicy;
 use App\Policies\ProductPolicy;
+use App\Policies\LotPolicy;
+use App\Policies\SerialPolicy;
+use App\Policies\StockAdjustmentPolicy;
+use App\Policies\StockCountPolicy;
+use App\Policies\StockTransferPolicy;
 use App\Policies\SupplierPolicy;
 use App\Policies\UserPolicy;
 use App\Policies\WarehousePolicy;
@@ -69,6 +79,11 @@ class AuthServiceProvider extends ServiceProvider
         RackLocation::class => RackLocationPolicy::class,
         PriceGroup::class => PriceGroupPolicy::class,
         Product::class => ProductPolicy::class,
+        StockLot::class => LotPolicy::class,
+        StockSerial::class => SerialPolicy::class,
+        StockAdjustment::class => StockAdjustmentPolicy::class,
+        StockCount::class => StockCountPolicy::class,
+        StockTransfer::class => StockTransferPolicy::class,
         Supplier::class => SupplierPolicy::class,
         User::class => UserPolicy::class,
         Role::class => RolePolicy::class,

@@ -9,7 +9,7 @@ class BranchAccess
 {
     public static function accessibleBranchIds(?User $user): ?array
     {
-        if (! $user instanceof User || $user->hasRole('super_admin')) {
+        if (! $user instanceof User || $user->hasRole(['super_admin', 'admin'])) {
             return null;
         }
 
@@ -19,7 +19,7 @@ class BranchAccess
     public static function scopeBranchQuery(Builder $query, User|array|null $userOrBranchIds, string $column = 'id'): Builder
     {
         if ($userOrBranchIds instanceof User) {
-            if ($userOrBranchIds->hasRole('super_admin')) {
+            if ($userOrBranchIds->hasRole(['super_admin', 'admin'])) {
                 return $query;
             }
 

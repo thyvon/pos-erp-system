@@ -210,6 +210,7 @@ class UpdateProductRequest extends FormRequest
             'variations.*.sub_unit_selling_price' => ['nullable', 'numeric', 'min:0', 'max:9999999999.99'],
             'variations.*.sub_unit_purchase_price' => ['nullable', 'numeric', 'min:0', 'max:9999999999.99'],
             'variations.*.minimum_selling_price' => ['nullable', 'numeric', 'min:0', 'max:9999999999.99'],
+            'variations.*.profit_margin' => ['nullable', 'numeric', 'min:0', 'max:999999.99'],
             'variations.*.is_active'             => ['nullable', 'boolean'],
         ];
     }

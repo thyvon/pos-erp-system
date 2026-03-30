@@ -800,17 +800,83 @@ const navGroups = computed(() => {
     })
   }
 
+  if (auth.can('inventory.index')) {
+    base.push({
+      label: t('layout.groups.inventory'),
+      items: [
+        {
+          key: 'inventory',
+          label: t('layout.nav.inventory.label'),
+          description: t('layout.nav.inventory.description'),
+          short: 'IV',
+          status: t('status.ready'),
+          statusClass: 'bg-cyan-400/15 text-cyan-200',
+          icon: 'fa-solid fa-layer-group',
+          children: [
+            {
+              key: 'inventory-adjustments',
+              label: t('layout.nav.inventoryAdjustments.label'),
+              description: t('layout.nav.inventoryAdjustments.description'),
+              short: 'AD',
+              to: '/inventory/adjustments',
+              permission: 'inventory.index',
+              status: t('status.ready'),
+              statusClass: 'bg-cyan-400/15 text-cyan-200',
+              icon: 'fa-solid fa-sliders',
+            },
+            {
+              key: 'inventory-transfers',
+              label: t('layout.nav.inventoryTransfers.label'),
+              description: t('layout.nav.inventoryTransfers.description'),
+              short: 'TR',
+              to: '/inventory/transfers',
+              permission: 'inventory.index',
+              status: t('status.ready'),
+              statusClass: 'bg-cyan-400/15 text-cyan-200',
+              icon: 'fa-solid fa-right-left',
+            },
+            {
+              key: 'inventory-counts',
+              label: t('layout.nav.inventoryCounts.label'),
+              description: t('layout.nav.inventoryCounts.description'),
+              short: 'CT',
+              to: '/inventory/counts',
+              permission: 'inventory.index',
+              status: t('status.ready'),
+              statusClass: 'bg-cyan-400/15 text-cyan-200',
+              icon: 'fa-solid fa-clipboard-check',
+            },
+            {
+              key: 'inventory-lots',
+              label: t('layout.nav.inventoryLots.label'),
+              description: t('layout.nav.inventoryLots.description'),
+              short: 'LT',
+              to: '/inventory/lots',
+              permission: 'inventory.index',
+              status: t('status.ready'),
+              statusClass: 'bg-cyan-400/15 text-cyan-200',
+              icon: 'fa-solid fa-boxes-stacked',
+            },
+            {
+              key: 'inventory-serials',
+              label: t('layout.nav.inventorySerials.label'),
+              description: t('layout.nav.inventorySerials.description'),
+              short: 'SR',
+              to: '/inventory/serials',
+              permission: 'inventory.index',
+              status: t('status.ready'),
+              statusClass: 'bg-cyan-400/15 text-cyan-200',
+              icon: 'fa-solid fa-barcode',
+            },
+          ],
+        },
+      ],
+    })
+  }
+
   base.push({
     label: t('layout.groups.roadmap'),
     items: [
-      {
-        label: t('layout.nav.inventory.label'),
-        description: t('layout.nav.inventory.description'),
-        short: 'IV',
-        status: t('status.planned'),
-        statusClass: 'bg-slate-400/15 text-slate-300',
-        icon: 'fa-solid fa-layer-group',
-      },
       {
         label: t('layout.nav.sales.label'),
         description: t('layout.nav.sales.description'),

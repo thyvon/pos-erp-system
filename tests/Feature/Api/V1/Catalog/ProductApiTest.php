@@ -7,6 +7,7 @@ use App\Models\Business;
 use App\Models\Category;
 use App\Models\PriceGroup;
 use App\Models\Product;
+use App\Models\SubUnit;
 use App\Models\TaxRate;
 use App\Models\Unit;
 use App\Models\User;
@@ -36,6 +37,10 @@ class ProductApiTest extends TestCase
         $category = Category::factory()->create(['business_id' => $business->id]);
         $brand = Brand::factory()->create(['business_id' => $business->id]);
         $unit = Unit::factory()->create(['business_id' => $business->id]);
+        $subUnit = SubUnit::factory()->create([
+            'business_id' => $business->id,
+            'parent_unit_id' => $unit->id,
+        ]);
         $taxRate = TaxRate::factory()->create(['business_id' => $business->id]);
         $priceGroup = PriceGroup::factory()->create(['business_id' => $business->id]);
 
@@ -54,6 +59,9 @@ class ProductApiTest extends TestCase
             'stock_tracking' => 'none',
             'selling_price' => 12.5,
             'purchase_price' => 8.5,
+            'sub_unit_id' => $subUnit->id,
+            'sub_unit_selling_price' => 300,
+            'sub_unit_purchase_price' => 204,
             'tax_type' => 'exclusive',
             'track_inventory' => true,
         ]);
@@ -62,6 +70,8 @@ class ProductApiTest extends TestCase
             ->assertCreated()
             ->assertJsonPath('data.name', 'Sparkling Water')
             ->assertJsonPath('data.type', 'single')
+            ->assertJsonPath('data.sub_unit_id', $subUnit->id)
+            ->assertJsonPath('data.sub_unit_selling_price', '300.00')
             ->assertJsonPath('data.track_inventory', true);
     }
 
@@ -72,6 +82,10 @@ class ProductApiTest extends TestCase
         $admin->assignRole('admin');
         $category = Category::factory()->create(['business_id' => $business->id]);
         $unit = Unit::factory()->create(['business_id' => $business->id]);
+        $subUnit = SubUnit::factory()->create([
+            'business_id' => $business->id,
+            'parent_unit_id' => $unit->id,
+        ]);
         $template = VariationTemplate::factory()->create(['business_id' => $business->id]);
         $small = VariationValue::factory()->create([
             'business_id' => $business->id,
@@ -96,8 +110,6 @@ class ProductApiTest extends TestCase
             'variation_template_id' => $template->id,
             'variation_template_ids' => [$template->id],
             'stock_tracking' => 'none',
-            'selling_price' => 2,
-            'purchase_price' => 1,
             'tax_type' => 'exclusive',
             'track_inventory' => true,
             'variations' => [
@@ -105,8 +117,11 @@ class ProductApiTest extends TestCase
                     'name' => 'Coffee Small',
                     'variation_value_ids' => [$small->id],
                     'sku' => 'COFFEE-S',
+                    'sub_unit_id' => $subUnit->id,
                     'selling_price' => 2,
                     'purchase_price' => 1,
+                    'sub_unit_selling_price' => 48,
+                    'sub_unit_purchase_price' => 24,
                     'is_active' => true,
                 ],
                 [
@@ -123,6 +138,8 @@ class ProductApiTest extends TestCase
         $response
             ->assertCreated()
             ->assertJsonPath('data.type', 'variable')
+            ->assertJsonPath('data.sub_unit_id', null)
+            ->assertJsonPath('data.selling_price', '2.00')
             ->assertJsonCount(2, 'data.variations');
     }
 

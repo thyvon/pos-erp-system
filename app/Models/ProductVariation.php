@@ -26,6 +26,7 @@ class ProductVariation extends BaseModel
         'sub_unit_selling_price',
         'sub_unit_purchase_price',
         'minimum_selling_price',
+        'profit_margin',
         'is_active',
     ];
 
@@ -38,6 +39,7 @@ class ProductVariation extends BaseModel
             'sub_unit_selling_price' => 'decimal:2',
             'sub_unit_purchase_price' => 'decimal:2',
             'minimum_selling_price' => 'decimal:2',
+            'profit_margin' => 'decimal:2',
             'is_active' => 'boolean',
         ];
     }

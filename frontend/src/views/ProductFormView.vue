@@ -152,7 +152,7 @@
                 <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">
                   Classify the product before you set prices, stock rules, or variations.
                 </div>
-                <div class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+                <div class="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                   <div>
                     <label class="erp-label" for="category_id">Category</label>
                     <AppSelect
@@ -190,25 +190,18 @@
                     />
                     <ErrorMessage name="unit_id" class="erp-helper text-rose-500 dark:text-rose-400" />
                   </div>
-                  <div v-if="supportsUnits(values.type)" class="xl:col-span-1">
-                    <label class="erp-label" for="sub_unit_id">Generic sub-unit</label>
-                    <AppSelect
-                      :model-value="values.sub_unit_id || null"
-                      :options="subUnitOptions(values.unit_id)"
-                      clearable
-                      searchable
-                      placeholder="Optional sub-unit"
-                      search-placeholder="Search sub-units"
-                      :disabled="!values.unit_id"
-                      @update:model-value="setFieldValue('sub_unit_id', $event || '')"
-                    />
-                  </div>
                   <div
                     v-if="!supportsUnits(values.type)"
                     class="rounded-[5px] border border-slate-200/80 bg-slate-50/80 px-4 py-3 text-sm text-slate-600 md:col-span-2 xl:col-span-2 dark:border-slate-800/80 dark:bg-slate-900/70 dark:text-slate-300"
                   >
                     Services do not require unit or variation-template setup.
                   </div>
+                </div>
+                <div
+                  v-if="supportsUnits(values.type)"
+                  class="mt-3 text-xs text-slate-500 dark:text-slate-400"
+                >
+                  Alternate selling sub-units are configured in the pricing section for single products and inside each variation row for variable products.
                 </div>
               </section>
 
@@ -233,7 +226,7 @@
                   </div>
                   <div>
                     <label class="erp-label" for="purchase_price">Base buy price <span class="text-rose-500">*</span></label>
-                    <Field id="purchase_price" name="purchase_price" type="number" min="0" step="0.01" class="erp-input" />
+                    <Field id="purchase_price" name="purchase_price" type="number" min="0" step="0.01" class="erp-input" @input="handleBasePurchasePriceInput(values, setFieldValue, $event)" />
                     <ErrorMessage name="purchase_price" class="erp-helper text-rose-500 dark:text-rose-400" />
                   </div>
                   <div>
@@ -242,7 +235,7 @@
                   </div>
                   <div>
                     <label class="erp-label" for="profit_margin">Profit margin %</label>
-                    <Field id="profit_margin" name="profit_margin" type="number" min="0" step="0.01" class="erp-input" />
+                    <Field id="profit_margin" name="profit_margin" type="number" min="0" step="0.01" class="erp-input" @input="handleBaseMarginInput(values, setFieldValue, $event)" />
                   </div>
                 </div>
 
@@ -305,7 +298,7 @@
                       searchable
                       placeholder="No tax rate"
                       search-placeholder="Search tax rates"
-                      @update:model-value="setFieldValue('tax_rate_id', $event || '')"
+                      @update:model-value="handleTaxContextChange(values, setFieldValue, 'tax_rate_id', $event || '')"
                     />
                   </div>
                   <div>
@@ -314,7 +307,7 @@
                       :model-value="values.tax_type || null"
                       :options="taxTypeOptions"
                       placeholder="Select tax type"
-                      @update:model-value="setFieldValue('tax_type', $event || 'exclusive')"
+                      @update:model-value="handleTaxContextChange(values, setFieldValue, 'tax_type', $event || 'exclusive')"
                     />
                   </div>
                   <div>
@@ -405,8 +398,8 @@
                 <div
                   class="grid gap-3 border-b border-slate-200/80 bg-slate-50/80 px-3 py-2 text-xs font-semibold text-slate-500 dark:border-slate-800/80 dark:bg-slate-900/50 dark:text-slate-400"
                   :class="values.use_sub_unit
-                    ? 'grid-cols-[minmax(13rem,1.25fr)_minmax(9rem,0.9fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(7rem,0.65fr)_minmax(10rem,0.9fr)_minmax(8rem,0.75fr)_minmax(6rem,0.55fr)]'
-                    : 'grid-cols-[minmax(13rem,1.25fr)_minmax(9rem,0.9fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(7rem,0.65fr)_minmax(10rem,0.9fr)_minmax(8rem,0.75fr)_minmax(6rem,0.55fr)]'"
+                    ? 'grid-cols-[minmax(13rem,1.25fr)_minmax(9rem,0.9fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(7rem,0.65fr)_minmax(7rem,0.65fr)_minmax(10rem,0.9fr)_minmax(8rem,0.75fr)_minmax(6rem,0.55fr)]'
+                    : 'grid-cols-[minmax(13rem,1.25fr)_minmax(9rem,0.9fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(7rem,0.65fr)_minmax(7rem,0.65fr)_minmax(10rem,0.9fr)_minmax(8rem,0.75fr)_minmax(6rem,0.55fr)]'"
                 >
                     <div>Selected values</div>
                     <div>Variation SKU</div>
@@ -420,6 +413,7 @@
                       <div>Sub buy</div>
                     </template>
                     <div>Min</div>
+                    <div>Margin %</div>
                     <div>Image</div>
                     <div class="text-center">Active</div>
                     <div class="text-left">Action</div>
@@ -433,8 +427,8 @@
                     <div
                       class="grid gap-3 px-3 py-2.5"
                       :class="values.use_sub_unit
-                        ? 'grid-cols-[minmax(13rem,1.25fr)_minmax(9rem,0.9fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(7rem,0.65fr)_minmax(10rem,0.9fr)_minmax(8rem,0.75fr)_minmax(6rem,0.55fr)]'
-                        : 'grid-cols-[minmax(13rem,1.25fr)_minmax(9rem,0.9fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(7rem,0.65fr)_minmax(10rem,0.9fr)_minmax(8rem,0.75fr)_minmax(6rem,0.55fr)]'"
+                        ? 'grid-cols-[minmax(13rem,1.25fr)_minmax(9rem,0.9fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(7rem,0.65fr)_minmax(7rem,0.65fr)_minmax(10rem,0.9fr)_minmax(8rem,0.75fr)_minmax(6rem,0.55fr)]'
+                        : 'grid-cols-[minmax(13rem,1.25fr)_minmax(9rem,0.9fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(7rem,0.65fr)_minmax(7rem,0.65fr)_minmax(10rem,0.9fr)_minmax(8rem,0.75fr)_minmax(6rem,0.55fr)]'"
                     >
                     <div class="min-w-0">
                         <div class="erp-input flex min-h-[46px] flex-wrap items-center gap-1.5">
@@ -470,7 +464,7 @@
                         <Field :name="`variations[${index}].selling_price`" type="number" min="0" step="0.01" class="erp-input" @input="handleVariationSellingPriceInput(values, setFieldValue, index, $event)" />
                     </div>
                     <div class="min-w-0">
-                        <Field :name="`variations[${index}].purchase_price`" type="number" min="0" step="0.01" class="erp-input" />
+                        <Field :name="`variations[${index}].purchase_price`" type="number" min="0" step="0.01" class="erp-input" @input="handleVariationPurchasePriceInput(values, setFieldValue, index, $event)" />
                     </div>
                     <template v-if="values.use_sub_unit">
                       <div class="min-w-0">
@@ -482,6 +476,9 @@
                     </template>
                     <div class="min-w-0">
                         <Field :name="`variations[${index}].minimum_selling_price`" type="number" min="0" step="0.01" class="erp-input" />
+                    </div>
+                    <div class="min-w-0">
+                        <Field :name="`variations[${index}].profit_margin`" type="number" min="0" step="0.01" class="erp-input" @input="handleVariationMarginInput(values, setFieldValue, index, $event)" />
                     </div>
                     <div class="min-w-0">
                         <input
@@ -965,6 +962,18 @@ const selectedTaxRate = (taxRateId) =>
 
 const isBlankPrice = (value) => value === '' || value === null || value === undefined
 
+const derivedSellingPriceFromMargin = (purchasePrice, profitMargin) => {
+  if (isBlankPrice(purchasePrice) || isBlankPrice(profitMargin)) {
+    return ''
+  }
+
+  const purchase = Number(purchasePrice || 0)
+  const margin = Number(profitMargin || 0)
+  const derived = purchase * (1 + (margin / 100))
+
+  return Number.isFinite(derived) ? derived.toFixed(2) : ''
+}
+
 const derivedSubSellPrice = (baseSellPrice, unitId, subUnitId) => {
   if (isBlankPrice(baseSellPrice) || !subUnitId) {
     return ''
@@ -1029,11 +1038,11 @@ const formValues = computed(() => {
     category_id: current?.category_id ?? '',
     brand_id: current?.brand_id ?? '',
     unit_id: current?.unit_id ?? '',
-    sub_unit_id: current?.sub_unit_id ?? '',
     tax_rate_id: current?.tax_rate_id ?? '',
     rack_location_id: current?.rack_location_id ?? '',
     variation_template_ids: resolveVariationTemplateIds(current),
     variation_value_map: buildVariationValueMap(current),
+    excluded_variation_keys: [],
     price_group_id: current?.price_group_id ?? '',
     name: current?.name ?? '',
     description: current?.description ?? '',
@@ -1046,8 +1055,8 @@ const formValues = computed(() => {
     type: current?.type ?? 'single',
     stock_tracking: current?.stock_tracking ?? 'none',
     has_expiry: current?.has_expiry ?? false,
-    selling_price: current?.type === 'variable' ? '' : (current?.selling_price ?? '0.00'),
-    purchase_price: current?.type === 'variable' ? '' : (current?.purchase_price ?? '0.00'),
+    selling_price: current?.type === 'variable' ? '' : (current?.selling_price ?? ''),
+    purchase_price: current?.type === 'variable' ? '' : (current?.purchase_price ?? ''),
     sub_unit_selling_price: current?.type === 'variable' ? '' : (current?.sub_unit_selling_price ?? ''),
     sub_unit_purchase_price: current?.type === 'variable' ? '' : (current?.sub_unit_purchase_price ?? ''),
     minimum_selling_price: current?.type === 'variable' ? '' : (current?.minimum_selling_price ?? ''),
@@ -1076,6 +1085,7 @@ const formValues = computed(() => {
       sub_unit_selling_price: variation.sub_unit_selling_price ?? '',
       sub_unit_purchase_price: variation.sub_unit_purchase_price ?? '',
       minimum_selling_price: variation.minimum_selling_price ?? '',
+      profit_margin: variation.profit_margin ?? '',
       is_active: variation.is_active !== false,
     })),
     combo_items: (current?.combo_items || []).map((comboItem) => ({
@@ -1188,7 +1198,7 @@ const cartesianProduct = (groups) =>
     [[]]
   )
 
-const buildGeneratedVariations = (currentVariations, templateIds, variationValueMap) => {
+const buildGeneratedVariations = (currentVariations, templateIds, variationValueMap, excludedKeys = []) => {
   if (!templateIds.length) {
     return []
   }
@@ -1201,6 +1211,7 @@ const buildGeneratedVariations = (currentVariations, templateIds, variationValue
     return []
   }
 
+  const excluded = new Set(excludedKeys || [])
   const existingByCombination = new Map(
     (currentVariations || []).map((variation) => [
       combinationKey(variation.variation_value_ids || [], templateIds),
@@ -1211,6 +1222,11 @@ const buildGeneratedVariations = (currentVariations, templateIds, variationValue
   return cartesianProduct(selectedGroups).map((valueIds) => {
     const orderedIds = orderedVariationValueIds(valueIds, templateIds)
     const key = combinationKey(orderedIds, templateIds)
+
+    if (excluded.has(key)) {
+      return null
+    }
+
     const existing = existingByCombination.get(key)
 
     return {
@@ -1223,20 +1239,26 @@ const buildGeneratedVariations = (currentVariations, templateIds, variationValue
       image_file: null,
       image_preview_url: existing?.image_url ?? '',
       sub_unit_id: existing?.sub_unit_id ?? '',
-      selling_price: existing?.selling_price ?? '0.00',
-      purchase_price: existing?.purchase_price ?? '0.00',
+      selling_price: existing?.selling_price ?? '',
+      purchase_price: existing?.purchase_price ?? '',
       sub_unit_selling_price: existing?.sub_unit_selling_price ?? '',
       sub_unit_purchase_price: existing?.sub_unit_purchase_price ?? '',
       minimum_selling_price: existing?.minimum_selling_price ?? '',
+      profit_margin: existing?.profit_margin ?? '',
       is_active: existing?.is_active !== false,
     }
-  })
+  }).filter(Boolean)
 }
 
 const syncGeneratedVariations = (values, setFieldValue, templateIds, variationValueMap) => {
   setFieldValue(
     'variations',
-    buildGeneratedVariations(values.variations || [], templateIds, variationValueMap)
+    buildGeneratedVariations(
+      values.variations || [],
+      templateIds,
+      variationValueMap,
+      values.excluded_variation_keys || []
+    )
   )
 }
 
@@ -1251,6 +1273,7 @@ const handleVariationTemplatesChange = (values, setFieldValue, templateIds) => {
 
   setFieldValue('variation_template_ids', nextTemplateIds)
   setFieldValue('variation_value_map', nextValueMap)
+  setFieldValue('excluded_variation_keys', [])
   syncGeneratedVariations(values, setFieldValue, nextTemplateIds, nextValueMap)
 }
 
@@ -1262,6 +1285,7 @@ const handleVariationValuesChange = (values, setFieldValue, templateId, valueIds
   }
 
   setFieldValue('variation_value_map', nextValueMap)
+  setFieldValue('excluded_variation_keys', [])
   syncGeneratedVariations(values, setFieldValue, nextTemplateIds, nextValueMap)
 }
 
@@ -1282,7 +1306,14 @@ const removeComboItem = (values, setFieldValue, index) => {
 }
 
 const removeVariation = (values, setFieldValue, index) => {
-  setFieldValue('variations', (values.variations || []).filter((_, itemIndex) => itemIndex !== index))
+  const currentVariation = values.variations?.[index]
+  const nextVariations = (values.variations || []).filter((_, itemIndex) => itemIndex !== index)
+  const nextExcludedKeys = currentVariation?.combination_key
+    ? [...new Set([...(values.excluded_variation_keys || []), currentVariation.combination_key])]
+    : (values.excluded_variation_keys || [])
+
+  setFieldValue('excluded_variation_keys', nextExcludedKeys)
+  setFieldValue('variations', nextVariations)
 }
 
 const handleProductTypeChange = (values, setFieldValue, type) => {
@@ -1349,10 +1380,6 @@ const handleUnitChange = (values, setFieldValue, unitId) => {
   setFieldValue('unit_id', unitId || '')
 
   const validSubUnits = new Set(subUnitOptions(unitId).map((option) => option.value))
-
-  if (!validSubUnits.has(values.sub_unit_id)) {
-    setFieldValue('sub_unit_id', '')
-  }
 
   if (!validSubUnits.has(values.sub_unit_id)) {
     setFieldValue('sub_unit_id', '')
@@ -1427,7 +1454,11 @@ const handleVariationConversionUnitChange = (values, setFieldValue, index, subUn
     sub_unit_id: subUnitId || '',
     sub_unit_selling_price: subUnitId
       ? (isBlankPrice(currentVariation.sub_unit_selling_price)
-        ? derivedSubSellPrice(currentVariation.selling_price, values.unit_id, subUnitId)
+        ? derivedSubSellPrice(
+          currentVariation.selling_price,
+          values.unit_id,
+          subUnitId
+        )
         : currentVariation.sub_unit_selling_price)
       : '',
     sub_unit_purchase_price: subUnitId ? currentVariation.sub_unit_purchase_price : '',
@@ -1451,6 +1482,38 @@ const handleBaseSellingPriceInput = (values, setFieldValue, event) => {
   )
 }
 
+const handleBasePurchasePriceInput = (values, setFieldValue, event) => {
+  const purchasePrice = event?.target?.value ?? values.purchase_price
+
+  if (!isBlankPrice(values.profit_margin) && isBlankPrice(values.selling_price)) {
+    const nextSellingPrice = derivedSellingPriceFromMargin(purchasePrice, values.profit_margin)
+    setFieldValue('selling_price', nextSellingPrice)
+
+    if (values.use_sub_unit && values.sub_unit_id && isBlankPrice(values.sub_unit_selling_price)) {
+      setFieldValue(
+        'sub_unit_selling_price',
+        derivedSubSellPrice(nextSellingPrice, values.unit_id, values.sub_unit_id)
+      )
+    }
+  }
+}
+
+const handleBaseMarginInput = (values, setFieldValue, event) => {
+  const profitMargin = event?.target?.value ?? values.profit_margin
+
+  if (!isBlankPrice(values.purchase_price) && isBlankPrice(values.selling_price)) {
+    const nextSellingPrice = derivedSellingPriceFromMargin(values.purchase_price, profitMargin)
+    setFieldValue('selling_price', nextSellingPrice)
+
+    if (values.use_sub_unit && values.sub_unit_id && isBlankPrice(values.sub_unit_selling_price)) {
+      setFieldValue(
+        'sub_unit_selling_price',
+        derivedSubSellPrice(nextSellingPrice, values.unit_id, values.sub_unit_id)
+      )
+    }
+  }
+}
+
 const handleVariationSellingPriceInput = (values, setFieldValue, index, event) => {
   const currentVariation = values.variations?.[index]
 
@@ -1466,6 +1529,83 @@ const handleVariationSellingPriceInput = (values, setFieldValue, index, event) =
       currentVariation.sub_unit_id
     )
   )
+}
+
+const handleVariationPurchasePriceInput = (values, setFieldValue, index, event) => {
+  const currentVariation = values.variations?.[index]
+
+  if (!currentVariation || isBlankPrice(currentVariation.profit_margin) || !isBlankPrice(currentVariation.selling_price)) {
+    return
+  }
+
+  const nextSellingPrice = derivedSellingPriceFromMargin(
+    event?.target?.value ?? currentVariation.purchase_price,
+    currentVariation.profit_margin
+  )
+
+  setFieldValue(`variations[${index}].selling_price`, nextSellingPrice)
+
+  if (currentVariation.sub_unit_id && isBlankPrice(currentVariation.sub_unit_selling_price)) {
+    setFieldValue(
+      `variations[${index}].sub_unit_selling_price`,
+      derivedSubSellPrice(nextSellingPrice, values.unit_id, currentVariation.sub_unit_id)
+    )
+  }
+}
+
+const handleVariationMarginInput = (values, setFieldValue, index, event) => {
+  const currentVariation = values.variations?.[index]
+
+  if (!currentVariation || isBlankPrice(currentVariation.purchase_price) || !isBlankPrice(currentVariation.selling_price)) {
+    return
+  }
+
+  const nextSellingPrice = derivedSellingPriceFromMargin(
+    currentVariation.purchase_price,
+    event?.target?.value ?? currentVariation.profit_margin
+  )
+
+  setFieldValue(`variations[${index}].selling_price`, nextSellingPrice)
+
+  if (currentVariation.sub_unit_id && isBlankPrice(currentVariation.sub_unit_selling_price)) {
+    setFieldValue(
+      `variations[${index}].sub_unit_selling_price`,
+      derivedSubSellPrice(nextSellingPrice, values.unit_id, currentVariation.sub_unit_id)
+    )
+  }
+}
+
+const handleTaxContextChange = (values, setFieldValue, field, value) => {
+  setFieldValue(field, value)
+
+  if (!values.use_sub_unit) {
+    return
+  }
+
+  const nextTaxType = field === 'tax_type' ? value : values.tax_type
+  const nextTaxRateId = field === 'tax_rate_id' ? value : values.tax_rate_id
+
+  if (values.sub_unit_id && isBlankPrice(values.sub_unit_selling_price)) {
+    setFieldValue(
+      'sub_unit_selling_price',
+      derivedSubSellPrice(values.selling_price, values.unit_id, values.sub_unit_id)
+    )
+  }
+
+  ;(values.variations || []).forEach((variation, index) => {
+    if (!variation.sub_unit_id || !isBlankPrice(variation.sub_unit_selling_price)) {
+      return
+    }
+
+    setFieldValue(
+      `variations[${index}].sub_unit_selling_price`,
+      derivedSubSellPrice(
+        variation.selling_price,
+        values.unit_id,
+        variation.sub_unit_id
+      )
+    )
+  })
 }
 
 const handleComboProductChange = (values, setFieldValue, index, productId) => {
@@ -1485,7 +1625,6 @@ const buildPayload = (values) => {
     category_id: values.category_id || null,
     brand_id: values.brand_id || null,
     unit_id: values.unit_id || null,
-    sub_unit_id: values.sub_unit_id || null,
     tax_rate_id: values.tax_rate_id || null,
     rack_location_id: values.rack_location_id || null,
     variation_template_id: values.type === 'variable' ? (values.variation_template_ids?.[0] || null) : null,
@@ -1527,6 +1666,7 @@ const buildPayload = (values) => {
           sub_unit_selling_price: variation.sub_unit_id ? (variation.sub_unit_selling_price || null) : null,
           sub_unit_purchase_price: variation.sub_unit_id ? (variation.sub_unit_purchase_price || null) : null,
           minimum_selling_price: variation.minimum_selling_price || null,
+          profit_margin: variation.profit_margin || null,
           is_active: variation.is_active !== false,
         }))
       : [],

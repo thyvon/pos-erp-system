@@ -96,7 +96,7 @@ class User extends Authenticatable
 
     public function accessibleBranchIds(): array
     {
-        if ($this->hasRole('super_admin')) {
+        if ($this->hasRole(['super_admin', 'admin'])) {
             return [];
         }
 
@@ -111,7 +111,7 @@ class User extends Authenticatable
 
     public function hasBranchAccess(string $branchId): bool
     {
-        if ($this->hasRole('super_admin')) {
+        if ($this->hasRole(['super_admin', 'admin'])) {
             return true;
         }
 

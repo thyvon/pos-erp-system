@@ -13,6 +13,11 @@ const CategoriesView = () => import('@views/CategoriesView.vue')
 const CustomerGroupsView = () => import('@views/CustomerGroupsView.vue')
 const CustomersView = () => import('@views/CustomersView.vue')
 const DashboardView = () => import('@views/DashboardView.vue')
+const InventoryAdjustmentsView = () => import('@views/InventoryAdjustmentsView.vue')
+const InventoryCountsView = () => import('@views/InventoryCountsView.vue')
+const InventoryLotsView = () => import('@views/InventoryLotsView.vue')
+const InventorySerialsView = () => import('@views/InventorySerialsView.vue')
+const InventoryTransfersView = () => import('@views/InventoryTransfersView.vue')
 const PriceGroupsView = () => import('@views/PriceGroupsView.vue')
 const ProductFormView = () => import('@views/ProductFormView.vue')
 const ProductDetailView = () => import('@views/ProductDetailView.vue')
@@ -93,6 +98,36 @@ const router = createRouter({
       name: 'settings',
       component: SettingsView,
       meta: { requiresAuth: true, requiredAnyPermissions: ['settings.index', 'businesses.index'] },
+    },
+    {
+      path: '/inventory/adjustments',
+      name: 'inventory-adjustments',
+      component: InventoryAdjustmentsView,
+      meta: { requiresAuth: true, requiredPermission: 'inventory.index' },
+    },
+    {
+      path: '/inventory/transfers',
+      name: 'inventory-transfers',
+      component: InventoryTransfersView,
+      meta: { requiresAuth: true, requiredPermission: 'inventory.index' },
+    },
+    {
+      path: '/inventory/counts',
+      name: 'inventory-counts',
+      component: InventoryCountsView,
+      meta: { requiresAuth: true, requiredPermission: 'inventory.index' },
+    },
+    {
+      path: '/inventory/lots',
+      name: 'inventory-lots',
+      component: InventoryLotsView,
+      meta: { requiresAuth: true, requiredPermission: 'inventory.index' },
+    },
+    {
+      path: '/inventory/serials',
+      name: 'inventory-serials',
+      component: InventorySerialsView,
+      meta: { requiresAuth: true, requiredPermission: 'inventory.index' },
     },
     {
       path: '/custom-fields',

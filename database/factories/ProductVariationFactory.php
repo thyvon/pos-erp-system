@@ -25,10 +25,12 @@ class ProductVariationFactory extends Factory
             'name' => fake()->words(2, true),
             'variation_value_ids' => [],
             'sku' => strtoupper(fake()->unique()->bothify('VAR-####')),
-            'barcode' => fake()->unique()->ean13(),
             'selling_price' => fake()->randomFloat(2, 1, 200),
             'purchase_price' => fake()->randomFloat(2, 1, 150),
+            'sub_unit_selling_price' => null,
+            'sub_unit_purchase_price' => null,
             'minimum_selling_price' => null,
+            'profit_margin' => null,
             'is_active' => true,
         ];
     }

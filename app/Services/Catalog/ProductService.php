@@ -267,7 +267,7 @@ class ProductService
             'category_id' => $this->nullableString($data['category_id'] ?? $product?->category_id),
             'brand_id' => $this->nullableString($data['brand_id'] ?? $product?->brand_id),
             'unit_id' => $this->nullableString($data['unit_id'] ?? $product?->unit_id),
-            'sub_unit_id' => in_array($type, ['service', 'combo'], true)
+            'sub_unit_id' => $type !== 'single'
                 ? null
                 : $this->nullableString($data['sub_unit_id'] ?? $product?->sub_unit_id),
             'tax_rate_id' => $this->nullableString($data['tax_rate_id'] ?? $product?->tax_rate_id),
@@ -290,10 +290,10 @@ class ProductService
             'purchase_price' => $type === 'variable'
                 ? $this->decimalOrDefault($product?->purchase_price ?? 0)
                 : $this->decimalOrDefault($data['purchase_price'] ?? $product?->purchase_price ?? 0),
-            'sub_unit_selling_price' => in_array($type, ['service', 'combo'], true) || empty($data['sub_unit_id'] ?? $product?->sub_unit_id)
+            'sub_unit_selling_price' => $type !== 'single' || empty($data['sub_unit_id'] ?? $product?->sub_unit_id)
                 ? null
                 : $this->nullableDecimal($data['sub_unit_selling_price'] ?? $product?->sub_unit_selling_price),
-            'sub_unit_purchase_price' => in_array($type, ['service', 'combo'], true) || empty($data['sub_unit_id'] ?? $product?->sub_unit_id)
+            'sub_unit_purchase_price' => $type !== 'single' || empty($data['sub_unit_id'] ?? $product?->sub_unit_id)
                 ? null
                 : $this->nullableDecimal($data['sub_unit_purchase_price'] ?? $product?->sub_unit_purchase_price),
             'minimum_selling_price' => $type === 'variable'
@@ -467,6 +467,7 @@ class ProductService
                     ? $this->nullableDecimal($variationData['sub_unit_purchase_price'] ?? null)
                     : null,
                 'minimum_selling_price' => $this->nullableDecimal($variationData['minimum_selling_price'] ?? null),
+                'profit_margin' => $this->nullableDecimal($variationData['profit_margin'] ?? null),
                 'is_active' => array_key_exists('is_active', $variationData) ? (bool) $variationData['is_active'] : true,
             ];
 
@@ -941,6 +942,7 @@ class ProductService
                 'selling_price' => $variation->selling_price !== null ? (string) $variation->selling_price : null,
                 'sub_unit_selling_price' => $variation->sub_unit_selling_price !== null ? (string) $variation->sub_unit_selling_price : null,
                 'sub_unit_purchase_price' => $variation->sub_unit_purchase_price !== null ? (string) $variation->sub_unit_purchase_price : null,
+                'profit_margin' => $variation->profit_margin !== null ? (string) $variation->profit_margin : null,
             ])->values()->all(),
             'combo_items' => $product->comboItems->map(fn (ComboItem $comboItem) => [
                 'id' => $comboItem->id,

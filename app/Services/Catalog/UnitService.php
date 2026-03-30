@@ -214,6 +214,15 @@ class UnitService
         ) {
             throw new DomainException('Unit cannot be deleted because one of its sub units is still assigned to products.', 422);
         }
+
+        if (
+            ! empty($subUnitIds)
+            && Schema::hasTable('product_variations')
+            && Schema::hasColumn('product_variations', 'sub_unit_id')
+            && DB::table('product_variations')->whereIn('sub_unit_id', $subUnitIds)->exists()
+        ) {
+            throw new DomainException('Unit cannot be deleted because one of its sub units is still assigned to product variations.', 422);
+        }
     }
 
     protected function ensureSubUnitsCanBeDeleted(array $subUnitIds): void
@@ -225,6 +234,15 @@ class UnitService
             && DB::table('products')->whereIn('sub_unit_id', $subUnitIds)->exists()
         ) {
             throw new DomainException('A sub unit cannot be removed because it is still assigned to products.', 422);
+        }
+
+        if (
+            ! empty($subUnitIds)
+            && Schema::hasTable('product_variations')
+            && Schema::hasColumn('product_variations', 'sub_unit_id')
+            && DB::table('product_variations')->whereIn('sub_unit_id', $subUnitIds)->exists()
+        ) {
+            throw new DomainException('A sub unit cannot be removed because it is still assigned to product variations.', 422);
         }
     }
 

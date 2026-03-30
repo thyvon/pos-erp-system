@@ -176,7 +176,11 @@
             </div>
             <div>
               <label class="erp-label" for="date_of_birth">Date of birth</label>
-              <Field id="date_of_birth" name="date_of_birth" type="date" class="erp-input" />
+              <AppDatePicker
+                id="date_of_birth"
+                :model-value="values.date_of_birth || ''"
+                @update:model-value="setFieldValue('date_of_birth', $event || '')"
+              />
               <ErrorMessage name="date_of_birth" class="erp-helper text-rose-500 dark:text-rose-400" />
             </div>
           </div>
@@ -305,6 +309,7 @@ import { computed, onMounted, reactive, ref } from 'vue'
 import { ErrorMessage, Field, Form } from 'vee-validate'
 import * as yup from 'yup'
 import AppAlert from '@components/ui/AppAlert.vue'
+import AppDatePicker from '@components/ui/AppDatePicker.vue'
 import AppModal from '@components/ui/AppModal.vue'
 import AppSelect from '@components/ui/AppSelect.vue'
 import ConfirmDelete from '@components/ui/ConfirmDelete.vue'
