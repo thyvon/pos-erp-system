@@ -20,7 +20,6 @@ class Product extends BaseModel
         'brand_id',
         'unit_id',
         'sub_unit_id',
-        'conversion_sub_unit_id',
         'tax_rate_id',
         'rack_location_id',
         'variation_template_id',
@@ -97,11 +96,6 @@ class Product extends BaseModel
         return $this->belongsTo(SubUnit::class, 'sub_unit_id');
     }
 
-    public function conversionSubUnit(): BelongsTo
-    {
-        return $this->belongsTo(SubUnit::class, 'conversion_sub_unit_id');
-    }
-
     public function taxRate(): BelongsTo
     {
         return $this->belongsTo(TaxRate::class);
@@ -130,19 +124,6 @@ class Product extends BaseModel
     public function comboItems(): HasMany
     {
         return $this->hasMany(ComboItem::class)->orderBy('created_at');
-    }
-
-    public function packagingOptions(): HasMany
-    {
-        return $this->hasMany(ProductPackaging::class)
-            ->whereNull('product_variation_id')
-            ->orderByDesc('is_default')
-            ->orderBy('name');
-    }
-
-    public function unitConversions(): HasMany
-    {
-        return $this->packagingOptions();
     }
 
     public function softDeleteUniqueColumns(): array

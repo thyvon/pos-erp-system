@@ -3,11 +3,11 @@
     <Transition name="erp-fade">
       <div
         v-if="show"
-        class="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/30 px-3 py-4 backdrop-blur-md"
+        class="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/80 px-3 py-4"
         @click.self="handleBackdrop"
       >
         <div
-          class="w-full overflow-hidden rounded-[5px] border border-white/60 bg-white/80 shadow-[0_30px_90px_rgba(56,77,112,0.22)] backdrop-blur-2xl dark:border-white/10 dark:bg-slate-950/80"
+          class="w-full overflow-hidden rounded-[5px] border border-slate-800/80 bg-white/90 shadow-[0_30px_90px_rgba(0,0,0,0.28)] dark:border-slate-700/70 dark:bg-slate-900/95"
           :class="sizeClass"
         >
           <div class="flex items-start justify-between gap-4 border-b border-slate-200/70 px-4 py-4 dark:border-slate-800/80">
@@ -20,7 +20,7 @@
 
             <button
               type="button"
-              class="inline-flex h-10 w-10 items-center justify-center rounded-[5px] border border-slate-200/80 bg-white/70 text-slate-500 transition hover:border-slate-300 hover:text-slate-900 dark:border-slate-700/80 dark:bg-slate-900/70 dark:text-slate-400 dark:hover:border-slate-600 dark:hover:text-white"
+              class="inline-flex h-10 w-10 items-center justify-center rounded-[5px] border border-slate-200/80 bg-white/70 text-slate-500 transition hover:border-slate-300 hover:text-slate-900 dark:border-slate-700/80 dark:bg-slate-800/80 dark:text-slate-400 dark:hover:border-slate-600 dark:hover:text-white"
               aria-label="Close modal"
               @click="$emit('close')"
             >

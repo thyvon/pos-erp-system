@@ -130,10 +130,23 @@
         </template>
 
         <template #product="{ row }">
-          <div>
-            <div class="font-semibold text-slate-950 dark:text-white">{{ row.name }}</div>
-            <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              {{ row.sku || 'Auto-generated SKU' }}
+          <div class="flex items-center gap-3">
+            <div class="h-10 w-10 overflow-hidden rounded-[6px] bg-slate-100 dark:bg-slate-800">
+              <img
+                v-if="row.image_url"
+                :src="row.image_url"
+                :alt="row.name"
+                class="h-full w-full object-cover"
+              />
+              <div v-else class="flex h-full w-full items-center justify-center text-xs font-semibold text-slate-500 dark:text-slate-400">
+                N/A
+              </div>
+            </div>
+            <div>
+              <div class="font-semibold text-slate-950 dark:text-white">{{ row.name }}</div>
+              <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                {{ row.sku || 'Auto-generated SKU' }}
+              </div>
             </div>
           </div>
         </template>
@@ -204,6 +217,9 @@
 
         <template #actions="{ row }">
           <div v-if="showActionsColumn" class="flex items-center gap-2">
+            <button v-if="canViewProduct" type="button" class="erp-button-icon" @click="openDetailPage(row)">
+              <i class="fa-solid fa-eye"></i>
+            </button>
             <button v-if="canEditProduct" type="button" class="erp-button-icon" @click="openEditPage(row)">
               <i class="fa-solid fa-pen-to-square"></i>
             </button>
@@ -245,7 +261,8 @@ const router = useRouter()
 const canCreateProduct = computed(() => auth.can('products.create'))
 const canEditProduct = computed(() => auth.can('products.edit'))
 const canDeleteProduct = computed(() => auth.can('products.delete'))
-const showActionsColumn = computed(() => canEditProduct.value || canDeleteProduct.value)
+const canViewProduct = computed(() => auth.can('products.index'))
+const showActionsColumn = computed(() => canViewProduct.value || canEditProduct.value || canDeleteProduct.value)
 
 const columns = computed(() => {
   const base = [
@@ -378,6 +395,11 @@ const stockTrackingClass = (type) => {
 const openCreatePage = () => {
   if (!canCreateProduct.value) return
   router.push({ name: 'product-create' })
+}
+
+const openDetailPage = (product) => {
+  if (!canViewProduct.value) return
+  router.push({ name: 'product-detail', params: { id: product.id } })
 }
 
 const openEditPage = (product) => {

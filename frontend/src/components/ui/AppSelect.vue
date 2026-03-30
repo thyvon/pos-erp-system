@@ -59,7 +59,7 @@
     <Transition name="erp-select-pop">
       <div
         v-if="open"
-        class="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-[90] overflow-hidden rounded-[15px] border border-slate-200/80 bg-white/95 shadow-[0_22px_50px_rgba(44,62,99,0.16)] backdrop-blur-xl dark:border-slate-700/70 dark:bg-slate-950/95 dark:shadow-[0_22px_50px_rgba(2,6,23,0.38)]"
+        class="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-[90] overflow-hidden rounded-[15px] border border-slate-200/80 bg-white/95 shadow-[0_22px_50px_rgba(44,62,99,0.16)] dark:border-slate-700/70 dark:bg-slate-900/95 dark:shadow-[0_22px_50px_rgba(0,0,0,0.36)]"
       >
         <div v-if="searchable" class="border-b border-slate-200/70 p-3 dark:border-slate-800/70">
           <SearchInput

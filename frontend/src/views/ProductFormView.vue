@@ -9,7 +9,7 @@
 
       <div class="flex flex-wrap items-center justify-between gap-3">
         <div class="text-sm text-slate-500 dark:text-slate-400">
-          This page is arranged like a classic POS product setup flow: identify the item, classify it, price it, then define stock behavior.
+          Update the product details, pricing, and catalog information. For variable products, manage variations in the section below.
         </div>
         <button type="button" class="erp-button-secondary" @click="goBack">
           <i class="fa-solid fa-arrow-left"></i>
@@ -262,9 +262,9 @@
 
                   <div v-if="values.use_sub_unit" class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
                     <div>
-                      <label class="erp-label" for="conversion_sub_unit_id">Sub-unit</label>
+                      <label class="erp-label" for="sub_unit_id">Sub-unit</label>
                       <AppSelect
-                        :model-value="values.conversion_sub_unit_id || null"
+                        :model-value="values.sub_unit_id || null"
                         :options="subUnitOptions(values.unit_id)"
                         clearable
                         searchable
@@ -279,11 +279,11 @@
                     </div>
                     <div>
                       <label class="erp-label" for="sub_unit_selling_price">Sub-unit sell price</label>
-                      <Field id="sub_unit_selling_price" name="sub_unit_selling_price" type="number" min="0" step="0.01" class="erp-input" :disabled="!values.conversion_sub_unit_id" />
+                      <Field id="sub_unit_selling_price" name="sub_unit_selling_price" type="number" min="0" step="0.01" class="erp-input" :disabled="!values.sub_unit_id" />
                     </div>
                     <div>
                       <label class="erp-label" for="sub_unit_purchase_price">Sub-unit buy price</label>
-                      <Field id="sub_unit_purchase_price" name="sub_unit_purchase_price" type="number" min="0" step="0.01" class="erp-input" :disabled="!values.conversion_sub_unit_id" />
+                      <Field id="sub_unit_purchase_price" name="sub_unit_purchase_price" type="number" min="0" step="0.01" class="erp-input" :disabled="!values.sub_unit_id" />
                     </div>
                   </div>
                 </div>
@@ -401,12 +401,12 @@
 
                 <div v-else class="overflow-x-auto rounded-[5px] border border-slate-200/80 dark:border-slate-800/80">
 
-                <!-- Header row — desktop only -->
+                <!-- Header row -->
                 <div
-                  class="hidden xl:grid gap-3 border-b border-slate-200/80 bg-slate-50/80 px-3 py-2 text-xs font-semibold text-slate-500 dark:border-slate-800/80 dark:bg-slate-900/50 dark:text-slate-400"
+                  class="grid gap-3 border-b border-slate-200/80 bg-slate-50/80 px-3 py-2 text-xs font-semibold text-slate-500 dark:border-slate-800/80 dark:bg-slate-900/50 dark:text-slate-400"
                   :class="values.use_sub_unit
-                    ? 'xl:grid-cols-[minmax(13rem,1.25fr)_minmax(9rem,0.9fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(7rem,0.65fr)_minmax(10rem,0.9fr)_minmax(8rem,0.75fr)]'
-                    : 'xl:grid-cols-[minmax(13rem,1.25fr)_minmax(9rem,0.9fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(7rem,0.65fr)_minmax(10rem,0.9fr)_minmax(8rem,0.75fr)]'"
+                    ? 'grid-cols-[minmax(13rem,1.25fr)_minmax(9rem,0.9fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(7rem,0.65fr)_minmax(10rem,0.9fr)_minmax(8rem,0.75fr)_minmax(6rem,0.55fr)]'
+                    : 'grid-cols-[minmax(13rem,1.25fr)_minmax(9rem,0.9fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(7rem,0.65fr)_minmax(10rem,0.9fr)_minmax(8rem,0.75fr)_minmax(6rem,0.55fr)]'"
                 >
                     <div>Selected values</div>
                     <div>Variation SKU</div>
@@ -421,131 +421,21 @@
                     </template>
                     <div>Min</div>
                     <div>Image</div>
-                    <div>Active</div>
+                    <div class="text-center">Active</div>
+                    <div class="text-left">Action</div>
                 </div>
-
-                <!-- Data rows -->
                 <div
                     v-for="(variation, index) in values.variations"
                     :key="variation.id || variation.combination_key || index"
                     class="border-b border-slate-200/80 last:border-b-0 dark:border-slate-800/80"
                 >
-                    <!-- Mobile card layout -->
-                    <div class="flex flex-col gap-3 p-3 xl:hidden">
                     <Field :name="`variations[${index}].name`" type="hidden" />
-                    <div class="flex items-start justify-between gap-3">
-                        <div class="min-w-0 flex-1">
-                          <div class="text-sm font-semibold text-slate-900 dark:text-white">
-                            {{ variation.name }}
-                          </div>
-                        </div>
-                        <label class="mt-5 flex shrink-0 items-center gap-2 rounded-[5px] border border-slate-200 px-3 py-2.5 text-sm text-slate-700 dark:border-slate-800 dark:text-slate-300">
-                        <input
-                            type="checkbox"
-                            class="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
-                            :checked="variation.is_active !== false"
-                            @change="setFieldValue(`variations[${index}].is_active`, $event.target.checked)"
-                        />
-                        <span>Active</span>
-                        </label>
-                    </div>
-
-                    <div>
-                        <div class="mb-1 text-xs font-semibold text-slate-500 dark:text-slate-400">Selected values</div>
-                        <div class="erp-input flex min-h-[46px] flex-wrap items-center gap-1.5">
-                        <span
-                            v-for="valueLabel in variationValueLabels(variation.variation_value_ids)"
-                            :key="valueLabel"
-                            class="inline-flex rounded-[10px] bg-cyan-100 px-2 py-1 text-[11px] font-medium text-cyan-700 dark:bg-cyan-950/50 dark:text-cyan-300"
-                        >
-                            {{ valueLabel }}
-                        </span>
-                        </div>
-                    </div>
-
-                    <div>
-                        <div>
-                          <div class="mb-1 text-xs font-semibold text-slate-500 dark:text-slate-400">Variation SKU</div>
-                          <Field :name="`variations[${index}].sku`" class="erp-input" />
-                          <div class="erp-helper text-slate-500 dark:text-slate-400">Leave blank for auto SKU.</div>
-                          <ErrorMessage :name="`variations[${index}].sku`" class="erp-helper text-rose-500 dark:text-rose-400" />
-                        </div>
-                    </div>
-
-                    <div v-if="values.use_sub_unit">
-                        <div>
-                        <div class="mb-1 text-xs font-semibold text-slate-500 dark:text-slate-400">Sub-unit</div>
-                        <AppSelect
-                          :model-value="variation.conversion_sub_unit_id || null"
-                          :options="subUnitOptions(values.unit_id)"
-                          clearable
-                          searchable
-                          placeholder="Sub-unit"
-                          search-placeholder="Search sub-units"
-                          :disabled="!values.unit_id"
-                          @update:model-value="handleVariationConversionUnitChange(values, setFieldValue, index, $event)"
-                        />
-                        </div>
-                    </div>
-
-                    <div class="grid grid-cols-5 gap-3">
-                        <div>
-                        <div class="mb-1 text-xs font-semibold text-slate-500 dark:text-slate-400">Base sell <span class="text-rose-500">*</span></div>
-                        <Field :name="`variations[${index}].selling_price`" type="number" min="0" step="0.01" class="erp-input" @input="handleVariationSellingPriceInput(values, setFieldValue, index, $event)" />
-                        </div>
-                        <div>
-                        <div class="mb-1 text-xs font-semibold text-slate-500 dark:text-slate-400">Base buy <span class="text-rose-500">*</span></div>
-                        <Field :name="`variations[${index}].purchase_price`" type="number" min="0" step="0.01" class="erp-input" />
-                        </div>
-                        <template v-if="values.use_sub_unit">
-                          <div>
-                          <div class="mb-1 text-xs font-semibold text-slate-500 dark:text-slate-400">Sub sell</div>
-                          <Field :name="`variations[${index}].sub_unit_selling_price`" type="number" min="0" step="0.01" class="erp-input" :disabled="!variation.conversion_sub_unit_id" />
-                          </div>
-                          <div>
-                          <div class="mb-1 text-xs font-semibold text-slate-500 dark:text-slate-400">Sub buy</div>
-                          <Field :name="`variations[${index}].sub_unit_purchase_price`" type="number" min="0" step="0.01" class="erp-input" :disabled="!variation.conversion_sub_unit_id" />
-                          </div>
-                        </template>
-                        <div>
-                        <div class="mb-1 text-xs font-semibold text-slate-500 dark:text-slate-400">Min</div>
-                        <Field :name="`variations[${index}].minimum_selling_price`" type="number" min="0" step="0.01" class="erp-input" />
-                        </div>
-                    </div>
-
-                    <div class="flex items-end justify-between gap-3">
-                        <div class="flex-1">
-                          <div class="mb-1 text-xs font-semibold text-slate-500 dark:text-slate-400">Variation image</div>
-                          <input
-                            type="file"
-                            accept="image/*"
-                            class="erp-input file:mr-2 file:rounded-[5px] file:border-0 file:bg-cyan-50 file:px-2.5 file:py-1.5 file:text-xs file:font-medium file:text-cyan-700 dark:file:bg-cyan-950/40 dark:file:text-cyan-200"
-                            @change="handleVariationImageChange(values, setFieldValue, index, $event)"
-                          />
-                        </div>
-                        <label class="mt-5 flex shrink-0 items-center gap-2 rounded-[5px] border border-slate-200 px-3 py-2.5 text-sm text-slate-700 dark:border-slate-800 dark:text-slate-300">
-                        <input
-                            type="checkbox"
-                            class="h-4 w-4 rounded border-slate-300 text-cyan-600 focus:ring-cyan-500"
-                            :checked="variation.is_active !== false"
-                            @change="setFieldValue(`variations[${index}].is_active`, $event.target.checked)"
-                        />
-                        <span>Active</span>
-                        </label>
-                    </div>
-                    <div v-if="variation.image_preview_url" class="mt-1">
-                      <img :src="variation.image_preview_url" alt="Variation preview" class="h-14 w-14 rounded-[5px] object-cover" />
-                    </div>
-                    </div>
-
-                    <!-- Desktop table row layout -->
                     <div
-                      class="hidden xl:grid gap-3 px-3 py-2.5"
+                      class="grid gap-3 px-3 py-2.5"
                       :class="values.use_sub_unit
-                        ? 'xl:grid-cols-[minmax(13rem,1.25fr)_minmax(9rem,0.9fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(7rem,0.65fr)_minmax(10rem,0.9fr)_minmax(8rem,0.75fr)]'
-                        : 'xl:grid-cols-[minmax(13rem,1.25fr)_minmax(9rem,0.9fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(7rem,0.65fr)_minmax(10rem,0.9fr)_minmax(8rem,0.75fr)]'"
+                        ? 'grid-cols-[minmax(13rem,1.25fr)_minmax(9rem,0.9fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(7rem,0.65fr)_minmax(10rem,0.9fr)_minmax(8rem,0.75fr)_minmax(6rem,0.55fr)]'
+                        : 'grid-cols-[minmax(13rem,1.25fr)_minmax(9rem,0.9fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(7rem,0.65fr)_minmax(10rem,0.9fr)_minmax(8rem,0.75fr)_minmax(6rem,0.55fr)]'"
                     >
-                    <Field :name="`variations[${index}].name`" type="hidden" />
                     <div class="min-w-0">
                         <div class="erp-input flex min-h-[46px] flex-wrap items-center gap-1.5">
                         <span
@@ -565,7 +455,7 @@
                     <template v-if="values.use_sub_unit">
                       <div class="min-w-0">
                           <AppSelect
-                            :model-value="variation.conversion_sub_unit_id || null"
+                            :model-value="variation.sub_unit_id || null"
                             :options="subUnitOptions(values.unit_id)"
                             clearable
                             searchable
@@ -584,10 +474,10 @@
                     </div>
                     <template v-if="values.use_sub_unit">
                       <div class="min-w-0">
-                          <Field :name="`variations[${index}].sub_unit_selling_price`" type="number" min="0" step="0.01" class="erp-input" :disabled="!variation.conversion_sub_unit_id" />
+                          <Field :name="`variations[${index}].sub_unit_selling_price`" type="number" min="0" step="0.01" class="erp-input" :disabled="!variation.sub_unit_id" />
                       </div>
                       <div class="min-w-0">
-                          <Field :name="`variations[${index}].sub_unit_purchase_price`" type="number" min="0" step="0.01" class="erp-input" :disabled="!variation.conversion_sub_unit_id" />
+                          <Field :name="`variations[${index}].sub_unit_purchase_price`" type="number" min="0" step="0.01" class="erp-input" :disabled="!variation.sub_unit_id" />
                       </div>
                     </template>
                     <div class="min-w-0">
@@ -604,7 +494,7 @@
                           <img :src="variation.image_preview_url" alt="Variation preview" class="h-12 w-12 rounded-[5px] object-cover" />
                         </div>
                     </div>
-                    <div class="flex items-center xl:justify-end">
+                    <div class="flex items-center justify-between gap-3 xl:justify-end">
                         <label class="flex items-center gap-3 rounded-[5px] border border-slate-200 px-3 py-2.5 text-sm text-slate-700 dark:border-slate-800 dark:text-slate-300">
                         <input
                             type="checkbox"
@@ -612,8 +502,10 @@
                             :checked="variation.is_active !== false"
                             @change="setFieldValue(`variations[${index}].is_active`, $event.target.checked)"
                         />
-                        <span>Active</span>
                         </label>
+                        <button type="button" class="erp-button-icon text-rose-500" @click="removeVariation(values, setFieldValue, index)">
+                          <i class="fa-solid fa-trash-can"></i>
+                        </button>
                     </div>
                     </div>
                 </div>
@@ -1073,22 +965,14 @@ const selectedTaxRate = (taxRateId) =>
 
 const isBlankPrice = (value) => value === '' || value === null || value === undefined
 
-const derivedSubSellPrice = (baseSellPrice, unitId, subUnitId, taxType = 'exclusive', taxRateId = null) => {
+const derivedSubSellPrice = (baseSellPrice, unitId, subUnitId) => {
   if (isBlankPrice(baseSellPrice) || !subUnitId) {
     return ''
   }
 
   const factor = Number(factorFromSubUnit(unitId, subUnitId) || 1)
   const base = Number(baseSellPrice || 0)
-  let derived = base * factor
-
-  if (taxType === 'inclusive') {
-    const taxRate = selectedTaxRate(taxRateId)
-
-    if (taxRate?.type === 'percentage' && Number.isFinite(Number(taxRate.rate))) {
-      derived *= 1 + (Number(taxRate.rate) / 100)
-    }
-  }
+  const derived = base * factor
 
   return Number.isFinite(derived) ? derived.toFixed(2) : ''
 }
@@ -1156,9 +1040,9 @@ const formValues = computed(() => {
     sku: current?.sku ?? '',
     barcode_type: current?.barcode_type ?? 'C128',
     use_sub_unit: current?.type === 'variable'
-      ? (current?.variations || []).some((variation) => Boolean(variation.conversion_sub_unit_id))
-      : Boolean(current?.conversion_sub_unit_id),
-    conversion_sub_unit_id: current?.conversion_sub_unit_id ?? '',
+      ? (current?.variations || []).some((variation) => Boolean(variation.sub_unit_id))
+      : Boolean(current?.sub_unit_id),
+    sub_unit_id: current?.sub_unit_id ?? '',
     type: current?.type ?? 'single',
     stock_tracking: current?.stock_tracking ?? 'none',
     has_expiry: current?.has_expiry ?? false,
@@ -1186,7 +1070,7 @@ const formValues = computed(() => {
       image_url: variation.image_url ?? '',
       image_file: null,
       image_preview_url: variation.image_url ?? '',
-      conversion_sub_unit_id: variation.conversion_sub_unit_id ?? '',
+      sub_unit_id: variation.sub_unit_id ?? '',
       selling_price: variation.selling_price ?? '',
       purchase_price: variation.purchase_price ?? '',
       sub_unit_selling_price: variation.sub_unit_selling_price ?? '',
@@ -1338,7 +1222,7 @@ const buildGeneratedVariations = (currentVariations, templateIds, variationValue
       image_url: existing?.image_url ?? '',
       image_file: null,
       image_preview_url: existing?.image_url ?? '',
-      conversion_sub_unit_id: existing?.conversion_sub_unit_id ?? '',
+      sub_unit_id: existing?.sub_unit_id ?? '',
       selling_price: existing?.selling_price ?? '0.00',
       purchase_price: existing?.purchase_price ?? '0.00',
       sub_unit_selling_price: existing?.sub_unit_selling_price ?? '',
@@ -1395,6 +1279,10 @@ const addComboItem = (values, setFieldValue) => {
 
 const removeComboItem = (values, setFieldValue, index) => {
   setFieldValue('combo_items', (values.combo_items || []).filter((_, itemIndex) => itemIndex !== index))
+}
+
+const removeVariation = (values, setFieldValue, index) => {
+  setFieldValue('variations', (values.variations || []).filter((_, itemIndex) => itemIndex !== index))
 }
 
 const handleProductTypeChange = (values, setFieldValue, type) => {
@@ -1466,20 +1354,20 @@ const handleUnitChange = (values, setFieldValue, unitId) => {
     setFieldValue('sub_unit_id', '')
   }
 
-  if (!validSubUnits.has(values.conversion_sub_unit_id)) {
-    setFieldValue('conversion_sub_unit_id', '')
+  if (!validSubUnits.has(values.sub_unit_id)) {
+    setFieldValue('sub_unit_id', '')
     setFieldValue('sub_unit_selling_price', '')
     setFieldValue('sub_unit_purchase_price', '')
   }
 
   const nextVariations = (values.variations || []).map((variation) => {
-    if (validSubUnits.has(variation.conversion_sub_unit_id)) {
+    if (validSubUnits.has(variation.sub_unit_id)) {
       return variation
     }
 
     return {
       ...variation,
-      conversion_sub_unit_id: '',
+      sub_unit_id: '',
       sub_unit_selling_price: '',
       sub_unit_purchase_price: '',
     }
@@ -1495,13 +1383,13 @@ const handleUseSubUnitToggle = (values, setFieldValue, checked) => {
     return
   }
 
-  setFieldValue('conversion_sub_unit_id', '')
+  setFieldValue('sub_unit_id', '')
   setFieldValue('sub_unit_selling_price', '')
   setFieldValue('sub_unit_purchase_price', '')
 
   const nextVariations = (values.variations || []).map((variation) => ({
     ...variation,
-    conversion_sub_unit_id: '',
+    sub_unit_id: '',
     sub_unit_selling_price: '',
     sub_unit_purchase_price: '',
   }))
@@ -1510,7 +1398,7 @@ const handleUseSubUnitToggle = (values, setFieldValue, checked) => {
 }
 
 const handleProductConversionUnitChange = (values, setFieldValue, subUnitId) => {
-  setFieldValue('conversion_sub_unit_id', subUnitId || '')
+  setFieldValue('sub_unit_id', subUnitId || '')
 
   if (!subUnitId) {
     setFieldValue('sub_unit_selling_price', '')
@@ -1521,7 +1409,7 @@ const handleProductConversionUnitChange = (values, setFieldValue, subUnitId) => 
   if (isBlankPrice(values.sub_unit_selling_price)) {
     setFieldValue(
       'sub_unit_selling_price',
-      derivedSubSellPrice(values.selling_price, values.unit_id, subUnitId, values.tax_type, values.tax_rate_id)
+      derivedSubSellPrice(values.selling_price, values.unit_id, subUnitId)
     )
   }
 }
@@ -1536,10 +1424,10 @@ const handleVariationConversionUnitChange = (values, setFieldValue, index, subUn
 
   nextVariations[index] = {
     ...currentVariation,
-    conversion_sub_unit_id: subUnitId || '',
+    sub_unit_id: subUnitId || '',
     sub_unit_selling_price: subUnitId
       ? (isBlankPrice(currentVariation.sub_unit_selling_price)
-        ? derivedSubSellPrice(currentVariation.selling_price, values.unit_id, subUnitId, values.tax_type, values.tax_rate_id)
+        ? derivedSubSellPrice(currentVariation.selling_price, values.unit_id, subUnitId)
         : currentVariation.sub_unit_selling_price)
       : '',
     sub_unit_purchase_price: subUnitId ? currentVariation.sub_unit_purchase_price : '',
@@ -1549,7 +1437,7 @@ const handleVariationConversionUnitChange = (values, setFieldValue, index, subUn
 }
 
 const handleBaseSellingPriceInput = (values, setFieldValue, event) => {
-  if (!values.use_sub_unit || !values.conversion_sub_unit_id || !isBlankPrice(values.sub_unit_selling_price)) {
+  if (!values.use_sub_unit || !values.sub_unit_id || !isBlankPrice(values.sub_unit_selling_price)) {
     return
   }
 
@@ -1558,9 +1446,7 @@ const handleBaseSellingPriceInput = (values, setFieldValue, event) => {
     derivedSubSellPrice(
       event?.target?.value ?? values.selling_price,
       values.unit_id,
-      values.conversion_sub_unit_id,
-      values.tax_type,
-      values.tax_rate_id
+      values.sub_unit_id
     )
   )
 }
@@ -1568,7 +1454,7 @@ const handleBaseSellingPriceInput = (values, setFieldValue, event) => {
 const handleVariationSellingPriceInput = (values, setFieldValue, index, event) => {
   const currentVariation = values.variations?.[index]
 
-  if (!currentVariation || !currentVariation.conversion_sub_unit_id || !isBlankPrice(currentVariation.sub_unit_selling_price)) {
+  if (!currentVariation || !currentVariation.sub_unit_id || !isBlankPrice(currentVariation.sub_unit_selling_price)) {
     return
   }
 
@@ -1577,9 +1463,7 @@ const handleVariationSellingPriceInput = (values, setFieldValue, index, event) =
     derivedSubSellPrice(
       event?.target?.value ?? currentVariation.selling_price,
       values.unit_id,
-      currentVariation.conversion_sub_unit_id,
-      values.tax_type,
-      values.tax_rate_id
+      currentVariation.sub_unit_id
     )
   )
 }
@@ -1611,14 +1495,14 @@ const buildPayload = (values) => {
     description: values.description || null,
     sku: values.sku,
     barcode_type: values.barcode_type || 'C128',
-    conversion_sub_unit_id: values.type === 'single' ? (values.conversion_sub_unit_id || null) : null,
+    sub_unit_id: values.type === 'single' ? (values.sub_unit_id || null) : null,
     type: values.type,
     stock_tracking: values.track_inventory ? values.stock_tracking : 'none',
     has_expiry: Boolean(values.has_expiry),
     selling_price: values.type === 'variable' ? null : (values.selling_price || 0),
     purchase_price: values.type === 'variable' ? null : (values.purchase_price || 0),
-    sub_unit_selling_price: values.type === 'single' && values.conversion_sub_unit_id ? (values.sub_unit_selling_price || null) : null,
-    sub_unit_purchase_price: values.type === 'single' && values.conversion_sub_unit_id ? (values.sub_unit_purchase_price || null) : null,
+    sub_unit_selling_price: values.type === 'single' && values.sub_unit_id ? (values.sub_unit_selling_price || null) : null,
+    sub_unit_purchase_price: values.type === 'single' && values.sub_unit_id ? (values.sub_unit_purchase_price || null) : null,
     minimum_selling_price: values.type === 'variable' ? null : (values.minimum_selling_price || null),
     profit_margin: values.profit_margin || null,
     tax_type: values.tax_type,
@@ -1637,11 +1521,11 @@ const buildPayload = (values) => {
           variation_value_ids: variation.variation_value_ids || [],
           sku: variation.sku,
           image_file: variation.image_file || null,
-          conversion_sub_unit_id: variation.conversion_sub_unit_id || null,
+          sub_unit_id: variation.sub_unit_id || null,
           selling_price: variation.selling_price || 0,
           purchase_price: variation.purchase_price || 0,
-          sub_unit_selling_price: variation.conversion_sub_unit_id ? (variation.sub_unit_selling_price || null) : null,
-          sub_unit_purchase_price: variation.conversion_sub_unit_id ? (variation.sub_unit_purchase_price || null) : null,
+          sub_unit_selling_price: variation.sub_unit_id ? (variation.sub_unit_selling_price || null) : null,
+          sub_unit_purchase_price: variation.sub_unit_id ? (variation.sub_unit_purchase_price || null) : null,
           minimum_selling_price: variation.minimum_selling_price || null,
           is_active: variation.is_active !== false,
         }))

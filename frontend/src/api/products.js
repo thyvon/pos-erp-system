@@ -33,7 +33,6 @@ const toMultipartPayload = (payload, method = 'POST') => {
   const {
     variations = [],
     combo_items = [],
-    unit_conversions = [],
     variation_template_ids = [],
     custom_fields = {},
     image_file,
@@ -51,7 +50,6 @@ const toMultipartPayload = (payload, method = 'POST') => {
     variations.map(({ image_file: variationImageFile, image_url, ...variation }) => variation)
   ))
   formData.append('combo_items', JSON.stringify(combo_items || []))
-  formData.append('unit_conversions', JSON.stringify(unit_conversions || []))
   formData.append('custom_fields', JSON.stringify(custom_fields || {}))
 
   variations.forEach((variation, index) => {

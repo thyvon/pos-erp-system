@@ -3,7 +3,7 @@
     <Transition name="erp-toast">
       <div v-if="visible" class="fixed right-4 top-4 z-[90] w-full max-w-sm">
         <div
-          class="overflow-hidden rounded-[5px] border shadow-[0_26px_70px_rgba(54,72,110,0.2)] backdrop-blur-2xl"
+          class="overflow-hidden rounded-[5px] border shadow-[0_26px_70px_rgba(0,0,0,0.24)]"
           :class="toastClass"
           role="alert"
           aria-live="assertive"
@@ -56,13 +56,13 @@ const timestamp = ref('')
 let timeoutId = null
 
 const toastClass = computed(() => ({
-  'border-emerald-200/70 bg-emerald-50/82 text-emerald-900 dark:border-emerald-900/50 dark:bg-emerald-950/55 dark:text-emerald-100':
+  'border-emerald-200/70 bg-emerald-50/82 text-emerald-900 dark:border-emerald-900/50 dark:bg-slate-900/95 dark:text-emerald-100':
     props.type === 'success',
-  'border-rose-200/70 bg-rose-50/82 text-rose-900 dark:border-rose-900/50 dark:bg-rose-950/55 dark:text-rose-100':
+  'border-rose-200/70 bg-rose-50/82 text-rose-900 dark:border-rose-900/50 dark:bg-slate-900/95 dark:text-rose-100':
     props.type === 'danger',
-  'border-amber-200/70 bg-amber-50/82 text-amber-900 dark:border-amber-900/50 dark:bg-amber-950/55 dark:text-amber-100':
+  'border-amber-200/70 bg-amber-50/82 text-amber-900 dark:border-amber-900/50 dark:bg-slate-900/95 dark:text-amber-100':
     props.type === 'warning',
-  'border-cyan-200/70 bg-cyan-50/82 text-cyan-900 dark:border-cyan-900/50 dark:bg-cyan-950/55 dark:text-cyan-100':
+  'border-cyan-200/70 bg-cyan-50/82 text-cyan-900 dark:border-cyan-900/50 dark:bg-slate-900/95 dark:text-cyan-100':
     props.type === 'info',
 }))
 

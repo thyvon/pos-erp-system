@@ -17,7 +17,7 @@ class ProductVariation extends BaseModel
     protected $fillable = [
         'business_id',
         'product_id',
-        'conversion_sub_unit_id',
+        'sub_unit_id',
         'name',
         'variation_value_ids',
         'sku',
@@ -52,16 +52,9 @@ class ProductVariation extends BaseModel
         return $this->belongsTo(Product::class);
     }
 
-    public function conversionSubUnit(): BelongsTo
+    public function subUnit(): BelongsTo
     {
-        return $this->belongsTo(SubUnit::class, 'conversion_sub_unit_id');
-    }
-
-    public function unitConversions(): HasMany
-    {
-        return $this->hasMany(ProductPackaging::class, 'product_variation_id')
-            ->orderByDesc('is_default')
-            ->orderBy('name');
+        return $this->belongsTo(SubUnit::class, 'sub_unit_id');
     }
 
     public function softDeleteUniqueColumns(): array

@@ -86,7 +86,7 @@ class UpdateProductRequest extends FormRequest
                     fn ($q) => $q->where('business_id', $businessId)->whereNull('deleted_at')
                 ),
             ],
-            'conversion_sub_unit_id' => [
+            'sub_unit_id' => [
                 'nullable', 'uuid',
                 Rule::exists('sub_units', 'id')->where(
                     fn ($q) => $q->where('business_id', $businessId)->whereNull('deleted_at')
@@ -197,7 +197,7 @@ class UpdateProductRequest extends FormRequest
                 ),
             ],
             'variations.*.sku'                   => ['nullable', 'string', 'max:100'],
-            'variations.*.conversion_sub_unit_id' => [
+            'variations.*.sub_unit_id' => [
                 'nullable', 'uuid',
                 Rule::exists('sub_units', 'id')->where(
                     fn ($q) => $q->where('business_id', $businessId)->whereNull('deleted_at')

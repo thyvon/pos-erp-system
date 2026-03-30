@@ -15,6 +15,7 @@ const CustomersView = () => import('@views/CustomersView.vue')
 const DashboardView = () => import('@views/DashboardView.vue')
 const PriceGroupsView = () => import('@views/PriceGroupsView.vue')
 const ProductFormView = () => import('@views/ProductFormView.vue')
+const ProductDetailView = () => import('@views/ProductDetailView.vue')
 const ProductsView = () => import('@views/ProductsView.vue')
 const RolesView = () => import('@views/RolesView.vue')
 const SettingsView = () => import('@views/SettingsView.vue')
@@ -140,6 +141,12 @@ const router = createRouter({
       name: 'product-create',
       component: ProductFormView,
       meta: { requiresAuth: true, requiredPermission: 'products.create' },
+    },
+    {
+      path: '/catalog/products/:id',
+      name: 'product-detail',
+      component: ProductDetailView,
+      meta: { requiresAuth: true, requiredPermission: 'products.index' },
     },
     {
       path: '/catalog/products/:id/edit',

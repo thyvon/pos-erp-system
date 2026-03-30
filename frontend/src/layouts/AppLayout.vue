@@ -1,9 +1,5 @@
 <template>
   <div class="erp-shell min-h-screen">
-    <div class="erp-glass-orb left-[-7rem] top-[6rem] h-56 w-56 bg-sky-300/30"></div>
-    <div class="erp-glass-orb right-[8%] top-[3.5rem] h-64 w-64 bg-orange-200/30" style="animation-delay: -4s"></div>
-    <div class="erp-glass-orb bottom-[7rem] right-[-5rem] h-72 w-72 bg-blue-300/20" style="animation-delay: -8s"></div>
-
     <div class="relative min-h-screen">
       <div
         v-if="sidebarOpen"
@@ -41,7 +37,7 @@
             >
               <i class="fa-solid" :class="sidebarCollapsed ? 'fa-chevron-right' : 'fa-chevron-left'"></i>
             </button>
-            <ol class="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+            <ol class="hidden md:flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
               <li v-for="(item, index) in breadcrumbs" :key="item.label" class="flex items-center gap-2">
                 <span v-if="index > 0" class="text-slate-300 dark:text-slate-700">/</span>
                 <RouterLink
@@ -151,7 +147,7 @@
 
         <div
           ref="sidebarScrollRef"
-          class="relative flex-1 overscroll-y-contain px-3 py-4"
+          class="relative flex-1 overscroll-y-contain px-3 py-4 erp-sidebar-scroll"
           :class="sidebarScrollClasses"
           @mouseenter="sidebarHovered = true"
           @mouseleave="sidebarHovered = false"
@@ -177,7 +173,6 @@
                       </span>
                       <div v-if="!sidebarCollapsed" class="min-w-0 text-left">
                         <div class="text-sm font-medium">{{ item.label }}</div>
-                        <div class="text-xs text-slate-500">{{ item.description }}</div>
                       </div>
                     </div>
                     <div v-if="!sidebarCollapsed" class="flex items-center gap-2">
@@ -209,7 +204,6 @@
                         </span>
                         <div class="min-w-0">
                           <div class="text-sm font-medium">{{ child.label }}</div>
-                          <div class="text-xs text-slate-500">{{ child.description }}</div>
                         </div>
                       </div>
                       <span class="erp-nav-badge" :class="child.statusClass">
@@ -234,7 +228,6 @@
                       </span>
                       <div v-if="!sidebarCollapsed">
                         <div class="text-sm font-medium">{{ item.label }}</div>
-                        <div class="text-xs text-slate-500">{{ item.description }}</div>
                       </div>
                     </div>
                     <span v-if="!sidebarCollapsed" class="erp-nav-badge" :class="item.statusClass">
@@ -278,7 +271,7 @@
               >
                 <i class="fa-solid" :class="sidebarCollapsed ? 'fa-chevron-right' : 'fa-chevron-left'"></i>
               </button>
-              <ol class="flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
+              <ol class="hidden md:flex flex-wrap items-center gap-2 text-xs text-slate-500 dark:text-slate-400">
                 <li v-for="(item, index) in breadcrumbs" :key="item.label" class="flex items-center gap-2">
                   <span v-if="index > 0" class="text-slate-300 dark:text-slate-700">/</span>
                   <RouterLink

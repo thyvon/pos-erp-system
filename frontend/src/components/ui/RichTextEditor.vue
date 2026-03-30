@@ -1,6 +1,6 @@
 <template>
-  <div class="erp-rich-editor rounded-[5px] border border-slate-200/90 bg-white/95 dark:border-slate-800 dark:bg-slate-950/70">
-    <div class="flex flex-wrap gap-2 border-b border-slate-200/90 bg-slate-50/80 p-3 dark:border-slate-800 dark:bg-slate-900/70">
+  <div class="erp-rich-editor rounded-[5px] border border-slate-200/90 bg-white/95 dark:border-slate-800 dark:bg-slate-900/95">
+    <div class="flex flex-wrap gap-2 border-b border-slate-200/90 bg-slate-50/80 p-3 dark:border-slate-800 dark:bg-slate-900/95">
       <button type="button" class="erp-rich-editor__button" @click="runCommand('bold')">
         <i class="fa-solid fa-bold"></i>
       </button>
