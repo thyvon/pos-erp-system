@@ -8,6 +8,7 @@ use App\Http\Requests\Inventory\StoreStockCountRequest;
 use App\Http\Requests\Inventory\StoreStockCountEntryRequest;
 use App\Http\Requests\Inventory\UpdateStockCountItemRequest;
 use App\Http\Resources\Inventory\StockCountResource;
+use App\Http\Resources\Inventory\StockCountItemResource;
 use App\Models\StockCount;
 use App\Models\StockCountItem;
 use App\Services\Inventory\StockCountService;
@@ -54,8 +55,21 @@ class StockCountController extends BaseApiController
         $this->authorize('view', $stockCount);
 
         return $this->success(new StockCountResource(
-            $stockCount->load(['warehouse.branch', 'creator', 'completer', 'items.product', 'items.variation'])
+            $stockCount->load(['warehouse.branch', 'creator', 'completer'])
         ));
+    }
+
+    public function items(Request $request, StockCount $stockCount): JsonResponse
+    {
+        $this->authorize('view', $stockCount);
+
+        $items = $this->countService->paginateItems(
+            $stockCount,
+            $request->only(['search', 'per_page']),
+            $request->user()
+        );
+
+        return $this->paginated($items, StockCountItemResource::class);
     }
 
     public function addEntry(StoreStockCountEntryRequest $request, StockCount $stockCount): JsonResponse

@@ -1,0 +1,298 @@
+<template>
+  <div
+    v-if="isDesktop"
+    class="erp-sidebar-brand fixed left-0 top-0 z-30 flex h-[72px] items-center px-4"
+    :style="desktopBrandStyle"
+  >
+    <RouterLink to="/dashboard" class="flex min-w-0 items-center gap-3">
+      <div class="flex h-11 w-11 items-center justify-center rounded-[5px] bg-[linear-gradient(135deg,#ecf5ff,#8cc7ff_55%,#4d84ff)] text-lg font-bold text-slate-950 shadow-[0_18px_30px_rgba(77,132,255,0.28)]">
+        E
+      </div>
+      <div v-if="!sidebarCollapsed" class="min-w-0">
+        <div class="erp-sidebar-brand-kicker text-[11px] font-semibold uppercase tracking-[0.28em]">
+          POS ERP
+        </div>
+        <div class="erp-sidebar-brand-title mt-1 truncate text-sm font-medium">Liquid Workspace</div>
+      </div>
+    </RouterLink>
+  </div>
+
+  <aside
+    class="erp-sidebar-shell fixed inset-y-0 left-0 z-50 flex w-[16rem] max-w-[88vw] flex-col overflow-hidden rounded-r-[5px] transition-all duration-300 lg:bottom-0 lg:top-[72px] lg:z-20 lg:max-w-none lg:rounded-none lg:translate-x-0"
+    :style="desktopSidebarStyle"
+    :class="[
+      sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
+      sidebarCollapsed && isDesktop ? 'lg:overflow-visible' : '',
+    ]"
+  >
+    <div class="erp-sidebar-shell-bg absolute inset-0 rounded-r-[5px] lg:rounded-none"></div>
+    <div class="erp-sidebar-shell-border absolute inset-0 rounded-r-[5px] lg:rounded-none"></div>
+    <div class="erp-sidebar-shell-glow absolute inset-x-0 top-0 h-28 rounded-tr-[5px] lg:rounded-none"></div>
+
+    <div v-if="!isDesktop" class="erp-sidebar-mobile-head relative flex min-h-[88px] items-center justify-between px-4 py-4">
+      <RouterLink to="/dashboard" class="flex items-center gap-3" @click="emitClose">
+        <div class="flex h-12 w-12 items-center justify-center rounded-[5px] bg-[linear-gradient(135deg,#ecf5ff,#8cc7ff_55%,#4d84ff)] text-lg font-bold text-slate-950 shadow-[0_18px_30px_rgba(77,132,255,0.28)]">
+          E
+        </div>
+        <div v-if="!sidebarCollapsed" class="min-w-0">
+          <div class="erp-sidebar-brand-kicker text-[11px] font-semibold uppercase tracking-[0.28em]">
+            POS ERP
+          </div>
+          <div class="erp-sidebar-brand-title mt-1 text-sm font-medium">Liquid Workspace</div>
+        </div>
+      </RouterLink>
+
+      <div class="flex items-center gap-2">
+        <button
+          type="button"
+          class="erp-sidebar-mobile-close rounded-[5px] px-2.5 py-1.5 text-sm lg:hidden"
+          @click="emitClose"
+        >
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+    </div>
+
+    <div
+      ref="sidebarScrollRef"
+      class="relative flex-1 overscroll-y-contain px-0 py-3 erp-sidebar-scroll"
+      :class="sidebarScrollClasses"
+      @mouseenter="sidebarHovered = true"
+      @mouseleave="sidebarHovered = false"
+      @scroll="handleSidebarScroll"
+    >
+      <div class="mt-0 space-y-0">
+        <section v-for="group in navGroups" :key="group.label">
+          <div class="space-y-0">
+            <div
+              v-for="item in group.items"
+              :key="item.key || item.label"
+              class="relative space-y-0"
+              :class="
+                item.children?.length && !sidebarCollapsed && isNavItemExpanded(item)
+                  ? 'erp-sidebar-group-panel'
+                  : ''
+              "
+              @mouseenter="handleCollapsedFlyoutEnter(item)"
+              @mouseleave="handleCollapsedFlyoutLeave(item)"
+            >
+              <button
+                v-if="item.children?.length"
+                type="button"
+                class="erp-sidebar-link w-full"
+                :class="[
+                  isItemActive(item)
+                    ? sidebarCollapsed
+                      ? 'erp-sidebar-link-active'
+                      : 'erp-sidebar-parent-active'
+                    : '',
+                  !sidebarCollapsed ? 'erp-sidebar-parent-link' : '',
+                ]"
+                :title="sidebarCollapsed ? item.label : undefined"
+                @click="handleParentNavItemClick(item, $event.currentTarget)"
+              >
+                <div
+                  class="flex items-center gap-3"
+                  :class="sidebarCollapsed ? 'w-full justify-center' : 'min-w-0 flex-1'"
+                >
+                  <span class="erp-nav-icon">
+                    <i :class="item.icon"></i>
+                  </span>
+                  <div v-if="!sidebarCollapsed" class="min-w-0 text-left">
+                    <div class="text-sm font-medium">{{ item.label }}</div>
+                  </div>
+                </div>
+                <div v-if="!sidebarCollapsed" class="flex items-center gap-2">
+                  <span class="erp-nav-badge" :class="item.statusClass">
+                    {{ item.status }}
+                  </span>
+                  <i
+                    class="fa-solid fa-chevron-down text-[11px] text-slate-500 transition"
+                    :class="isNavItemExpanded(item) ? 'rotate-180' : ''"
+                  ></i>
+                </div>
+              </button>
+
+              <div
+                v-if="item.children?.length && !sidebarCollapsed && isNavItemExpanded(item)"
+                class="erp-sidebar-tree"
+              >
+                <RouterLink
+                  v-for="child in item.children"
+                  :key="child.key || child.label"
+                  :to="child.to"
+                  class="erp-sidebar-link erp-sidebar-tree-link"
+                  :class="isItemActive(child) ? 'erp-sidebar-link-active' : ''"
+                  @click="handleItemNavigation"
+                >
+                  <div class="flex min-w-0 items-center gap-3">
+                    <span class="erp-nav-icon">
+                      <i :class="child.icon"></i>
+                    </span>
+                    <div class="min-w-0">
+                      <div class="text-sm font-medium">{{ child.label }}</div>
+                    </div>
+                  </div>
+                  <span class="erp-nav-badge" :class="child.statusClass">
+                    {{ child.status }}
+                  </span>
+                </RouterLink>
+              </div>
+
+              <div
+                v-if="item.children?.length && isCollapsedDesktop && activeCollapsedFlyoutKey === item.key"
+                class="erp-sidebar-flyout"
+                @mouseenter="handleCollapsedFlyoutEnter(item)"
+                @mouseleave="handleCollapsedFlyoutLeave(item)"
+              >
+                <div class="erp-sidebar-flyout-title">
+                  <span>{{ item.label }}</span>
+                  <span class="erp-nav-badge" :class="item.statusClass">
+                    {{ item.status }}
+                  </span>
+                </div>
+
+                <div class="mt-2 space-y-0">
+                  <RouterLink
+                    v-for="child in item.children"
+                    :key="child.key || child.label"
+                    :to="child.to"
+                    class="erp-sidebar-link erp-sidebar-flyout-link"
+                    :class="isItemActive(child) ? 'erp-sidebar-link-active' : ''"
+                    @click="handleItemNavigation"
+                  >
+                    <div class="flex min-w-0 items-center gap-3">
+                      <span class="erp-nav-icon">
+                        <i :class="child.icon"></i>
+                      </span>
+                      <div class="min-w-0 text-left">
+                        <div class="text-sm font-medium">{{ child.label }}</div>
+                      </div>
+                    </div>
+                    <span class="erp-nav-badge" :class="child.statusClass">
+                      {{ child.status }}
+                    </span>
+                  </RouterLink>
+                </div>
+              </div>
+
+              <component
+                v-if="!item.children?.length"
+                :is="item.to ? RouterLink : 'a'"
+                :to="item.to"
+                :href="item.to ? undefined : 'javascript:void(0)'"
+                class="erp-sidebar-link"
+                :class="[
+                  isItemActive(item) ? 'erp-sidebar-link-active' : '',
+                  !sidebarCollapsed ? 'erp-sidebar-compact-link' : '',
+                ]"
+                :title="sidebarCollapsed ? item.label : undefined"
+                @click="handleItemNavigation"
+              >
+                <div
+                  class="flex items-center gap-3"
+                  :class="sidebarCollapsed ? 'w-full justify-center' : 'min-w-0 flex-1'"
+                >
+                  <span class="erp-nav-icon">
+                    <i :class="item.icon"></i>
+                  </span>
+                  <div v-if="!sidebarCollapsed" class="min-w-0 text-left">
+                    <div class="text-sm font-medium">{{ item.label }}</div>
+                  </div>
+                </div>
+                <span v-if="!sidebarCollapsed" class="erp-nav-badge" :class="item.statusClass">
+                  {{ item.status }}
+                </span>
+              </component>
+            </div>
+          </div>
+        </section>
+      </div>
+
+      <div v-if="!sidebarCollapsed" class="erp-sidebar-callout mt-6 rounded-[5px] p-3">
+        <div class="erp-sidebar-callout-kicker text-[11px] font-semibold uppercase tracking-[0.22em]">
+          {{ t('layout.nextBuildTarget') }}
+        </div>
+        <div class="erp-sidebar-callout-title mt-2 text-base font-semibold">{{ t('layout.nextBuildTitle') }}</div>
+        <p class="erp-sidebar-callout-body mt-2 text-sm leading-6">
+          {{ t('layout.nextBuildBody') }}
+        </p>
+      </div>
+    </div>
+  </aside>
+</template>
+
+<script setup>
+import { computed, toRef } from 'vue'
+import { RouterLink, useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+import { useAuthStore } from '@stores/auth'
+import { useSidebarBehavior } from '@/composables/useSidebarBehavior'
+import { createSidebarGroups } from '@/navigation/sidebar'
+
+const props = defineProps({
+  desktopBrandStyle: {
+    type: Object,
+    required: true,
+  },
+  desktopSidebarStyle: {
+    type: Object,
+    required: true,
+  },
+  isDesktop: {
+    type: Boolean,
+    required: true,
+  },
+  sidebarCollapsed: {
+    type: Boolean,
+    required: true,
+  },
+  sidebarOpen: {
+    type: Boolean,
+    required: true,
+  },
+})
+
+const emit = defineEmits(['close'])
+
+const auth = useAuthStore()
+const route = useRoute()
+const { t } = useI18n()
+
+const navGroups = computed(() =>
+  createSidebarGroups({
+    t,
+    auth,
+    isSuperAdmin: auth.isSuperAdmin,
+  })
+)
+
+const {
+  activeCollapsedFlyoutKey,
+  clearCollapsedFlyout,
+  handleCollapsedFlyoutEnter,
+  handleCollapsedFlyoutLeave,
+  handleParentNavItemClick,
+  handleSidebarScroll,
+  isCollapsedDesktop,
+  isItemActive,
+  isNavItemExpanded,
+  sidebarHovered,
+  sidebarScrollClasses,
+  sidebarScrollRef,
+} = useSidebarBehavior({
+  isDesktop: toRef(props, 'isDesktop'),
+  navGroups,
+  route,
+  sidebarCollapsed: toRef(props, 'sidebarCollapsed'),
+})
+
+const emitClose = () => {
+  clearCollapsedFlyout()
+  emit('close')
+}
+
+const handleItemNavigation = () => {
+  emitClose()
+}
+</script>

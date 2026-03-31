@@ -58,12 +58,12 @@
 
         <template #actions="{ row }">
           <button
-            v-if="canCreate && row.status === 'in_progress'"
+            v-if="canCreate && row.status !== 'cancelled'"
             type="button"
             class="erp-button-secondary"
             @click="openWorkspaceModal(row.id)"
           >
-            Open count
+            {{ row.status === 'completed' ? 'Review count' : 'Open count' }}
           </button>
         </template>
       </DataTable>
@@ -106,12 +106,19 @@
         </div>
       </AppModal>
 
-      <AppModal :show="workspaceModal.show" title="Live stock count" icon="count" size="xl" @close="closeWorkspaceModal">
+      <AppModal
+        :show="workspaceModal.show"
+        :title="isCompletedWorkspace ? 'Completed stock count' : 'Live stock count'"
+        icon="count"
+        size="xl"
+        mobile-full-screen
+        @close="closeWorkspaceModal"
+      >
         <div class="space-y-5">
           <div v-if="workspaceModal.loading" class="py-8 text-center text-sm text-slate-500 dark:text-slate-400">Loading count workspace...</div>
 
           <template v-else>
-            <div class="grid gap-3 rounded-[10px] border border-slate-200 p-4 md:grid-cols-4 dark:border-slate-800">
+            <div class="grid grid-cols-2 gap-3 rounded-[10px] border border-slate-200 p-4 lg:grid-cols-4 dark:border-slate-800">
               <div>
                 <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Reference</div>
                 <div class="mt-1 text-sm font-semibold text-slate-950 dark:text-white">{{ workspaceModal.reference_no || 'Pending' }}</div>
@@ -125,16 +132,33 @@
                 <div class="mt-1 text-sm font-semibold text-slate-950 dark:text-white">{{ workspaceModal.date || 'Not set' }}</div>
               </div>
               <div>
-                <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Live mode</div>
-                <div class="mt-1 text-sm text-slate-600 dark:text-slate-300">Refreshes every 5 seconds while the session is open.</div>
+                <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Mode</div>
+                <div class="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                  {{ isCompletedWorkspace ? 'Correction mode' : 'Live mode' }}
+                </div>
+              </div>
+            </div>
+
+            <div class="rounded-[10px] border border-slate-200 bg-slate-50/70 p-4 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-800/40 dark:text-slate-300">
+              <div class="font-semibold text-slate-950 dark:text-white">
+                {{ isCompletedWorkspace ? 'Completed counts stay editable.' : 'This count is still open.' }}
+              </div>
+              <div class="mt-1">
+                {{ isCompletedWorkspace
+                  ? 'Any correction after completion posts only the delta adjustment, so mistakes can be fixed without losing the audit trail.'
+                  : 'Scan, search, and update quantities. When you complete the count, only the final difference is posted to stock.' }}
               </div>
             </div>
 
             <div class="sticky top-0 z-10 -mx-4 border-y border-slate-200 bg-white px-4 py-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)] dark:border-slate-800 dark:bg-slate-900 md:static md:mx-0 md:rounded-[10px] md:border md:px-4 md:shadow-none">
               <div>
-                <div class="text-sm font-semibold text-slate-950 dark:text-white">Scan or search first</div>
+                <div class="text-sm font-semibold text-slate-950 dark:text-white">
+                  {{ isCompletedWorkspace ? 'Add correction lines' : 'Scan or search first' }}
+                </div>
                 <div class="text-xs text-slate-500 dark:text-slate-400">
-                  Scan or search by lot, serial, SKU, name, or description. After you pick the item, enter the counted quantity and save it into this shared session.
+                  {{ isCompletedWorkspace
+                    ? 'You can still scan or search an item after completion. Any new quantity you add is posted as a correction against the already completed count.'
+                    : 'Scan or search by lot, serial, SKU, name, or description. After you pick the item, enter the counted quantity and save it into this shared session.' }}
                 </div>
               </div>
 
@@ -143,7 +167,9 @@
                 <InventoryProductLookup
                   :warehouse-id="workspaceModal.warehouse?.id || ''"
                   :disabled="store.recording || store.completing"
-                  helper-text="Lot and serial matches still resolve to the correct product or variant for quantity counting."
+                  :helper-text="isCompletedWorkspace
+                    ? 'Completed count corrections still resolve the correct product, lot, or serial before posting the delta.'
+                    : 'Lot and serial matches still resolve to the correct product or variant for quantity counting.'"
                   @select="handleLookupSelect"
                 />
               </div>
@@ -169,7 +195,7 @@
 
                   <div class="grid gap-3 sm:grid-cols-[minmax(0,180px)_auto_auto] sm:items-end">
                     <div>
-                      <label class="erp-label">Qty to add</label>
+                      <label class="erp-label">{{ isCompletedWorkspace ? 'Correction qty' : 'Qty to add' }}</label>
                       <input
                         ref="entryQuantityInput"
                         v-model.number="workspaceModal.entry_quantity"
@@ -187,7 +213,7 @@
                       @click="submitPendingEntry"
                     >
                       <span v-if="store.recording" class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
-                      <span v-else>Add count</span>
+                      <span v-else>{{ isCompletedWorkspace ? 'Post correction' : 'Add count' }}</span>
                     </button>
                     <button
                       type="button"
@@ -201,8 +227,50 @@
                 </div>
 
                 <div class="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                  Repeated saves for the same product or variant are added into the same counted total.
+                  {{ isCompletedWorkspace
+                    ? 'Repeated saves continue from the current counted total and immediately post only the new delta adjustment.'
+                    : 'Repeated saves for the same product or variant are added into the same counted total.' }}
                 </div>
+              </div>
+            </div>
+
+            <div
+              v-if="workspaceModal.items.length > 0"
+              class="rounded-[10px] border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
+            >
+              <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
+                <div class="min-w-0">
+                  <div class="text-sm font-semibold text-slate-950 dark:text-white">Quick find counted line</div>
+                  <div class="text-xs text-slate-500 dark:text-slate-400">
+                    Search counted items by product, variant, SKU, or lot so you can edit without scrolling.
+                  </div>
+                </div>
+
+                <div class="flex w-full flex-col gap-3 md:w-[26rem] md:flex-row">
+                  <div class="relative flex-1">
+                    <span class="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-4 text-slate-400 dark:text-slate-500">
+                      <i class="fa-solid fa-magnifying-glass"></i>
+                    </span>
+                    <input
+                      v-model.trim="workspaceModal.item_search"
+                      type="text"
+                      class="erp-input pl-11"
+                      placeholder="Search counted items"
+                    />
+                  </div>
+                  <button
+                    v-if="workspaceModal.item_search"
+                    type="button"
+                    class="erp-button-secondary whitespace-nowrap"
+                    @click="workspaceModal.item_search = ''"
+                  >
+                    Clear search
+                  </button>
+                </div>
+              </div>
+
+              <div class="mt-3 text-xs text-slate-500 dark:text-slate-400">
+                Showing {{ filteredWorkspaceItems.length }} of {{ workspaceModal.items.length }} counted lines.
               </div>
             </div>
 
@@ -213,9 +281,16 @@
               No counted lines yet. Scan or search an item above to start capturing quantities.
             </div>
 
+            <div
+              v-else-if="filteredWorkspaceItems.length === 0"
+              class="rounded-[10px] border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400"
+            >
+              No counted items match "{{ workspaceModal.item_search }}".
+            </div>
+
             <div v-else class="space-y-3 md:hidden">
               <div
-                v-for="item in workspaceModal.items"
+                v-for="item in filteredWorkspaceItems"
                 :key="item.id"
                 class="rounded-[12px] border border-slate-200 bg-white p-4 shadow-[0_10px_25px_rgba(15,23,42,0.06)] dark:border-slate-800 dark:bg-slate-900"
               >
@@ -227,6 +302,9 @@
                     </div>
                     <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">
                       {{ item.variation?.sku || item.product?.sku || 'No SKU' }}
+                    </div>
+                    <div v-if="item.lot?.lot_number" class="mt-2 inline-flex rounded-[6px] bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700 dark:bg-amber-950/35 dark:text-amber-300">
+                      Lot: {{ item.lot.lot_number }}
                     </div>
                   </div>
                   <span
@@ -242,11 +320,11 @@
                     <div class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">System qty</div>
                     <div class="mt-1 text-base font-semibold text-slate-950 dark:text-white">{{ formatQuantity(item.system_quantity) }}</div>
                   </div>
-                  <div>
-                    <label class="erp-label">Counted qty</label>
-                    <input
-                      v-model.number="item.editable_counted_quantity"
-                      type="number"
+                    <div>
+                      <label class="erp-label">{{ isCompletedWorkspace ? 'Final counted qty' : 'Counted qty' }}</label>
+                      <input
+                        v-model.number="item.editable_counted_quantity"
+                        type="number"
                       min="0"
                       step="0.0001"
                       class="erp-input h-12 text-lg font-semibold"
@@ -264,18 +342,19 @@
                   @click="submitItemUpdate(item)"
                 >
                   <span v-if="isUpdatingItem(item.id)" class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-slate-400/30 border-t-slate-700 dark:border-slate-500/30 dark:border-t-slate-200"></span>
-                  <span v-else>Update counted qty</span>
+                  <span v-else>{{ isCompletedWorkspace ? 'Save correction' : 'Update counted qty' }}</span>
                 </button>
               </div>
             </div>
 
-            <div v-if="workspaceModal.items.length > 0" class="hidden md:block erp-table-shell">
+            <div v-if="filteredWorkspaceItems.length > 0" class="hidden md:block erp-table-shell">
               <div class="overflow-x-auto">
                 <table class="erp-table min-w-full">
                   <thead>
                     <tr>
-                      <th class="w-[38%]">Product</th>
-                      <th class="w-[18%]">SKU</th>
+                      <th class="w-[34%]">Product</th>
+                      <th class="w-[16%]">SKU</th>
+                      <th class="w-[14%]">Lot</th>
                       <th class="w-[14%]">System qty</th>
                       <th class="w-[18%]">Counted qty</th>
                       <th class="w-[12%]">Difference</th>
@@ -283,7 +362,7 @@
                     </tr>
                   </thead>
                   <tbody>
-                    <tr v-for="item in workspaceModal.items" :key="item.id">
+                    <tr v-for="item in filteredWorkspaceItems" :key="item.id">
                       <td>
                         <div class="font-semibold text-slate-950 dark:text-white">
                           {{ item.product?.name || 'Unknown product' }}
@@ -292,6 +371,9 @@
                       </td>
                       <td class="text-sm text-slate-600 dark:text-slate-300">
                         {{ item.variation?.sku || item.product?.sku || 'No SKU' }}
+                      </td>
+                      <td class="text-sm text-slate-600 dark:text-slate-300">
+                        {{ item.lot?.lot_number || '-' }}
                       </td>
                       <td class="text-sm text-slate-600 dark:text-slate-300">
                         {{ formatQuantity(item.system_quantity) }}
@@ -334,13 +416,21 @@
             </div>
 
             <div class="rounded-[10px] border border-slate-200 p-4 text-sm text-slate-600 dark:border-slate-800 dark:text-slate-300">
-              Completing the session compares the counted totals above against the snapped system quantities and posts only the difference as stock count correction movements.
+              {{ isCompletedWorkspace
+                ? 'This count is already completed. Editing a line now posts only the difference between the old counted quantity and the new counted quantity.'
+                : 'Completing the session compares the counted totals above against the snapped system quantities and posts only the difference as stock count correction movements.' }}
             </div>
 
             <div class="sticky bottom-0 -mx-4 border-t border-slate-200 bg-white px-4 pb-1 pt-3 dark:border-slate-800 dark:bg-slate-900 md:static md:mx-0 md:border-0 md:bg-transparent md:px-0 md:pb-0 md:pt-0">
               <div class="erp-form-actions">
               <button type="button" class="erp-button-secondary" :disabled="store.recording || store.completing" @click="closeWorkspaceModal">Close</button>
-              <button type="button" class="erp-button-primary" :disabled="store.recording || store.completing" @click="submitComplete">
+              <button
+                v-if="!isCompletedWorkspace"
+                type="button"
+                class="erp-button-primary"
+                :disabled="store.recording || store.completing"
+                @click="submitComplete"
+              >
                 <span v-if="store.completing" class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
                 Complete count
               </button>
@@ -355,6 +445,7 @@
 
 <script setup>
 import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import InventoryProductLookup from '@components/inventory/InventoryProductLookup.vue'
 import AppAlert from '@components/ui/AppAlert.vue'
 import AppDatePicker from '@components/ui/AppDatePicker.vue'
@@ -366,10 +457,12 @@ import { useAuthStore } from '@stores/auth'
 import { useInventoryCountsStore, useInventoryOptionsStore } from '@stores/inventory'
 
 const auth = useAuthStore()
+const router = useRouter()
 const store = useInventoryCountsStore()
 const optionsStore = useInventoryOptionsStore()
 
 const canCreate = computed(() => auth.can('inventory.count'))
+const isCompletedWorkspace = computed(() => workspaceModal.status === 'completed')
 const columns = [
   { key: 'reference', label: 'Reference' },
   { key: 'warehouse', label: 'Warehouse' },
@@ -393,6 +486,7 @@ const workspaceModal = reactive({
   entry_quantity: 1,
   pending_item: null,
   items: [],
+  item_search: '',
   last_local_activity_at: 0,
 })
 
@@ -454,6 +548,29 @@ const sortCountItems = (items = []) => [...items].sort((left, right) => {
   return leftLabel.localeCompare(rightLabel)
 })
 
+const filteredWorkspaceItems = computed(() => {
+  const term = workspaceModal.item_search.trim().toLowerCase()
+
+  if (!term) {
+    return workspaceModal.items
+  }
+
+  return workspaceModal.items.filter((item) => {
+    const haystack = [
+      item.product?.name,
+      item.variation?.name,
+      item.product?.sku,
+      item.variation?.sku,
+      item.lot?.lot_number,
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLowerCase()
+
+    return haystack.includes(term)
+  })
+})
+
 const hydrateWorkspace = (count) => {
   workspaceModal.count_id = count.id
   workspaceModal.reference_no = count.reference_no
@@ -486,6 +603,7 @@ const resetWorkspace = () => {
   workspaceModal.entry_quantity = 1
   workspaceModal.pending_item = null
   workspaceModal.items = []
+  workspaceModal.item_search = ''
   workspaceModal.last_local_activity_at = 0
 }
 
@@ -536,8 +654,7 @@ const startWorkspacePolling = () => {
 }
 
 const openCreateModal = () => {
-  resetCreateForm()
-  createModal.show = true
+  router.push({ name: 'inventory-counts-create' })
 }
 
 const closeCreateModal = () => {
@@ -545,16 +662,7 @@ const closeCreateModal = () => {
 }
 
 const openWorkspaceModal = async (countId) => {
-  resetWorkspace()
-  workspaceModal.show = true
-
-  try {
-    await refreshWorkspace(countId, true)
-    startWorkspacePolling()
-  } catch (error) {
-    closeWorkspaceModal()
-    showToast('danger', error.response?.data?.message || 'Unable to open the stock count workspace.')
-  }
+  router.push({ name: 'inventory-counts-workspace', params: { id: countId } })
 }
 
 const closeWorkspaceModal = () => {
@@ -578,6 +686,7 @@ const handleLookupSelect = async (match) => {
   workspaceModal.pending_item = {
     product_id: match.product_id,
     variation_id: match.variation_id || null,
+    lot_id: match.lot_id || null,
     product_name: match.product_name || '',
     variation_name: match.variation_name || '',
     sku: match.sku || '',
@@ -617,12 +726,14 @@ const submitPendingEntry = async () => {
     const response = await store.recordEntry(workspaceModal.count_id, {
       product_id: workspaceModal.pending_item.product_id,
       variation_id: workspaceModal.pending_item.variation_id,
+      lot_id: workspaceModal.pending_item.lot_id,
       quantity,
       unit_cost: workspaceModal.pending_item.unit_cost,
     })
 
     hydrateWorkspace(response.data)
     clearPendingItem()
+    showToast('success', isCompletedWorkspace.value ? 'Correction posted successfully.' : 'Count entry recorded successfully.')
   } catch (error) {
     showToast('danger', error.response?.data?.message || 'Unable to record the counted quantity.')
   }
@@ -648,6 +759,7 @@ const submitItemUpdate = async (item) => {
     })
 
     hydrateWorkspace(response.data)
+    showToast('success', isCompletedWorkspace.value ? 'Count correction saved successfully.' : 'Counted quantity updated successfully.')
   } catch (error) {
     showToast('danger', error.response?.data?.message || 'Unable to update the counted quantity.')
   }

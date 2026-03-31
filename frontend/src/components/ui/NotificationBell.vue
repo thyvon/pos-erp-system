@@ -19,14 +19,14 @@
 
     <div
       v-if="open"
-      class="erp-topbar-user-menu absolute right-0 z-[60] mt-2 w-[min(20rem,calc(100vw-2rem))] max-w-md py-2 shadow-lg"
+      class="erp-topbar-user-menu erp-notification-menu fixed left-4 right-4 top-[calc(env(safe-area-inset-top,0px)+4.75rem)] z-[60] w-auto max-w-none py-2 shadow-lg sm:absolute sm:left-auto sm:right-0 sm:top-[calc(100%+0.5rem)] sm:w-[min(20rem,calc(100vw-2rem))] sm:max-w-md"
       role="menu"
     >
       <div class="border-b border-slate-200/70 px-3 py-2 dark:border-slate-800/80">
         <div class="text-sm font-semibold text-slate-900 dark:text-white">{{ heading }}</div>
         <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ body }}</p>
       </div>
-      <div class="max-h-64 overflow-y-auto px-2 py-2">
+      <div class="max-h-[min(20rem,calc(100vh-8rem))] overflow-y-auto px-2 py-2 sm:max-h-64">
         <p class="px-2 py-3 text-center text-sm text-slate-500 dark:text-slate-400">{{ emptyHint }}</p>
       </div>
     </div>

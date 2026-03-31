@@ -133,6 +133,14 @@ export const useInventoryCountsStore = defineStore('inventory-counts', {
     completing: false,
     filters: { ...defaultFilters(), status: '' },
     pagination: defaultPagination(),
+    workspaceItems: [],
+    workspaceItemsLoading: false,
+    workspaceItemFilters: {
+      search: '',
+      page: 1,
+      per_page: 25,
+    },
+    workspaceItemPagination: defaultPagination(),
   }),
   actions: {
     async fetchItems(overrides = {}) {
@@ -166,6 +174,33 @@ export const useInventoryCountsStore = defineStore('inventory-counts', {
     async fetchItem(id) {
       const response = await inventoryApi.getStockCount(id)
       return response.data.data
+    },
+    async fetchWorkspaceItems(id, overrides = {}) {
+      this.workspaceItemsLoading = true
+      this.workspaceItemFilters = { ...this.workspaceItemFilters, ...overrides }
+
+      try {
+        const response = await inventoryApi.getStockCountItems(id, {
+          search: this.workspaceItemFilters.search || undefined,
+          page: this.workspaceItemFilters.page,
+          per_page: this.workspaceItemFilters.per_page,
+        })
+        this.workspaceItems = response.data.data
+        this.workspaceItemPagination = response.data.meta
+        return response.data
+      } finally {
+        this.workspaceItemsLoading = false
+      }
+    },
+    resetWorkspaceItems() {
+      this.workspaceItems = []
+      this.workspaceItemsLoading = false
+      this.workspaceItemFilters = {
+        search: '',
+        page: 1,
+        per_page: 25,
+      }
+      this.workspaceItemPagination = defaultPagination()
     },
     async recordEntry(id, payload) {
       this.recording = true

@@ -9,10 +9,16 @@ class StockCountResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $this->loadMissing(['warehouse.branch', 'creator', 'completer', 'items.product', 'items.variation']);
-        $discrepancyCount = $this->items
-            ->filter(fn ($item) => $item->counted_quantity !== null && (float) ($item->difference ?? 0) !== 0.0)
-            ->count();
+        $this->loadMissing(['warehouse.branch', 'creator', 'completer']);
+        $itemsLoaded = $this->relationLoaded('items');
+        $discrepancyCount = $itemsLoaded
+            ? $this->items
+                ->filter(fn ($item) => $item->counted_quantity !== null && (float) ($item->difference ?? 0) !== 0.0)
+                ->count()
+            : $this->items()
+                ->whereNotNull('counted_quantity')
+                ->whereColumn('counted_quantity', '!=', 'system_quantity')
+                ->count();
 
         return [
             'id' => $this->id,
@@ -37,7 +43,10 @@ class StockCountResource extends JsonResource
                 'id' => $this->completer->id,
                 'name' => trim($this->completer->first_name.' '.$this->completer->last_name),
             ] : null,
-            'items' => StockCountItemResource::collection($this->whenLoaded('items')),
+            'items' => $this->when(
+                $itemsLoaded,
+                fn () => StockCountItemResource::collection($this->items)
+            ),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

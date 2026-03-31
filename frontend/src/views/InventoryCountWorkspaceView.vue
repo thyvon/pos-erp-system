@@ -1,0 +1,691 @@
+<template>
+  <AppLayout :title="pageTitle" :subtitle="pageSubtitle" :breadcrumbs="breadcrumbs">
+    <div class="space-y-6">
+      <AppAlert v-model:show="alert.show" :type="alert.type" :title="alert.title" :message="alert.message" />
+
+      <div v-if="workspace.loading" class="rounded-[10px] border border-slate-200 bg-white py-8 text-center text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
+        Loading count workspace...
+      </div>
+
+      <template v-else>
+        <div class="grid grid-cols-2 gap-3 rounded-[10px] border border-slate-200 bg-white p-4 lg:grid-cols-4 dark:border-slate-800 dark:bg-slate-900">
+          <div>
+            <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Reference</div>
+            <div class="mt-1 text-sm font-semibold text-slate-950 dark:text-white">{{ workspace.reference_no || 'Pending' }}</div>
+          </div>
+          <div>
+            <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Warehouse</div>
+            <div class="mt-1 text-sm font-semibold text-slate-950 dark:text-white">{{ workspace.warehouse?.name || 'Unknown warehouse' }}</div>
+          </div>
+          <div>
+            <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Date</div>
+            <div class="mt-1 text-sm font-semibold text-slate-950 dark:text-white">{{ workspace.date || 'Not set' }}</div>
+          </div>
+          <div>
+            <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Mode</div>
+            <div class="mt-1 text-sm text-slate-600 dark:text-slate-300">
+              {{ isCompletedWorkspace ? 'Completed' : 'Live mode' }}
+            </div>
+          </div>
+        </div>
+
+        <div
+          v-if="!isCompletedWorkspace"
+          class="sticky top-16 z-10 rounded-[10px] border border-slate-200 bg-white px-4 py-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)] dark:border-slate-800 dark:bg-slate-900"
+        >
+          <div>
+            <label class="erp-label">Scan or search item</label>
+            <InventoryProductLookup
+              :warehouse-id="workspace.warehouse?.id || ''"
+              :disabled="store.recording || store.completing"
+              helper-text="Lot and serial matches still resolve to the correct product or variant for quantity counting."
+              @select="handleLookupSelect"
+            />
+          </div>
+
+          <div
+            v-if="workspace.pending_item"
+            class="mt-4 border-t border-slate-200/70 pt-4 dark:border-slate-800"
+          >
+            <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+              <div class="min-w-0">
+                <div class="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-700 dark:text-cyan-300">Selected item</div>
+                <div class="mt-1 text-sm font-semibold text-slate-950 dark:text-white">
+                  {{ workspace.pending_item.product_name || 'Selected item' }}
+                  <span v-if="workspace.pending_item.variation_name" class="text-slate-500 dark:text-slate-400">/ {{ workspace.pending_item.variation_name }}</span>
+                </div>
+                <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  {{ workspace.pending_item.sku || 'No SKU' }}
+                </div>
+                <div class="mt-2 inline-flex rounded-[8px] bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/35 dark:text-emerald-300">
+                  Ending qty: {{ formatQuantity(workspace.pending_item.ending_quantity) }}
+                </div>
+              </div>
+
+              <div class="grid gap-3 sm:grid-cols-[minmax(0,180px)_auto_auto] sm:items-end">
+                <div>
+                  <label class="erp-label">Qty to add</label>
+                  <input
+                    ref="entryQuantityInput"
+                    v-model.number="workspace.entry_quantity"
+                    type="number"
+                    step="0.0001"
+                    class="erp-input h-14 text-center text-xl font-semibold"
+                    :disabled="store.recording || store.completing"
+                    @keydown.enter.prevent="submitPendingEntry"
+                  />
+                </div>
+                <button
+                  type="button"
+                  class="erp-button-primary h-12 px-5"
+                  :disabled="store.recording || store.completing"
+                  @click="submitPendingEntry"
+                >
+                  <span v-if="store.recording" class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
+                    <span v-else>Add count</span>
+                </button>
+                <button
+                  type="button"
+                  class="erp-button-secondary h-12 px-5"
+                  :disabled="store.recording || store.completing"
+                  @click="clearPendingItem"
+                >
+                  Clear
+                </button>
+              </div>
+            </div>
+
+            <div class="mt-2 text-xs text-slate-500 dark:text-slate-400">
+              Repeated saves for the same product or variant are added into the same counted total.
+            </div>
+          </div>
+        </div>
+
+        <div v-if="showWorkspaceTableShell" class="erp-table-shell">
+          <div class="erp-table-header">
+            <div>
+              <h2 class="text-lg font-semibold text-slate-950 dark:text-white">Counted Lines</h2>
+              <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+                {{ workspaceItemPagination.total }} total counted lines
+              </p>
+            </div>
+
+            <div class="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:items-center">
+              <div class="w-full sm:w-72">
+                <SearchInput v-model="workspace.item_search" placeholder="Search counted items" />
+              </div>
+            </div>
+          </div>
+
+          <div class="relative">
+            <LoadingSpinner
+              :show="store.workspaceItemsLoading"
+              title="Loading counted lines"
+              message="Updating counted item results for this stock count."
+            />
+
+            <div
+              v-if="!store.workspaceItemsLoading && workspaceItemPagination.total === 0 && !workspace.item_search"
+              class="px-4 py-12 text-center text-sm text-slate-500 dark:text-slate-400"
+            >
+              No counted lines yet. Scan or search an item above to start capturing quantities.
+            </div>
+
+            <div
+              v-else-if="!store.workspaceItemsLoading && workspaceItemPagination.total === 0 && workspace.item_search"
+              class="px-4 py-12 text-center text-sm text-slate-500 dark:text-slate-400"
+            >
+              No counted items match "{{ workspace.item_search }}".
+            </div>
+
+            <div v-else class="space-y-3 p-4 md:hidden">
+              <div
+                v-for="item in workspace.items"
+                :key="item.id"
+                class="rounded-[12px] border border-slate-200 bg-white p-4 shadow-[0_10px_25px_rgba(15,23,42,0.06)] dark:border-slate-800 dark:bg-slate-900"
+              >
+            <div class="flex items-start justify-between gap-3">
+              <div class="min-w-0">
+                <div class="text-sm font-semibold text-slate-950 dark:text-white">
+                  {{ item.product?.name || 'Unknown product' }}
+                  <span v-if="item.variation?.name" class="text-slate-500 dark:text-slate-400">/ {{ item.variation.name }}</span>
+                </div>
+                <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                  {{ item.variation?.sku || item.product?.sku || 'No SKU' }}
+                </div>
+                <div v-if="item.lot?.lot_number" class="mt-2 inline-flex rounded-[6px] bg-amber-50 px-2 py-1 text-[11px] font-semibold text-amber-700 dark:bg-amber-950/35 dark:text-amber-300">
+                  Lot: {{ item.lot.lot_number }}
+                </div>
+              </div>
+              <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold" :class="differenceClass(item.difference)">
+                {{ formatSignedQuantity(item.difference) }}
+              </span>
+            </div>
+
+            <div class="mt-4 grid gap-3 sm:grid-cols-2">
+              <div class="rounded-[10px] bg-slate-50 px-3 py-2 dark:bg-slate-800/80">
+                <div class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">System qty</div>
+                <div class="mt-1 text-base font-semibold text-slate-950 dark:text-white">{{ formatQuantity(item.system_quantity) }}</div>
+              </div>
+              <div>
+                <label class="erp-label">Counted qty</label>
+                <div
+                  v-if="isCompletedWorkspace"
+                  class="flex h-12 items-center rounded-[10px] border border-slate-200 bg-slate-50 px-3 text-lg font-semibold text-slate-950 dark:border-slate-800 dark:bg-slate-800/80 dark:text-white"
+                >
+                  {{ formatQuantity(item.counted_quantity) }}
+                </div>
+                <input
+                  v-else
+                  v-model.number="item.editable_counted_quantity"
+                  type="number"
+                  min="0"
+                  step="0.0001"
+                  class="erp-input h-12 text-lg font-semibold"
+                  :disabled="store.recording || store.completing || isUpdatingItem(item.id)"
+                  @focus="workspace.last_local_activity_at = Date.now()"
+                  @keydown.enter.prevent="submitItemUpdate(item)"
+                />
+              </div>
+            </div>
+
+            <button
+              v-if="!isCompletedWorkspace"
+              type="button"
+              class="erp-button-secondary mt-4 w-full"
+              :disabled="store.recording || store.completing || !hasItemChanged(item) || isUpdatingItem(item.id)"
+              @click="submitItemUpdate(item)"
+            >
+              <span v-if="isUpdatingItem(item.id)" class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-slate-400/30 border-t-slate-700 dark:border-slate-500/30 dark:border-t-slate-200"></span>
+              <span v-else>Update counted qty</span>
+            </button>
+          </div>
+            </div>
+
+            <div v-if="workspace.items.length > 0" class="hidden md:block overflow-x-auto">
+            <table class="erp-table min-w-full">
+              <thead>
+                <tr>
+                  <th class="w-[34%]">Product</th>
+                  <th class="w-[16%]">SKU</th>
+                  <th class="w-[14%]">Lot</th>
+                  <th class="w-[14%]">System qty</th>
+                  <th class="w-[18%]">Counted qty</th>
+                  <th class="w-[12%]">Difference</th>
+                  <th v-if="!isCompletedWorkspace" class="w-[14%]">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="item in workspace.items" :key="item.id">
+                  <td>
+                    <div class="font-semibold text-slate-950 dark:text-white">
+                      {{ item.product?.name || 'Unknown product' }}
+                      <span v-if="item.variation?.name" class="text-slate-500 dark:text-slate-400">/ {{ item.variation.name }}</span>
+                    </div>
+                  </td>
+                  <td class="text-sm text-slate-600 dark:text-slate-300">{{ item.variation?.sku || item.product?.sku || 'No SKU' }}</td>
+                  <td class="text-sm text-slate-600 dark:text-slate-300">{{ item.lot?.lot_number || '-' }}</td>
+                  <td class="text-sm text-slate-600 dark:text-slate-300">{{ formatQuantity(item.system_quantity) }}</td>
+                  <td>
+                    <div
+                      v-if="isCompletedWorkspace"
+                      class="text-sm font-semibold text-slate-950 dark:text-white"
+                    >
+                      {{ formatQuantity(item.counted_quantity) }}
+                    </div>
+                    <input
+                      v-else
+                      v-model.number="item.editable_counted_quantity"
+                      type="number"
+                      min="0"
+                      step="0.0001"
+                      class="erp-input"
+                      :disabled="store.recording || store.completing || isUpdatingItem(item.id)"
+                      @focus="workspace.last_local_activity_at = Date.now()"
+                      @keydown.enter.prevent="submitItemUpdate(item)"
+                    />
+                  </td>
+                  <td>
+                    <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold" :class="differenceClass(item.difference)">
+                      {{ formatSignedQuantity(item.difference) }}
+                    </span>
+                  </td>
+                  <td v-if="!isCompletedWorkspace">
+                    <button
+                      type="button"
+                      class="erp-button-secondary w-full"
+                      :disabled="store.recording || store.completing || !hasItemChanged(item) || isUpdatingItem(item.id)"
+                      @click="submitItemUpdate(item)"
+                    >
+                      <span v-if="isUpdatingItem(item.id)" class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-slate-400/30 border-t-slate-700 dark:border-slate-500/30 dark:border-t-slate-200"></span>
+                      <span v-else>Update</span>
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          </div>
+          <div class="flex flex-col gap-3 border-t border-slate-200/70 px-4 py-3 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
+            <div class="flex flex-col gap-2.5 text-sm text-slate-500 dark:text-slate-400 sm:flex-row sm:items-center">
+              <span>Page {{ workspaceItemPagination.current_page }} of {{ workspaceItemPagination.last_page }}</span>
+              <label class="flex items-center gap-2">
+                <span>Rows</span>
+                <select
+                  class="erp-select max-w-[5.5rem] py-2"
+                  :value="workspaceItemPagination.per_page"
+                  @change="handleWorkspacePerPageChange(Number($event.target.value || 25))"
+                >
+                  <option :value="10">10</option>
+                  <option :value="25">25</option>
+                  <option :value="50">50</option>
+                  <option :value="100">100</option>
+                </select>
+              </label>
+            </div>
+
+            <div class="flex items-center gap-2">
+              <button
+                type="button"
+                class="erp-button-secondary"
+                :disabled="store.workspaceItemsLoading || workspaceItemPagination.current_page <= 1"
+                @click="handleWorkspacePageChange(workspaceItemPagination.current_page - 1)"
+              >
+                Previous
+              </button>
+              <span class="text-sm text-slate-600 dark:text-slate-300">
+                {{ workspaceItemPagination.from || 0 }}-{{ workspaceItemPagination.to || 0 }} of {{ workspaceItemPagination.total }}
+              </span>
+              <button
+                type="button"
+                class="erp-button-secondary"
+                :disabled="store.workspaceItemsLoading || workspaceItemPagination.current_page >= workspaceItemPagination.last_page"
+                @click="handleWorkspacePageChange(workspaceItemPagination.current_page + 1)"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <div class="sticky bottom-0 z-10 rounded-[10px] border border-slate-200 bg-white px-4 py-3 shadow-[0_-10px_25px_rgba(15,23,42,0.06)] dark:border-slate-800 dark:bg-slate-900">
+          <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+            <div class="erp-form-actions">
+              <button type="button" class="erp-button-secondary" :disabled="store.recording || store.completing" @click="goBack">
+                Back to counts
+              </button>
+              <button
+                v-if="!isCompletedWorkspace"
+                type="button"
+                class="erp-button-primary"
+                :disabled="store.recording || store.completing"
+                @click="submitComplete"
+              >
+                <span v-if="store.completing" class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
+                Complete count
+              </button>
+            </div>
+          </div>
+        </div>
+      </template>
+    </div>
+  </AppLayout>
+</template>
+
+<script setup>
+import { computed, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
+import InventoryProductLookup from '@components/inventory/InventoryProductLookup.vue'
+import AppAlert from '@components/ui/AppAlert.vue'
+import LoadingSpinner from '@components/ui/LoadingSpinner.vue'
+import SearchInput from '@components/ui/SearchInput.vue'
+import AppLayout from '@layouts/AppLayout.vue'
+import { useInventoryCountsStore } from '@stores/inventory'
+
+const route = useRoute()
+const router = useRouter()
+const store = useInventoryCountsStore()
+
+const breadcrumbs = computed(() => [
+  { label: 'Dashboard', to: '/dashboard' },
+  { label: 'Inventory' },
+  { label: 'Counts', to: '/inventory/counts' },
+  { label: route.params.id ? `Count ${workspace.reference_no || route.params.id}` : 'Workspace' },
+])
+
+const pageTitle = computed(() => (isCompletedWorkspace.value ? 'Completed Stock Count' : 'Live Stock Count'))
+const pageSubtitle = computed(() =>
+  isCompletedWorkspace.value
+    ? 'Review the completed count and counted lines.'
+    : 'Capture live counted quantities and reconcile stock when the session is complete.'
+)
+
+const alert = reactive({ show: false, type: 'success', title: 'Success', message: '' })
+const entryQuantityInput = ref(null)
+const workspaceSearchTimer = ref(null)
+const workspace = reactive({
+  loading: true,
+  count_id: '',
+  reference_no: '',
+  warehouse: null,
+  date: '',
+  notes: '',
+  status: '',
+  entry_quantity: 1,
+  pending_item: null,
+  items: [],
+  item_search: '',
+  last_local_activity_at: 0,
+})
+
+let workspaceRefreshTimer = null
+
+const isCompletedWorkspace = computed(() => workspace.status === 'completed')
+const workspaceItemPagination = computed(() => store.workspaceItemPagination)
+const showWorkspaceTableShell = computed(() =>
+  store.workspaceItemsLoading || workspaceItemPagination.value.total > 0 || workspace.item_search.trim() !== ''
+)
+const isUpdatingItem = (itemId) => store.updatingItemId === itemId
+const hasItemChanged = (item) => Number(item.editable_counted_quantity ?? 0) !== Number(item.counted_quantity ?? 0)
+
+const showToast = (type, message) => {
+  alert.type = type
+  alert.title = type === 'danger' ? 'Error' : 'Success'
+  alert.message = message
+  alert.show = false
+  requestAnimationFrame(() => { alert.show = true })
+}
+
+const formatQuantity = (value) => Number(value || 0).toFixed(4)
+const formatSignedQuantity = (value) => {
+  const number = Number(value || 0)
+  return `${number > 0 ? '+' : ''}${number.toFixed(4)}`
+}
+
+const differenceClass = (difference) => {
+  const value = Number(difference || 0)
+
+  if (value > 0) return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
+  if (value < 0) return 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300'
+  return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+}
+
+const resetWorkspace = () => {
+  workspace.loading = true
+  workspace.count_id = ''
+  workspace.reference_no = ''
+  workspace.warehouse = null
+  workspace.date = ''
+  workspace.notes = ''
+  workspace.status = ''
+  workspace.entry_quantity = 1
+  workspace.pending_item = null
+  workspace.items = []
+  workspace.item_search = ''
+  workspace.last_local_activity_at = 0
+  store.resetWorkspaceItems()
+}
+
+const hydrateWorkspace = (count) => {
+  workspace.count_id = count.id
+  workspace.reference_no = count.reference_no
+  workspace.warehouse = count.warehouse || null
+  workspace.date = count.date || ''
+  workspace.notes = count.notes || ''
+  workspace.status = count.status || ''
+  workspace.loading = false
+}
+
+const hydrateWorkspaceItems = (items = []) => {
+  workspace.items = items.map((item) => ({
+    ...item,
+    editable_counted_quantity: Number(item.counted_quantity ?? 0),
+  }))
+}
+
+const stopWorkspacePolling = () => {
+  if (workspaceRefreshTimer) {
+    window.clearInterval(workspaceRefreshTimer)
+    workspaceRefreshTimer = null
+  }
+}
+
+const refreshWorkspace = async (countId = workspace.count_id, showLoader = false) => {
+  if (!countId) {
+    return
+  }
+
+  if (showLoader) {
+    workspace.loading = true
+  }
+
+  const count = await store.fetchItem(countId)
+  hydrateWorkspace(count)
+
+  if (count.status === 'completed') {
+    stopWorkspacePolling()
+  }
+}
+
+const refreshWorkspaceItems = async (countId = workspace.count_id, overrides = {}) => {
+  if (!countId) {
+    return
+  }
+
+  const response = await store.fetchWorkspaceItems(countId, overrides)
+  hydrateWorkspaceItems(response.data)
+}
+
+const startWorkspacePolling = () => {
+  stopWorkspacePolling()
+
+  if (isCompletedWorkspace.value) {
+    return
+  }
+
+  workspaceRefreshTimer = window.setInterval(async () => {
+    if (!workspace.count_id || store.recording || store.completing) {
+      return
+    }
+
+    if (Date.now() - workspace.last_local_activity_at < 2000) {
+      return
+    }
+
+    try {
+      await refreshWorkspace(workspace.count_id, false)
+      await refreshWorkspaceItems(workspace.count_id)
+    } catch {
+      // Keep polling silent; user-facing errors still surface on direct actions.
+    }
+  }, 10000)
+}
+
+const goBack = () => {
+  router.push({ name: 'inventory-counts' })
+}
+
+const loadWorkspace = async (countId) => {
+  stopWorkspacePolling()
+  resetWorkspace()
+
+  if (!countId) {
+    goBack()
+    return
+  }
+
+  try {
+    await Promise.all([
+      refreshWorkspace(countId, true),
+      refreshWorkspaceItems(countId, { search: '', page: 1, per_page: store.workspaceItemFilters.per_page || 25 }),
+    ])
+
+    if (!isCompletedWorkspace.value) {
+      startWorkspacePolling()
+    }
+  } catch (error) {
+    showToast('danger', error.response?.data?.message || 'Unable to open the stock count workspace.')
+    goBack()
+  }
+}
+
+const clearPendingItem = () => {
+  workspace.pending_item = null
+  workspace.entry_quantity = 1
+}
+
+const handleWorkspacePageChange = async (page) => {
+  if (!workspace.count_id) {
+    return
+  }
+
+  await refreshWorkspaceItems(workspace.count_id, { page })
+}
+
+const handleWorkspacePerPageChange = async (perPage) => {
+  if (!workspace.count_id) {
+    return
+  }
+
+  await refreshWorkspaceItems(workspace.count_id, { per_page: perPage, page: 1 })
+}
+
+const handleLookupSelect = async (match) => {
+  if (!workspace.count_id) {
+    showToast('danger', 'Open a stock count session first.')
+    return
+  }
+
+  workspace.pending_item = {
+    product_id: match.product_id,
+    variation_id: match.variation_id || null,
+    lot_id: match.lot_id || null,
+    product_name: match.product_name || '',
+    variation_name: match.variation_name || '',
+    sku: match.sku || '',
+    ending_quantity: Number(match.ending_quantity || 0),
+    unit_cost: Number(match.unit_cost || 0),
+  }
+  workspace.entry_quantity = 1
+  workspace.last_local_activity_at = Date.now()
+
+  await nextTick()
+
+  if (entryQuantityInput.value && typeof entryQuantityInput.value.focus === 'function') {
+    entryQuantityInput.value.focus()
+  }
+
+  if (entryQuantityInput.value && typeof entryQuantityInput.value.select === 'function') {
+    entryQuantityInput.value.select()
+  }
+}
+
+const submitPendingEntry = async () => {
+  const quantity = Number(workspace.entry_quantity || 0)
+
+  if (!workspace.count_id || !workspace.pending_item) {
+    showToast('danger', 'Select an item first.')
+    return
+  }
+
+  if (quantity === 0) {
+    showToast('danger', 'Quantity to add cannot be zero.')
+    return
+  }
+
+  workspace.last_local_activity_at = Date.now()
+
+  try {
+    await store.recordEntry(workspace.count_id, {
+      product_id: workspace.pending_item.product_id,
+      variation_id: workspace.pending_item.variation_id,
+      lot_id: workspace.pending_item.lot_id,
+      quantity,
+      unit_cost: workspace.pending_item.unit_cost,
+    })
+
+    await Promise.all([
+      refreshWorkspace(workspace.count_id),
+      refreshWorkspaceItems(workspace.count_id),
+    ])
+    clearPendingItem()
+    showToast('success', isCompletedWorkspace.value ? 'Correction posted successfully.' : 'Count entry recorded successfully.')
+  } catch (error) {
+    showToast('danger', error.response?.data?.message || 'Unable to record the counted quantity.')
+  }
+}
+
+const submitItemUpdate = async (item) => {
+  if (!workspace.count_id) {
+    return
+  }
+
+  const countedQuantity = Number(item.editable_counted_quantity ?? 0)
+
+  if (countedQuantity < 0) {
+    showToast('danger', 'Counted quantity cannot be negative.')
+    return
+  }
+
+  workspace.last_local_activity_at = Date.now()
+
+  try {
+    await store.updateItem(workspace.count_id, item.id, {
+      counted_quantity: countedQuantity,
+    })
+
+    await Promise.all([
+      refreshWorkspace(workspace.count_id),
+      refreshWorkspaceItems(workspace.count_id),
+    ])
+    showToast('success', isCompletedWorkspace.value ? 'Count correction saved successfully.' : 'Counted quantity updated successfully.')
+  } catch (error) {
+    showToast('danger', error.response?.data?.message || 'Unable to update the counted quantity.')
+  }
+}
+
+const submitComplete = async () => {
+  if (!workspace.count_id) {
+    return
+  }
+
+  try {
+    await store.completeItem(workspace.count_id, {})
+    await Promise.all([
+      refreshWorkspace(workspace.count_id, true),
+      refreshWorkspaceItems(workspace.count_id),
+    ])
+    stopWorkspacePolling()
+    showToast('success', 'Stock count completed successfully.')
+  } catch (error) {
+    showToast('danger', error.response?.data?.message || 'Unable to complete the stock count.')
+  }
+}
+
+watch(() => route.params.id, (countId) => {
+  loadWorkspace(countId)
+}, { immediate: true })
+
+watch(() => workspace.item_search, (value) => {
+  if (!workspace.count_id) {
+    return
+  }
+
+  if (workspaceSearchTimer.value) {
+    window.clearTimeout(workspaceSearchTimer.value)
+  }
+
+  workspaceSearchTimer.value = window.setTimeout(() => {
+    refreshWorkspaceItems(workspace.count_id, { search: value.trim(), page: 1 })
+  }, 250)
+})
+
+onBeforeUnmount(() => {
+  stopWorkspacePolling()
+
+  if (workspaceSearchTimer.value) {
+    window.clearTimeout(workspaceSearchTimer.value)
+    workspaceSearchTimer.value = null
+  }
+})
+</script>

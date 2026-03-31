@@ -8,6 +8,7 @@ use App\Models\ProductVariation;
 use App\Models\StockCount;
 use App\Models\StockCountItem;
 use App\Models\StockLevel;
+use App\Models\StockLot;
 use App\Models\User;
 use App\Models\Warehouse;
 use App\Repositories\Inventory\StockCountRepository;
@@ -27,6 +28,48 @@ class StockCountService
     public function paginate(array $filters, ?User $user = null): LengthAwarePaginator
     {
         return $this->counts->paginateFiltered($filters, $user);
+    }
+
+    public function paginateItems(StockCount $count, array $filters, ?User $user = null): LengthAwarePaginator
+    {
+        if ($user) {
+            $this->ensureBelongsToBusiness($user->business_id, $count);
+        }
+
+        $count->loadMissing('warehouse');
+        $this->ensureUserCanAccessWarehouse($user, $count->warehouse);
+
+        $perPage = (int) ($filters['per_page'] ?? 25);
+        $perPage = max(1, min($perPage, 100));
+        $search = trim((string) ($filters['search'] ?? ''));
+
+        $query = $count->items()
+            ->with(['product', 'variation', 'lot'])
+            ->orderByRaw('case when counted_quantity is null then 1 else 0 end')
+            ->orderBy('product_id')
+            ->orderBy('variation_id')
+            ->orderBy('lot_id');
+
+        if ($search !== '') {
+            $query->where(function ($builder) use ($search): void {
+                $builder
+                    ->whereHas('product', function ($productQuery) use ($search): void {
+                        $productQuery
+                            ->where('name', 'like', "%{$search}%")
+                            ->orWhere('sku', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('variation', function ($variationQuery) use ($search): void {
+                        $variationQuery
+                            ->where('name', 'like', "%{$search}%")
+                            ->orWhere('sku', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('lot', function ($lotQuery) use ($search): void {
+                        $lotQuery->where('lot_number', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        return $query->paginate($perPage);
     }
 
     public function create(string $businessId, array $data, ?User $actor = null): StockCount
@@ -53,11 +96,12 @@ class StockCountService
                     $warehouse->id,
                     $item['product_id'],
                     $item['variation_id'] ?? null,
+                    $item['lot_id'] ?? null,
                     $item['unit_cost'] ?? 0
                 );
             }
 
-            $count = $count->load(['warehouse.branch', 'creator', 'items.product', 'items.variation']);
+            $count = $count->load(['warehouse.branch', 'creator']);
 
             $this->auditLogger->log(
                 'stock_count_started',
@@ -80,16 +124,18 @@ class StockCountService
     {
         return DB::transaction(function () use ($businessId, $count, $data, $actor): StockCount {
             $this->ensureBelongsToBusiness($businessId, $count);
-            StockCount::query()->whereKey($count->id)->lockForUpdate()->first();
-            $count->loadMissing('warehouse');
+            /** @var StockCount $lockedCount */
+            $lockedCount = StockCount::query()->whereKey($count->id)->lockForUpdate()->firstOrFail();
+            $count = $lockedCount->loadMissing('warehouse');
             $this->ensureUserCanAccessWarehouse($actor, $count->warehouse);
 
             if ($count->status !== 'in_progress') {
-                throw new DomainException('Only in-progress stock counts can accept new entries.', 422);
+                throw new DomainException('Only in-progress stock counts can accept entries.', 422);
             }
 
             $variationId = $data['variation_id'] ?? null;
-            $this->ensureValidCountItemSelection($businessId, $data['product_id'], $variationId);
+            $lotId = $data['lot_id'] ?? null;
+            $this->ensureValidCountItemSelection($businessId, $count->warehouse_id, $data['product_id'], $variationId, $lotId);
 
             $quantity = round((float) $data['quantity'], 4);
 
@@ -103,6 +149,7 @@ class StockCountService
                 $count->warehouse_id,
                 $data['product_id'],
                 $variationId,
+                $lotId,
                 $data['unit_cost'] ?? 0
             );
 
@@ -130,7 +177,7 @@ class StockCountService
                 'created_by' => $actor?->id,
             ]);
 
-            $count = $count->refresh()->load(['warehouse.branch', 'creator', 'items.product', 'items.variation']);
+            $count = $count->refresh()->load(['warehouse.branch', 'creator', 'completer']);
 
             $this->auditLogger->log(
                 'stock_count_entry_recorded',
@@ -162,8 +209,9 @@ class StockCountService
     ): StockCount {
         return DB::transaction(function () use ($businessId, $count, $countItem, $data, $actor): StockCount {
             $this->ensureBelongsToBusiness($businessId, $count);
-            StockCount::query()->whereKey($count->id)->lockForUpdate()->first();
-            $count->loadMissing('warehouse');
+            /** @var StockCount $lockedCount */
+            $lockedCount = StockCount::query()->whereKey($count->id)->lockForUpdate()->firstOrFail();
+            $count = $lockedCount->loadMissing('warehouse');
             $this->ensureUserCanAccessWarehouse($actor, $count->warehouse);
             $this->ensureCountItemBelongsToCount($count, $countItem);
 
@@ -176,7 +224,7 @@ class StockCountService
             $delta = round($targetQuantity - $currentQuantity, 4);
 
             if ($delta === 0.0) {
-                return $count->refresh()->load(['warehouse.branch', 'creator', 'items.product', 'items.variation']);
+                return $count->refresh()->load(['warehouse.branch', 'creator', 'completer']);
             }
 
             $countItem->counted_quantity = $targetQuantity;
@@ -192,7 +240,7 @@ class StockCountService
                 'created_by' => $actor?->id,
             ]);
 
-            $count = $count->refresh()->load(['warehouse.branch', 'creator', 'items.product', 'items.variation']);
+            $count = $count->refresh()->load(['warehouse.branch', 'creator', 'completer']);
 
             $this->auditLogger->log(
                 'stock_count_item_updated',
@@ -221,11 +269,17 @@ class StockCountService
         return DB::transaction(function () use ($businessId, $count, $data, $actor): StockCount {
             $this->ensureBelongsToBusiness($businessId, $count);
 
-            if ($count->status !== 'in_progress') {
+            /** @var StockCount $lockedCount */
+            $lockedCount = StockCount::query()
+                ->whereKey($count->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($lockedCount->status !== 'in_progress') {
                 throw new DomainException('Only in-progress stock counts can be completed.', 422);
             }
 
-            $count->loadMissing(['warehouse', 'items']);
+            $count = $lockedCount->load(['warehouse', 'items']);
             $this->ensureUserCanAccessWarehouse($actor, $count->warehouse);
 
             $payloadById = collect($data['items'] ?? [])->keyBy('id');
@@ -255,6 +309,7 @@ class StockCountService
                 $this->stockMovementService->record($businessId, [
                     'product_id' => $item->product_id,
                     'variation_id' => $item->variation_id,
+                    'lot_id' => $item->lot_id,
                     'warehouse_id' => $count->warehouse_id,
                     'type' => 'stock_count_correction',
                     'direction' => $difference > 0 ? 'in' : 'out',
@@ -270,7 +325,7 @@ class StockCountService
             $count->completed_by = $actor?->id;
             $count->save();
 
-            $count = $count->refresh()->load(['warehouse.branch', 'creator', 'completer', 'items.product', 'items.variation']);
+            $count = $count->refresh()->load(['warehouse.branch', 'creator', 'completer']);
 
             $this->auditLogger->log(
                 'stock_count_completed',
@@ -309,7 +364,24 @@ class StockCountService
         string $warehouseId,
         string $productId,
         ?string $variationId,
+        ?string $lotId,
     ): string {
+        if ($lotId !== null) {
+            /** @var StockLot|null $lot */
+            $lot = StockLot::withoutGlobalScopes()
+                ->where('business_id', $businessId)
+                ->where('id', $lotId)
+                ->where('product_id', $productId)
+                ->where('warehouse_id', $warehouseId)
+                ->first();
+
+            if (! $lot) {
+                throw new DomainException('Selected lot is invalid for this warehouse stock count.', 422);
+            }
+
+            return number_format((float) $lot->qty_on_hand, 4, '.', '');
+        }
+
         $query = StockLevel::withoutGlobalScopes()
             ->where('business_id', $businessId)
             ->where('warehouse_id', $warehouseId)
@@ -332,6 +404,7 @@ class StockCountService
         string $warehouseId,
         string $productId,
         ?string $variationId,
+        ?string $lotId,
         float|int|string|null $unitCost = 0,
     ): StockCountItem {
         $query = $count->items()
@@ -341,6 +414,12 @@ class StockCountService
             $query->whereNull('variation_id');
         } else {
             $query->where('variation_id', $variationId);
+        }
+
+        if ($lotId === null) {
+            $query->whereNull('lot_id');
+        } else {
+            $query->where('lot_id', $lotId);
         }
 
         /** @var StockCountItem|null $item */
@@ -358,14 +437,20 @@ class StockCountService
         return $count->items()->create([
             'product_id' => $productId,
             'variation_id' => $variationId,
-            'system_quantity' => $this->resolveSystemQuantity($businessId, $warehouseId, $productId, $variationId),
-            'counted_quantity' => 0,
+            'lot_id' => $lotId,
+            'system_quantity' => $this->resolveSystemQuantity($businessId, $warehouseId, $productId, $variationId, $lotId),
+            'counted_quantity' => null,
             'unit_cost' => round((float) ($unitCost ?? 0), 4),
         ]);
     }
 
-    protected function ensureValidCountItemSelection(string $businessId, string $productId, ?string $variationId): void
-    {
+    protected function ensureValidCountItemSelection(
+        string $businessId,
+        string $warehouseId,
+        string $productId,
+        ?string $variationId,
+        ?string $lotId,
+    ): void {
         $productExists = Product::withoutGlobalScopes()
             ->where('business_id', $businessId)
             ->where('id', $productId)
@@ -375,18 +460,36 @@ class StockCountService
             throw new DomainException('Selected product is invalid for this business.', 422);
         }
 
-        if ($variationId === null) {
+        if ($variationId !== null) {
+            $variationExists = ProductVariation::withoutGlobalScopes()
+                ->where('business_id', $businessId)
+                ->where('id', $variationId)
+                ->where('product_id', $productId)
+                ->exists();
+
+            if (! $variationExists) {
+                throw new DomainException('Selected variation is invalid for the chosen product.', 422);
+            }
+        }
+
+        if ($lotId === null) {
             return;
         }
 
-        $variationExists = ProductVariation::withoutGlobalScopes()
+        $lotQuery = StockLot::withoutGlobalScopes()
             ->where('business_id', $businessId)
-            ->where('id', $variationId)
+            ->where('id', $lotId)
             ->where('product_id', $productId)
-            ->exists();
+            ->where('warehouse_id', $warehouseId);
 
-        if (! $variationExists) {
-            throw new DomainException('Selected variation is invalid for the chosen product.', 422);
+        if ($variationId === null) {
+            $lotQuery->whereNull('variation_id');
+        } else {
+            $lotQuery->where('variation_id', $variationId);
+        }
+
+        if (! $lotQuery->exists()) {
+            throw new DomainException('Selected lot is invalid for the chosen product and warehouse.', 422);
         }
     }
 

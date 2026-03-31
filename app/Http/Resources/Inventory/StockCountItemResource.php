@@ -9,7 +9,7 @@ class StockCountItemResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $this->loadMissing(['product', 'variation']);
+        $this->loadMissing(['product', 'variation', 'lot']);
 
         return [
             'id' => $this->id,
@@ -28,6 +28,10 @@ class StockCountItemResource extends JsonResource
                 'id' => $this->variation->id,
                 'name' => $this->variation->name,
                 'sku' => $this->variation->sku,
+            ] : null),
+            'lot' => $this->whenLoaded('lot', fn () => $this->lot ? [
+                'id' => $this->lot->id,
+                'lot_number' => $this->lot->lot_number,
             ] : null),
         ];
     }

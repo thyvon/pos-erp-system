@@ -176,4 +176,130 @@ class StockCountApiTest extends TestCase
             'quantity' => '4.0000',
         ]);
     }
+
+    public function test_seeded_count_items_do_not_zero_out_stock_until_a_quantity_is_recorded(): void
+    {
+        $business = Business::factory()->create();
+        $branch = Branch::factory()->create(['business_id' => $business->id]);
+        $warehouse = Warehouse::factory()->forBranch($branch)->create();
+        $unit = Unit::factory()->create(['business_id' => $business->id]);
+        $product = Product::factory()->create([
+            'business_id' => $business->id,
+            'unit_id' => $unit->id,
+            'track_inventory' => true,
+        ]);
+        $user = User::factory()->for($business)->create();
+        $user->assignRole('inventory_manager');
+        $user->branches()->attach($branch->id);
+
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/v1/inventory/adjustments', [
+            'warehouse_id' => $warehouse->id,
+            'date' => now()->toDateString(),
+            'reason' => 'Seed stock',
+            'items' => [[
+                'product_id' => $product->id,
+                'direction' => 'in',
+                'quantity' => 10,
+                'unit_cost' => 2,
+            ]],
+        ])->assertCreated();
+
+        $createCount = $this->postJson('/api/v1/inventory/counts', [
+            'warehouse_id' => $warehouse->id,
+            'date' => now()->toDateString(),
+            'items' => [[
+                'product_id' => $product->id,
+                'unit_cost' => 2,
+            ]],
+        ])->assertCreated();
+
+        $countId = $createCount->json('data.id');
+
+        $this->postJson("/api/v1/inventory/counts/{$countId}/complete", [])
+            ->assertOk()
+            ->assertJsonPath('data.discrepancy_count', 0);
+
+        $this->assertDatabaseMissing('stock_movements', [
+            'reference_type' => StockCount::class,
+            'reference_id' => $countId,
+            'type' => 'stock_count_correction',
+        ]);
+
+        $this->assertDatabaseHas('stock_levels', [
+            'product_id' => $product->id,
+            'warehouse_id' => $warehouse->id,
+            'quantity' => '10.0000',
+        ]);
+    }
+
+    public function test_completed_count_item_can_be_corrected_and_posts_only_the_delta(): void
+    {
+        $business = Business::factory()->create();
+        $branch = Branch::factory()->create(['business_id' => $business->id]);
+        $warehouse = Warehouse::factory()->forBranch($branch)->create();
+        $unit = Unit::factory()->create(['business_id' => $business->id]);
+        $product = Product::factory()->create([
+            'business_id' => $business->id,
+            'unit_id' => $unit->id,
+            'track_inventory' => true,
+        ]);
+        $user = User::factory()->for($business)->create();
+        $user->assignRole('inventory_manager');
+        $user->branches()->attach($branch->id);
+
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/v1/inventory/adjustments', [
+            'warehouse_id' => $warehouse->id,
+            'date' => now()->toDateString(),
+            'reason' => 'Seed stock',
+            'items' => [[
+                'product_id' => $product->id,
+                'direction' => 'in',
+                'quantity' => 10,
+                'unit_cost' => 2,
+            ]],
+        ])->assertCreated();
+
+        $createCount = $this->postJson('/api/v1/inventory/counts', [
+            'warehouse_id' => $warehouse->id,
+            'date' => now()->toDateString(),
+        ])->assertCreated();
+
+        $countId = $createCount->json('data.id');
+
+        $entryResponse = $this->postJson("/api/v1/inventory/counts/{$countId}/entries", [
+            'product_id' => $product->id,
+            'quantity' => 8,
+            'unit_cost' => 2,
+        ])->assertOk();
+
+        $itemId = $entryResponse->json('data.items.0.id');
+
+        $this->postJson("/api/v1/inventory/counts/{$countId}/complete", [])
+            ->assertOk()
+            ->assertJsonPath('data.status', 'completed');
+
+        $updateResponse = $this->postJson("/api/v1/inventory/counts/{$countId}/items/{$itemId}", [
+            'counted_quantity' => 9,
+        ])->assertOk();
+
+        $updateResponse->assertJsonPath('data.items.0.counted_quantity', '9.0000');
+
+        $this->assertDatabaseHas('stock_levels', [
+            'product_id' => $product->id,
+            'warehouse_id' => $warehouse->id,
+            'quantity' => '9.0000',
+        ]);
+
+        $this->assertDatabaseHas('stock_movements', [
+            'reference_type' => StockCount::class,
+            'reference_id' => $countId,
+            'type' => 'stock_count_correction',
+            'quantity' => '1.0000',
+            'notes' => 'Stock count post-completion correction',
+        ]);
+    }
 }

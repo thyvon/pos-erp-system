@@ -3,6 +3,8 @@
 namespace App\Services\Inventory;
 
 use App\Exceptions\Domain\DomainException;
+use App\Models\StockLot;
+use App\Models\StockSerial;
 use App\Models\StockTransfer;
 use App\Models\User;
 use App\Models\Warehouse;
@@ -48,6 +50,11 @@ class StockTransferService
             ]);
 
             foreach ($data['items'] as $item) {
+                $lot = $this->resolveLotInWarehouse($businessId, $fromWarehouse->id, $item['product_id'], $item['variation_id'] ?? null, $item['lot_id'] ?? null);
+                $serial = $this->resolveSerialInWarehouse($businessId, $fromWarehouse->id, $item['product_id'], $item['variation_id'] ?? null, $item['serial_id'] ?? null);
+
+                $this->ensureTrackedTransferIsSupported($item, $lot, $serial);
+
                 $transfer->items()->create([
                     'product_id' => $item['product_id'],
                     'variation_id' => $item['variation_id'] ?? null,
@@ -75,10 +82,18 @@ class StockTransferService
                     'type' => 'transfer_out',
                 ], $actor);
 
-                $this->stockMovementService->record($businessId, $movementPayload + [
+                $inboundPayload = $movementPayload + [
                     'warehouse_id' => $toWarehouse->id,
                     'type' => 'transfer_in',
-                ], $actor);
+                ];
+
+                // The current schema stores one warehouse per lot record, so a partial serial transfer
+                // can keep the source lot reduced without fabricating a second lot row in the destination.
+                if ($lot && $serial) {
+                    $inboundPayload['lot_id'] = null;
+                }
+
+                $this->stockMovementService->record($businessId, $inboundPayload, $actor);
             }
             return $transfer->load(['fromWarehouse.branch', 'toWarehouse.branch', 'creator', 'items.product', 'items.variation', 'items.lot', 'items.serial']);
         });
@@ -102,6 +117,91 @@ class StockTransferService
     {
         if ($user && ! $user->hasRole('super_admin') && ! $user->hasBranchAccess($fromWarehouse->branch_id)) {
             throw new DomainException('You cannot transfer stock from a warehouse outside your assigned branches.', 403);
+        }
+    }
+
+    protected function resolveLotInWarehouse(
+        string $businessId,
+        string $warehouseId,
+        string $productId,
+        ?string $variationId,
+        ?string $lotId,
+    ): ?StockLot {
+        if (! filled($lotId)) {
+            return null;
+        }
+
+        $query = StockLot::withoutGlobalScopes()
+            ->where('business_id', $businessId)
+            ->where('warehouse_id', $warehouseId)
+            ->where('product_id', $productId);
+
+        if ($variationId === null) {
+            $query->whereNull('variation_id');
+        } else {
+            $query->where('variation_id', $variationId);
+        }
+
+        /** @var StockLot|null $lot */
+        $lot = $query->find($lotId);
+
+        if (! $lot) {
+            throw new DomainException('Selected lot is invalid for the source warehouse.', 422);
+        }
+
+        return $lot;
+    }
+
+    protected function resolveSerialInWarehouse(
+        string $businessId,
+        string $warehouseId,
+        string $productId,
+        ?string $variationId,
+        ?string $serialId,
+    ): ?StockSerial {
+        if (! filled($serialId)) {
+            return null;
+        }
+
+        $query = StockSerial::withoutGlobalScopes()
+            ->where('business_id', $businessId)
+            ->where('warehouse_id', $warehouseId)
+            ->where('product_id', $productId);
+
+        if ($variationId === null) {
+            $query->whereNull('variation_id');
+        } else {
+            $query->where('variation_id', $variationId);
+        }
+
+        /** @var StockSerial|null $serial */
+        $serial = $query->find($serialId);
+
+        if (! $serial) {
+            throw new DomainException('Selected serial is invalid for the source warehouse.', 422);
+        }
+
+        return $serial;
+    }
+
+    protected function ensureTrackedTransferIsSupported(array $item, ?StockLot $lot, ?StockSerial $serial): void
+    {
+        $quantity = round((float) $item['quantity'], 4);
+
+        if ($serial && $quantity !== 1.0) {
+            throw new DomainException('Serial-tracked transfers must use a quantity of 1.', 422);
+        }
+
+        if (! $lot || $serial) {
+            return;
+        }
+
+        if ((float) $lot->qty_reserved > 0) {
+            throw new DomainException('Lots with reserved quantity cannot be transferred to another warehouse.', 422);
+        }
+
+        if (round((float) $lot->qty_on_hand - $quantity, 4) !== 0.0) {
+            throw new DomainException('Partial lot transfers are not supported by the current lot model.', 422);
         }
     }
 

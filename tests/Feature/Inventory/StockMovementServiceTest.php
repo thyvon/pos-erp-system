@@ -9,6 +9,7 @@ use App\Models\Product;
 use App\Models\ProductVariation;
 use App\Models\StockLevel;
 use App\Models\StockMovement;
+use App\Models\StockSerial;
 use App\Models\Unit;
 use App\Models\User;
 use App\Models\Warehouse;
@@ -135,6 +136,94 @@ class StockMovementServiceTest extends TestCase
 
         $this->assertSame('50.0000', $parentLevel->quantity);
         $this->assertSame('12.0000', $variationLevel->quantity);
+    }
+
+    public function test_serial_tracked_movements_require_a_quantity_of_one(): void
+    {
+        [$business, $user, $warehouse, $product] = $this->makeInventoryContext();
+
+        $serial = StockSerial::withoutGlobalScopes()->create([
+            'business_id' => $business->id,
+            'product_id' => $product->id,
+            'warehouse_id' => $warehouse->id,
+            'serial_number' => 'SER-UNIT-1',
+            'status' => 'in_stock',
+            'unit_cost' => 10,
+            'received_at' => now(),
+        ]);
+
+        $this->expectException(DomainException::class);
+        $this->expectExceptionMessage('Serial-tracked movements must use a quantity of 1.');
+
+        app(StockMovementService::class)->record($business->id, [
+            'product_id' => $product->id,
+            'warehouse_id' => $warehouse->id,
+            'serial_id' => $serial->id,
+            'type' => 'adjustment_out',
+            'quantity' => 2,
+            'unit_cost' => 10,
+        ], $user);
+    }
+
+    public function test_transfer_in_moves_a_serial_into_the_destination_warehouse(): void
+    {
+        [$business, $user, $sourceWarehouse, $product] = $this->makeInventoryContext();
+        $branch = Branch::factory()->create([
+            'business_id' => $business->id,
+        ]);
+        $destinationWarehouse = Warehouse::factory()->forBranch($branch)->create();
+        $service = app(StockMovementService::class);
+
+        $service->record($business->id, [
+            'product_id' => $product->id,
+            'warehouse_id' => $sourceWarehouse->id,
+            'type' => 'opening_stock',
+            'quantity' => 1,
+            'unit_cost' => 10,
+        ], $user);
+
+        $serial = StockSerial::withoutGlobalScopes()->create([
+            'business_id' => $business->id,
+            'product_id' => $product->id,
+            'warehouse_id' => $sourceWarehouse->id,
+            'serial_number' => 'SER-TRANSFER-1',
+            'status' => 'in_stock',
+            'unit_cost' => 10,
+            'received_at' => now(),
+        ]);
+
+        $service->record($business->id, [
+            'product_id' => $product->id,
+            'warehouse_id' => $sourceWarehouse->id,
+            'serial_id' => $serial->id,
+            'type' => 'transfer_out',
+            'quantity' => 1,
+            'unit_cost' => 10,
+        ], $user);
+
+        $service->record($business->id, [
+            'product_id' => $product->id,
+            'warehouse_id' => $destinationWarehouse->id,
+            'serial_id' => $serial->id,
+            'type' => 'transfer_in',
+            'quantity' => 1,
+            'unit_cost' => 10,
+        ], $user);
+
+        $serial->refresh();
+
+        $this->assertSame($destinationWarehouse->id, $serial->warehouse_id);
+        $this->assertSame('in_stock', $serial->status);
+        $this->assertDatabaseHas('stock_levels', [
+            'product_id' => $product->id,
+            'warehouse_id' => $sourceWarehouse->id,
+            'quantity' => '0.0000',
+        ]);
+        $this->assertDatabaseHas('stock_levels', [
+            'product_id' => $product->id,
+            'warehouse_id' => $destinationWarehouse->id,
+            'quantity' => '1.0000',
+        ]);
     }
 
     protected function makeInventoryContext(bool $allowNegativeStock = false): array

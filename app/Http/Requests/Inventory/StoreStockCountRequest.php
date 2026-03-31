@@ -23,6 +23,7 @@ class StoreStockCountRequest extends FormRequest
             'items' => ['nullable', 'array'],
             'items.*.product_id' => ['required_with:items', 'uuid', Rule::exists('products', 'id')->where(fn ($query) => $query->where('business_id', $businessId))],
             'items.*.variation_id' => ['nullable', 'uuid', Rule::exists('product_variations', 'id')->where(fn ($query) => $query->where('business_id', $businessId))],
+            'items.*.lot_id' => ['nullable', 'uuid', Rule::exists('stock_lots', 'id')->where(fn ($query) => $query->where('business_id', $businessId))],
             'items.*.unit_cost' => ['nullable', 'numeric', 'min:0'],
         ];
     }

@@ -33,8 +33,8 @@ class InventoryProductLookupService
         return collect()
             ->concat($this->searchSerials($businessId, $term, $warehouse?->id))
             ->concat($this->searchLots($businessId, $term, $warehouse?->id))
-            ->concat($this->searchVariations($businessId, $term))
-            ->concat($this->searchProducts($businessId, $term))
+            ->concat($this->searchVariations($businessId, $term, $warehouse?->id))
+            ->concat($this->searchProducts($businessId, $term, $warehouse?->id))
             ->unique(fn (array $item) => implode(':', [
                 $item['product_id'],
                 $item['variation_id'] ?? '',
@@ -54,7 +54,7 @@ class InventoryProductLookupService
             });
     }
 
-    protected function searchProducts(string $businessId, string $term): Collection
+    protected function searchProducts(string $businessId, string $term, ?string $warehouseId): Collection
     {
         $products = Product::withoutGlobalScopes()
             ->select(['id', 'name', 'sku', 'description', 'purchase_price'])
@@ -101,7 +101,7 @@ class InventoryProductLookupService
         });
     }
 
-    protected function searchVariations(string $businessId, string $term): Collection
+    protected function searchVariations(string $businessId, string $term, ?string $warehouseId): Collection
     {
         $variations = ProductVariation::withoutGlobalScopes()
             ->select(['id', 'product_id', 'name', 'sku', 'purchase_price'])

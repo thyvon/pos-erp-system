@@ -14,7 +14,9 @@ const CustomerGroupsView = () => import('@views/CustomerGroupsView.vue')
 const CustomersView = () => import('@views/CustomersView.vue')
 const DashboardView = () => import('@views/DashboardView.vue')
 const InventoryAdjustmentsView = () => import('@views/InventoryAdjustmentsView.vue')
+const InventoryCountCreateView = () => import('@views/InventoryCountCreateView.vue')
 const InventoryCountsView = () => import('@views/InventoryCountsView.vue')
+const InventoryCountWorkspaceView = () => import('@views/InventoryCountWorkspaceView.vue')
 const InventoryLotsView = () => import('@views/InventoryLotsView.vue')
 const InventorySerialsView = () => import('@views/InventorySerialsView.vue')
 const InventoryTransfersView = () => import('@views/InventoryTransfersView.vue')
@@ -116,6 +118,18 @@ const router = createRouter({
       name: 'inventory-counts',
       component: InventoryCountsView,
       meta: { requiresAuth: true, requiredPermission: 'inventory.index' },
+    },
+    {
+      path: '/inventory/counts/create',
+      name: 'inventory-counts-create',
+      component: InventoryCountCreateView,
+      meta: { requiresAuth: true, requiredPermission: 'inventory.count' },
+    },
+    {
+      path: '/inventory/counts/:id',
+      name: 'inventory-counts-workspace',
+      component: InventoryCountWorkspaceView,
+      meta: { requiresAuth: true, requiredPermission: 'inventory.count' },
     },
     {
       path: '/inventory/lots',

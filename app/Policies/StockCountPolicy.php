@@ -31,13 +31,15 @@ class StockCountPolicy
     {
         return $user->can('inventory.count')
             && $this->belongsToSameBusiness($user, $stockCount)
-            && $user->hasBranchAccess($stockCount->warehouse?->branch_id);
+            && $user->hasBranchAccess($stockCount->warehouse?->branch_id)
+            && $stockCount->status === 'in_progress';
     }
 
     public function record(User $user, StockCount $stockCount): bool
     {
         return $user->can('inventory.count')
             && $this->belongsToSameBusiness($user, $stockCount)
-            && $user->hasBranchAccess($stockCount->warehouse?->branch_id);
+            && $user->hasBranchAccess($stockCount->warehouse?->branch_id)
+            && $stockCount->status === 'in_progress';
     }
 }
