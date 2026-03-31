@@ -59,6 +59,18 @@
         <template #creator="{ row }">
           <span class="text-sm text-slate-600 dark:text-slate-300">{{ row.creator?.name || 'System' }}</span>
         </template>
+
+        <template #actions="{ row }">
+          <button
+            type="button"
+            class="erp-button-secondary inline-flex h-10 w-10 items-center justify-center p-0"
+            title="Preview adjustment"
+            aria-label="Preview adjustment"
+            @click="openDetail(row.id)"
+          >
+            <i class="fa-solid fa-eye"></i>
+          </button>
+        </template>
       </DataTable>
 
       <AppModal :show="modal.show" title="Create stock adjustment" icon="adjustment" size="xl" @close="closeModal">
@@ -172,6 +184,7 @@
 
 <script setup>
 import { computed, onMounted, reactive } from 'vue'
+import { useRouter } from 'vue-router'
 import InventoryProductLookup from '@components/inventory/InventoryProductLookup.vue'
 import AppAlert from '@components/ui/AppAlert.vue'
 import AppDatePicker from '@components/ui/AppDatePicker.vue'
@@ -185,6 +198,7 @@ import { useInventoryAdjustmentsStore, useInventoryOptionsStore } from '@stores/
 const auth = useAuthStore()
 const store = useInventoryAdjustmentsStore()
 const optionsStore = useInventoryOptionsStore()
+const router = useRouter()
 
 const canCreate = computed(() => auth.can('inventory.adjust'))
 const columns = [
@@ -193,6 +207,7 @@ const columns = [
   { key: 'reason', label: 'Reason' },
   { key: 'items_count', label: 'Lines' },
   { key: 'creator', label: 'Created by' },
+  { key: 'actions', label: 'Actions' },
 ]
 
 const alert = reactive({ show: false, type: 'success', title: 'Success', message: '' })
@@ -253,6 +268,10 @@ const openCreateModal = () => {
 
 const closeModal = () => {
   modal.show = false
+}
+
+const openDetail = (id) => {
+  router.push({ name: 'inventory-adjustment-detail', params: { id } })
 }
 
 const removeItem = (index) => {

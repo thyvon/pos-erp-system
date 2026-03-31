@@ -10,6 +10,9 @@ export const getStockAdjustment = (id) => api.get(`/inventory/adjustments/${id}`
 export const getStockTransfers = (params = {}) => api.get('/inventory/transfers', { params })
 export const createStockTransfer = (payload) => api.post('/inventory/transfers', payload)
 export const getStockTransfer = (id) => api.get(`/inventory/transfers/${id}`)
+export const updateStockTransfer = (id, payload) => api.put(`/inventory/transfers/${id}`, payload)
+export const deleteStockTransfer = (id) => api.delete(`/inventory/transfers/${id}`)
+export const receiveStockTransfer = (id) => api.post(`/inventory/transfers/${id}/receive`)
 
 export const getStockCounts = (params = {}) => api.get('/inventory/counts', { params })
 export const createStockCount = (payload) => api.post('/inventory/counts', payload)
@@ -17,6 +20,7 @@ export const getStockCount = (id) => api.get(`/inventory/counts/${id}`)
 export const getStockCountItems = (id, params = {}) => api.get(`/inventory/counts/${id}/items`, { params })
 export const recordStockCountEntry = (id, payload) => api.post(`/inventory/counts/${id}/entries`, payload)
 export const updateStockCountItem = (countId, itemId, payload) => api.post(`/inventory/counts/${countId}/items/${itemId}`, payload)
+export const deleteStockCountItem = (countId, itemId) => api.delete(`/inventory/counts/${countId}/items/${itemId}`)
 export const completeStockCount = (id, payload) => api.post(`/inventory/counts/${id}/complete`, payload)
 
 export const getStockLots = (params = {}) => api.get('/inventory/lots', { params })

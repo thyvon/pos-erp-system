@@ -20,7 +20,7 @@ class StockTransferRepository extends BaseRepository
         $perPage = max(1, min((int) ($filters['per_page'] ?? 15), 100));
 
         $query = $this->query()
-            ->with(['fromWarehouse.branch', 'toWarehouse.branch', 'creator'])
+            ->with(['fromWarehouse.branch', 'toWarehouse.branch', 'creator', 'sender', 'receiver'])
             ->when(
                 filled($filters['search'] ?? null),
                 function ($query) use ($filters): void {
@@ -30,6 +30,34 @@ class StockTransferRepository extends BaseRepository
                         $inner
                             ->where('reference_no', 'like', "%{$search}%")
                             ->orWhere('notes', 'like', "%{$search}%");
+                    });
+                }
+            )
+            ->when(
+                filled($filters['status'] ?? null),
+                fn ($query) => $query->where('status', $filters['status'])
+            )
+            ->when(
+                filled($filters['warehouse_id'] ?? null) && filled($filters['direction'] ?? null),
+                function ($query) use ($filters): void {
+                    if ($filters['direction'] === 'out') {
+                        $query->where('from_warehouse_id', $filters['warehouse_id']);
+
+                        return;
+                    }
+
+                    if ($filters['direction'] === 'in') {
+                        $query->where('to_warehouse_id', $filters['warehouse_id']);
+                    }
+                }
+            )
+            ->when(
+                filled($filters['warehouse_id'] ?? null) && blank($filters['direction'] ?? null),
+                function ($query) use ($filters): void {
+                    $query->where(function ($inner) use ($filters): void {
+                        $inner
+                            ->where('from_warehouse_id', $filters['warehouse_id'])
+                            ->orWhere('to_warehouse_id', $filters['warehouse_id']);
                     });
                 }
             )
@@ -49,13 +77,11 @@ class StockTransferRepository extends BaseRepository
                 filled($filters['date_to'] ?? null),
                 fn ($query) => $query->whereDate('date', '<=', $filters['date_to'])
             )
-            ->when($user && ! $user->hasRole('super_admin'), function ($query) use ($user): void {
-                $branchIds = $user->accessibleBranchIds();
-
-                $query->where(function ($transferQuery) use ($branchIds): void {
+            ->when($user, function ($query) use ($user): void {
+                $query->where(function ($transferQuery) use ($user): void {
                     $transferQuery
-                        ->whereHas('fromWarehouse', fn ($warehouseQuery) => BranchAccess::scopeBranchQuery($warehouseQuery, $branchIds, 'branch_id'))
-                        ->orWhereHas('toWarehouse', fn ($warehouseQuery) => BranchAccess::scopeBranchQuery($warehouseQuery, $branchIds, 'branch_id'));
+                        ->whereHas('fromWarehouse', fn ($warehouseQuery) => BranchAccess::scopeBranchQuery($warehouseQuery, $user, 'branch_id'))
+                        ->orWhereHas('toWarehouse', fn ($warehouseQuery) => BranchAccess::scopeBranchQuery($warehouseQuery, $user, 'branch_id'));
                 });
             })
             ->orderByDesc('date')

@@ -49,7 +49,7 @@ class StockAdjustmentController extends BaseApiController
         $this->authorize('view', $stockAdjustment);
 
         return $this->success(new StockAdjustmentResource(
-            $stockAdjustment->load(['warehouse.branch', 'creator', 'items.product', 'items.variation'])
+            $stockAdjustment->load(['warehouse.branch', 'creator', 'items.product', 'items.variation', 'items.lot', 'items.serial'])
         ));
     }
 }

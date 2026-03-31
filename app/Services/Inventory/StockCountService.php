@@ -264,6 +264,53 @@ class StockCountService
         });
     }
 
+    public function removeItem(
+        string $businessId,
+        StockCount $count,
+        StockCountItem $countItem,
+        ?User $actor = null
+    ): StockCount {
+        return DB::transaction(function () use ($businessId, $count, $countItem, $actor): StockCount {
+            $this->ensureBelongsToBusiness($businessId, $count);
+            /** @var StockCount $lockedCount */
+            $lockedCount = StockCount::query()->whereKey($count->id)->lockForUpdate()->firstOrFail();
+            $count = $lockedCount->loadMissing('warehouse');
+            $this->ensureUserCanAccessWarehouse($actor, $count->warehouse);
+            $this->ensureCountItemBelongsToCount($count, $countItem);
+
+            if ($count->status !== 'in_progress') {
+                throw new DomainException('Only in-progress stock counts can remove counted lines.', 422);
+            }
+
+            $auditPayload = [
+                'warehouse_id' => $count->warehouse_id,
+                'reference_no' => $count->reference_no,
+                'product_id' => $countItem->product_id,
+                'variation_id' => $countItem->variation_id,
+                'lot_id' => $countItem->lot_id,
+                'counted_quantity' => round((float) ($countItem->counted_quantity ?? 0), 4),
+                'system_quantity' => round((float) ($countItem->system_quantity ?? 0), 4),
+            ];
+
+            $countItem->entries()->delete();
+            $countItem->delete();
+
+            $count = $count->refresh()->load(['warehouse.branch', 'creator', 'completer']);
+
+            $this->auditLogger->log(
+                'stock_count_item_removed',
+                StockCount::class,
+                $count->id,
+                $actor,
+                $businessId,
+                null,
+                $auditPayload
+            );
+
+            return $count;
+        });
+    }
+
     public function complete(string $businessId, StockCount $count, array $data, ?User $actor = null): StockCount
     {
         return DB::transaction(function () use ($businessId, $count, $data, $actor): StockCount {

@@ -78,6 +78,7 @@ class InventoryProductLookupService
                 'product_name' => $product->name,
                 'product_description' => $product->description,
             ], 300);
+            $stockSnapshot = $this->resolveStockSnapshot($businessId, $warehouseId, $product->id, null);
 
             return [
                 'lookup_key' => 'product:'.$product->id,
@@ -92,7 +93,10 @@ class InventoryProductLookupService
                 'lot_number' => null,
                 'serial_number' => null,
                 'unit_cost' => $product->purchase_price !== null ? (string) $product->purchase_price : null,
-                'ending_quantity' => $this->resolveEndingQuantity($businessId, $warehouseId, $product->id, null),
+                'ending_quantity' => $stockSnapshot['ending_quantity'],
+                'on_hand_quantity' => $stockSnapshot['on_hand_quantity'],
+                'reserved_quantity' => $stockSnapshot['reserved_quantity'],
+                'available_quantity' => $stockSnapshot['available_quantity'],
                 'match_type' => $matchType,
                 'match_value' => $matchValue,
                 'is_exact_match' => $exact,
@@ -145,6 +149,7 @@ class InventoryProductLookupService
                 'product_name' => $product?->name,
                 'product_description' => $product?->description,
             ], 200);
+            $stockSnapshot = $this->resolveStockSnapshot($businessId, $warehouseId, $variation->product_id, $variation->id);
 
             return [
                 'lookup_key' => 'variation:'.$variation->id,
@@ -159,7 +164,10 @@ class InventoryProductLookupService
                 'lot_number' => null,
                 'serial_number' => null,
                 'unit_cost' => $variation->purchase_price !== null ? (string) $variation->purchase_price : null,
-                'ending_quantity' => $this->resolveEndingQuantity($businessId, $warehouseId, $variation->product_id, $variation->id),
+                'ending_quantity' => $stockSnapshot['ending_quantity'],
+                'on_hand_quantity' => $stockSnapshot['on_hand_quantity'],
+                'reserved_quantity' => $stockSnapshot['reserved_quantity'],
+                'available_quantity' => $stockSnapshot['available_quantity'],
                 'match_type' => $matchType,
                 'match_value' => $matchValue,
                 'is_exact_match' => $exact,
@@ -194,6 +202,7 @@ class InventoryProductLookupService
             [$matchType, $matchValue, $score, $exact] = $this->resolveBestMatch($term, [
                 'lot' => $lot->lot_number,
             ], 0);
+            $stockSnapshot = $this->resolveStockSnapshot($businessId, $warehouseId, $lot->product_id, $lot->variation_id);
 
             return [
                 'lookup_key' => 'lot:'.$lot->id,
@@ -208,7 +217,10 @@ class InventoryProductLookupService
                 'lot_number' => $lot->lot_number,
                 'serial_number' => null,
                 'unit_cost' => $lot->unit_cost !== null ? (string) $lot->unit_cost : null,
-                'ending_quantity' => $this->resolveEndingQuantity($businessId, $warehouseId, $lot->product_id, $lot->variation_id),
+                'ending_quantity' => $stockSnapshot['ending_quantity'],
+                'on_hand_quantity' => $stockSnapshot['on_hand_quantity'],
+                'reserved_quantity' => $stockSnapshot['reserved_quantity'],
+                'available_quantity' => $stockSnapshot['available_quantity'],
                 'match_type' => $matchType,
                 'match_value' => $matchValue,
                 'is_exact_match' => $exact,
@@ -243,6 +255,7 @@ class InventoryProductLookupService
             [$matchType, $matchValue, $score, $exact] = $this->resolveBestMatch($term, [
                 'serial' => $serial->serial_number,
             ], 0);
+            $stockSnapshot = $this->resolveStockSnapshot($businessId, $warehouseId, $serial->product_id, $serial->variation_id);
 
             return [
                 'lookup_key' => 'serial:'.$serial->id,
@@ -257,7 +270,10 @@ class InventoryProductLookupService
                 'lot_number' => null,
                 'serial_number' => $serial->serial_number,
                 'unit_cost' => $serial->unit_cost !== null ? (string) $serial->unit_cost : null,
-                'ending_quantity' => $this->resolveEndingQuantity($businessId, $warehouseId, $serial->product_id, $serial->variation_id),
+                'ending_quantity' => $stockSnapshot['ending_quantity'],
+                'on_hand_quantity' => $stockSnapshot['on_hand_quantity'],
+                'reserved_quantity' => $stockSnapshot['reserved_quantity'],
+                'available_quantity' => $stockSnapshot['available_quantity'],
                 'match_type' => $matchType,
                 'match_value' => $matchValue,
                 'is_exact_match' => $exact,
@@ -320,10 +336,15 @@ class InventoryProductLookupService
         }
     }
 
-    protected function resolveEndingQuantity(string $businessId, ?string $warehouseId, string $productId, ?string $variationId): ?string
+    protected function resolveStockSnapshot(string $businessId, ?string $warehouseId, string $productId, ?string $variationId): array
     {
         if (! $warehouseId) {
-            return null;
+            return [
+                'ending_quantity' => null,
+                'on_hand_quantity' => null,
+                'reserved_quantity' => null,
+                'available_quantity' => null,
+            ];
         }
 
         $query = StockLevel::withoutGlobalScopes()
@@ -337,6 +358,15 @@ class InventoryProductLookupService
             $query->where('variation_id', $variationId);
         }
 
-        return number_format((float) ($query->value('quantity') ?? 0), 4, '.', '');
+        $level = $query->first(['quantity', 'reserved_quantity']);
+        $onHand = (float) ($level?->quantity ?? 0);
+        $reserved = (float) ($level?->reserved_quantity ?? 0);
+
+        return [
+            'ending_quantity' => number_format($onHand, 4, '.', ''),
+            'on_hand_quantity' => number_format($onHand, 4, '.', ''),
+            'reserved_quantity' => number_format($reserved, 4, '.', ''),
+            'available_quantity' => number_format($onHand - $reserved, 4, '.', ''),
+        ];
     }
 }

@@ -6,6 +6,7 @@ use App\Exceptions\Domain\DomainException;
 use App\Models\StockLot;
 use App\Models\StockSerial;
 use App\Models\StockTransfer;
+use App\Models\StockTransferItem;
 use App\Models\User;
 use App\Models\Warehouse;
 use App\Repositories\Inventory\StockTransferRepository;
@@ -43,10 +44,12 @@ class StockTransferService
                 'from_warehouse_id' => $fromWarehouse->id,
                 'to_warehouse_id' => $toWarehouse->id,
                 'reference_no' => $this->generateReferenceNumber(),
-                'status' => 'completed',
+                'status' => 'pending',
                 'date' => $data['date'],
                 'notes' => $data['notes'] ?? null,
                 'created_by' => $actor?->id,
+                'sent_by' => $actor?->id,
+                'sent_at' => now(),
             ]);
 
             foreach ($data['items'] as $item) {
@@ -65,37 +68,193 @@ class StockTransferService
                     'notes' => $item['notes'] ?? null,
                 ]);
 
-                $movementPayload = [
+                $reservationPayload = [
+                    'product_id' => $item['product_id'],
+                    'variation_id' => $item['variation_id'] ?? null,
+                    'lot_id' => $item['lot_id'] ?? null,
+                    'serial_id' => $item['serial_id'] ?? null,
+                    'quantity' => $item['quantity'],
+                    'warehouse_id' => $fromWarehouse->id,
+                ];
+
+                $this->stockMovementService->reserve($businessId, $reservationPayload);
+            }
+
+            return $transfer->load(['fromWarehouse.branch', 'toWarehouse.branch', 'creator', 'sender', 'receiver', 'items.product', 'items.variation', 'items.lot', 'items.serial']);
+        });
+    }
+
+    public function receive(string $businessId, StockTransfer $transfer, ?User $actor = null): StockTransfer
+    {
+        return DB::transaction(function () use ($businessId, $transfer, $actor): StockTransfer {
+            /** @var StockTransfer $lockedTransfer */
+            $lockedTransfer = StockTransfer::query()
+                ->with(['items', 'toWarehouse', 'fromWarehouse'])
+                ->whereKey($transfer->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($lockedTransfer->business_id !== $businessId) {
+                throw new DomainException('Selected transfer is invalid for this business.', 422);
+            }
+
+            if ($lockedTransfer->status !== 'pending') {
+                throw new DomainException('Only pending transfers can be received.', 422);
+            }
+
+            $toWarehouse = $lockedTransfer->toWarehouse;
+
+            if (! $toWarehouse) {
+                throw new DomainException('Transfer destination warehouse is missing.', 422);
+            }
+
+            $this->ensureUserCanReceiveTransfer($actor, $toWarehouse);
+
+            foreach ($lockedTransfer->items as $item) {
+                $this->stockMovementService->consumeReserved($businessId, [
+                    'product_id' => $item->product_id,
+                    'variation_id' => $item->variation_id,
+                    'lot_id' => $item->lot_id,
+                    'serial_id' => $item->serial_id,
+                    'quantity' => $item->quantity,
+                    'unit_cost' => $item->unit_cost ?? 0,
+                    'reference_type' => StockTransfer::class,
+                    'reference_id' => $lockedTransfer->id,
+                    'notes' => $item->notes ?? $lockedTransfer->notes,
+                    'warehouse_id' => $lockedTransfer->from_warehouse_id,
+                    'type' => 'transfer_out',
+                ], $actor);
+
+                $inboundPayload = [
+                    'product_id' => $item->product_id,
+                    'variation_id' => $item->variation_id,
+                    'lot_id' => $item->lot_id,
+                    'serial_id' => $item->serial_id,
+                    'quantity' => $item->quantity,
+                    'unit_cost' => $item->unit_cost ?? 0,
+                    'reference_type' => StockTransfer::class,
+                    'reference_id' => $lockedTransfer->id,
+                    'notes' => $item->notes ?? $lockedTransfer->notes,
+                    'warehouse_id' => $toWarehouse->id,
+                    'type' => 'transfer_in',
+                ];
+
+                if ($item->lot_id && $item->serial_id) {
+                    $inboundPayload['lot_id'] = null;
+                }
+
+                $this->stockMovementService->record($businessId, $inboundPayload, $actor);
+            }
+
+            $lockedTransfer->status = 'received';
+            $lockedTransfer->received_by = $actor?->id;
+            $lockedTransfer->received_at = now();
+            $lockedTransfer->save();
+
+            return $lockedTransfer->load(['fromWarehouse.branch', 'toWarehouse.branch', 'creator', 'sender', 'receiver', 'items.product', 'items.variation', 'items.lot', 'items.serial']);
+        });
+    }
+
+    public function update(string $businessId, StockTransfer $transfer, array $data, ?User $actor = null): StockTransfer
+    {
+        return DB::transaction(function () use ($businessId, $transfer, $data, $actor): StockTransfer {
+            /** @var StockTransfer $lockedTransfer */
+            $lockedTransfer = StockTransfer::query()
+                ->with(['items', 'fromWarehouse', 'toWarehouse'])
+                ->whereKey($transfer->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($lockedTransfer->business_id !== $businessId) {
+                throw new DomainException('Selected transfer is invalid for this business.', 422);
+            }
+
+            if ($lockedTransfer->status !== 'pending') {
+                throw new DomainException('Only pending transfers can be edited.', 422);
+            }
+
+            $fromWarehouse = $this->resolveWarehouse($businessId, $data['from_warehouse_id']);
+            $toWarehouse = $this->resolveWarehouse($businessId, $data['to_warehouse_id']);
+
+            if ($fromWarehouse->is($toWarehouse)) {
+                throw new DomainException('Transfer source and destination warehouses must be different.', 422);
+            }
+
+            $this->ensureUserCanCreateTransfer($actor, $fromWarehouse);
+
+            foreach ($lockedTransfer->items as $existingItem) {
+                $this->releasePendingTransferItem($businessId, $lockedTransfer, $existingItem);
+            }
+
+            $lockedTransfer->items()->delete();
+
+            $lockedTransfer->fill([
+                'from_warehouse_id' => $fromWarehouse->id,
+                'to_warehouse_id' => $toWarehouse->id,
+                'date' => $data['date'],
+                'notes' => $data['notes'] ?? null,
+                'status' => 'pending',
+                'received_by' => null,
+                'received_at' => null,
+            ]);
+            $lockedTransfer->save();
+
+            foreach ($data['items'] as $item) {
+                $lot = $this->resolveLotInWarehouse($businessId, $fromWarehouse->id, $item['product_id'], $item['variation_id'] ?? null, $item['lot_id'] ?? null);
+                $serial = $this->resolveSerialInWarehouse($businessId, $fromWarehouse->id, $item['product_id'], $item['variation_id'] ?? null, $item['serial_id'] ?? null);
+
+                $this->ensureTrackedTransferIsSupported($item, $lot, $serial);
+
+                $lockedTransfer->items()->create([
                     'product_id' => $item['product_id'],
                     'variation_id' => $item['variation_id'] ?? null,
                     'lot_id' => $item['lot_id'] ?? null,
                     'serial_id' => $item['serial_id'] ?? null,
                     'quantity' => $item['quantity'],
                     'unit_cost' => $item['unit_cost'] ?? 0,
-                    'reference_type' => StockTransfer::class,
-                    'reference_id' => $transfer->id,
-                    'notes' => $item['notes'] ?? $data['notes'] ?? null,
-                ];
+                    'notes' => $item['notes'] ?? null,
+                ]);
 
-                $this->stockMovementService->record($businessId, $movementPayload + [
+                $movementPayload = [
+                    'product_id' => $item['product_id'],
+                    'variation_id' => $item['variation_id'] ?? null,
+                    'lot_id' => $item['lot_id'] ?? null,
+                    'serial_id' => $item['serial_id'] ?? null,
+                    'quantity' => $item['quantity'],
                     'warehouse_id' => $fromWarehouse->id,
-                    'type' => 'transfer_out',
-                ], $actor);
-
-                $inboundPayload = $movementPayload + [
-                    'warehouse_id' => $toWarehouse->id,
-                    'type' => 'transfer_in',
                 ];
 
-                // The current schema stores one warehouse per lot record, so a partial serial transfer
-                // can keep the source lot reduced without fabricating a second lot row in the destination.
-                if ($lot && $serial) {
-                    $inboundPayload['lot_id'] = null;
-                }
-
-                $this->stockMovementService->record($businessId, $inboundPayload, $actor);
+                $this->stockMovementService->reserve($businessId, $movementPayload);
             }
-            return $transfer->load(['fromWarehouse.branch', 'toWarehouse.branch', 'creator', 'items.product', 'items.variation', 'items.lot', 'items.serial']);
+
+            return $lockedTransfer->load(['fromWarehouse.branch', 'toWarehouse.branch', 'creator', 'sender', 'receiver', 'items.product', 'items.variation', 'items.lot', 'items.serial']);
+        });
+    }
+
+    public function delete(string $businessId, StockTransfer $transfer, ?User $actor = null): void
+    {
+        DB::transaction(function () use ($businessId, $transfer): void {
+            /** @var StockTransfer $lockedTransfer */
+            $lockedTransfer = StockTransfer::query()
+                ->with(['items'])
+                ->whereKey($transfer->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($lockedTransfer->business_id !== $businessId) {
+                throw new DomainException('Selected transfer is invalid for this business.', 422);
+            }
+
+            if ($lockedTransfer->status !== 'pending') {
+                throw new DomainException('Only pending transfers can be deleted.', 422);
+            }
+
+            foreach ($lockedTransfer->items as $existingItem) {
+                $this->releasePendingTransferItem($businessId, $lockedTransfer, $existingItem);
+            }
+
+            $lockedTransfer->items()->delete();
+            $lockedTransfer->delete();
         });
     }
 
@@ -115,8 +274,23 @@ class StockTransferService
 
     protected function ensureUserCanCreateTransfer(?User $user, Warehouse $fromWarehouse): void
     {
-        if ($user && ! $user->hasRole('super_admin') && ! $user->hasBranchAccess($fromWarehouse->branch_id)) {
+        if ($user && $user->hasRole('super_admin')) {
+            throw new DomainException('Super admin does not operate on business stock transfers.', 403);
+        }
+
+        if ($user && ! $user->hasBranchAccess($fromWarehouse->branch_id)) {
             throw new DomainException('You cannot transfer stock from a warehouse outside your assigned branches.', 403);
+        }
+    }
+
+    protected function ensureUserCanReceiveTransfer(?User $user, Warehouse $toWarehouse): void
+    {
+        if ($user && $user->hasRole('super_admin')) {
+            throw new DomainException('Super admin does not operate on business stock transfers.', 403);
+        }
+
+        if ($user && ! $user->hasBranchAccess($toWarehouse->branch_id)) {
+            throw new DomainException('You cannot receive stock into a warehouse outside your assigned branches.', 403);
         }
     }
 
@@ -203,6 +377,23 @@ class StockTransferService
         if (round((float) $lot->qty_on_hand - $quantity, 4) !== 0.0) {
             throw new DomainException('Partial lot transfers are not supported by the current lot model.', 422);
         }
+    }
+
+    protected function releasePendingTransferItem(
+        string $businessId,
+        StockTransfer $transfer,
+        StockTransferItem $item,
+    ): void {
+        $reservationPayload = [
+            'product_id' => $item->product_id,
+            'variation_id' => $item->variation_id,
+            'lot_id' => $item->lot_id,
+            'serial_id' => $item->serial_id,
+            'quantity' => $item->quantity,
+            'warehouse_id' => $transfer->from_warehouse_id,
+        ];
+
+        $this->stockMovementService->release($businessId, $reservationPayload);
     }
 
     protected function generateReferenceNumber(): string

@@ -81,6 +81,10 @@ export const useInventoryAdjustmentsStore = defineStore('inventory-adjustments',
         this.saving = false
       }
     },
+    async fetchItem(id) {
+      const response = await inventoryApi.getStockAdjustment(id)
+      return response.data.data
+    },
   },
 })
 
@@ -89,7 +93,10 @@ export const useInventoryTransfersStore = defineStore('inventory-transfers', {
     items: [],
     loading: false,
     saving: false,
-    filters: defaultFilters(),
+    receivingId: '',
+    updatingId: '',
+    deletingId: '',
+    filters: { ...defaultFilters(), warehouse_id: '', direction: '', status: '' },
     pagination: defaultPagination(),
   }),
   actions: {
@@ -100,6 +107,9 @@ export const useInventoryTransfersStore = defineStore('inventory-transfers', {
       try {
         const response = await inventoryApi.getStockTransfers({
           search: this.filters.search || undefined,
+          warehouse_id: this.filters.warehouse_id || undefined,
+          direction: this.filters.direction || undefined,
+          status: this.filters.status || undefined,
           page: this.filters.page,
           per_page: this.filters.per_page,
         })
@@ -118,6 +128,40 @@ export const useInventoryTransfersStore = defineStore('inventory-transfers', {
         return response.data
       } finally {
         this.saving = false
+      }
+    },
+    async fetchItem(id) {
+      const response = await inventoryApi.getStockTransfer(id)
+      return response.data.data
+    },
+    async receiveItem(id) {
+      this.receivingId = id
+      try {
+        const response = await inventoryApi.receiveStockTransfer(id)
+        await this.fetchItems()
+        return response.data
+      } finally {
+        this.receivingId = ''
+      }
+    },
+    async updateItem(id, payload) {
+      this.updatingId = id
+      try {
+        const response = await inventoryApi.updateStockTransfer(id, payload)
+        await this.fetchItems()
+        return response.data
+      } finally {
+        this.updatingId = ''
+      }
+    },
+    async deleteItem(id) {
+      this.deletingId = id
+      try {
+        const response = await inventoryApi.deleteStockTransfer(id)
+        await this.fetchItems()
+        return response.data
+      } finally {
+        this.deletingId = ''
       }
     },
   },
@@ -215,6 +259,15 @@ export const useInventoryCountsStore = defineStore('inventory-counts', {
       this.updatingItemId = itemId
       try {
         const response = await inventoryApi.updateStockCountItem(countId, itemId, payload)
+        return response.data
+      } finally {
+        this.updatingItemId = ''
+      }
+    },
+    async deleteItem(countId, itemId) {
+      this.updatingItemId = itemId
+      try {
+        const response = await inventoryApi.deleteStockCountItem(countId, itemId)
         return response.data
       } finally {
         this.updatingItemId = ''

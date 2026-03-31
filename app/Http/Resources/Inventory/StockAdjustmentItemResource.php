@@ -9,7 +9,7 @@ class StockAdjustmentItemResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $this->loadMissing(['product', 'variation']);
+        $this->loadMissing(['product', 'variation', 'lot', 'serial']);
 
         return [
             'id' => $this->id,
@@ -30,6 +30,14 @@ class StockAdjustmentItemResource extends JsonResource
                 'id' => $this->variation->id,
                 'name' => $this->variation->name,
                 'sku' => $this->variation->sku,
+            ] : null),
+            'lot' => $this->whenLoaded('lot', fn () => $this->lot ? [
+                'id' => $this->lot->id,
+                'lot_number' => $this->lot->lot_number,
+            ] : null),
+            'serial' => $this->whenLoaded('serial', fn () => $this->serial ? [
+                'id' => $this->serial->id,
+                'serial_number' => $this->serial->serial_number,
             ] : null),
         ];
     }

@@ -9,7 +9,7 @@ class StockTransferResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $this->loadMissing(['fromWarehouse.branch', 'toWarehouse.branch', 'creator', 'items.product', 'items.variation', 'items.lot', 'items.serial']);
+        $this->loadMissing(['fromWarehouse.branch', 'toWarehouse.branch', 'creator', 'sender', 'receiver', 'items.product', 'items.variation', 'items.lot', 'items.serial']);
 
         return [
             'id' => $this->id,
@@ -36,6 +36,16 @@ class StockTransferResource extends JsonResource
                 'id' => $this->creator->id,
                 'name' => trim($this->creator->first_name.' '.$this->creator->last_name),
             ] : null,
+            'sender' => $this->sender ? [
+                'id' => $this->sender->id,
+                'name' => trim($this->sender->first_name.' '.$this->sender->last_name),
+            ] : null,
+            'receiver' => $this->receiver ? [
+                'id' => $this->receiver->id,
+                'name' => trim($this->receiver->first_name.' '.$this->receiver->last_name),
+            ] : null,
+            'sent_at' => $this->sent_at,
+            'received_at' => $this->received_at,
             'items' => StockTransferItemResource::collection($this->whenLoaded('items')),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,

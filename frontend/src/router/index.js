@@ -14,11 +14,14 @@ const CustomerGroupsView = () => import('@views/CustomerGroupsView.vue')
 const CustomersView = () => import('@views/CustomersView.vue')
 const DashboardView = () => import('@views/DashboardView.vue')
 const InventoryAdjustmentsView = () => import('@views/InventoryAdjustmentsView.vue')
+const InventoryAdjustmentDetailView = () => import('@views/InventoryAdjustmentDetailView.vue')
 const InventoryCountCreateView = () => import('@views/InventoryCountCreateView.vue')
 const InventoryCountsView = () => import('@views/InventoryCountsView.vue')
 const InventoryCountWorkspaceView = () => import('@views/InventoryCountWorkspaceView.vue')
 const InventoryLotsView = () => import('@views/InventoryLotsView.vue')
 const InventorySerialsView = () => import('@views/InventorySerialsView.vue')
+const InventoryTransferFormView = () => import('@views/InventoryTransferFormView.vue')
+const InventoryTransferDetailView = () => import('@views/InventoryTransferDetailView.vue')
 const InventoryTransfersView = () => import('@views/InventoryTransfersView.vue')
 const PriceGroupsView = () => import('@views/PriceGroupsView.vue')
 const ProductFormView = () => import('@views/ProductFormView.vue')
@@ -108,9 +111,33 @@ const router = createRouter({
       meta: { requiresAuth: true, requiredPermission: 'inventory.index' },
     },
     {
+      path: '/inventory/adjustments/:id',
+      name: 'inventory-adjustment-detail',
+      component: InventoryAdjustmentDetailView,
+      meta: { requiresAuth: true, requiredPermission: 'inventory.index' },
+    },
+    {
       path: '/inventory/transfers',
       name: 'inventory-transfers',
       component: InventoryTransfersView,
+      meta: { requiresAuth: true, requiredPermission: 'inventory.index' },
+    },
+    {
+      path: '/inventory/transfers/create',
+      name: 'inventory-transfer-create',
+      component: InventoryTransferFormView,
+      meta: { requiresAuth: true, requiredPermission: 'inventory.transfer' },
+    },
+    {
+      path: '/inventory/transfers/:id/edit',
+      name: 'inventory-transfer-edit',
+      component: InventoryTransferFormView,
+      meta: { requiresAuth: true, requiredPermission: 'inventory.transfer' },
+    },
+    {
+      path: '/inventory/transfers/:id',
+      name: 'inventory-transfer-detail',
+      component: InventoryTransferDetailView,
       meta: { requiresAuth: true, requiredPermission: 'inventory.index' },
     },
     {

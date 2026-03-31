@@ -11,6 +11,51 @@
     <div class="space-y-6">
       <AppAlert v-model:show="alert.show" :type="alert.type" :title="alert.title" :message="alert.message" />
 
+      <FilterPanel
+        v-model:expanded="filtersExpanded"
+        title="Filters"
+        description="Narrow the transfer list by warehouse, direction, or status."
+        :active-count="activeFilterCount"
+        :show-clear="activeFilterCount > 0"
+        @clear="resetFilters"
+      >
+        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <div>
+            <label class="erp-label">Warehouse</label>
+            <AppSelect
+              :model-value="store.filters.warehouse_id || null"
+              :options="warehouseFilterOptions"
+              clearable
+              searchable
+              placeholder="All warehouses"
+              search-placeholder="Search warehouses"
+              @update:model-value="handleWarehouseFilter($event)"
+            />
+          </div>
+          <div>
+            <label class="erp-label">Direction</label>
+            <AppSelect
+              :model-value="store.filters.direction || null"
+              :options="directionFilterOptions"
+              clearable
+              :disabled="!store.filters.warehouse_id"
+              :placeholder="store.filters.warehouse_id ? 'All directions' : 'Select warehouse first'"
+              @update:model-value="handleDirectionFilter($event)"
+            />
+          </div>
+          <div>
+            <label class="erp-label">Status</label>
+            <AppSelect
+              :model-value="store.filters.status || null"
+              :options="statusFilterOptions"
+              clearable
+              placeholder="All statuses"
+              @update:model-value="handleStatusFilter($event)"
+            />
+          </div>
+        </div>
+      </FilterPanel>
+
       <DataTable
         title="Stock Transfers"
         :columns="columns"
@@ -26,7 +71,7 @@
         @per-page-change="handlePerPageChange"
       >
         <template #toolbar>
-          <button v-if="canCreate" type="button" class="erp-button-primary" @click="openCreateModal">
+          <button v-if="canCreate" type="button" class="erp-button-primary" @click="openCreatePage">
             <i class="fa-solid fa-plus"></i>
             New transfer
           </button>
@@ -35,7 +80,7 @@
         <template #reference="{ row }">
           <div>
             <div class="font-semibold text-slate-950 dark:text-white">{{ row.reference_no }}</div>
-            <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ row.status }}</div>
+            <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ formatDate(row.date) }}</div>
           </div>
         </template>
 
@@ -48,132 +93,91 @@
           </div>
         </template>
 
-        <template #items_count="{ row }">
-          <span class="text-sm text-slate-600 dark:text-slate-300">{{ row.items?.length || 0 }} line(s)</span>
+        <template #status="{ row }">
+          <span
+            class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize"
+            :class="statusClasses(row.status)"
+          >
+            {{ statusLabel(row.status) }}
+          </span>
         </template>
 
-        <template #creator="{ row }">
-          <span class="text-sm text-slate-600 dark:text-slate-300">{{ row.creator?.name || 'System' }}</span>
+        <template #sender="{ row }">
+          <div class="text-sm text-slate-700 dark:text-slate-200">
+            <div>{{ row.sender?.name || row.creator?.name || 'System' }}</div>
+            <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ formatDateTime(row.sent_at || row.created_at) }}</div>
+          </div>
+        </template>
+
+        <template #receiver="{ row }">
+          <div class="text-sm text-slate-700 dark:text-slate-200">
+            <div>{{ row.receiver?.name || 'Pending' }}</div>
+            <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              {{ row.received_at ? formatDateTime(row.received_at) : 'Waiting for destination confirmation' }}
+            </div>
+          </div>
+        </template>
+
+        <template #actions="{ row }">
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              class="erp-button-secondary inline-flex h-10 w-10 items-center justify-center p-0"
+              title="Preview transfer"
+              aria-label="Preview transfer"
+              @click="openDetail(row.id)"
+            >
+              <i class="fa-solid fa-eye"></i>
+            </button>
+            <button
+              v-if="canEditFromList(row)"
+              type="button"
+              class="erp-button-secondary inline-flex h-10 w-10 items-center justify-center p-0"
+              title="Edit transfer"
+              aria-label="Edit transfer"
+              @click="openEdit(row.id)"
+            >
+              <i class="fa-solid fa-pen-to-square"></i>
+            </button>
+            <button
+              v-if="canEditFromList(row)"
+              type="button"
+              class="erp-button-secondary inline-flex h-10 w-10 items-center justify-center p-0 text-rose-600 hover:text-rose-700 dark:text-rose-300 dark:hover:text-rose-200"
+              :disabled="store.deletingId === row.id"
+              title="Delete transfer"
+              aria-label="Delete transfer"
+              @click="openDeleteModal(row)"
+            >
+              <span
+                v-if="store.deletingId === row.id"
+                class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-rose-300/30 border-t-rose-600 dark:border-rose-400/30 dark:border-t-rose-200"
+              ></span>
+              <i v-else class="fa-solid fa-trash"></i>
+            </button>
+          </div>
         </template>
       </DataTable>
 
-      <AppModal :show="modal.show" title="Create stock transfer" icon="transfer" size="xl" @close="closeModal">
-        <div class="space-y-5">
-          <div class="grid gap-4 md:grid-cols-3">
-            <div>
-              <label class="erp-label">From warehouse</label>
-              <AppSelect
-                :model-value="form.from_warehouse_id || null"
-                :options="fromWarehouseOptions"
-                searchable
-                placeholder="Select source"
-                search-placeholder="Search source warehouse"
-                @update:model-value="form.from_warehouse_id = $event || ''"
-              />
-            </div>
-            <div>
-              <label class="erp-label">To warehouse</label>
-              <AppSelect
-                :model-value="form.to_warehouse_id || null"
-                :options="toWarehouseOptions"
-                searchable
-                placeholder="Select destination"
-                search-placeholder="Search destination warehouse"
-                @update:model-value="form.to_warehouse_id = $event || ''"
-              />
-            </div>
-            <div>
-              <label class="erp-label">Date</label>
-              <AppDatePicker v-model="form.date" />
-            </div>
-          </div>
-
-          <div>
-            <label class="erp-label">Notes</label>
-            <textarea v-model="form.notes" rows="2" class="erp-input"></textarea>
-          </div>
-
-          <div class="space-y-3 rounded-[5px] border border-slate-200 p-4 dark:border-slate-800">
-            <div class="space-y-3">
-              <div>
-                <div class="text-sm font-semibold text-slate-950 dark:text-white">Transfer items</div>
-                <div class="text-xs text-slate-500 dark:text-slate-400">Scan or search against the source warehouse, then the line is inserted automatically.</div>
-              </div>
-              <InventoryProductLookup
-                :warehouse-id="form.from_warehouse_id"
-                :helper-text="form.from_warehouse_id ? 'Serial and lot matches are scoped to the source warehouse.' : 'Choose the source warehouse first for scanner-aware matches.'"
-                @select="handleLookupSelect"
-              />
-            </div>
-
-            <div
-              v-if="form.items.length === 0"
-              class="rounded-[5px] border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400"
-            >
-              No lines yet. Scan or search a product above to start.
-            </div>
-
-            <div v-else class="erp-table-shell">
-              <div class="overflow-x-auto">
-                <table class="erp-table min-w-full">
-                  <thead>
-                    <tr>
-                      <th class="w-[54%]">Product</th>
-                      <th class="w-[14%]">Quantity</th>
-                      <th class="w-[16%]">Unit cost</th>
-                      <th class="w-[16%]">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="(item, index) in form.items" :key="item.key">
-                      <td>
-                        <div class="font-semibold text-slate-950 dark:text-white">
-                          {{ item.product_name || 'Selected item' }}
-                          <span v-if="item.variation_name" class="text-slate-500 dark:text-slate-400">/ {{ item.variation_name }}</span>
-                        </div>
-                        <div class="mt-2 flex flex-wrap gap-2 text-xs text-slate-500 dark:text-slate-400">
-                          <span v-if="item.sku" class="rounded-[5px] bg-slate-100 px-2 py-1 dark:bg-slate-800">SKU: {{ item.sku }}</span>
-                          <span v-if="item.lot_number" class="rounded-[5px] bg-amber-50 px-2 py-1 text-amber-700 dark:bg-amber-950/35 dark:text-amber-300">Lot: {{ item.lot_number }}</span>
-                          <span v-if="item.serial_number" class="rounded-[5px] bg-violet-50 px-2 py-1 text-violet-700 dark:bg-violet-950/35 dark:text-violet-300">Serial: {{ item.serial_number }}</span>
-                        </div>
-                      </td>
-                      <td>
-                        <input v-model.number="item.quantity" type="number" min="0" step="0.0001" class="erp-input" />
-                      </td>
-                      <td>
-                        <input v-model.number="item.unit_cost" type="number" min="0" step="0.0001" class="erp-input" />
-                      </td>
-                      <td>
-                        <button type="button" class="erp-button-secondary w-full" @click="removeItem(index)">Remove</button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          </div>
-
-          <div class="erp-form-actions">
-            <button type="button" class="erp-button-secondary" :disabled="store.saving" @click="closeModal">Cancel</button>
-            <button type="button" class="erp-button-primary" :disabled="store.saving" @click="submitForm">
-              <span v-if="store.saving" class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
-              Save transfer
-            </button>
-          </div>
-        </div>
-      </AppModal>
+      <ConfirmDelete
+        :show="deleteDialog.show"
+        :item-name="deleteDialog.itemName"
+        :loading="store.deletingId === deleteDialog.transferId"
+        @close="closeDeleteModal"
+        @confirm="confirmDelete"
+      />
     </div>
   </AppLayout>
 </template>
 
 <script setup>
-import { computed, onMounted, reactive } from 'vue'
-import InventoryProductLookup from '@components/inventory/InventoryProductLookup.vue'
+import { computed, onMounted, reactive, ref } from 'vue'
+import { useRouter } from 'vue-router'
 import AppAlert from '@components/ui/AppAlert.vue'
-import AppDatePicker from '@components/ui/AppDatePicker.vue'
-import AppModal from '@components/ui/AppModal.vue'
 import AppSelect from '@components/ui/AppSelect.vue'
+import ConfirmDelete from '@components/ui/ConfirmDelete.vue'
 import DataTable from '@components/ui/DataTable.vue'
+import FilterPanel from '@components/ui/FilterPanel.vue'
+import SearchInput from '@components/ui/SearchInput.vue'
 import AppLayout from '@layouts/AppLayout.vue'
 import { useAuthStore } from '@stores/auth'
 import { useInventoryOptionsStore, useInventoryTransfersStore } from '@stores/inventory'
@@ -181,55 +185,49 @@ import { useInventoryOptionsStore, useInventoryTransfersStore } from '@stores/in
 const auth = useAuthStore()
 const store = useInventoryTransfersStore()
 const optionsStore = useInventoryOptionsStore()
+const router = useRouter()
 
-const canCreate = computed(() => auth.can('inventory.transfer'))
+const canCreate = computed(() =>
+  auth.can('inventory.transfer') &&
+  !auth.hasRole('super_admin')
+)
+const filtersExpanded = ref(false)
 const columns = [
   { key: 'reference', label: 'Reference' },
   { key: 'route', label: 'Route' },
-  { key: 'items_count', label: 'Lines' },
-  { key: 'creator', label: 'Created by' },
+  { key: 'status', label: 'Status' },
+  { key: 'sender', label: 'Sender' },
+  { key: 'receiver', label: 'Receiver' },
+  { key: 'actions', label: 'Actions' },
 ]
 
 const alert = reactive({ show: false, type: 'success', title: 'Success', message: '' })
-const modal = reactive({ show: false })
+const deleteDialog = reactive({ show: false, transferId: '', itemName: '' })
 
-const createItemState = () => ({
-  key: `${Date.now()}-${Math.random()}`,
-  product_id: '',
-  variation_id: '',
-  lot_id: '',
-  serial_id: '',
-  product_name: '',
-  variation_name: '',
-  sku: '',
-  lot_number: '',
-  serial_number: '',
-  quantity: 1,
-  unit_cost: 0,
-})
-
-const form = reactive({
-  from_warehouse_id: '',
-  to_warehouse_id: '',
-  date: new Date().toISOString().slice(0, 10),
-  notes: '',
-  items: [],
-})
-
-const fromWarehouseOptions = computed(() =>
-  optionsStore.transferFromWarehouses.map((warehouse) => ({
+const warehouseFilterOptions = computed(() =>
+  optionsStore.warehouses.map((warehouse) => ({
     value: warehouse.id,
     label: warehouse.name,
     description: warehouse.branch_name || warehouse.code,
   }))
 )
 
-const toWarehouseOptions = computed(() =>
-  optionsStore.transferToWarehouses.map((warehouse) => ({
-    value: warehouse.id,
-    label: warehouse.name,
-    description: warehouse.branch_name || warehouse.code,
-  }))
+const directionFilterOptions = [
+  { value: 'out', label: 'Transfer out' },
+  { value: 'in', label: 'Transfer in' },
+]
+
+const statusFilterOptions = [
+  { value: 'pending', label: 'Pending' },
+  { value: 'received', label: 'Received' },
+]
+
+const activeFilterCount = computed(() =>
+  [
+    store.filters.warehouse_id,
+    store.filters.direction,
+    store.filters.status,
+  ].filter((value) => value !== '' && value !== null && value !== undefined).length
 )
 
 const showToast = (type, message) => {
@@ -240,106 +238,139 @@ const showToast = (type, message) => {
   requestAnimationFrame(() => { alert.show = true })
 }
 
-const resetForm = () => {
-  form.from_warehouse_id = ''
-  form.to_warehouse_id = ''
-  form.date = new Date().toISOString().slice(0, 10)
-  form.notes = ''
-  form.items = []
+const formatDate = (value) => {
+  if (!value) return 'Not set'
+  return new Date(value).toLocaleDateString()
 }
 
-const openCreateModal = () => {
-  resetForm()
-  modal.show = true
-}
+const formatDateTime = (value) => {
+  if (!value) return 'Not recorded'
 
-const closeModal = () => {
-  modal.show = false
-}
-
-const removeItem = (index) => {
-  form.items.splice(index, 1)
-}
-
-const isSameLookupItem = (item, match) =>
-  item.product_id === match.product_id &&
-  (item.variation_id || '') === (match.variation_id || '') &&
-  (item.lot_id || '') === (match.lot_id || '') &&
-  (item.serial_id || '') === (match.serial_id || '')
-
-const handleLookupSelect = (match) => {
-  const existing = form.items.find((item) => isSameLookupItem(item, match))
-
-  if (existing) {
-    existing.quantity = Number(existing.quantity || 0) + 1
-
-    if (!Number(existing.unit_cost || 0) && match.unit_cost) {
-      existing.unit_cost = Number(match.unit_cost)
-    }
-
-    return
-  }
-
-  form.items.push({
-    ...createItemState(),
-    product_id: match.product_id,
-    variation_id: match.variation_id || '',
-    lot_id: match.lot_id || '',
-    serial_id: match.serial_id || '',
-    product_name: match.product_name || '',
-    variation_name: match.variation_name || '',
-    sku: match.sku || '',
-    lot_number: match.lot_number || '',
-    serial_number: match.serial_number || '',
-    unit_cost: Number(match.unit_cost || 0),
+  return new Date(value).toLocaleString([], {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
   })
 }
 
-const submitForm = async () => {
-  if (!form.from_warehouse_id || !form.to_warehouse_id) {
-    showToast('danger', 'Both source and destination warehouses are required.')
+const statusLabel = (status) => {
+  if (status === 'pending' || status === 'sent') return 'Pending'
+  if (status === 'received') return 'Received'
+  return status || 'Unknown'
+}
+
+const statusClasses = (status) => {
+  if (status === 'pending' || status === 'sent') {
+    return 'bg-sky-100 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300'
+  }
+
+  if (status === 'received') {
+    return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
+  }
+
+  return 'bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-300'
+}
+
+const resetFilters = () => {
+  store.fetchItems({
+    warehouse_id: '',
+    direction: '',
+    status: '',
+    page: 1,
+  })
+}
+
+const openCreatePage = () => {
+  router.push({ name: 'inventory-transfer-create' })
+}
+
+const openDetail = (id) => {
+  router.push({ name: 'inventory-transfer-detail', params: { id } })
+}
+
+const openEdit = (id) => {
+  router.push({ name: 'inventory-transfer-edit', params: { id } })
+}
+
+const openDeleteModal = (row) => {
+  if (!row?.id || !canEditFromList(row)) {
     return
   }
 
-  if (form.from_warehouse_id === form.to_warehouse_id) {
-    showToast('danger', 'Source and destination warehouses must be different.')
+  deleteDialog.transferId = row.id
+  deleteDialog.itemName = row.reference_no || 'this transfer'
+  deleteDialog.show = true
+}
+
+const closeDeleteModal = () => {
+  if (store.deletingId) {
     return
   }
 
-  const items = form.items
-    .filter((item) => item.product_id && Number(item.quantity) > 0)
-    .map((item) => ({
-      product_id: item.product_id,
-      variation_id: item.variation_id || null,
-      lot_id: item.lot_id || null,
-      serial_id: item.serial_id || null,
-      quantity: Number(item.quantity),
-      unit_cost: Number(item.unit_cost || 0),
-    }))
+  deleteDialog.show = false
+  deleteDialog.transferId = ''
+  deleteDialog.itemName = ''
+}
 
-  if (items.length === 0) {
-    showToast('danger', 'Add at least one valid transfer line.')
+const confirmDelete = async () => {
+  if (!deleteDialog.transferId) {
     return
   }
 
   try {
-    await store.createItem({
-      from_warehouse_id: form.from_warehouse_id,
-      to_warehouse_id: form.to_warehouse_id,
-      date: form.date,
-      notes: form.notes || null,
-      items,
-    })
-    closeModal()
-    showToast('success', 'Stock transfer created successfully.')
+    const deletedName = deleteDialog.itemName
+    await store.deleteItem(deleteDialog.transferId)
+    closeDeleteModal()
+    showToast('success', `Transfer ${deletedName} deleted successfully.`)
   } catch (error) {
-    showToast('danger', error.response?.data?.message || 'Unable to create the stock transfer.')
+    showToast('danger', error.response?.data?.message || 'Unable to delete this stock transfer.')
   }
+}
+
+const canEditFromList = (row) => {
+  if (!auth.can('inventory.transfer') || auth.hasRole('super_admin') || row?.status !== 'pending') {
+    return false
+  }
+
+  const isOwner = row?.creator?.id === auth.user?.id
+  const isAdmin = auth.hasRole('admin')
+
+  if (!isOwner && !isAdmin) {
+    return false
+  }
+
+  if (auth.hasRole('admin')) {
+    return true
+  }
+
+  const fromBranchId = row?.from_warehouse?.branch_id
+
+  if (!fromBranchId) {
+    return false
+  }
+
+  return auth.allowedBranches.some((branch) => branch.id === fromBranchId)
 }
 
 const handleSearch = (value) => store.fetchItems({ search: value, page: 1 })
 const handlePageChange = (page) => store.fetchItems({ page })
 const handlePerPageChange = (perPage) => store.fetchItems({ per_page: perPage, page: 1 })
+const handleWarehouseFilter = (value) => store.fetchItems({
+  warehouse_id: value || '',
+  direction: value ? store.filters.direction : '',
+  page: 1,
+})
+const handleDirectionFilter = (value) => {
+  if (!store.filters.warehouse_id) {
+    store.fetchItems({ direction: '', page: 1 })
+    return
+  }
+
+  store.fetchItems({ direction: value || '', page: 1 })
+}
+const handleStatusFilter = (value) => store.fetchItems({ status: value || '', page: 1 })
 
 onMounted(async () => {
   await Promise.all([

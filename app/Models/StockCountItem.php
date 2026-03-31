@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Casts\Attribute;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class StockCountItem extends Model
 {
@@ -68,5 +69,10 @@ class StockCountItem extends Model
     public function lot(): BelongsTo
     {
         return $this->belongsTo(StockLot::class, 'lot_id');
+    }
+
+    public function entries(): HasMany
+    {
+        return $this->hasMany(StockCountEntry::class);
     }
 }

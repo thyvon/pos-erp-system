@@ -177,6 +177,51 @@ class StockCountApiTest extends TestCase
         ]);
     }
 
+    public function test_live_count_item_can_be_removed_while_count_is_in_progress(): void
+    {
+        $business = Business::factory()->create();
+        $branch = Branch::factory()->create(['business_id' => $business->id]);
+        $warehouse = Warehouse::factory()->forBranch($branch)->create();
+        $unit = Unit::factory()->create(['business_id' => $business->id]);
+        $product = Product::factory()->create([
+            'business_id' => $business->id,
+            'unit_id' => $unit->id,
+            'track_inventory' => true,
+        ]);
+        $user = User::factory()->for($business)->create();
+        $user->assignRole('inventory_manager');
+        $user->branches()->attach($branch->id);
+
+        Sanctum::actingAs($user);
+
+        $createCount = $this->postJson('/api/v1/inventory/counts', [
+            'warehouse_id' => $warehouse->id,
+            'date' => now()->toDateString(),
+        ])->assertCreated();
+
+        $countId = $createCount->json('data.id');
+
+        $entryResponse = $this->postJson("/api/v1/inventory/counts/{$countId}/entries", [
+            'product_id' => $product->id,
+            'quantity' => 5,
+            'unit_cost' => 2,
+        ])->assertOk();
+
+        $itemId = $entryResponse->json('data.items.0.id');
+
+        $this->deleteJson("/api/v1/inventory/counts/{$countId}/items/{$itemId}")
+            ->assertOk()
+            ->assertJsonPath('data.id', $countId);
+
+        $this->assertDatabaseMissing('stock_count_items', [
+            'id' => $itemId,
+        ]);
+
+        $this->assertDatabaseMissing('stock_count_entries', [
+            'stock_count_item_id' => $itemId,
+        ]);
+    }
+
     public function test_seeded_count_items_do_not_zero_out_stock_until_a_quantity_is_recorded(): void
     {
         $business = Business::factory()->create();

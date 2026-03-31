@@ -42,7 +42,7 @@
     >
       <div
         v-if="showDropdown"
-        class="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-[90] overflow-hidden rounded-[15px] border border-slate-200/80 bg-white/95 shadow-[0_22px_50px_rgba(44,62,99,0.16)] dark:border-slate-700/70 dark:bg-slate-900/95 dark:shadow-[0_22px_50px_rgba(0,0,0,0.36)]"
+        class="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-[120] overflow-hidden rounded-[15px] border border-slate-200/80 bg-white/95 shadow-[0_22px_50px_rgba(44,62,99,0.16)] dark:border-slate-700/70 dark:bg-slate-900/95 dark:shadow-[0_22px_50px_rgba(0,0,0,0.36)]"
       >
         <div v-if="loading" class="px-4 py-4 text-sm text-slate-500 dark:text-slate-400">
           Searching inventory...
@@ -68,16 +68,28 @@
                   {{ result.label }}
                 </div>
                 <span
-                  v-if="result.ending_quantity !== null && result.ending_quantity !== undefined"
+                  v-if="primaryBalanceValue(result) !== null && primaryBalanceValue(result) !== undefined"
                   class="shrink-0 rounded-[6px] bg-emerald-50 px-2 py-1 text-[11px] font-semibold text-emerald-700 dark:bg-emerald-950/35 dark:text-emerald-300"
                 >
-                  End: {{ result.ending_quantity }}
+                  {{ primaryBalanceLabel(result) }}: {{ primaryBalanceValue(result) }}
                 </span>
               </div>
               <div class="mt-1 flex flex-wrap gap-2 text-xs text-slate-500 dark:text-slate-400">
                 <span v-if="result.sku" class="rounded-[5px] bg-slate-100 px-2 py-1 dark:bg-slate-800">SKU: {{ result.sku }}</span>
                 <span v-if="result.lot_number" class="rounded-[5px] bg-amber-50 px-2 py-1 text-amber-700 dark:bg-amber-950/35 dark:text-amber-300">Lot: {{ result.lot_number }}</span>
                 <span v-if="result.serial_number" class="rounded-[5px] bg-violet-50 px-2 py-1 text-violet-700 dark:bg-violet-950/35 dark:text-violet-300">Serial: {{ result.serial_number }}</span>
+                <span
+                  v-if="props.balanceMode === 'available' && result.on_hand_quantity !== null && result.on_hand_quantity !== undefined"
+                  class="rounded-[5px] bg-emerald-50 px-2 py-1 text-emerald-700 dark:bg-emerald-950/35 dark:text-emerald-300"
+                >
+                  On hand: {{ result.on_hand_quantity }}
+                </span>
+                <span
+                  v-if="props.balanceMode === 'available' && result.reserved_quantity !== null && result.reserved_quantity !== undefined"
+                  class="rounded-[5px] bg-rose-50 px-2 py-1 text-rose-700 dark:bg-rose-950/35 dark:text-rose-300"
+                >
+                  Reserved: {{ result.reserved_quantity }}
+                </span>
                 <span class="rounded-[5px] bg-cyan-50 px-2 py-1 text-cyan-700 dark:bg-cyan-950/35 dark:text-cyan-300">
                   {{ readableMatchType(result.match_type) }}
                 </span>
@@ -101,6 +113,11 @@ const props = defineProps({
   placeholder: { type: String, default: '' },
   emptyText: { type: String, default: 'No matching inventory items found.' },
   helperText: { type: String, default: '' },
+  balanceMode: {
+    type: String,
+    default: 'available',
+    validator: (value) => ['available', 'system'].includes(value),
+  },
 })
 
 const emit = defineEmits(['select'])
@@ -118,6 +135,30 @@ const resolvedPlaceholder = computed(
 )
 
 const showDropdown = computed(() => open.value && (loading.value || results.value.length > 0 || query.value.trim().length > 0))
+
+const primaryBalanceLabel = (result) => {
+  if (props.balanceMode === 'system') {
+    return 'End'
+  }
+
+  if (result.available_quantity !== null && result.available_quantity !== undefined) {
+    return 'Avail'
+  }
+
+  return 'End'
+}
+
+const primaryBalanceValue = (result) => {
+  if (props.balanceMode === 'system') {
+    return result.ending_quantity
+  }
+
+  if (result.available_quantity !== null && result.available_quantity !== undefined) {
+    return result.available_quantity
+  }
+
+  return result.ending_quantity
+}
 
 const readableMatchType = (value) => {
   const labels = {

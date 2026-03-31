@@ -10,14 +10,21 @@ class StockTransferPolicy
 {
     use HandlesTenantPolicy;
 
+    protected function isPlatformOnlyUser(User $user): bool
+    {
+        return $user->hasRole('super_admin');
+    }
+
     public function viewAny(User $user): bool
     {
-        return $user->can('inventory.index');
+        return ! $this->isPlatformOnlyUser($user)
+            && $user->can('inventory.index');
     }
 
     public function view(User $user, StockTransfer $transfer): bool
     {
-        return $user->can('inventory.index')
+        return ! $this->isPlatformOnlyUser($user)
+            && $user->can('inventory.index')
             && $this->belongsToSameBusiness($user, $transfer)
             && (
                 $user->hasBranchAccess($transfer->fromWarehouse?->branch_id)
@@ -27,6 +34,34 @@ class StockTransferPolicy
 
     public function create(User $user): bool
     {
-        return $user->can('inventory.transfer');
+        return ! $this->isPlatformOnlyUser($user)
+            && $user->can('inventory.transfer');
+    }
+
+    public function update(User $user, StockTransfer $transfer): bool
+    {
+        $isOwner = (string) $transfer->created_by === (string) $user->id;
+        $hasAdminBypass = $user->hasRole('admin');
+
+        return ! $this->isPlatformOnlyUser($user)
+            && $user->can('inventory.transfer')
+            && $this->belongsToSameBusiness($user, $transfer)
+            && $transfer->status === 'pending'
+            && ($isOwner || $hasAdminBypass)
+            && $user->hasBranchAccess($transfer->fromWarehouse?->branch_id);
+    }
+
+    public function delete(User $user, StockTransfer $transfer): bool
+    {
+        return $this->update($user, $transfer);
+    }
+
+    public function receive(User $user, StockTransfer $transfer): bool
+    {
+        return ! $this->isPlatformOnlyUser($user)
+            && $user->can('inventory.transfer')
+            && $this->belongsToSameBusiness($user, $transfer)
+            && $transfer->status === 'pending'
+            && $user->hasBranchAccess($transfer->toWarehouse?->branch_id);
     }
 }

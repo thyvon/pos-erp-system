@@ -118,126 +118,130 @@
           <div v-if="workspaceModal.loading" class="py-8 text-center text-sm text-slate-500 dark:text-slate-400">Loading count workspace...</div>
 
           <template v-else>
-            <div class="grid grid-cols-2 gap-3 rounded-[10px] border border-slate-200 p-4 lg:grid-cols-4 dark:border-slate-800">
-              <div>
-                <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Reference</div>
-                <div class="mt-1 text-sm font-semibold text-slate-950 dark:text-white">{{ workspaceModal.reference_no || 'Pending' }}</div>
-              </div>
-              <div>
-                <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Warehouse</div>
-                <div class="mt-1 text-sm font-semibold text-slate-950 dark:text-white">{{ workspaceModal.warehouse?.name || 'Unknown warehouse' }}</div>
-              </div>
-              <div>
-                <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Date</div>
-                <div class="mt-1 text-sm font-semibold text-slate-950 dark:text-white">{{ workspaceModal.date || 'Not set' }}</div>
-              </div>
-              <div>
-                <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Mode</div>
-                <div class="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                  {{ isCompletedWorkspace ? 'Correction mode' : 'Live mode' }}
-                </div>
-              </div>
-            </div>
-
-            <div class="rounded-[10px] border border-slate-200 bg-slate-50/70 p-4 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-800/40 dark:text-slate-300">
-              <div class="font-semibold text-slate-950 dark:text-white">
-                {{ isCompletedWorkspace ? 'Completed counts stay editable.' : 'This count is still open.' }}
-              </div>
-              <div class="mt-1">
-                {{ isCompletedWorkspace
-                  ? 'Any correction after completion posts only the delta adjustment, so mistakes can be fixed without losing the audit trail.'
-                  : 'Scan, search, and update quantities. When you complete the count, only the final difference is posted to stock.' }}
-              </div>
-            </div>
-
-            <div class="sticky top-0 z-10 -mx-4 border-y border-slate-200 bg-white px-4 py-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)] dark:border-slate-800 dark:bg-slate-900 md:static md:mx-0 md:rounded-[10px] md:border md:px-4 md:shadow-none">
-              <div>
-                <div class="text-sm font-semibold text-slate-950 dark:text-white">
-                  {{ isCompletedWorkspace ? 'Add correction lines' : 'Scan or search first' }}
-                </div>
-                <div class="text-xs text-slate-500 dark:text-slate-400">
-                  {{ isCompletedWorkspace
-                    ? 'You can still scan or search an item after completion. Any new quantity you add is posted as a correction against the already completed count.'
-                    : 'Scan or search by lot, serial, SKU, name, or description. After you pick the item, enter the counted quantity and save it into this shared session.' }}
-                </div>
-              </div>
-
-              <div class="mt-3">
-                <label class="erp-label">Scan or search item</label>
-                <InventoryProductLookup
-                  :warehouse-id="workspaceModal.warehouse?.id || ''"
-                  :disabled="store.recording || store.completing"
-                  :helper-text="isCompletedWorkspace
-                    ? 'Completed count corrections still resolve the correct product, lot, or serial before posting the delta.'
-                    : 'Lot and serial matches still resolve to the correct product or variant for quantity counting.'"
-                  @select="handleLookupSelect"
-                />
-              </div>
-
-              <div
-                v-if="workspaceModal.pending_item"
-                class="mt-4 rounded-[12px] border border-cyan-200 bg-cyan-50/60 p-4 dark:border-cyan-900/50 dark:bg-cyan-950/20"
-              >
-                <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
-                  <div class="min-w-0">
-                    <div class="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-700 dark:text-cyan-300">Selected item</div>
-                    <div class="mt-1 text-sm font-semibold text-slate-950 dark:text-white">
-                      {{ workspaceModal.pending_item.product_name || 'Selected item' }}
-                      <span v-if="workspaceModal.pending_item.variation_name" class="text-slate-500 dark:text-slate-400">/ {{ workspaceModal.pending_item.variation_name }}</span>
-                    </div>
-                    <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                      {{ workspaceModal.pending_item.sku || 'No SKU' }}
-                    </div>
-                    <div class="mt-2 inline-flex rounded-[8px] bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/35 dark:text-emerald-300">
-                      Ending qty: {{ formatQuantity(workspaceModal.pending_item.ending_quantity) }}
+            <div class="rounded-[14px] border border-slate-200 bg-white shadow-[0_18px_40px_rgba(15,23,42,0.08)] dark:border-slate-800 dark:bg-slate-900">
+              <section class="border-b border-slate-200 p-4 dark:border-slate-800">
+                <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+                  <div>
+                    <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Reference</div>
+                    <div class="mt-1 text-sm font-semibold text-slate-950 dark:text-white">{{ workspaceModal.reference_no || 'Pending' }}</div>
+                  </div>
+                  <div>
+                    <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Warehouse</div>
+                    <div class="mt-1 text-sm font-semibold text-slate-950 dark:text-white">{{ workspaceModal.warehouse?.name || 'Unknown warehouse' }}</div>
+                  </div>
+                  <div>
+                    <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Date</div>
+                    <div class="mt-1 text-sm font-semibold text-slate-950 dark:text-white">{{ workspaceModal.date || 'Not set' }}</div>
+                  </div>
+                  <div>
+                    <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Mode</div>
+                    <div class="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                      {{ isCompletedWorkspace ? 'Correction mode' : 'Live mode' }}
                     </div>
                   </div>
+                </div>
+              </section>
 
-                  <div class="grid gap-3 sm:grid-cols-[minmax(0,180px)_auto_auto] sm:items-end">
-                    <div>
-                      <label class="erp-label">{{ isCompletedWorkspace ? 'Correction qty' : 'Qty to add' }}</label>
-                      <input
-                        ref="entryQuantityInput"
-                        v-model.number="workspaceModal.entry_quantity"
-                        type="number"
-                        step="0.0001"
-                        class="erp-input h-14 text-center text-xl font-semibold"
+              <section class="border-b border-slate-200 bg-slate-50/70 p-4 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-800/40 dark:text-slate-300">
+                <div class="font-semibold text-slate-950 dark:text-white">
+                  {{ isCompletedWorkspace ? 'Completed counts stay editable.' : 'This count is still open.' }}
+                </div>
+                <div class="mt-1">
+                  {{ isCompletedWorkspace
+                    ? 'Any correction after completion posts only the delta adjustment, so mistakes can be fixed without losing the audit trail.'
+                    : 'Scan, search, and update quantities. When you complete the count, only the final difference is posted to stock.' }}
+                </div>
+              </section>
+
+              <section class="sticky top-0 z-30 border-b border-slate-200 bg-white px-4 py-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)] dark:border-slate-800 dark:bg-slate-900 md:static md:shadow-none">
+                <div>
+                  <div class="text-sm font-semibold text-slate-950 dark:text-white">
+                    {{ isCompletedWorkspace ? 'Add correction lines' : 'Scan or search first' }}
+                  </div>
+                  <div class="text-xs text-slate-500 dark:text-slate-400">
+                    {{ isCompletedWorkspace
+                      ? 'You can still scan or search an item after completion. Any new quantity you add is posted as a correction against the already completed count.'
+                      : 'Scan or search by lot, serial, SKU, name, or description. After you pick the item, enter the counted quantity and save it into this shared session.' }}
+                  </div>
+                </div>
+
+                <div class="mt-3">
+                  <label class="erp-label">Scan or search item</label>
+                  <InventoryProductLookup
+                    :warehouse-id="workspaceModal.warehouse?.id || ''"
+                    balance-mode="system"
+                    :disabled="store.recording || store.completing"
+                    :helper-text="isCompletedWorkspace
+                      ? 'Completed count corrections still resolve the correct product, lot, or serial before posting the delta.'
+                      : 'Lot and serial matches still resolve to the correct product or variant for quantity counting.'"
+                    @select="handleLookupSelect"
+                  />
+                </div>
+
+                <div
+                  v-if="workspaceModal.pending_item"
+                  class="mt-4 rounded-[12px] border border-cyan-200 bg-cyan-50/60 p-4 dark:border-cyan-900/50 dark:bg-cyan-950/20"
+                >
+                  <div class="flex flex-col gap-4 md:flex-row md:items-end md:justify-between">
+                    <div class="min-w-0">
+                      <div class="text-xs font-semibold uppercase tracking-[0.16em] text-cyan-700 dark:text-cyan-300">Selected item</div>
+                      <div class="mt-1 text-sm font-semibold text-slate-950 dark:text-white">
+                        {{ workspaceModal.pending_item.product_name || 'Selected item' }}
+                        <span v-if="workspaceModal.pending_item.variation_name" class="text-slate-500 dark:text-slate-400">/ {{ workspaceModal.pending_item.variation_name }}</span>
+                      </div>
+                      <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        {{ workspaceModal.pending_item.sku || 'No SKU' }}
+                      </div>
+                      <div class="mt-2 inline-flex rounded-[8px] bg-emerald-50 px-2.5 py-1 text-xs font-semibold text-emerald-700 dark:bg-emerald-950/35 dark:text-emerald-300">
+                        Ending qty: {{ formatQuantity(workspaceModal.pending_item.ending_quantity) }}
+                      </div>
+                    </div>
+
+                    <div class="grid gap-3 sm:grid-cols-[minmax(0,180px)_auto_auto] sm:items-end">
+                      <div>
+                        <label class="erp-label">{{ isCompletedWorkspace ? 'Correction qty' : 'Qty to add' }}</label>
+                        <input
+                          ref="entryQuantityInput"
+                          v-model.number="workspaceModal.entry_quantity"
+                          type="number"
+                          step="0.0001"
+                          class="erp-input h-14 text-center text-xl font-semibold"
+                          :disabled="store.recording || store.completing"
+                          @keydown.enter.prevent="submitPendingEntry"
+                        />
+                      </div>
+                      <button
+                        type="button"
+                        class="erp-button-primary h-12 px-5"
                         :disabled="store.recording || store.completing"
-                        @keydown.enter.prevent="submitPendingEntry"
-                      />
+                        @click="submitPendingEntry"
+                      >
+                        <span v-if="store.recording" class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
+                        <span v-else>{{ isCompletedWorkspace ? 'Post correction' : 'Add count' }}</span>
+                      </button>
+                      <button
+                        type="button"
+                        class="erp-button-secondary h-12 px-5"
+                        :disabled="store.recording || store.completing"
+                        @click="clearPendingItem"
+                      >
+                        Clear
+                      </button>
                     </div>
-                    <button
-                      type="button"
-                      class="erp-button-primary h-12 px-5"
-                      :disabled="store.recording || store.completing"
-                      @click="submitPendingEntry"
-                    >
-                      <span v-if="store.recording" class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
-                      <span v-else>{{ isCompletedWorkspace ? 'Post correction' : 'Add count' }}</span>
-                    </button>
-                    <button
-                      type="button"
-                      class="erp-button-secondary h-12 px-5"
-                      :disabled="store.recording || store.completing"
-                      @click="clearPendingItem"
-                    >
-                      Clear
-                    </button>
+                  </div>
+
+                  <div class="mt-2 text-xs text-slate-500 dark:text-slate-400">
+                    {{ isCompletedWorkspace
+                      ? 'Repeated saves continue from the current counted total and immediately post only the new delta adjustment.'
+                      : 'Repeated saves for the same product or variant are added into the same counted total.' }}
                   </div>
                 </div>
+              </section>
 
-                <div class="mt-2 text-xs text-slate-500 dark:text-slate-400">
-                  {{ isCompletedWorkspace
-                    ? 'Repeated saves continue from the current counted total and immediately post only the new delta adjustment.'
-                    : 'Repeated saves for the same product or variant are added into the same counted total.' }}
-                </div>
-              </div>
-            </div>
-
-            <div
-              v-if="workspaceModal.items.length > 0"
-              class="rounded-[10px] border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900"
-            >
+              <section
+                v-if="workspaceModal.items.length > 0"
+                class="border-b border-slate-200 p-4 dark:border-slate-800"
+              >
               <div class="flex flex-col gap-3 md:flex-row md:items-end md:justify-between">
                 <div class="min-w-0">
                   <div class="text-sm font-semibold text-slate-950 dark:text-white">Quick find counted line</div>
@@ -272,28 +276,29 @@
               <div class="mt-3 text-xs text-slate-500 dark:text-slate-400">
                 Showing {{ filteredWorkspaceItems.length }} of {{ workspaceModal.items.length }} counted lines.
               </div>
-            </div>
+              </section>
 
-            <div
-              v-if="workspaceModal.items.length === 0"
-              class="rounded-[10px] border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400"
-            >
-              No counted lines yet. Scan or search an item above to start capturing quantities.
-            </div>
+              <section class="p-4">
+                <div
+                  v-if="workspaceModal.items.length === 0"
+                  class="rounded-[10px] border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400"
+                >
+                  No counted lines yet. Scan or search an item above to start capturing quantities.
+                </div>
 
-            <div
-              v-else-if="filteredWorkspaceItems.length === 0"
-              class="rounded-[10px] border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400"
-            >
-              No counted items match "{{ workspaceModal.item_search }}".
-            </div>
+                <div
+                  v-else-if="filteredWorkspaceItems.length === 0"
+                  class="rounded-[10px] border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400"
+                >
+                  No counted items match "{{ workspaceModal.item_search }}".
+                </div>
 
-            <div v-else class="space-y-3 md:hidden">
-              <div
-                v-for="item in filteredWorkspaceItems"
-                :key="item.id"
-                class="rounded-[12px] border border-slate-200 bg-white p-4 shadow-[0_10px_25px_rgba(15,23,42,0.06)] dark:border-slate-800 dark:bg-slate-900"
-              >
+                <div v-else class="space-y-3 md:hidden">
+                  <div
+                    v-for="item in filteredWorkspaceItems"
+                    :key="item.id"
+                    class="rounded-[12px] border border-slate-200 bg-white p-4 shadow-[0_10px_25px_rgba(15,23,42,0.06)] dark:border-slate-800 dark:bg-slate-900"
+                  >
                 <div class="flex items-start justify-between gap-3">
                   <div class="min-w-0">
                     <div class="text-sm font-semibold text-slate-950 dark:text-white">
@@ -344,97 +349,99 @@
                   <span v-if="isUpdatingItem(item.id)" class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-slate-400/30 border-t-slate-700 dark:border-slate-500/30 dark:border-t-slate-200"></span>
                   <span v-else>{{ isCompletedWorkspace ? 'Save correction' : 'Update counted qty' }}</span>
                 </button>
-              </div>
-            </div>
+                  </div>
+                </div>
 
-            <div v-if="filteredWorkspaceItems.length > 0" class="hidden md:block erp-table-shell">
-              <div class="overflow-x-auto">
-                <table class="erp-table min-w-full">
-                  <thead>
-                    <tr>
-                      <th class="w-[34%]">Product</th>
-                      <th class="w-[16%]">SKU</th>
-                      <th class="w-[14%]">Lot</th>
-                      <th class="w-[14%]">System qty</th>
-                      <th class="w-[18%]">Counted qty</th>
-                      <th class="w-[12%]">Difference</th>
-                      <th class="w-[14%]">Action</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr v-for="item in filteredWorkspaceItems" :key="item.id">
-                      <td>
-                        <div class="font-semibold text-slate-950 dark:text-white">
-                          {{ item.product?.name || 'Unknown product' }}
-                          <span v-if="item.variation?.name" class="text-slate-500 dark:text-slate-400">/ {{ item.variation.name }}</span>
-                        </div>
-                      </td>
-                      <td class="text-sm text-slate-600 dark:text-slate-300">
-                        {{ item.variation?.sku || item.product?.sku || 'No SKU' }}
-                      </td>
-                      <td class="text-sm text-slate-600 dark:text-slate-300">
-                        {{ item.lot?.lot_number || '-' }}
-                      </td>
-                      <td class="text-sm text-slate-600 dark:text-slate-300">
-                        {{ formatQuantity(item.system_quantity) }}
-                      </td>
-                      <td>
-                        <input
-                          v-model.number="item.editable_counted_quantity"
-                          type="number"
-                          min="0"
-                          step="0.0001"
-                          class="erp-input"
-                          :disabled="store.recording || store.completing || isUpdatingItem(item.id)"
-                          @focus="workspaceModal.last_local_activity_at = Date.now()"
-                          @keydown.enter.prevent="submitItemUpdate(item)"
-                        />
-                      </td>
-                      <td>
-                        <span
-                          class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold"
-                          :class="differenceClass(item.difference)"
-                        >
-                          {{ formatSignedQuantity(item.difference) }}
-                        </span>
-                      </td>
-                      <td>
-                        <button
-                          type="button"
-                          class="erp-button-secondary w-full"
-                          :disabled="store.recording || store.completing || !hasItemChanged(item) || isUpdatingItem(item.id)"
-                          @click="submitItemUpdate(item)"
-                        >
-                          <span v-if="isUpdatingItem(item.id)" class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-slate-400/30 border-t-slate-700 dark:border-slate-500/30 dark:border-t-slate-200"></span>
-                          <span v-else>Update</span>
-                        </button>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-            </div>
+                <div v-if="filteredWorkspaceItems.length > 0" class="hidden md:block erp-table-shell">
+                  <div class="overflow-x-auto">
+                    <table class="erp-table min-w-full">
+                      <thead>
+                        <tr>
+                          <th class="w-[34%]">Product</th>
+                          <th class="w-[16%]">SKU</th>
+                          <th class="w-[14%]">Lot</th>
+                          <th class="w-[14%]">System qty</th>
+                          <th class="w-[18%]">Counted qty</th>
+                          <th class="w-[12%]">Difference</th>
+                          <th class="w-[14%]">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr v-for="item in filteredWorkspaceItems" :key="item.id">
+                          <td>
+                            <div class="font-semibold text-slate-950 dark:text-white">
+                              {{ item.product?.name || 'Unknown product' }}
+                              <span v-if="item.variation?.name" class="text-slate-500 dark:text-slate-400">/ {{ item.variation.name }}</span>
+                            </div>
+                          </td>
+                          <td class="text-sm text-slate-600 dark:text-slate-300">
+                            {{ item.variation?.sku || item.product?.sku || 'No SKU' }}
+                          </td>
+                          <td class="text-sm text-slate-600 dark:text-slate-300">
+                            {{ item.lot?.lot_number || '-' }}
+                          </td>
+                          <td class="text-sm text-slate-600 dark:text-slate-300">
+                            {{ formatQuantity(item.system_quantity) }}
+                          </td>
+                          <td>
+                            <input
+                              v-model.number="item.editable_counted_quantity"
+                              type="number"
+                              min="0"
+                              step="0.0001"
+                              class="erp-input"
+                              :disabled="store.recording || store.completing || isUpdatingItem(item.id)"
+                              @focus="workspaceModal.last_local_activity_at = Date.now()"
+                              @keydown.enter.prevent="submitItemUpdate(item)"
+                            />
+                          </td>
+                          <td>
+                            <span
+                              class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold"
+                              :class="differenceClass(item.difference)"
+                            >
+                              {{ formatSignedQuantity(item.difference) }}
+                            </span>
+                          </td>
+                          <td>
+                            <button
+                              type="button"
+                              class="erp-button-secondary w-full"
+                              :disabled="store.recording || store.completing || !hasItemChanged(item) || isUpdatingItem(item.id)"
+                              @click="submitItemUpdate(item)"
+                            >
+                              <span v-if="isUpdatingItem(item.id)" class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-slate-400/30 border-t-slate-700 dark:border-slate-500/30 dark:border-t-slate-200"></span>
+                              <span v-else>Update</span>
+                            </button>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </section>
 
-            <div class="rounded-[10px] border border-slate-200 p-4 text-sm text-slate-600 dark:border-slate-800 dark:text-slate-300">
-              {{ isCompletedWorkspace
-                ? 'This count is already completed. Editing a line now posts only the difference between the old counted quantity and the new counted quantity.'
-                : 'Completing the session compares the counted totals above against the snapped system quantities and posts only the difference as stock count correction movements.' }}
-            </div>
+              <section class="border-t border-slate-200 p-4 text-sm text-slate-600 dark:border-slate-800 dark:text-slate-300">
+                {{ isCompletedWorkspace
+                  ? 'This count is already completed. Editing a line now posts only the difference between the old counted quantity and the new counted quantity.'
+                  : 'Completing the session compares the counted totals above against the snapped system quantities and posts only the difference as stock count correction movements.' }}
+              </section>
 
-            <div class="sticky bottom-0 -mx-4 border-t border-slate-200 bg-white px-4 pb-1 pt-3 dark:border-slate-800 dark:bg-slate-900 md:static md:mx-0 md:border-0 md:bg-transparent md:px-0 md:pb-0 md:pt-0">
-              <div class="erp-form-actions">
-              <button type="button" class="erp-button-secondary" :disabled="store.recording || store.completing" @click="closeWorkspaceModal">Close</button>
-              <button
-                v-if="!isCompletedWorkspace"
-                type="button"
-                class="erp-button-primary"
-                :disabled="store.recording || store.completing"
-                @click="submitComplete"
-              >
-                <span v-if="store.completing" class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
-                Complete count
-              </button>
-              </div>
+              <section class="px-4 pb-1 pt-3 md:px-4">
+                <div class="erp-form-actions border-t border-slate-200 pt-3 dark:border-slate-800">
+                  <button type="button" class="erp-button-secondary" :disabled="store.recording || store.completing" @click="closeWorkspaceModal">Close</button>
+                  <button
+                    v-if="!isCompletedWorkspace"
+                    type="button"
+                    class="erp-button-primary"
+                    :disabled="store.recording || store.completing"
+                    @click="submitComplete"
+                  >
+                    <span v-if="store.completing" class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
+                    Complete count
+                  </button>
+                </div>
+              </section>
             </div>
           </template>
         </div>

@@ -37,6 +37,7 @@
             <label class="erp-label">Scan or search item</label>
             <InventoryProductLookup
               :warehouse-id="workspace.warehouse?.id || ''"
+              balance-mode="system"
               :disabled="store.recording || store.completing"
               helper-text="Lot and serial matches still resolve to the correct product or variant for quantity counting."
               @select="handleLookupSelect"
@@ -189,16 +190,36 @@
               </div>
             </div>
 
-            <button
-              v-if="!isCompletedWorkspace"
-              type="button"
-              class="erp-button-secondary mt-4 w-full"
-              :disabled="store.recording || store.completing || !hasItemChanged(item) || isUpdatingItem(item.id)"
-              @click="submitItemUpdate(item)"
-            >
-              <span v-if="isUpdatingItem(item.id)" class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-slate-400/30 border-t-slate-700 dark:border-slate-500/30 dark:border-t-slate-200"></span>
-              <span v-else>Update counted qty</span>
-            </button>
+            <div v-if="!isCompletedWorkspace" class="mt-4 flex items-center justify-end gap-2">
+              <button
+                type="button"
+                class="erp-button-secondary inline-flex h-10 w-10 items-center justify-center p-0"
+                title="Update counted quantity"
+                aria-label="Update counted quantity"
+                :disabled="store.recording || store.completing || !hasItemChanged(item) || isUpdatingItem(item.id)"
+                @click="submitItemUpdate(item)"
+              >
+                <span v-if="isUpdatingItem(item.id)" class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-slate-400/30 border-t-slate-700 dark:border-slate-500/30 dark:border-t-slate-200"></span>
+                <template v-else>
+                  <i class="fa-solid fa-floppy-disk"></i>
+                  <span class="sr-only">Update counted quantity</span>
+                </template>
+              </button>
+              <button
+                type="button"
+                class="erp-button-secondary inline-flex h-10 w-10 items-center justify-center border-rose-200 p-0 text-rose-700 hover:border-rose-300 hover:bg-rose-50 dark:border-rose-900/50 dark:text-rose-300 dark:hover:bg-rose-950/20"
+                title="Remove counted line"
+                aria-label="Remove counted line"
+                :disabled="store.recording || store.completing || isUpdatingItem(item.id)"
+                @click="removeItem(item)"
+              >
+                <span v-if="isUpdatingItem(item.id)" class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-rose-300/30 border-t-rose-700 dark:border-rose-500/30 dark:border-t-rose-200"></span>
+                <template v-else>
+                  <i class="fa-solid fa-trash-can"></i>
+                  <span class="sr-only">Remove counted line</span>
+                </template>
+              </button>
+            </div>
           </div>
             </div>
 
@@ -212,7 +233,7 @@
                   <th class="w-[14%]">System qty</th>
                   <th class="w-[18%]">Counted qty</th>
                   <th class="w-[12%]">Difference</th>
-                  <th v-if="!isCompletedWorkspace" class="w-[14%]">Action</th>
+                  <th v-if="!isCompletedWorkspace" class="w-[18%]">Action</th>
                 </tr>
               </thead>
               <tbody>
@@ -251,15 +272,36 @@
                     </span>
                   </td>
                   <td v-if="!isCompletedWorkspace">
-                    <button
-                      type="button"
-                      class="erp-button-secondary w-full"
-                      :disabled="store.recording || store.completing || !hasItemChanged(item) || isUpdatingItem(item.id)"
-                      @click="submitItemUpdate(item)"
-                    >
-                      <span v-if="isUpdatingItem(item.id)" class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-slate-400/30 border-t-slate-700 dark:border-slate-500/30 dark:border-t-slate-200"></span>
-                      <span v-else>Update</span>
-                    </button>
+                    <div class="flex items-center gap-2">
+                      <button
+                        type="button"
+                        class="erp-button-secondary inline-flex h-10 w-10 items-center justify-center p-0"
+                        title="Update counted quantity"
+                        aria-label="Update counted quantity"
+                        :disabled="store.recording || store.completing || !hasItemChanged(item) || isUpdatingItem(item.id)"
+                        @click="submitItemUpdate(item)"
+                      >
+                        <span v-if="isUpdatingItem(item.id)" class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-slate-400/30 border-t-slate-700 dark:border-slate-500/30 dark:border-t-slate-200"></span>
+                        <template v-else>
+                          <i class="fa-solid fa-floppy-disk"></i>
+                          <span class="sr-only">Update counted quantity</span>
+                        </template>
+                      </button>
+                      <button
+                        type="button"
+                        class="erp-button-secondary inline-flex h-10 w-10 items-center justify-center border-rose-200 p-0 text-rose-700 hover:border-rose-300 hover:bg-rose-50 dark:border-rose-900/50 dark:text-rose-300 dark:hover:bg-rose-950/20"
+                        title="Remove counted line"
+                        aria-label="Remove counted line"
+                        :disabled="store.recording || store.completing || isUpdatingItem(item.id)"
+                        @click="removeItem(item)"
+                      >
+                        <span v-if="isUpdatingItem(item.id)" class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-rose-300/30 border-t-rose-700 dark:border-rose-500/30 dark:border-t-rose-200"></span>
+                        <template v-else>
+                          <i class="fa-solid fa-trash-can"></i>
+                          <span class="sr-only">Remove counted line</span>
+                        </template>
+                      </button>
+                    </div>
                   </td>
                 </tr>
               </tbody>
@@ -308,23 +350,21 @@
           </div>
         </div>
 
-        <div class="sticky bottom-0 z-10 rounded-[10px] border border-slate-200 bg-white px-4 py-3 shadow-[0_-10px_25px_rgba(15,23,42,0.06)] dark:border-slate-800 dark:bg-slate-900">
-          <div class="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
-            <div class="erp-form-actions">
-              <button type="button" class="erp-button-secondary" :disabled="store.recording || store.completing" @click="goBack">
-                Back to counts
-              </button>
-              <button
-                v-if="!isCompletedWorkspace"
-                type="button"
-                class="erp-button-primary"
-                :disabled="store.recording || store.completing"
-                @click="submitComplete"
-              >
-                <span v-if="store.completing" class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
-                Complete count
-              </button>
-            </div>
+        <div class="border-t border-slate-200 px-4 pt-4 dark:border-slate-800">
+          <div class="erp-form-actions">
+            <button type="button" class="erp-button-secondary" :disabled="store.recording || store.completing" @click="goBack">
+              Back to counts
+            </button>
+            <button
+              v-if="!isCompletedWorkspace"
+              type="button"
+              class="erp-button-primary"
+              :disabled="store.recording || store.completing"
+              @click="submitComplete"
+            >
+              <span v-if="store.completing" class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
+              Complete count
+            </button>
           </div>
         </div>
       </template>
@@ -641,6 +681,39 @@ const submitItemUpdate = async (item) => {
     showToast('success', isCompletedWorkspace.value ? 'Count correction saved successfully.' : 'Counted quantity updated successfully.')
   } catch (error) {
     showToast('danger', error.response?.data?.message || 'Unable to update the counted quantity.')
+  }
+}
+
+const removeItem = async (item) => {
+  if (!workspace.count_id || isCompletedWorkspace.value) {
+    return
+  }
+
+  const label = item.variation?.name
+    ? `${item.product?.name || 'Unknown product'} / ${item.variation.name}`
+    : (item.product?.name || 'Unknown product')
+
+  if (!window.confirm(`Remove "${label}" from this stock count?`)) {
+    return
+  }
+
+  workspace.last_local_activity_at = Date.now()
+
+  try {
+    await store.deleteItem(workspace.count_id, item.id)
+
+    await Promise.all([
+      refreshWorkspace(workspace.count_id),
+      refreshWorkspaceItems(workspace.count_id),
+    ])
+
+    if (workspace.pending_item && workspace.pending_item.product_id === item.product_id && (workspace.pending_item.variation_id || null) === (item.variation_id || null)) {
+      clearPendingItem()
+    }
+
+    showToast('success', 'Counted line removed successfully.')
+  } catch (error) {
+    showToast('danger', error.response?.data?.message || 'Unable to remove the counted line.')
   }
 }
 

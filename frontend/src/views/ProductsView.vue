@@ -11,102 +11,71 @@
     <div class="space-y-6">
       <AppAlert v-model:show="alert.show" :type="alert.type" :title="alert.title" :message="alert.message" />
 
-      <section class="relative z-10 overflow-visible rounded-[5px] border border-slate-200/80 bg-white/75 shadow-[0_18px_45px_rgba(56,77,112,0.08)] backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-950/70">
-        <button
-          type="button"
-          class="flex w-full items-center justify-between gap-4 px-4 py-4 text-left transition hover:bg-slate-50/70 dark:hover:bg-slate-900/60"
-          @click="filtersExpanded = !filtersExpanded"
-        >
-          <div class="min-w-0">
-            <div class="flex flex-wrap items-center gap-3">
-              <span class="text-sm font-semibold text-slate-950 dark:text-white">Filters</span>
-              <span
-                class="inline-flex rounded-full bg-slate-100 px-2.5 py-1 text-xs font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300"
-              >
-                {{ activeFilterCount }} active
-              </span>
-            </div>
-            <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              Narrow the product list by type, stock mode, status, category, or brand.
-            </div>
+      <FilterPanel
+        v-model:expanded="filtersExpanded"
+        title="Filters"
+        description="Narrow the product list by type, stock mode, status, category, or brand."
+        :active-count="activeFilterCount"
+        :show-clear="activeFilterCount > 0"
+        @clear="resetFilters"
+      >
+        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
+          <div>
+            <label class="erp-label">Product type</label>
+            <AppSelect
+              :model-value="store.filters.type || null"
+              :options="typeFilterOptions"
+              clearable
+              placeholder="All types"
+              @update:model-value="handleTypeFilter($event)"
+            />
           </div>
-
-          <div class="flex items-center gap-2">
-            <button
-              v-if="activeFilterCount > 0"
-              type="button"
-              class="erp-button-secondary"
-              @click.stop="resetFilters"
-            >
-              Clear
-            </button>
-            <span
-              class="inline-flex h-10 w-10 items-center justify-center rounded-[5px] border border-slate-200/80 bg-white/80 text-slate-500 dark:border-slate-700/80 dark:bg-slate-900/80 dark:text-slate-300"
-            >
-              <i class="fa-solid fa-chevron-down transition" :class="filtersExpanded ? 'rotate-180' : ''"></i>
-            </span>
+          <div>
+            <label class="erp-label">Stock mode</label>
+            <AppSelect
+              :model-value="store.filters.stock_tracking || null"
+              :options="stockTrackingFilterOptions"
+              clearable
+              placeholder="All stock modes"
+              @update:model-value="handleStockTrackingFilter($event)"
+            />
           </div>
-        </button>
-
-        <div v-if="filtersExpanded" class="border-t border-slate-200/70 px-4 py-4 dark:border-slate-800/80">
-          <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
-            <div>
-              <label class="erp-label">Product type</label>
-              <AppSelect
-                :model-value="store.filters.type || null"
-                :options="typeFilterOptions"
-                clearable
-                placeholder="All types"
-                @update:model-value="handleTypeFilter($event)"
-              />
-            </div>
-            <div>
-              <label class="erp-label">Stock mode</label>
-              <AppSelect
-                :model-value="store.filters.stock_tracking || null"
-                :options="stockTrackingFilterOptions"
-                clearable
-                placeholder="All stock modes"
-                @update:model-value="handleStockTrackingFilter($event)"
-              />
-            </div>
-            <div>
-              <label class="erp-label">Status</label>
-              <AppSelect
-                :model-value="store.filters.is_active === '' ? null : store.filters.is_active"
-                :options="statusFilterOptions"
-                clearable
-                placeholder="Any status"
-                @update:model-value="handleStatusFilter($event)"
-              />
-            </div>
-            <div>
-              <label class="erp-label">Category</label>
-              <AppSelect
-                :model-value="store.filters.category_id || null"
-                :options="categoryOptions"
-                clearable
-                searchable
-                placeholder="All categories"
-                search-placeholder="Search categories"
-                @update:model-value="handleCategoryFilter($event)"
-              />
-            </div>
-            <div>
-              <label class="erp-label">Brand</label>
-              <AppSelect
-                :model-value="store.filters.brand_id || null"
-                :options="brandOptions"
-                clearable
-                searchable
-                placeholder="All brands"
-                search-placeholder="Search brands"
-                @update:model-value="handleBrandFilter($event)"
-              />
-            </div>
+          <div>
+            <label class="erp-label">Status</label>
+            <AppSelect
+              :model-value="store.filters.is_active === '' ? null : store.filters.is_active"
+              :options="statusFilterOptions"
+              clearable
+              placeholder="Any status"
+              @update:model-value="handleStatusFilter($event)"
+            />
+          </div>
+          <div>
+            <label class="erp-label">Category</label>
+            <AppSelect
+              :model-value="store.filters.category_id || null"
+              :options="categoryOptions"
+              clearable
+              searchable
+              placeholder="All categories"
+              search-placeholder="Search categories"
+              @update:model-value="handleCategoryFilter($event)"
+            />
+          </div>
+          <div>
+            <label class="erp-label">Brand</label>
+            <AppSelect
+              :model-value="store.filters.brand_id || null"
+              :options="brandOptions"
+              clearable
+              searchable
+              placeholder="All brands"
+              search-placeholder="Search brands"
+              @update:model-value="handleBrandFilter($event)"
+            />
           </div>
         </div>
-      </section>
+      </FilterPanel>
 
       <DataTable
         title="Products"
@@ -248,6 +217,7 @@ import AppAlert from '@components/ui/AppAlert.vue'
 import AppSelect from '@components/ui/AppSelect.vue'
 import ConfirmDelete from '@components/ui/ConfirmDelete.vue'
 import DataTable from '@components/ui/DataTable.vue'
+import FilterPanel from '@components/ui/FilterPanel.vue'
 import StatusBadge from '@components/ui/StatusBadge.vue'
 import AppLayout from '@layouts/AppLayout.vue'
 import { useAuthStore } from '@stores/auth'
