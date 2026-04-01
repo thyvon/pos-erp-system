@@ -15,7 +15,6 @@ const CustomersView = () => import('@views/CustomersView.vue')
 const DashboardView = () => import('@views/DashboardView.vue')
 const InventoryAdjustmentsView = () => import('@views/InventoryAdjustmentsView.vue')
 const InventoryAdjustmentDetailView = () => import('@views/InventoryAdjustmentDetailView.vue')
-const InventoryCountCreateView = () => import('@views/InventoryCountCreateView.vue')
 const InventoryCountsView = () => import('@views/InventoryCountsView.vue')
 const InventoryCountWorkspaceView = () => import('@views/InventoryCountWorkspaceView.vue')
 const InventoryLotsView = () => import('@views/InventoryLotsView.vue')
@@ -149,7 +148,7 @@ const router = createRouter({
     {
       path: '/inventory/counts/create',
       name: 'inventory-counts-create',
-      component: InventoryCountCreateView,
+      component: InventoryCountWorkspaceView,
       meta: { requiresAuth: true, requiredPermission: 'inventory.count' },
     },
     {

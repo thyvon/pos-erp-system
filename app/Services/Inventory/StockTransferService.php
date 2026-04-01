@@ -31,6 +31,7 @@ class StockTransferService
         return DB::transaction(function () use ($businessId, $data, $actor): StockTransfer {
             $fromWarehouse = $this->resolveWarehouse($businessId, $data['from_warehouse_id']);
             $toWarehouse = $this->resolveWarehouse($businessId, $data['to_warehouse_id']);
+            $shouldSend = $this->shouldSend($data);
 
             if ($fromWarehouse->is($toWarehouse)) {
                 throw new DomainException('Transfer source and destination warehouses must be different.', 422);
@@ -44,12 +45,12 @@ class StockTransferService
                 'from_warehouse_id' => $fromWarehouse->id,
                 'to_warehouse_id' => $toWarehouse->id,
                 'reference_no' => $this->generateReferenceNumber(),
-                'status' => 'pending',
+                'status' => $shouldSend ? 'in_transit' : 'pending',
                 'date' => $data['date'],
                 'notes' => $data['notes'] ?? null,
                 'created_by' => $actor?->id,
-                'sent_by' => $actor?->id,
-                'sent_at' => now(),
+                'sent_by' => $shouldSend ? $actor?->id : null,
+                'sent_at' => $shouldSend ? now() : null,
             ]);
 
             foreach ($data['items'] as $item) {
@@ -98,8 +99,8 @@ class StockTransferService
                 throw new DomainException('Selected transfer is invalid for this business.', 422);
             }
 
-            if ($lockedTransfer->status !== 'pending') {
-                throw new DomainException('Only pending transfers can be received.', 422);
+            if ($lockedTransfer->status !== 'in_transit') {
+                throw new DomainException('Only in-transit transfers can be received.', 422);
             }
 
             $toWarehouse = $lockedTransfer->toWarehouse;
@@ -169,12 +170,13 @@ class StockTransferService
                 throw new DomainException('Selected transfer is invalid for this business.', 422);
             }
 
-            if ($lockedTransfer->status !== 'pending') {
-                throw new DomainException('Only pending transfers can be edited.', 422);
+            if (! in_array($lockedTransfer->status, ['pending', 'in_transit'], true)) {
+                throw new DomainException('Only pending or in-transit transfers can be edited.', 422);
             }
 
             $fromWarehouse = $this->resolveWarehouse($businessId, $data['from_warehouse_id']);
             $toWarehouse = $this->resolveWarehouse($businessId, $data['to_warehouse_id']);
+            $shouldSend = $this->shouldSend($data) || $lockedTransfer->status === 'in_transit';
 
             if ($fromWarehouse->is($toWarehouse)) {
                 throw new DomainException('Transfer source and destination warehouses must be different.', 422);
@@ -193,7 +195,9 @@ class StockTransferService
                 'to_warehouse_id' => $toWarehouse->id,
                 'date' => $data['date'],
                 'notes' => $data['notes'] ?? null,
-                'status' => 'pending',
+                'status' => $shouldSend ? 'in_transit' : 'pending',
+                'sent_by' => $shouldSend ? ($lockedTransfer->sent_by ?: $actor?->id) : null,
+                'sent_at' => $shouldSend ? ($lockedTransfer->sent_at ?: now()) : null,
                 'received_by' => null,
                 'received_at' => null,
             ]);
@@ -394,6 +398,11 @@ class StockTransferService
         ];
 
         $this->stockMovementService->release($businessId, $reservationPayload);
+    }
+
+    protected function shouldSend(array $data): bool
+    {
+        return filter_var($data['send'] ?? false, FILTER_VALIDATE_BOOLEAN);
     }
 
     protected function generateReferenceNumber(): string

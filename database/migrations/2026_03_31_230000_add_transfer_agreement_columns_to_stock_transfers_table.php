@@ -9,7 +9,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        $this->setTransferStatusEnum(['completed', 'pending', 'sent', 'received'], 'completed');
+        $this->setTransferStatusEnum(['completed', 'pending', 'in_transit', 'received'], 'completed');
 
         if (! Schema::hasColumn('stock_transfers', 'sent_by')) {
             Schema::table('stock_transfers', function (Blueprint $table): void {
@@ -71,7 +71,7 @@ return new class extends Migration
     public function down(): void
     {
         DB::table('stock_transfers')
-            ->whereIn('status', ['pending', 'sent', 'received'])
+            ->whereIn('status', ['pending', 'in_transit', 'received'])
             ->update([
                 'status' => 'completed',
             ]);

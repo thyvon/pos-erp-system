@@ -42,4 +42,12 @@ class StockCountPolicy
             && $user->hasBranchAccess($stockCount->warehouse?->branch_id)
             && $stockCount->status === 'in_progress';
     }
+
+    public function delete(User $user, StockCount $stockCount): bool
+    {
+        return $user->can('inventory.count')
+            && $this->belongsToSameBusiness($user, $stockCount)
+            && $user->hasBranchAccess($stockCount->warehouse?->branch_id)
+            && $stockCount->status === 'in_progress';
+    }
 }

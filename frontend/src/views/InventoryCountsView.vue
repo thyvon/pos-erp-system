@@ -57,14 +57,29 @@
         </template>
 
         <template #actions="{ row }">
-          <button
-            v-if="canCreate && row.status !== 'cancelled'"
-            type="button"
-            class="erp-button-secondary"
-            @click="openWorkspaceModal(row.id)"
-          >
-            {{ row.status === 'completed' ? 'Review count' : 'Open count' }}
-          </button>
+          <div class="flex flex-wrap justify-end gap-2">
+            <button
+              v-if="canCreate && row.status !== 'cancelled'"
+              type="button"
+              class="erp-button-secondary"
+              @click="openWorkspaceModal(row.id)"
+            >
+              {{ row.status === 'completed' ? 'Review count' : 'Open count' }}
+            </button>
+            <button
+              v-if="canDeleteCount(row)"
+              type="button"
+              class="erp-button-secondary border-rose-200 text-rose-700 hover:border-rose-300 hover:bg-rose-50 dark:border-rose-900/50 dark:text-rose-300 dark:hover:bg-rose-950/20"
+              :disabled="store.deletingCountId === row.id"
+              @click="deleteCount(row)"
+            >
+              <span
+                v-if="store.deletingCountId === row.id"
+                class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-rose-300/30 border-t-rose-700 dark:border-rose-500/30 dark:border-t-rose-200"
+              ></span>
+              <span v-else>Delete</span>
+            </button>
+          </div>
         </template>
       </DataTable>
 
@@ -469,6 +484,7 @@ const store = useInventoryCountsStore()
 const optionsStore = useInventoryOptionsStore()
 
 const canCreate = computed(() => auth.can('inventory.count'))
+const canDeleteCount = (row) => canCreate.value && row?.status === 'in_progress'
 const isCompletedWorkspace = computed(() => workspaceModal.status === 'completed')
 const columns = [
   { key: 'reference', label: 'Reference' },
@@ -810,6 +826,25 @@ const submitComplete = async () => {
 const handleSearch = (value) => store.fetchItems({ search: value, page: 1 })
 const handlePageChange = (page) => store.fetchItems({ page })
 const handlePerPageChange = (perPage) => store.fetchItems({ per_page: perPage, page: 1 })
+
+const deleteCount = async (row) => {
+  if (!canDeleteCount(row)) {
+    return
+  }
+
+  const label = row.reference_no || 'this stock count'
+
+  if (!window.confirm(`Delete "${label}"? This will remove the count session and all counted lines.`)) {
+    return
+  }
+
+  try {
+    await store.deleteCount(row.id)
+    showToast('success', `Stock count ${label} deleted successfully.`)
+  } catch (error) {
+    showToast('danger', error.response?.data?.message || 'Unable to delete the stock count.')
+  }
+}
 
 onMounted(async () => {
   await Promise.all([

@@ -7,7 +7,7 @@ return new class extends Migration
 {
     public function up(): void
     {
-        $this->setTransferStatusEnum(['completed', 'pending', 'sent', 'received'], 'pending');
+        $this->setTransferStatusEnum(['completed', 'pending', 'in_transit', 'received'], 'pending');
     }
 
     public function down(): void
@@ -18,7 +18,7 @@ return new class extends Migration
                 'status' => 'completed',
             ]);
 
-        $this->setTransferStatusEnum(['completed', 'sent', 'received'], 'completed');
+        $this->setTransferStatusEnum(['completed', 'in_transit', 'received'], 'completed');
     }
 
     protected function setTransferStatusEnum(array $values, string $default): void

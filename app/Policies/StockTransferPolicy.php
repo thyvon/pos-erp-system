@@ -23,12 +23,15 @@ class StockTransferPolicy
 
     public function view(User $user, StockTransfer $transfer): bool
     {
+        $hasSourceAccess = $user->hasBranchAccess($transfer->fromWarehouse?->branch_id);
+        $hasDestinationAccess = $user->hasBranchAccess($transfer->toWarehouse?->branch_id);
+
         return ! $this->isPlatformOnlyUser($user)
             && $user->can('inventory.index')
             && $this->belongsToSameBusiness($user, $transfer)
             && (
-                $user->hasBranchAccess($transfer->fromWarehouse?->branch_id)
-                || $user->hasBranchAccess($transfer->toWarehouse?->branch_id)
+                $hasSourceAccess
+                || ($hasDestinationAccess && $transfer->status !== 'pending')
             );
     }
 
@@ -46,7 +49,7 @@ class StockTransferPolicy
         return ! $this->isPlatformOnlyUser($user)
             && $user->can('inventory.transfer')
             && $this->belongsToSameBusiness($user, $transfer)
-            && $transfer->status === 'pending'
+            && in_array($transfer->status, ['pending', 'in_transit'], true)
             && ($isOwner || $hasAdminBypass)
             && $user->hasBranchAccess($transfer->fromWarehouse?->branch_id);
     }
@@ -61,7 +64,7 @@ class StockTransferPolicy
         return ! $this->isPlatformOnlyUser($user)
             && $user->can('inventory.transfer')
             && $this->belongsToSameBusiness($user, $transfer)
-            && $transfer->status === 'pending'
+            && $transfer->status === 'in_transit'
             && $user->hasBranchAccess($transfer->toWarehouse?->branch_id);
     }
 }

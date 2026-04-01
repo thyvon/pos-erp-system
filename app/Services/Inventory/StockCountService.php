@@ -311,6 +311,50 @@ class StockCountService
         });
     }
 
+    public function delete(string $businessId, StockCount $count, ?User $actor = null): void
+    {
+        DB::transaction(function () use ($businessId, $count, $actor): void {
+            $this->ensureBelongsToBusiness($businessId, $count);
+
+            /** @var StockCount $lockedCount */
+            $lockedCount = StockCount::query()
+                ->whereKey($count->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $count = $lockedCount->loadMissing('warehouse');
+            $this->ensureUserCanAccessWarehouse($actor, $count->warehouse);
+
+            if ($count->status !== 'in_progress') {
+                throw new DomainException('Only in-progress stock counts can be deleted.', 422);
+            }
+
+            $itemCount = $count->items()->count();
+            $entryCount = $count->entries()->count();
+
+            $auditPayload = [
+                'warehouse_id' => $count->warehouse_id,
+                'reference_no' => $count->reference_no,
+                'item_count' => $itemCount,
+                'entry_count' => $entryCount,
+            ];
+
+            $count->entries()->delete();
+            $count->items()->delete();
+            $count->delete();
+
+            $this->auditLogger->log(
+                'stock_count_deleted',
+                StockCount::class,
+                $lockedCount->id,
+                $actor,
+                $businessId,
+                null,
+                $auditPayload
+            );
+        });
+    }
+
     public function complete(string $businessId, StockCount $count, array $data, ?User $actor = null): StockCount
     {
         return DB::transaction(function () use ($businessId, $count, $data, $actor): StockCount {

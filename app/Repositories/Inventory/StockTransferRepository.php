@@ -81,7 +81,11 @@ class StockTransferRepository extends BaseRepository
                 $query->where(function ($transferQuery) use ($user): void {
                     $transferQuery
                         ->whereHas('fromWarehouse', fn ($warehouseQuery) => BranchAccess::scopeBranchQuery($warehouseQuery, $user, 'branch_id'))
-                        ->orWhereHas('toWarehouse', fn ($warehouseQuery) => BranchAccess::scopeBranchQuery($warehouseQuery, $user, 'branch_id'));
+                        ->orWhere(function ($destinationQuery) use ($user): void {
+                            $destinationQuery
+                                ->where('status', '!=', 'pending')
+                                ->whereHas('toWarehouse', fn ($warehouseQuery) => BranchAccess::scopeBranchQuery($warehouseQuery, $user, 'branch_id'));
+                        });
                 });
             })
             ->orderByDesc('date')

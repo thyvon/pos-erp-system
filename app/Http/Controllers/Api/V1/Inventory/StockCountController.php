@@ -128,4 +128,17 @@ class StockCountController extends BaseApiController
 
         return $this->success(new StockCountResource($count), 'Stock count completed successfully.');
     }
+
+    public function destroy(Request $request, StockCount $stockCount): JsonResponse
+    {
+        $this->authorize('delete', $stockCount);
+
+        $this->countService->delete(
+            $request->user()->business_id,
+            $stockCount,
+            $request->user()
+        );
+
+        return $this->success(null, 'Stock count deleted successfully.');
+    }
 }

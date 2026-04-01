@@ -18,12 +18,6 @@
       </div>
 
       <section class="relative overflow-hidden rounded-[5px] border border-slate-200/80 bg-white/75 p-4 lg:p-5 shadow-[0_18px_45px_rgba(56,77,112,0.08)] backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-950/70">
-        <LoadingSpinner
-          :show="pageLoading"
-          title="Loading product"
-          message="Pulling product details and catalog options."
-        />
-
         <div
           v-if="loadError"
           class="rounded-[5px] border border-rose-200/70 bg-rose-50/80 px-5 py-4 text-sm text-rose-700 dark:border-rose-900/70 dark:bg-rose-950/30 dark:text-rose-200"
@@ -32,8 +26,10 @@
           <div class="mt-1">{{ loadError }}</div>
         </div>
 
+        <PageBlurSkeleton v-else-if="pageLoading" variant="form" />
+
         <Form
-          v-else-if="!pageLoading"
+          v-else
           v-slot="{ values, setFieldValue }"
           :key="formKey"
           :validation-schema="schema"
@@ -767,7 +763,7 @@ import { ErrorMessage, Field, Form } from 'vee-validate'
 import * as yup from 'yup'
 import { useRoute, useRouter } from 'vue-router'
 import AppAlert from '@components/ui/AppAlert.vue'
-import LoadingSpinner from '@components/ui/LoadingSpinner.vue'
+import PageBlurSkeleton from '@components/ui/PageBlurSkeleton.vue'
 import AppSelect from '@components/ui/AppSelect.vue'
 import RichTextEditor from '@components/ui/RichTextEditor.vue'
 import AppLayout from '@layouts/AppLayout.vue'

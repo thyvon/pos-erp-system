@@ -3,12 +3,6 @@
     <div class="space-y-6">
       <AppAlert v-model:show="alert.show" :type="alert.type" :title="alert.title" :message="alert.message" />
 
-      <LoadingSpinner
-        :show="loading"
-        title="Loading transfer"
-        message="Fetching stock transfer details for review."
-      />
-
       <div
         v-if="loadError"
         class="rounded-[5px] border border-rose-200/70 bg-rose-50/80 px-5 py-4 text-sm text-rose-700 dark:border-rose-900/70 dark:bg-rose-950/30 dark:text-rose-200"
@@ -17,7 +11,9 @@
         <div class="mt-1">{{ loadError }}</div>
       </div>
 
-      <div v-else-if="!loading && transfer" class="space-y-6">
+      <PageBlurSkeleton v-else-if="loading" variant="detail" />
+
+      <div v-else-if="transfer" class="space-y-6">
         <section class="erp-form-section">
           <div class="mb-6 flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
             <div class="min-w-0">
@@ -31,9 +27,7 @@
                 </span>
               </div>
               <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                {{ transfer.status === 'pending'
-                  ? 'Pending means the transfer is on the way but not yet received. Source stock is reserved, and the sender or admin can still correct or delete it until the receiver confirms.'
-                  : 'Review the transfer first, then confirm receipt only when the destination team agrees the lines are correct.' }}
+                {{ transferSummary }}
               </p>
             </div>
 
@@ -97,9 +91,9 @@
               <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Agreement trail</div>
               <div class="mt-4 grid gap-4">
                 <div class="rounded-md bg-slate-50/80 p-3 dark:bg-slate-900/80">
-                  <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Sender recorded</div>
-                  <div class="mt-1 text-sm text-slate-900 dark:text-white">{{ transfer.sender?.name || 'Pending sender record' }}</div>
-                  <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ transfer.sent_at ? formatDateTime(transfer.sent_at) : 'Not recorded yet' }}</div>
+                  <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">In transit by</div>
+                  <div class="mt-1 text-sm text-slate-900 dark:text-white">{{ transfer.sender?.name || 'Not in transit yet' }}</div>
+                  <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ transfer.sent_at ? formatDateTime(transfer.sent_at) : 'Waiting for send confirmation' }}</div>
                 </div>
                 <div class="rounded-md bg-slate-50/80 p-3 dark:bg-slate-900/80">
                   <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Receiver confirmed</div>
@@ -183,17 +177,23 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppAlert from '@components/ui/AppAlert.vue'
-import LoadingSpinner from '@components/ui/LoadingSpinner.vue'
+import PageBlurSkeleton from '@components/ui/PageBlurSkeleton.vue'
 import SearchInput from '@components/ui/SearchInput.vue'
 import AppLayout from '@layouts/AppLayout.vue'
 import { useAuthStore } from '@stores/auth'
-import { useInventoryOptionsStore, useInventoryTransfersStore } from '@stores/inventory'
+import { useInventoryTransfersStore } from '@stores/inventory'
+import {
+  getStockTransferStatusClasses,
+  getStockTransferStatusLabel,
+  isStockTransferEditable,
+  isStockTransferInTransit,
+  isStockTransferPending,
+} from '../utils/stockTransferStatus'
 
 const route = useRoute()
 const router = useRouter()
 const auth = useAuthStore()
 const store = useInventoryTransfersStore()
-const optionsStore = useInventoryOptionsStore()
 
 const transfer = ref(null)
 const loading = ref(true)
@@ -203,6 +203,21 @@ const alert = reactive({ show: false, type: 'success', title: 'Success', message
 
 const pageTitle = computed(() => transfer.value ? transfer.value.reference_no : 'Stock transfer')
 const pageSubtitle = computed(() => 'Review the transfer document and confirm receipt from the destination side.')
+const transferSummary = computed(() => {
+  if (!transfer.value) {
+    return ''
+  }
+
+  if (isStockTransferPending(transfer.value.status)) {
+    return 'Pending keeps stock reserved at the source side and still hidden from the destination receiving side until the sender sends it.'
+  }
+
+  if (isStockTransferInTransit(transfer.value.status)) {
+    return 'In transit keeps stock reserved at the source side and makes the transfer visible to the destination side for receipt review and confirmation.'
+  }
+
+  return 'Received means the reserved source stock was finalized out and the destination stock was posted in.'
+})
 const breadcrumbs = computed(() => [
   { label: 'Dashboard', to: '/dashboard' },
   { label: 'Inventory' },
@@ -225,14 +240,14 @@ const hasBranchAccess = (branchId) => {
 const canReceive = computed(() =>
   auth.can('inventory.transfer') &&
   !auth.hasRole('super_admin') &&
-  transfer.value?.status === 'pending' &&
+  isStockTransferInTransit(transfer.value?.status) &&
   hasBranchAccess(transfer.value?.to_warehouse?.branch_id)
 )
 
 const canEdit = computed(() =>
   auth.can('inventory.transfer') &&
   !auth.hasRole('super_admin') &&
-  transfer.value?.status === 'pending' &&
+  isStockTransferEditable(transfer.value?.status) &&
   (
     auth.hasRole('admin') ||
     transfer.value?.creator?.id === auth.user?.id
@@ -248,23 +263,8 @@ const showToast = (type, message) => {
   requestAnimationFrame(() => { alert.show = true })
 }
 
-const statusLabel = (status) => {
-  if (status === 'pending' || status === 'sent') return 'Pending'
-  if (status === 'received') return 'Received'
-  return status || 'Unknown'
-}
-
-const statusClasses = (status) => {
-  if (status === 'pending' || status === 'sent') {
-    return 'bg-sky-100 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300'
-  }
-
-  if (status === 'received') {
-    return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
-  }
-
-  return 'bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-300'
-}
+const statusLabel = getStockTransferStatusLabel
+const statusClasses = getStockTransferStatusClasses
 
 const formatDate = (value) => {
   if (!value) return 'Not set'
@@ -358,9 +358,6 @@ const receiveTransfer = async () => {
 }
 
 onMounted(async () => {
-  await Promise.all([
-    optionsStore.fetchOptions(),
-    loadTransfer(),
-  ])
+  await loadTransfer()
 })
 </script>

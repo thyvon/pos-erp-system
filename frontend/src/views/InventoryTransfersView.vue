@@ -140,7 +140,7 @@
               <i class="fa-solid fa-pen-to-square"></i>
             </button>
             <button
-              v-if="canEditFromList(row)"
+              v-if="canDeleteFromList(row)"
               type="button"
               class="erp-button-secondary inline-flex h-10 w-10 items-center justify-center p-0 text-rose-600 hover:text-rose-700 dark:text-rose-300 dark:hover:text-rose-200"
               :disabled="store.deletingId === row.id"
@@ -177,10 +177,18 @@ import AppSelect from '@components/ui/AppSelect.vue'
 import ConfirmDelete from '@components/ui/ConfirmDelete.vue'
 import DataTable from '@components/ui/DataTable.vue'
 import FilterPanel from '@components/ui/FilterPanel.vue'
-import SearchInput from '@components/ui/SearchInput.vue'
 import AppLayout from '@layouts/AppLayout.vue'
 import { useAuthStore } from '@stores/auth'
 import { useInventoryOptionsStore, useInventoryTransfersStore } from '@stores/inventory'
+import {
+  getStockTransferStatusClasses,
+  getStockTransferStatusLabel,
+  isStockTransferEditable,
+  isStockTransferPending,
+  TRANSFER_STATUS_IN_TRANSIT,
+  TRANSFER_STATUS_PENDING,
+  TRANSFER_STATUS_RECEIVED,
+} from '../utils/stockTransferStatus'
 
 const auth = useAuthStore()
 const store = useInventoryTransfersStore()
@@ -218,8 +226,9 @@ const directionFilterOptions = [
 ]
 
 const statusFilterOptions = [
-  { value: 'pending', label: 'Pending' },
-  { value: 'received', label: 'Received' },
+  { value: TRANSFER_STATUS_PENDING, label: 'Pending' },
+  { value: TRANSFER_STATUS_IN_TRANSIT, label: 'In Transit' },
+  { value: TRANSFER_STATUS_RECEIVED, label: 'Received' },
 ]
 
 const activeFilterCount = computed(() =>
@@ -255,23 +264,8 @@ const formatDateTime = (value) => {
   })
 }
 
-const statusLabel = (status) => {
-  if (status === 'pending' || status === 'sent') return 'Pending'
-  if (status === 'received') return 'Received'
-  return status || 'Unknown'
-}
-
-const statusClasses = (status) => {
-  if (status === 'pending' || status === 'sent') {
-    return 'bg-sky-100 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300'
-  }
-
-  if (status === 'received') {
-    return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
-  }
-
-  return 'bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-300'
-}
+const statusLabel = getStockTransferStatusLabel
+const statusClasses = getStockTransferStatusClasses
 
 const resetFilters = () => {
   store.fetchItems({
@@ -330,7 +324,7 @@ const confirmDelete = async () => {
 }
 
 const canEditFromList = (row) => {
-  if (!auth.can('inventory.transfer') || auth.hasRole('super_admin') || row?.status !== 'pending') {
+  if (!auth.can('inventory.transfer') || auth.hasRole('super_admin') || !isStockTransferEditable(row?.status)) {
     return false
   }
 
@@ -353,6 +347,8 @@ const canEditFromList = (row) => {
 
   return auth.allowedBranches.some((branch) => branch.id === fromBranchId)
 }
+
+const canDeleteFromList = (row) => canEditFromList(row) && isStockTransferPending(row?.status)
 
 const handleSearch = (value) => store.fetchItems({ search: value, page: 1 })
 const handlePageChange = (page) => store.fetchItems({ page })

@@ -120,14 +120,15 @@ class InventoryWorkflowApiTest extends TestCase
                 'unit_cost' => 2,
             ]],
         ])->assertCreated()
-            ->assertJsonPath('data.status', 'sent');
+            ->assertJsonPath('data.status', 'pending');
 
         $transferId = $createTransfer->json('data.id');
 
         $this->assertDatabaseHas('stock_levels', [
             'product_id' => $product->id,
             'warehouse_id' => $warehouseA->id,
-            'quantity' => '13.0000',
+            'quantity' => '20.0000',
+            'reserved_quantity' => '7.0000',
         ]);
 
         $this->assertDatabaseMissing('stock_levels', [
@@ -144,11 +145,53 @@ class InventoryWorkflowApiTest extends TestCase
 
         $this->getJson('/api/v1/inventory/transfers')
             ->assertOk()
+            ->assertJsonMissing(['id' => $transferId]);
+
+        $this->getJson("/api/v1/inventory/transfers/{$transferId}")
+            ->assertForbidden();
+
+        Sanctum::actingAs($userA);
+
+        $this->putJson("/api/v1/inventory/transfers/{$transferId}", [
+            'from_warehouse_id' => $warehouseA->id,
+            'to_warehouse_id' => $warehouseB->id,
+            'date' => now()->toDateString(),
+            'send' => true,
+            'items' => [[
+                'product_id' => $product->id,
+                'quantity' => 7,
+                'unit_cost' => 2,
+            ]],
+        ])->assertOk()
+            ->assertJsonPath('data.status', 'in_transit');
+
+        $this->assertDatabaseHas('stock_levels', [
+            'product_id' => $product->id,
+            'warehouse_id' => $warehouseA->id,
+            'quantity' => '20.0000',
+            'reserved_quantity' => '7.0000',
+        ]);
+
+        Sanctum::actingAs($userB);
+
+        $this->getJson('/api/v1/inventory/transfers')
+            ->assertOk()
             ->assertJsonFragment(['id' => $transferId]);
+
+        $this->getJson("/api/v1/inventory/transfers/{$transferId}")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'in_transit');
 
         $this->postJson("/api/v1/inventory/transfers/{$transferId}/receive")
             ->assertOk()
             ->assertJsonPath('data.status', 'received');
+
+        $this->assertDatabaseHas('stock_levels', [
+            'product_id' => $product->id,
+            'warehouse_id' => $warehouseA->id,
+            'quantity' => '13.0000',
+            'reserved_quantity' => '0.0000',
+        ]);
 
         $this->assertDatabaseHas('stock_levels', [
             'product_id' => $product->id,
@@ -197,6 +240,7 @@ class InventoryWorkflowApiTest extends TestCase
             'from_warehouse_id' => $warehouseA->id,
             'to_warehouse_id' => $warehouseB->id,
             'date' => now()->toDateString(),
+            'send' => true,
             'items' => [[
                 'product_id' => $product->id,
                 'quantity' => 2,
@@ -208,7 +252,7 @@ class InventoryWorkflowApiTest extends TestCase
 
         $this->assertDatabaseHas('stock_transfers', [
             'id' => $transferId,
-            'status' => 'sent',
+            'status' => 'in_transit',
             'sent_by' => $sender->id,
         ]);
 
@@ -264,6 +308,7 @@ class InventoryWorkflowApiTest extends TestCase
             'from_warehouse_id' => $warehouseA->id,
             'to_warehouse_id' => $warehouseB->id,
             'date' => now()->toDateString(),
+            'send' => true,
             'items' => [[
                 'product_id' => $product->id,
                 'quantity' => 4,

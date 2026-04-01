@@ -49,13 +49,9 @@
           </div>
 
           <div class="relative mt-6 min-h-[20rem]">
-            <LoadingSpinner
-              :show="currentLoading"
-              :title="activeGroup === 'business' ? 'Loading business settings' : 'Loading settings'"
-              :message="activeGroup === 'business' ? 'Fetching business profile and general defaults...' : 'Fetching current group values...'"
-            />
+            <PageBlurSkeleton v-if="currentLoading" variant="settings" />
 
-            <div v-if="isBusinessGroup" class="space-y-6">
+            <div v-else-if="isBusinessGroup" class="space-y-6">
               <section v-if="canViewBusiness" class="space-y-6">
                 <Form
                   v-if="businessStore.item"
@@ -195,9 +191,7 @@
                   </fieldset>
                 </Form>
 
-                <div v-else class="flex min-h-[18rem] items-center justify-center">
-                  <LoadingSpinner :show="true" title="Loading business profile" message="Waiting for profile data..." />
-                </div>
+                <PageBlurSkeleton v-else variant="settings" />
               </section>
 
               <section v-if="canViewSettings" class="grid gap-4 xl:grid-cols-[1fr_22rem]">
@@ -384,7 +378,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ErrorMessage, Field, Form } from 'vee-validate'
 import * as yup from 'yup'
 import AppAlert from '@components/ui/AppAlert.vue'
-import LoadingSpinner from '@components/ui/LoadingSpinner.vue'
+import PageBlurSkeleton from '@components/ui/PageBlurSkeleton.vue'
 import StatusBadge from '@components/ui/StatusBadge.vue'
 import AppLayout from '@layouts/AppLayout.vue'
 import { useAuthStore } from '@stores/auth'

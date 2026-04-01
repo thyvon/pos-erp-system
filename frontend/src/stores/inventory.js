@@ -174,6 +174,7 @@ export const useInventoryCountsStore = defineStore('inventory-counts', {
     saving: false,
     recording: false,
     updatingItemId: '',
+    deletingCountId: '',
     completing: false,
     filters: { ...defaultFilters(), status: '' },
     pagination: defaultPagination(),
@@ -218,6 +219,16 @@ export const useInventoryCountsStore = defineStore('inventory-counts', {
     async fetchItem(id) {
       const response = await inventoryApi.getStockCount(id)
       return response.data.data
+    },
+    async deleteCount(id) {
+      this.deletingCountId = id
+      try {
+        const response = await inventoryApi.deleteStockCount(id)
+        await this.fetchItems()
+        return response.data
+      } finally {
+        this.deletingCountId = ''
+      }
     },
     async fetchWorkspaceItems(id, overrides = {}) {
       this.workspaceItemsLoading = true

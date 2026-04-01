@@ -7,12 +7,6 @@
     <div class="space-y-6">
       <AppAlert v-model:show="alert.show" :type="alert.type" :title="alert.title" :message="alert.message" />
 
-      <LoadingSpinner
-        :show="loading"
-        :title="isEditMode ? 'Loading transfer' : 'Preparing transfer form'"
-        :message="isEditMode ? 'Fetching the current transfer before editing.' : 'Loading transfer form options.'"
-      />
-
       <div
         v-if="loadError"
         class="rounded-[5px] border border-rose-200/70 bg-rose-50/80 px-5 py-4 text-sm text-rose-700 dark:border-rose-900/70 dark:bg-rose-950/30 dark:text-rose-200"
@@ -21,7 +15,9 @@
         <div class="mt-1">{{ loadError }}</div>
       </div>
 
-      <div v-else-if="!loading" class="space-y-6">
+      <PageBlurSkeleton v-else-if="loading" variant="form" />
+
+      <div v-else class="space-y-6">
         <section class="rounded-[10px] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <div class="mb-5 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div>
@@ -30,17 +26,27 @@
               </h2>
               <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
                 {{ isEditMode
-                  ? 'Update the document before the destination team confirms receipt.'
+                  ? 'Update the transfer while it is still pending or already in transit but not yet received.'
                   : 'Create a transfer document with the source, destination, and scanned transfer lines.' }}
               </p>
             </div>
 
-            <div
-              v-if="isEditMode && transfer"
-              class="inline-flex items-center gap-2 self-start rounded-full bg-sky-100 px-3 py-1 text-xs font-semibold text-sky-700 dark:bg-sky-950/40 dark:text-sky-300"
-            >
-              <i class="fa-solid fa-file-lines"></i>
-              {{ transfer.reference_no }}
+            <div class="flex flex-wrap items-center gap-2 self-start">
+              <div
+                v-if="isEditMode && transfer"
+                class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200"
+              >
+                <i class="fa-solid fa-file-lines"></i>
+                {{ transfer.reference_no }}
+              </div>
+              <div
+                v-if="isEditMode && transfer"
+                class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold capitalize"
+                :class="statusClasses(transfer.status)"
+              >
+                <i class="fa-solid fa-arrow-right-arrow-left"></i>
+                {{ statusLabel(transfer.status) }}
+              </div>
             </div>
           </div>
 
@@ -168,9 +174,28 @@
           <button type="button" class="erp-button-secondary" :disabled="isSaving" @click="goBack">
             Cancel
           </button>
-          <button type="button" class="erp-button-primary" :disabled="isSaving" @click="submitForm">
-            <span v-if="isSaving" class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
-            {{ isEditMode ? 'Save changes' : 'Save transfer' }}
+          <button
+            type="button"
+            :class="showSaveAndSend ? 'erp-button-secondary' : 'erp-button-primary'"
+            :disabled="isSaving"
+            @click="submitForm(false)"
+          >
+            <span
+              v-if="isSaving && !submitModeSend"
+              class="inline-block h-4 w-4 animate-spin rounded-full border-2"
+              :class="showSaveAndSend ? 'border-slate-400/30 border-t-slate-700 dark:border-slate-500/30 dark:border-t-slate-100' : 'border-white/30 border-t-white'"
+            ></span>
+            {{ primarySaveLabel }}
+          </button>
+          <button
+            v-if="showSaveAndSend"
+            type="button"
+            class="erp-button-primary"
+            :disabled="isSaving"
+            @click="submitForm(true)"
+          >
+            <span v-if="isSaving && submitModeSend" class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
+            {{ sendButtonLabel }}
           </button>
         </div>
       </div>
@@ -185,10 +210,16 @@ import InventoryProductLookup from '@components/inventory/InventoryProductLookup
 import AppAlert from '@components/ui/AppAlert.vue'
 import AppDatePicker from '@components/ui/AppDatePicker.vue'
 import AppSelect from '@components/ui/AppSelect.vue'
-import LoadingSpinner from '@components/ui/LoadingSpinner.vue'
+import PageBlurSkeleton from '@components/ui/PageBlurSkeleton.vue'
 import SearchInput from '@components/ui/SearchInput.vue'
 import AppLayout from '@layouts/AppLayout.vue'
 import { useInventoryOptionsStore, useInventoryTransfersStore } from '@stores/inventory'
+import {
+  getStockTransferStatusClasses,
+  getStockTransferStatusLabel,
+  isStockTransferInTransit,
+  isStockTransferPending,
+} from '../utils/stockTransferStatus'
 
 const route = useRoute()
 const router = useRouter()
@@ -198,6 +229,7 @@ const optionsStore = useInventoryOptionsStore()
 const transfer = ref(null)
 const loading = ref(true)
 const loadError = ref('')
+const submitModeSend = ref(false)
 const alert = reactive({ show: false, type: 'success', title: 'Success', message: '' })
 
 const createItemState = () => ({
@@ -226,11 +258,20 @@ const form = reactive({
 
 const isEditMode = computed(() => Boolean(route.params.id))
 const isSaving = computed(() => isEditMode.value ? store.updatingId === route.params.id : store.saving)
+const showSaveAndSend = computed(() => !isEditMode.value || isStockTransferPending(transfer.value?.status))
+const primarySaveLabel = computed(() => {
+  if (!isEditMode.value) return 'Save'
+  return isStockTransferInTransit(transfer.value?.status) ? 'Save changes' : 'Save'
+})
+const sendButtonLabel = computed(() => {
+  if (!isEditMode.value) return 'Save and Send'
+  return isStockTransferPending(transfer.value?.status) ? 'Save and Send' : 'Send'
+})
 
 const pageTitle = computed(() => isEditMode.value ? 'Edit Stock Transfer' : 'Create Stock Transfer')
 const pageSubtitle = computed(() =>
   isEditMode.value
-    ? 'Update the transfer document while it is still pending receipt.'
+    ? 'Keep the transfer editable until receipt. Pending stays internal, in transit becomes visible to the destination side.'
     : 'Create a stock transfer document on a dedicated form page for safer review and editing.'
 )
 const breadcrumbs = computed(() => [
@@ -262,6 +303,14 @@ const showToast = (type, message) => {
   alert.message = message
   alert.show = false
   requestAnimationFrame(() => { alert.show = true })
+}
+
+const waitForMinimumLoading = async (startedAt, minimumMs = 320) => {
+  const elapsed = Date.now() - startedAt
+
+  if (elapsed < minimumMs) {
+    await new Promise((resolve) => window.setTimeout(resolve, minimumMs - elapsed))
+  }
 }
 
 const resetForm = () => {
@@ -370,14 +419,21 @@ const goBack = () => {
   router.push({ name: 'inventory-transfers' })
 }
 
-const submitForm = async () => {
+const statusLabel = getStockTransferStatusLabel
+const statusClasses = getStockTransferStatusClasses
+
+const submitForm = async (send = false) => {
+  submitModeSend.value = send
+
   if (!form.from_warehouse_id || !form.to_warehouse_id) {
     showToast('danger', 'Both source and destination warehouses are required.')
+    submitModeSend.value = false
     return
   }
 
   if (form.from_warehouse_id === form.to_warehouse_id) {
     showToast('danger', 'Source and destination warehouses must be different.')
+    submitModeSend.value = false
     return
   }
 
@@ -394,6 +450,7 @@ const submitForm = async () => {
 
   if (items.length === 0) {
     showToast('danger', 'Add at least one valid transfer line.')
+    submitModeSend.value = false
     return
   }
 
@@ -404,6 +461,7 @@ const submitForm = async () => {
         to_warehouse_id: form.to_warehouse_id,
         date: form.date,
         notes: form.notes || null,
+        send,
         items,
       })
 
@@ -416,12 +474,15 @@ const submitForm = async () => {
       to_warehouse_id: form.to_warehouse_id,
       date: form.date,
       notes: form.notes || null,
+      send,
       items,
     })
 
     router.push({ name: 'inventory-transfer-detail', params: { id: response.data.id } })
   } catch (error) {
     showToast('danger', error.response?.data?.message || `Unable to ${isEditMode.value ? 'update' : 'create'} this stock transfer.`)
+  } finally {
+    submitModeSend.value = false
   }
 }
 
@@ -436,6 +497,7 @@ const loadTransfer = async () => {
 }
 
 onMounted(async () => {
+  const startedAt = Date.now()
   loading.value = true
   loadError.value = ''
 
@@ -447,6 +509,7 @@ onMounted(async () => {
   } catch (error) {
     loadError.value = error.response?.data?.message || 'Unable to prepare the transfer form.'
   } finally {
+    await waitForMinimumLoading(startedAt)
     loading.value = false
   }
 })

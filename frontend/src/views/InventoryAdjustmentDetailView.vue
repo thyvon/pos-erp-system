@@ -3,12 +3,6 @@
     <div class="space-y-6">
       <AppAlert v-model:show="alert.show" :type="alert.type" :title="alert.title" :message="alert.message" />
 
-      <LoadingSpinner
-        :show="loading"
-        title="Loading adjustment"
-        message="Fetching stock adjustment details from inventory."
-      />
-
       <div
         v-if="loadError"
         class="rounded-[5px] border border-rose-200/70 bg-rose-50/80 px-5 py-4 text-sm text-rose-700 dark:border-rose-900/70 dark:bg-rose-950/30 dark:text-rose-200"
@@ -17,7 +11,9 @@
         <div class="mt-1">{{ loadError }}</div>
       </div>
 
-      <div v-else-if="!loading && adjustment" class="space-y-6">
+      <PageBlurSkeleton v-else-if="loading" variant="detail" />
+
+      <div v-else-if="adjustment" class="space-y-6">
         <section class="erp-form-section">
           <div class="mb-6 flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
             <div class="min-w-0">
@@ -159,7 +155,7 @@
 import { computed, onMounted, reactive, ref } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import AppAlert from '@components/ui/AppAlert.vue'
-import LoadingSpinner from '@components/ui/LoadingSpinner.vue'
+import PageBlurSkeleton from '@components/ui/PageBlurSkeleton.vue'
 import AppLayout from '@layouts/AppLayout.vue'
 import { useInventoryAdjustmentsStore } from '@stores/inventory'
 

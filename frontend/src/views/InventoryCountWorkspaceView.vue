@@ -3,28 +3,101 @@
     <div class="space-y-6">
       <AppAlert v-model:show="alert.show" :type="alert.type" :title="alert.title" :message="alert.message" />
 
-      <div v-if="workspace.loading" class="rounded-[10px] border border-slate-200 bg-white py-8 text-center text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
+      <PageBlurSkeleton v-if="isSetupMode && setupLoading" variant="form" />
+
+      <div v-else-if="isSetupMode" class="w-full rounded-[10px] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <div class="mb-5">
+          <h2 class="text-lg font-semibold text-slate-950 dark:text-white">Count Setup</h2>
+          <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
+            Choose the warehouse and date, then continue into the live count workspace on this same page.
+          </p>
+        </div>
+
+        <div class="grid gap-4 xl:grid-cols-[minmax(0,1.4fr)_minmax(0,0.8fr)]">
+          <div>
+            <label class="erp-label">Warehouse</label>
+            <AppSelect
+              :model-value="setupForm.warehouse_id || null"
+              :options="warehouseOptions"
+              searchable
+              placeholder="Select warehouse"
+              @update:model-value="setupForm.warehouse_id = $event || ''"
+            />
+          </div>
+          <div>
+            <label class="erp-label">Date</label>
+            <AppDatePicker v-model="setupForm.date" />
+          </div>
+        </div>
+
+        <div class="mt-4">
+          <label class="erp-label">Notes</label>
+          <textarea v-model="setupForm.notes" rows="3" class="erp-input"></textarea>
+        </div>
+
+        <div class="mt-6 erp-form-actions">
+          <button type="button" class="erp-button-secondary" :disabled="store.saving" @click="goBack">
+            Cancel
+          </button>
+          <button type="button" class="erp-button-primary" :disabled="store.saving" @click="submitCreate">
+            <span v-if="store.saving" class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"></span>
+            Start count
+          </button>
+        </div>
+      </div>
+
+      <div v-else-if="workspace.loading" class="rounded-[10px] border border-slate-200 bg-white py-8 text-center text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
         Loading count workspace...
       </div>
 
       <template v-else>
-        <div class="grid grid-cols-2 gap-3 rounded-[10px] border border-slate-200 bg-white p-4 lg:grid-cols-4 dark:border-slate-800 dark:bg-slate-900">
-          <div>
-            <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Reference</div>
-            <div class="mt-1 text-sm font-semibold text-slate-950 dark:text-white">{{ workspace.reference_no || 'Pending' }}</div>
+        <div class="rounded-[10px] border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+          <div class="mb-4 flex flex-wrap justify-end gap-2">
+            <button
+              v-if="canDeleteCount"
+              type="button"
+              class="erp-button-secondary border-rose-200 text-rose-700 hover:border-rose-300 hover:bg-rose-50 dark:border-rose-900/50 dark:text-rose-300 dark:hover:bg-rose-950/20"
+              :disabled="isDeletingCount || manualRefreshing || workspace.loading || store.workspaceItemsLoading || store.recording || store.completing"
+              @click="handleDeleteCount"
+            >
+              <span
+                v-if="isDeletingCount"
+                class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-rose-300/30 border-t-rose-700 dark:border-rose-500/30 dark:border-t-rose-200"
+              ></span>
+              <span v-else>Delete count</span>
+            </button>
+            <button
+              type="button"
+              class="erp-button-secondary"
+              :disabled="isDeletingCount || manualRefreshing || workspace.loading || store.workspaceItemsLoading || store.recording || store.completing"
+              @click="handleManualRefresh"
+            >
+              <span
+                v-if="manualRefreshing"
+                class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-slate-400/30 border-t-slate-700 dark:border-slate-500/30 dark:border-t-slate-200"
+              ></span>
+              <span v-else>Refresh</span>
+            </button>
           </div>
-          <div>
-            <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Warehouse</div>
-            <div class="mt-1 text-sm font-semibold text-slate-950 dark:text-white">{{ workspace.warehouse?.name || 'Unknown warehouse' }}</div>
-          </div>
-          <div>
-            <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Date</div>
-            <div class="mt-1 text-sm font-semibold text-slate-950 dark:text-white">{{ workspace.date || 'Not set' }}</div>
-          </div>
-          <div>
-            <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Mode</div>
-            <div class="mt-1 text-sm text-slate-600 dark:text-slate-300">
-              {{ isCompletedWorkspace ? 'Completed' : 'Live mode' }}
+
+          <div class="grid grid-cols-2 gap-3 lg:grid-cols-4">
+            <div>
+              <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Reference</div>
+              <div class="mt-1 text-sm font-semibold text-slate-950 dark:text-white">{{ workspace.reference_no || 'Pending' }}</div>
+            </div>
+            <div>
+              <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Warehouse</div>
+              <div class="mt-1 text-sm font-semibold text-slate-950 dark:text-white">{{ workspace.warehouse?.name || 'Unknown warehouse' }}</div>
+            </div>
+            <div>
+              <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Date</div>
+              <div class="mt-1 text-sm font-semibold text-slate-950 dark:text-white">{{ workspace.date || 'Not set' }}</div>
+            </div>
+            <div>
+              <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Mode</div>
+              <div class="mt-1 text-sm text-slate-600 dark:text-slate-300">
+                {{ isCompletedWorkspace ? 'Completed' : 'Live mode' }}
+              </div>
             </div>
           </div>
         </div>
@@ -373,36 +446,59 @@
 </template>
 
 <script setup>
-import { computed, nextTick, onBeforeUnmount, reactive, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, reactive, ref, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import InventoryProductLookup from '@components/inventory/InventoryProductLookup.vue'
 import AppAlert from '@components/ui/AppAlert.vue'
+import AppDatePicker from '@components/ui/AppDatePicker.vue'
+import AppSelect from '@components/ui/AppSelect.vue'
 import LoadingSpinner from '@components/ui/LoadingSpinner.vue'
+import PageBlurSkeleton from '@components/ui/PageBlurSkeleton.vue'
 import SearchInput from '@components/ui/SearchInput.vue'
 import AppLayout from '@layouts/AppLayout.vue'
-import { useInventoryCountsStore } from '@stores/inventory'
+import { useAuthStore } from '@stores/auth'
+import { useInventoryCountsStore, useInventoryOptionsStore } from '@stores/inventory'
 
 const route = useRoute()
 const router = useRouter()
+const auth = useAuthStore()
 const store = useInventoryCountsStore()
+const optionsStore = useInventoryOptionsStore()
+
+const isSetupMode = computed(() => !route.params.id)
 
 const breadcrumbs = computed(() => [
   { label: 'Dashboard', to: '/dashboard' },
   { label: 'Inventory' },
   { label: 'Counts', to: '/inventory/counts' },
-  { label: route.params.id ? `Count ${workspace.reference_no || route.params.id}` : 'Workspace' },
+  { label: isSetupMode.value ? 'Start Count' : `Count ${workspace.reference_no || route.params.id}` },
 ])
 
-const pageTitle = computed(() => (isCompletedWorkspace.value ? 'Completed Stock Count' : 'Live Stock Count'))
+const pageTitle = computed(() => {
+  if (isSetupMode.value) {
+    return 'Start Stock Count'
+  }
+
+  return isCompletedWorkspace.value ? 'Completed Stock Count' : 'Live Stock Count'
+})
 const pageSubtitle = computed(() =>
-  isCompletedWorkspace.value
-    ? 'Review the completed count and counted lines.'
-    : 'Capture live counted quantities and reconcile stock when the session is complete.'
+  isSetupMode.value
+    ? 'Create the count session and continue directly into the live workspace on the same page.'
+    : (isCompletedWorkspace.value
+        ? 'Review the completed count and counted lines.'
+        : 'Capture live counted quantities and reconcile stock when the session is complete.')
 )
 
 const alert = reactive({ show: false, type: 'success', title: 'Success', message: '' })
 const entryQuantityInput = ref(null)
 const workspaceSearchTimer = ref(null)
+const manualRefreshing = ref(false)
+const setupLoading = ref(true)
+const setupForm = reactive({
+  warehouse_id: '',
+  date: new Date().toISOString().slice(0, 10),
+  notes: '',
+})
 const workspace = reactive({
   loading: true,
   count_id: '',
@@ -421,7 +517,18 @@ const workspace = reactive({
 let workspaceRefreshTimer = null
 
 const isCompletedWorkspace = computed(() => workspace.status === 'completed')
+const warehouseOptions = computed(() =>
+  optionsStore.warehouses.map((warehouse) => ({
+    value: warehouse.id,
+    label: warehouse.name,
+    description: warehouse.branch_name || warehouse.code,
+  }))
+)
 const workspaceItemPagination = computed(() => store.workspaceItemPagination)
+const isDeletingCount = computed(() => store.deletingCountId === workspace.count_id)
+const canDeleteCount = computed(() =>
+  Boolean(workspace.count_id) && workspace.status === 'in_progress' && auth.can('inventory.count')
+)
 const showWorkspaceTableShell = computed(() =>
   store.workspaceItemsLoading || workspaceItemPagination.value.total > 0 || workspace.item_search.trim() !== ''
 )
@@ -450,6 +557,14 @@ const differenceClass = (difference) => {
   return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
 }
 
+const waitForMinimumLoading = async (startedAt, minimumMs = 320) => {
+  const elapsed = Date.now() - startedAt
+
+  if (elapsed < minimumMs) {
+    await new Promise((resolve) => window.setTimeout(resolve, minimumMs - elapsed))
+  }
+}
+
 const resetWorkspace = () => {
   workspace.loading = true
   workspace.count_id = ''
@@ -464,6 +579,12 @@ const resetWorkspace = () => {
   workspace.item_search = ''
   workspace.last_local_activity_at = 0
   store.resetWorkspaceItems()
+}
+
+const resetSetupForm = () => {
+  setupForm.warehouse_id = ''
+  setupForm.date = new Date().toISOString().slice(0, 10)
+  setupForm.notes = ''
 }
 
 const hydrateWorkspace = (count) => {
@@ -545,14 +666,46 @@ const goBack = () => {
   router.push({ name: 'inventory-counts' })
 }
 
+const submitCreate = async () => {
+  if (!setupForm.warehouse_id) {
+    showToast('danger', 'Warehouse is required.')
+    return
+  }
+
+  try {
+    const response = await store.createItem({
+      warehouse_id: setupForm.warehouse_id,
+      date: setupForm.date,
+      notes: setupForm.notes || null,
+    })
+
+    await router.replace({ name: 'inventory-counts-workspace', params: { id: response.data.id } })
+  } catch (error) {
+    showToast('danger', error.response?.data?.message || 'Unable to start the stock count.')
+  }
+}
+
 const loadWorkspace = async (countId) => {
   stopWorkspacePolling()
   resetWorkspace()
 
   if (!countId) {
-    goBack()
+    const startedAt = Date.now()
+    setupLoading.value = true
+    resetSetupForm()
+
+    try {
+      await optionsStore.fetchOptions()
+    } finally {
+      await waitForMinimumLoading(startedAt)
+      setupLoading.value = false
+      workspace.loading = false
+    }
+
     return
   }
+
+  setupLoading.value = false
 
   try {
     await Promise.all([
@@ -588,6 +741,49 @@ const handleWorkspacePerPageChange = async (perPage) => {
   }
 
   await refreshWorkspaceItems(workspace.count_id, { per_page: perPage, page: 1 })
+}
+
+const handleManualRefresh = async () => {
+  if (!workspace.count_id || manualRefreshing.value) {
+    return
+  }
+
+  manualRefreshing.value = true
+
+  try {
+    await Promise.all([
+      refreshWorkspace(workspace.count_id),
+      refreshWorkspaceItems(workspace.count_id),
+    ])
+  } finally {
+    manualRefreshing.value = false
+  }
+}
+
+const handleDeleteCount = async () => {
+  if (!workspace.count_id || !canDeleteCount.value || isDeletingCount.value) {
+    return
+  }
+
+  const label = workspace.reference_no || 'this stock count'
+
+  if (!window.confirm(`Delete "${label}"? This will remove the count session and all counted lines.`)) {
+    return
+  }
+
+  stopWorkspacePolling()
+
+  try {
+    await store.deleteCount(workspace.count_id)
+    showToast('success', `Stock count ${label} deleted successfully.`)
+    goBack()
+  } catch (error) {
+    if (!isCompletedWorkspace.value) {
+      startWorkspacePolling()
+    }
+
+    showToast('danger', error.response?.data?.message || 'Unable to delete the stock count.')
+  }
 }
 
 const handleLookupSelect = async (match) => {
@@ -759,6 +955,12 @@ onBeforeUnmount(() => {
   if (workspaceSearchTimer.value) {
     window.clearTimeout(workspaceSearchTimer.value)
     workspaceSearchTimer.value = null
+  }
+})
+
+onMounted(async () => {
+  if (!isSetupMode.value && optionsStore.warehouses.length === 0) {
+    await optionsStore.fetchOptions()
   }
 })
 </script>

@@ -21,6 +21,7 @@ class StoreStockTransferRequest extends FormRequest
             'to_warehouse_id' => ['required', 'uuid', 'different:from_warehouse_id', Rule::exists('warehouses', 'id')->where(fn ($query) => $query->where('business_id', $businessId))],
             'date' => ['required', 'date'],
             'notes' => ['nullable', 'string'],
+            'send' => ['nullable', 'boolean'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.product_id' => ['required', 'uuid', Rule::exists('products', 'id')->where(fn ($query) => $query->where('business_id', $businessId))],
             'items.*.variation_id' => ['nullable', 'uuid', Rule::exists('product_variations', 'id')->where(fn ($query) => $query->where('business_id', $businessId))],
