@@ -34,12 +34,9 @@
         <template #name="{ row }">
           <div class="flex items-center gap-2">
             <span class="font-semibold text-slate-950 dark:text-white">{{ row.name }}</span>
-            <span
-              v-if="row.is_protected"
-              class="inline-flex rounded-[5px] bg-amber-100 px-2 py-1 text-[11px] font-medium text-amber-700 dark:bg-amber-950/50 dark:text-amber-300"
-            >
-              Protected
-            </span>
+              <span v-if="row.is_protected" class="erp-badge erp-badge-warning px-2 text-[11px] font-medium">
+                Protected
+              </span>
           </div>
         </template>
 

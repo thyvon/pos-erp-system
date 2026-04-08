@@ -43,8 +43,8 @@
 
         <template #default="{ row }">
           <span
-            class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold"
-            :class="row.is_default ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-200' : 'bg-slate-100 text-slate-600 dark:bg-slate-800 dark:text-slate-300'"
+            class="erp-badge"
+            :class="row.is_default ? 'erp-badge-success' : 'erp-badge-neutral'"
           >
             {{ row.is_default ? 'Default' : 'Standard' }}
           </span>

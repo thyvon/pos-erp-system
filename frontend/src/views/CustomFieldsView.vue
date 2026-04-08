@@ -32,7 +32,7 @@
         </template>
 
         <template #module="{ row }">
-          <span class="inline-flex rounded-[5px] bg-cyan-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-cyan-700 dark:bg-cyan-950/60 dark:text-cyan-300">
+          <span class="erp-badge erp-badge-info px-3 uppercase tracking-[0.16em]">
             {{ row.module }}
           </span>
         </template>
@@ -76,26 +76,26 @@
         size="lg"
         @close="closeModal"
       >
-        <Form :key="formKey" :validation-schema="schema" :initial-values="formValues" @submit="submitForm">
+        <Form v-slot="{ values, setFieldValue }" :key="formKey" :validation-schema="schema" :initial-values="formValues" @submit="submitForm">
           <div class="grid gap-4 md:grid-cols-2">
             <div>
               <label class="erp-label" for="module">Module</label>
-              <Field id="module" as="select" name="module" class="erp-select">
-                <option value="product">Product</option>
-                <option value="customer">Customer</option>
-                <option value="supplier">Supplier</option>
-              </Field>
+              <AppSelect
+                :model-value="values.module || null"
+                :options="moduleOptions"
+                placeholder="Select module"
+                @update:model-value="setFieldValue('module', $event || '')"
+              />
               <ErrorMessage name="module" class="erp-helper text-rose-500 dark:text-rose-400" />
             </div>
             <div>
               <label class="erp-label" for="field_type">Field type</label>
-              <Field id="field_type" as="select" name="field_type" class="erp-select">
-                <option value="text">Text</option>
-                <option value="number">Number</option>
-                <option value="date">Date</option>
-                <option value="select">Select</option>
-                <option value="checkbox">Checkbox</option>
-              </Field>
+              <AppSelect
+                :model-value="values.field_type || null"
+                :options="fieldTypeOptions"
+                placeholder="Select field type"
+                @update:model-value="setFieldValue('field_type', $event || '')"
+              />
               <ErrorMessage name="field_type" class="erp-helper text-rose-500 dark:text-rose-400" />
             </div>
           </div>
@@ -161,6 +161,7 @@ import { ErrorMessage, Field, Form } from 'vee-validate'
 import * as yup from 'yup'
 import AppAlert from '@components/ui/AppAlert.vue'
 import AppModal from '@components/ui/AppModal.vue'
+import AppSelect from '@components/ui/AppSelect.vue'
 import ConfirmDelete from '@components/ui/ConfirmDelete.vue'
 import DataTable from '@components/ui/DataTable.vue'
 import StatusBadge from '@components/ui/StatusBadge.vue'
@@ -170,6 +171,18 @@ import { useCustomFieldsStore } from '@stores/customFields'
 
 const auth = useAuthStore()
 const store = useCustomFieldsStore()
+const moduleOptions = [
+  { value: 'product', label: 'Product' },
+  { value: 'customer', label: 'Customer' },
+  { value: 'supplier', label: 'Supplier' },
+]
+const fieldTypeOptions = [
+  { value: 'text', label: 'Text' },
+  { value: 'number', label: 'Number' },
+  { value: 'date', label: 'Date' },
+  { value: 'select', label: 'Select' },
+  { value: 'checkbox', label: 'Checkbox' },
+]
 
 const canCreateCustomField = computed(() => auth.can('custom_fields.create'))
 const canEditCustomField = computed(() => auth.can('custom_fields.edit'))

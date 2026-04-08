@@ -29,29 +29,29 @@
           </div>
 
           <div class="space-y-4">
-            <div class="rounded-[5px] border border-slate-200/80 bg-white/80 p-5 shadow-sm dark:border-slate-800/80 dark:bg-slate-950/80">
+            <div class="erp-preview-card">
               <div class="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
-                <div class="flex items-center justify-between gap-3 rounded-md bg-slate-50/80 p-3 dark:bg-slate-900/80">
+                <div class="erp-preview-tile flex items-center justify-between gap-3">
                   <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Reference</div>
                   <div class="text-sm text-slate-900 dark:text-white">{{ adjustment.reference_no }}</div>
                 </div>
-                <div class="flex items-center justify-between gap-3 rounded-md bg-slate-50/80 p-3 dark:bg-slate-900/80">
+                <div class="erp-preview-tile flex items-center justify-between gap-3">
                   <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Date</div>
                   <div class="text-sm text-slate-900 dark:text-white">{{ formatDate(adjustment.date) }}</div>
                 </div>
-                <div class="flex items-center justify-between gap-3 rounded-md bg-slate-50/80 p-3 dark:bg-slate-900/80">
+                <div class="erp-preview-tile flex items-center justify-between gap-3">
                   <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Warehouse</div>
                   <div class="text-sm text-slate-900 dark:text-white">{{ adjustment.warehouse?.name || 'Unknown warehouse' }}</div>
                 </div>
-                <div class="flex items-center justify-between gap-3 rounded-md bg-slate-50/80 p-3 dark:bg-slate-900/80">
+                <div class="erp-preview-tile flex items-center justify-between gap-3">
                   <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Branch</div>
                   <div class="text-sm text-slate-900 dark:text-white">{{ adjustment.warehouse?.branch_name || 'No branch' }}</div>
                 </div>
-                <div class="flex items-center justify-between gap-3 rounded-md bg-slate-50/80 p-3 dark:bg-slate-900/80">
+                <div class="erp-preview-tile flex items-center justify-between gap-3">
                   <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Created by</div>
                   <div class="text-sm text-slate-900 dark:text-white">{{ adjustment.creator?.name || 'System' }}</div>
                 </div>
-                <div class="flex items-center justify-between gap-3 rounded-md bg-slate-50/80 p-3 dark:bg-slate-900/80">
+                <div class="erp-preview-tile flex items-center justify-between gap-3">
                   <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Lines</div>
                   <div class="text-sm text-slate-900 dark:text-white">{{ adjustment.items?.length || 0 }}</div>
                 </div>
@@ -59,7 +59,7 @@
             </div>
 
             <div class="grid gap-4 lg:grid-cols-[minmax(0,1.2fr)_minmax(0,0.8fr)]">
-              <div class="rounded-[5px] border border-slate-200/80 bg-white/80 p-5 shadow-sm dark:border-slate-800/80 dark:bg-slate-950/80">
+              <div class="erp-preview-card">
                 <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Reason & Notes</div>
                 <div class="mt-4 space-y-4">
                   <div>
@@ -73,7 +73,7 @@
                 </div>
               </div>
 
-              <div class="rounded-[5px] border border-slate-200/80 bg-white/80 p-5 shadow-sm dark:border-slate-800/80 dark:bg-slate-950/80">
+              <div class="erp-preview-card">
                 <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Summary</div>
                 <div class="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-1 text-sm text-slate-900 dark:text-white">
                   <div class="flex items-center justify-between gap-3">
@@ -104,7 +104,7 @@
             <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Review each posted inventory line for this adjustment.</p>
           </div>
 
-          <div class="overflow-x-auto rounded-[5px] border border-slate-200/80 bg-white/80 shadow-sm dark:border-slate-800/80 dark:bg-slate-950/80">
+          <div class="erp-table-shell overflow-x-auto">
             <table class="erp-table min-w-full">
               <thead>
                 <tr>
@@ -117,7 +117,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="item in adjustment.items" :key="item.id" class="odd:bg-slate-50/80 dark:odd:bg-slate-900/50">
+                <tr v-for="item in adjustment.items" :key="item.id" class="odd:bg-white/10 dark:odd:bg-white/[0.04]">
                   <td>
                     <div class="font-semibold text-slate-950 dark:text-white">
                       {{ item.product?.name || 'Unknown product' }}
@@ -129,10 +129,8 @@
                   </td>
                   <td>
                     <span
-                      class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold"
-                      :class="item.direction === 'in'
-                        ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
-                        : 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300'"
+                      class="erp-badge"
+                      :class="item.direction === 'in' ? 'erp-badge-success' : 'erp-badge-danger'"
                     >
                       {{ item.direction === 'in' ? 'In' : 'Out' }}
                     </span>

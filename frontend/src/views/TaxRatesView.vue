@@ -69,12 +69,9 @@
         <template #status="{ row }">
           <div class="flex flex-wrap items-center gap-2">
             <StatusBadge :status="row.is_active ? 'active' : 'inactive'" />
-            <span
-              v-if="row.is_default"
-              class="inline-flex rounded-[5px] bg-cyan-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-cyan-700 dark:bg-cyan-950/60 dark:text-cyan-300"
-            >
-              Default
-            </span>
+              <span v-if="row.is_default" class="erp-badge erp-badge-info px-3 uppercase tracking-[0.16em]">
+                Default
+              </span>
           </div>
         </template>
 

@@ -122,7 +122,7 @@
 
         <template #type="{ row }">
           <div class="space-y-1">
-            <span class="inline-flex rounded-full bg-cyan-100 px-2.5 py-1 text-xs font-semibold text-cyan-700 dark:bg-cyan-950/50 dark:text-cyan-300">
+            <span class="erp-badge erp-badge-info">
               {{ formatType(row.type) }}
             </span>
             <div class="text-xs text-slate-500 dark:text-slate-400">
@@ -169,7 +169,7 @@
         <template #stock="{ row }">
           <div class="space-y-1">
             <span
-              class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold"
+              class="erp-badge"
               :class="stockTrackingClass(row.stock_tracking)"
             >
               {{ formatStockTracking(row.stock_tracking) }}
@@ -357,9 +357,9 @@ const formatStockTracking = (type) => ({
 }[type] || type)
 
 const stockTrackingClass = (type) => {
-  if (type === 'serial') return 'bg-fuchsia-100 text-fuchsia-700 dark:bg-fuchsia-950/50 dark:text-fuchsia-300'
-  if (type === 'lot') return 'bg-amber-100 text-amber-700 dark:bg-amber-950/50 dark:text-amber-300'
-  return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+  if (type === 'serial') return 'erp-badge-info'
+  if (type === 'lot') return 'erp-badge-warning'
+  return 'erp-badge-neutral'
 }
 
 const openCreatePage = () => {

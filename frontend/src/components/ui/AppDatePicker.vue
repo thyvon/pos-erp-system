@@ -1,9 +1,9 @@
 <template>
-  <div ref="root" class="relative">
+  <div ref="root" class="relative w-full" :class="open ? 'z-[160]' : 'z-0'">
     <button
       :id="id"
       type="button"
-      class="erp-input flex min-h-[46px] w-full items-center justify-between gap-3 text-left"
+      class="erp-input flex w-full items-center justify-between gap-3 text-left"
       :class="[
         disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
         open ? 'border-cyan-400/70 shadow-[0_0_0_4px_rgba(58,123,255,0.10),inset_0_1px_0_rgba(255,255,255,0.72)]' : '',
@@ -29,8 +29,8 @@
         >
           <i class="fa-solid fa-xmark text-xs"></i>
         </button>
-        <span class="inline-flex h-8 w-8 items-center justify-center rounded-[10px] bg-cyan-50 text-cyan-600 dark:bg-cyan-950/40 dark:text-cyan-300">
-          <i class="fa-regular fa-calendar text-sm"></i>
+        <span class="inline-flex h-7 w-7 items-center justify-center rounded-[10px] bg-cyan-50/80 text-cyan-600 dark:bg-cyan-950/40 dark:text-cyan-300">
+          <i class="fa-regular fa-calendar text-xs"></i>
         </span>
       </div>
     </button>
@@ -45,7 +45,7 @@
     >
       <div
         v-if="open"
-        class="absolute left-0 top-[calc(100%+0.5rem)] z-[90] w-full min-w-[19rem] overflow-hidden rounded-[15px] border border-slate-200/80 bg-white/95 shadow-[0_22px_50px_rgba(44,62,99,0.16)] dark:border-slate-700/70 dark:bg-slate-900/95 dark:shadow-[0_22px_50px_rgba(0,0,0,0.36)]"
+        class="absolute left-0 top-[calc(100%+0.5rem)] z-[170] w-[20.5rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-[15px] border border-slate-200/80 bg-white/95 shadow-[0_22px_50px_rgba(44,62,99,0.16)] dark:border-slate-700/70 dark:bg-slate-900/95 dark:shadow-[0_22px_50px_rgba(0,0,0,0.36)]"
       >
         <div class="flex items-center justify-between border-b border-slate-200/70 px-3 py-3 dark:border-slate-800/70">
           <button

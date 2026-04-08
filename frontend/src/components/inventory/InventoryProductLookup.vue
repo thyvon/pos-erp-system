@@ -75,22 +75,22 @@
                 </span>
               </div>
               <div class="mt-1 flex flex-wrap gap-2 text-xs text-slate-500 dark:text-slate-400">
-                <span v-if="result.sku" class="rounded-[5px] bg-slate-100 px-2 py-1 dark:bg-slate-800">SKU: {{ result.sku }}</span>
-                <span v-if="result.lot_number" class="rounded-[5px] bg-amber-50 px-2 py-1 text-amber-700 dark:bg-amber-950/35 dark:text-amber-300">Lot: {{ result.lot_number }}</span>
-                <span v-if="result.serial_number" class="rounded-[5px] bg-violet-50 px-2 py-1 text-violet-700 dark:bg-violet-950/35 dark:text-violet-300">Serial: {{ result.serial_number }}</span>
+                <span v-if="result.sku" class="erp-badge erp-badge-neutral px-2 text-[11px]">SKU: {{ result.sku }}</span>
+                <span v-if="result.lot_number" class="erp-badge erp-badge-warning px-2 text-[11px]">Lot: {{ result.lot_number }}</span>
+                <span v-if="result.serial_number" class="erp-badge erp-badge-info px-2 text-[11px]">Serial: {{ result.serial_number }}</span>
                 <span
                   v-if="props.balanceMode === 'available' && result.on_hand_quantity !== null && result.on_hand_quantity !== undefined"
-                  class="rounded-[5px] bg-emerald-50 px-2 py-1 text-emerald-700 dark:bg-emerald-950/35 dark:text-emerald-300"
+                  class="erp-badge erp-badge-success px-2 text-[11px]"
                 >
                   On hand: {{ result.on_hand_quantity }}
                 </span>
                 <span
                   v-if="props.balanceMode === 'available' && result.reserved_quantity !== null && result.reserved_quantity !== undefined"
-                  class="rounded-[5px] bg-rose-50 px-2 py-1 text-rose-700 dark:bg-rose-950/35 dark:text-rose-300"
+                  class="erp-badge erp-badge-danger px-2 text-[11px]"
                 >
                   Reserved: {{ result.reserved_quantity }}
                 </span>
-                <span class="rounded-[5px] bg-cyan-50 px-2 py-1 text-cyan-700 dark:bg-cyan-950/35 dark:text-cyan-300">
+                <span class="erp-badge erp-badge-info px-2 text-[11px]">
                   {{ readableMatchType(result.match_type) }}
                 </span>
               </div>

@@ -54,9 +54,9 @@ export const createSidebarGroups = ({ t, auth, isSuperAdmin }) => {
     ready: t('status.ready'),
   }
 
-  const readyClass = 'bg-cyan-400/15 text-cyan-200'
-  const plannedClass = 'bg-slate-400/15 text-slate-300'
-  const liveClass = 'bg-emerald-400/15 text-emerald-200'
+  const readyClass = 'erp-badge-info'
+  const plannedClass = 'erp-badge-neutral'
+  const liveClass = 'erp-badge-success'
 
   const groups = [
     {

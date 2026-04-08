@@ -46,7 +46,7 @@
         </template>
 
         <template #tier="{ row }">
-          <span class="inline-flex rounded-[5px] bg-cyan-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-cyan-700 dark:bg-cyan-950/60 dark:text-cyan-300">
+          <span class="erp-badge erp-badge-info px-3 uppercase tracking-[0.16em]">
             {{ row.tier }}
           </span>
         </template>
@@ -80,7 +80,7 @@
         size="xl"
         @close="closeModal"
       >
-        <Form :key="formKey" :validation-schema="schema" :initial-values="formValues" @submit="submitForm">
+        <Form v-slot="{ values, setFieldValue }" :key="formKey" :validation-schema="schema" :initial-values="formValues" @submit="submitForm">
           <div class="grid gap-6 xl:grid-cols-[1.2fr_0.8fr]">
             <div class="space-y-4">
               <div class="grid gap-4 md:grid-cols-2">
@@ -120,29 +120,34 @@
 
                 <div>
                   <label class="erp-label" for="timezone">Timezone</label>
-                  <Field id="timezone" name="timezone" as="select" class="erp-select">
-                    <option v-for="zone in timezones" :key="zone" :value="zone">{{ zone }}</option>
-                  </Field>
+                  <AppSelect
+                    :model-value="values.timezone || null"
+                    :options="timezoneOptions"
+                    placeholder="Select timezone"
+                    @update:model-value="setFieldValue('timezone', $event || '')"
+                  />
                   <ErrorMessage name="timezone" class="erp-helper text-rose-500 dark:text-rose-400" />
                 </div>
 
                 <div>
                   <label class="erp-label" for="tier">Tier</label>
-                  <Field id="tier" name="tier" as="select" class="erp-select">
-                    <option value="basic">Basic</option>
-                    <option value="standard">Standard</option>
-                    <option value="enterprise">Enterprise</option>
-                  </Field>
+                  <AppSelect
+                    :model-value="values.tier || null"
+                    :options="businessTierOptions"
+                    placeholder="Select tier"
+                    @update:model-value="setFieldValue('tier', $event || '')"
+                  />
                   <ErrorMessage name="tier" class="erp-helper text-rose-500 dark:text-rose-400" />
                 </div>
 
                 <div>
                   <label class="erp-label" for="status">Status</label>
-                  <Field id="status" name="status" as="select" class="erp-select">
-                    <option value="active">Active</option>
-                    <option value="suspended">Suspended</option>
-                    <option value="cancelled">Cancelled</option>
-                  </Field>
+                  <AppSelect
+                    :model-value="values.status || null"
+                    :options="businessStatusOptions"
+                    placeholder="Select status"
+                    @update:model-value="setFieldValue('status', $event || '')"
+                  />
                   <ErrorMessage name="status" class="erp-helper text-rose-500 dark:text-rose-400" />
                 </div>
               </div>
@@ -168,9 +173,12 @@
 
                 <div>
                   <label class="erp-label" for="locale">Locale</label>
-                  <Field id="locale" name="locale" as="select" class="erp-select">
-                    <option v-for="option in localeOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-                  </Field>
+                  <AppSelect
+                    :model-value="values.locale || null"
+                    :options="localeOptions"
+                    placeholder="Select locale"
+                    @update:model-value="setFieldValue('locale', $event || '')"
+                  />
                   <ErrorMessage name="locale" class="erp-helper text-rose-500 dark:text-rose-400" />
                 </div>
               </div>
@@ -250,6 +258,7 @@ import { ErrorMessage, Field, Form } from 'vee-validate'
 import * as yup from 'yup'
 import AppAlert from '@components/ui/AppAlert.vue'
 import AppModal from '@components/ui/AppModal.vue'
+import AppSelect from '@components/ui/AppSelect.vue'
 import DataTable from '@components/ui/DataTable.vue'
 import StatusBadge from '@components/ui/StatusBadge.vue'
 import AppLayout from '@layouts/AppLayout.vue'
@@ -260,9 +269,20 @@ import { useAuthStore } from '@stores/auth'
 const auth = useAuthStore()
 const store = useAdminBusinessesStore()
 const timezones = ['Asia/Phnom_Penh', 'Asia/Bangkok', 'UTC']
+const timezoneOptions = timezones.map((zone) => ({ value: zone, label: zone }))
 const localeOptions = [
   { value: 'en', label: 'English' },
   { value: 'km', label: 'Khmer' },
+]
+const businessTierOptions = [
+  { value: 'basic', label: 'Basic' },
+  { value: 'standard', label: 'Standard' },
+  { value: 'enterprise', label: 'Enterprise' },
+]
+const businessStatusOptions = [
+  { value: 'active', label: 'Active' },
+  { value: 'suspended', label: 'Suspended' },
+  { value: 'cancelled', label: 'Cancelled' },
 ]
 
 const canCreateBusiness = computed(() => auth.can('businesses.create'))

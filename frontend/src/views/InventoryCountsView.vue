@@ -47,7 +47,7 @@
         </template>
 
         <template #status="{ row }">
-          <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold" :class="statusClass(row.status)">
+          <span class="erp-badge" :class="statusClass(row.status)">
             {{ formatStatus(row.status) }}
           </span>
         </template>
@@ -327,12 +327,9 @@
                       Lot: {{ item.lot.lot_number }}
                     </div>
                   </div>
-                  <span
-                    class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold"
-                    :class="differenceClass(item.difference)"
-                  >
-                    {{ formatSignedQuantity(item.difference) }}
-                  </span>
+                    <span class="erp-badge" :class="differenceClass(item.difference)">
+                      {{ formatSignedQuantity(item.difference) }}
+                    </span>
                 </div>
 
                 <div class="mt-4 grid gap-3 sm:grid-cols-2">
@@ -411,10 +408,7 @@
                             />
                           </td>
                           <td>
-                            <span
-                              class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold"
-                              :class="differenceClass(item.difference)"
-                            >
+                            <span class="erp-badge" :class="differenceClass(item.difference)">
                               {{ formatSignedQuantity(item.difference) }}
                             </span>
                           </td>
@@ -461,6 +455,14 @@
           </template>
         </div>
       </AppModal>
+
+      <ConfirmDelete
+        :show="deleteDialog.show"
+        :item-name="deleteDialog.itemName"
+        :loading="store.deletingCountId === deleteDialog.countId"
+        @close="closeDeleteModal"
+        @confirm="confirmDelete"
+      />
     </div>
   </AppLayout>
 </template>
@@ -473,6 +475,7 @@ import AppAlert from '@components/ui/AppAlert.vue'
 import AppDatePicker from '@components/ui/AppDatePicker.vue'
 import AppModal from '@components/ui/AppModal.vue'
 import AppSelect from '@components/ui/AppSelect.vue'
+import ConfirmDelete from '@components/ui/ConfirmDelete.vue'
 import DataTable from '@components/ui/DataTable.vue'
 import AppLayout from '@layouts/AppLayout.vue'
 import { useAuthStore } from '@stores/auth'
@@ -495,6 +498,7 @@ const columns = [
 ]
 
 const alert = reactive({ show: false, type: 'success', title: 'Success', message: '' })
+const deleteDialog = reactive({ show: false, countId: '', itemName: '' })
 const entryQuantityInput = ref(null)
 const createModal = reactive({ show: false })
 const workspaceModal = reactive({
@@ -538,23 +542,23 @@ const showToast = (type, message) => {
 }
 
 const statusClass = (status) => {
-  if (status === 'completed') return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
-  if (status === 'cancelled') return 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300'
-  return 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
+  if (status === 'completed') return 'erp-badge-success'
+  if (status === 'cancelled') return 'erp-badge-danger'
+  return 'erp-badge-warning'
 }
 
 const differenceClass = (difference) => {
   const value = Number(difference || 0)
 
   if (value > 0) {
-    return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
+    return 'erp-badge-success'
   }
 
   if (value < 0) {
-    return 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300'
+    return 'erp-badge-danger'
   }
 
-  return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+  return 'erp-badge-neutral'
 }
 
 const formatStatus = (status) => status.replace('_', ' ')
@@ -827,19 +831,35 @@ const handleSearch = (value) => store.fetchItems({ search: value, page: 1 })
 const handlePageChange = (page) => store.fetchItems({ page })
 const handlePerPageChange = (perPage) => store.fetchItems({ per_page: perPage, page: 1 })
 
-const deleteCount = async (row) => {
+const deleteCount = (row) => {
   if (!canDeleteCount(row)) {
     return
   }
 
-  const label = row.reference_no || 'this stock count'
+  deleteDialog.countId = row.id
+  deleteDialog.itemName = row.reference_no || 'this stock count'
+  deleteDialog.show = true
+}
 
-  if (!window.confirm(`Delete "${label}"? This will remove the count session and all counted lines.`)) {
+const closeDeleteModal = () => {
+  if (store.deletingCountId === deleteDialog.countId) {
+    return
+  }
+
+  deleteDialog.show = false
+  deleteDialog.countId = ''
+  deleteDialog.itemName = ''
+}
+
+const confirmDelete = async () => {
+  if (!deleteDialog.countId) {
     return
   }
 
   try {
-    await store.deleteCount(row.id)
+    await store.deleteCount(deleteDialog.countId)
+    const label = deleteDialog.itemName
+    closeDeleteModal()
     showToast('success', `Stock count ${label} deleted successfully.`)
   } catch (error) {
     showToast('danger', error.response?.data?.message || 'Unable to delete the stock count.')

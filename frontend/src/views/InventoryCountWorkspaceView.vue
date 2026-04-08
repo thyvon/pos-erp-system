@@ -5,7 +5,7 @@
 
       <PageBlurSkeleton v-if="isSetupMode && setupLoading" variant="form" />
 
-      <div v-else-if="isSetupMode" class="w-full rounded-[10px] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div v-else-if="isSetupMode" class="erp-form-page relative z-0 w-full overflow-visible focus-within:z-20">
         <div class="mb-5">
           <h2 class="text-lg font-semibold text-slate-950 dark:text-white">Count Setup</h2>
           <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">
@@ -46,12 +46,12 @@
         </div>
       </div>
 
-      <div v-else-if="workspace.loading" class="rounded-[10px] border border-slate-200 bg-white py-8 text-center text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400">
+      <div v-else-if="workspace.loading" class="erp-form-page py-8 text-center text-sm text-slate-500 dark:text-slate-400">
         Loading count workspace...
       </div>
 
       <template v-else>
-        <div class="rounded-[10px] border border-slate-200 bg-white p-4 dark:border-slate-800 dark:bg-slate-900">
+        <div class="erp-form-page p-4">
           <div class="mb-4 flex flex-wrap justify-end gap-2">
             <button
               v-if="canDeleteCount"
@@ -104,7 +104,7 @@
 
         <div
           v-if="!isCompletedWorkspace"
-          class="sticky top-16 z-10 rounded-[10px] border border-slate-200 bg-white px-4 py-4 shadow-[0_10px_30px_rgba(15,23,42,0.06)] dark:border-slate-800 dark:bg-slate-900"
+          class="erp-form-page sticky top-16 z-10 overflow-visible px-4 py-4 focus-within:z-30"
         >
           <div>
             <label class="erp-label">Scan or search item</label>
@@ -216,7 +216,7 @@
               <div
                 v-for="item in workspace.items"
                 :key="item.id"
-                class="rounded-[12px] border border-slate-200 bg-white p-4 shadow-[0_10px_25px_rgba(15,23,42,0.06)] dark:border-slate-800 dark:bg-slate-900"
+                class="erp-preview-card"
               >
             <div class="flex items-start justify-between gap-3">
               <div class="min-w-0">
@@ -231,13 +231,13 @@
                   Lot: {{ item.lot.lot_number }}
                 </div>
               </div>
-              <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold" :class="differenceClass(item.difference)">
+              <span class="erp-badge" :class="differenceClass(item.difference)">
                 {{ formatSignedQuantity(item.difference) }}
               </span>
             </div>
 
             <div class="mt-4 grid gap-3 sm:grid-cols-2">
-              <div class="rounded-[10px] bg-slate-50 px-3 py-2 dark:bg-slate-800/80">
+              <div class="erp-preview-tile px-3 py-2">
                 <div class="text-[11px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:text-slate-400">System qty</div>
                 <div class="mt-1 text-base font-semibold text-slate-950 dark:text-white">{{ formatQuantity(item.system_quantity) }}</div>
               </div>
@@ -245,7 +245,7 @@
                 <label class="erp-label">Counted qty</label>
                 <div
                   v-if="isCompletedWorkspace"
-                  class="flex h-12 items-center rounded-[10px] border border-slate-200 bg-slate-50 px-3 text-lg font-semibold text-slate-950 dark:border-slate-800 dark:bg-slate-800/80 dark:text-white"
+                  class="erp-preview-tile flex h-12 items-center px-3 text-lg font-semibold text-slate-950 dark:text-white"
                 >
                   {{ formatQuantity(item.counted_quantity) }}
                 </div>
@@ -340,7 +340,7 @@
                     />
                   </td>
                   <td>
-                    <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold" :class="differenceClass(item.difference)">
+                    <span class="erp-badge" :class="differenceClass(item.difference)">
                       {{ formatSignedQuantity(item.difference) }}
                     </span>
                   </td>
@@ -441,6 +441,14 @@
           </div>
         </div>
       </template>
+
+      <ConfirmDelete
+        :show="deleteDialog.show"
+        :item-name="deleteDialog.itemName"
+        :loading="deleteDialogLoading"
+        @close="closeDeleteModal"
+        @confirm="confirmDelete"
+      />
     </div>
   </AppLayout>
 </template>
@@ -452,6 +460,7 @@ import InventoryProductLookup from '@components/inventory/InventoryProductLookup
 import AppAlert from '@components/ui/AppAlert.vue'
 import AppDatePicker from '@components/ui/AppDatePicker.vue'
 import AppSelect from '@components/ui/AppSelect.vue'
+import ConfirmDelete from '@components/ui/ConfirmDelete.vue'
 import LoadingSpinner from '@components/ui/LoadingSpinner.vue'
 import PageBlurSkeleton from '@components/ui/PageBlurSkeleton.vue'
 import SearchInput from '@components/ui/SearchInput.vue'
@@ -494,6 +503,12 @@ const entryQuantityInput = ref(null)
 const workspaceSearchTimer = ref(null)
 const manualRefreshing = ref(false)
 const setupLoading = ref(true)
+const deleteDialog = reactive({
+  show: false,
+  mode: '',
+  itemId: '',
+  itemName: '',
+})
 const setupForm = reactive({
   warehouse_id: '',
   date: new Date().toISOString().slice(0, 10),
@@ -529,6 +544,11 @@ const isDeletingCount = computed(() => store.deletingCountId === workspace.count
 const canDeleteCount = computed(() =>
   Boolean(workspace.count_id) && workspace.status === 'in_progress' && auth.can('inventory.count')
 )
+const deleteDialogLoading = computed(() =>
+  deleteDialog.mode === 'count'
+    ? isDeletingCount.value
+    : isUpdatingItem(deleteDialog.itemId)
+)
 const showWorkspaceTableShell = computed(() =>
   store.workspaceItemsLoading || workspaceItemPagination.value.total > 0 || workspace.item_search.trim() !== ''
 )
@@ -552,9 +572,9 @@ const formatSignedQuantity = (value) => {
 const differenceClass = (difference) => {
   const value = Number(difference || 0)
 
-  if (value > 0) return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
-  if (value < 0) return 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300'
-  return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300'
+  if (value > 0) return 'erp-badge-success'
+  if (value < 0) return 'erp-badge-danger'
+  return 'erp-badge-neutral'
 }
 
 const waitForMinimumLoading = async (startedAt, minimumMs = 320) => {
@@ -765,24 +785,73 @@ const handleDeleteCount = async () => {
     return
   }
 
-  const label = workspace.reference_no || 'this stock count'
+  deleteDialog.mode = 'count'
+  deleteDialog.itemId = workspace.count_id
+  deleteDialog.itemName = workspace.reference_no || 'this stock count'
+  deleteDialog.show = true
+}
 
-  if (!window.confirm(`Delete "${label}"? This will remove the count session and all counted lines.`)) {
+const closeDeleteModal = () => {
+  if (deleteDialogLoading.value) {
     return
   }
 
-  stopWorkspacePolling()
+  deleteDialog.show = false
+  deleteDialog.mode = ''
+  deleteDialog.itemId = ''
+  deleteDialog.itemName = ''
+}
 
-  try {
-    await store.deleteCount(workspace.count_id)
-    showToast('success', `Stock count ${label} deleted successfully.`)
-    goBack()
-  } catch (error) {
-    if (!isCompletedWorkspace.value) {
-      startWorkspacePolling()
+const confirmDelete = async () => {
+  if (!deleteDialog.show) {
+    return
+  }
+
+  if (deleteDialog.mode === 'count') {
+    stopWorkspacePolling()
+
+    try {
+      await store.deleteCount(workspace.count_id)
+      const label = deleteDialog.itemName
+      closeDeleteModal()
+      showToast('success', `Stock count ${label} deleted successfully.`)
+      goBack()
+    } catch (error) {
+      if (!isCompletedWorkspace.value) {
+        startWorkspacePolling()
+      }
+
+      showToast('danger', error.response?.data?.message || 'Unable to delete the stock count.')
     }
 
-    showToast('danger', error.response?.data?.message || 'Unable to delete the stock count.')
+    return
+  }
+
+  const item = workspace.items.find((entry) => String(entry.id) === String(deleteDialog.itemId))
+
+  if (!item || !workspace.count_id || isCompletedWorkspace.value) {
+    closeDeleteModal()
+    return
+  }
+
+  workspace.last_local_activity_at = Date.now()
+
+  try {
+    await store.deleteItem(workspace.count_id, item.id)
+
+    await Promise.all([
+      refreshWorkspace(workspace.count_id),
+      refreshWorkspaceItems(workspace.count_id),
+    ])
+
+    if (workspace.pending_item && workspace.pending_item.product_id === item.product_id && (workspace.pending_item.variation_id || null) === (item.variation_id || null)) {
+      clearPendingItem()
+    }
+
+    closeDeleteModal()
+    showToast('success', 'Counted line removed successfully.')
+  } catch (error) {
+    showToast('danger', error.response?.data?.message || 'Unable to remove the counted line.')
   }
 }
 
@@ -885,32 +954,12 @@ const removeItem = async (item) => {
     return
   }
 
-  const label = item.variation?.name
+  deleteDialog.mode = 'item'
+  deleteDialog.itemId = item.id
+  deleteDialog.itemName = item.variation?.name
     ? `${item.product?.name || 'Unknown product'} / ${item.variation.name}`
     : (item.product?.name || 'Unknown product')
-
-  if (!window.confirm(`Remove "${label}" from this stock count?`)) {
-    return
-  }
-
-  workspace.last_local_activity_at = Date.now()
-
-  try {
-    await store.deleteItem(workspace.count_id, item.id)
-
-    await Promise.all([
-      refreshWorkspace(workspace.count_id),
-      refreshWorkspaceItems(workspace.count_id),
-    ])
-
-    if (workspace.pending_item && workspace.pending_item.product_id === item.product_id && (workspace.pending_item.variation_id || null) === (item.variation_id || null)) {
-      clearPendingItem()
-    }
-
-    showToast('success', 'Counted line removed successfully.')
-  } catch (error) {
-    showToast('danger', error.response?.data?.message || 'Unable to remove the counted line.')
-  }
+  deleteDialog.show = true
 }
 
 const submitComplete = async () => {

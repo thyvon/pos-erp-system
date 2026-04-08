@@ -39,11 +39,7 @@
         <template #values="{ row }">
           <div class="space-y-1">
             <div v-if="row.values?.length" class="flex flex-wrap gap-2">
-              <span
-                v-for="value in row.values"
-                :key="value.id"
-                class="inline-flex rounded-[5px] bg-slate-100 px-2 py-1 text-xs font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-200"
-              >
+              <span v-for="value in row.values" :key="value.id" class="erp-badge erp-badge-neutral px-2 font-medium">
                 {{ value.name }}
               </span>
             </div>

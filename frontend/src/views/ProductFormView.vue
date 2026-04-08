@@ -17,7 +17,7 @@
         </button>
       </div>
 
-      <section class="relative overflow-hidden rounded-[5px] border border-slate-200/80 bg-white/75 p-4 lg:p-5 shadow-[0_18px_45px_rgba(56,77,112,0.08)] backdrop-blur-xl dark:border-slate-800/80 dark:bg-slate-950/70">
+      <section class="erp-form-page relative overflow-hidden">
         <div
           v-if="loadError"
           class="rounded-[5px] border border-rose-200/70 bg-rose-50/80 px-5 py-4 text-sm text-rose-700 dark:border-rose-900/70 dark:bg-rose-950/30 dark:text-rose-200"
@@ -46,10 +46,10 @@
                     </div>
                   </div>
                   <div class="flex flex-wrap gap-2 text-xs">
-                    <span class="inline-flex rounded-full bg-cyan-100 px-3 py-1 font-semibold text-cyan-700 dark:bg-cyan-950/40 dark:text-cyan-300">
+                    <span class="erp-badge erp-badge-info px-3">
                       {{ formatType(values.type) }}
                     </span>
-                    <span class="inline-flex rounded-full bg-slate-100 px-3 py-1 font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300">
+                    <span class="erp-badge erp-badge-neutral px-3 font-medium">
                       {{ values.barcode_type }}
                     </span>
                   </div>
@@ -124,7 +124,7 @@
                     </div>
                     <div
                       v-if="values.image_preview_url"
-                      class="mt-3 flex items-center gap-3 rounded-[5px] border border-slate-200/80 bg-slate-50/70 p-3 dark:border-slate-800/80 dark:bg-slate-900/60"
+                      class="erp-preview-tile mt-3 flex items-center gap-3"
                     >
                       <img
                         :src="values.image_preview_url"
@@ -188,7 +188,7 @@
                   </div>
                   <div
                     v-if="!supportsUnits(values.type)"
-                    class="rounded-[5px] border border-slate-200/80 bg-slate-50/80 px-4 py-3 text-sm text-slate-600 md:col-span-2 xl:col-span-2 dark:border-slate-800/80 dark:bg-slate-900/70 dark:text-slate-300"
+                    class="erp-preview-tile text-sm text-slate-600 md:col-span-2 xl:col-span-2 dark:text-slate-300"
                   >
                     Services do not require unit or variation-template setup.
                   </div>
@@ -235,7 +235,7 @@
                   </div>
                 </div>
 
-                <div v-if="values.type === 'single'" class="mt-4 rounded-[5px] border border-slate-200/80 bg-slate-50/70 p-3 dark:border-slate-800/80 dark:bg-slate-900/50">
+                <div v-if="values.type === 'single'" class="erp-preview-tile mt-4">
                   <div class="mb-3 text-xs font-medium text-slate-500 dark:text-slate-400">
                     Optional selling sub-unit. Stock remains in the base unit, while sell/buy prices below apply only to the selected sub-unit.
                   </div>
@@ -392,7 +392,7 @@
 
                 <!-- Header row -->
                 <div
-                  class="grid gap-3 border-b border-slate-200/80 bg-slate-50/80 px-3 py-2 text-xs font-semibold text-slate-500 dark:border-slate-800/80 dark:bg-slate-900/50 dark:text-slate-400"
+                  class="grid gap-3 border-b border-slate-200/80 bg-white/15 px-3 py-2 text-xs font-semibold text-slate-500 dark:border-slate-800/80 dark:bg-white/[0.04] dark:text-slate-400"
                   :class="values.use_sub_unit
                     ? 'grid-cols-[minmax(13rem,1.25fr)_minmax(9rem,0.9fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(7rem,0.65fr)_minmax(7rem,0.65fr)_minmax(10rem,0.9fr)_minmax(8rem,0.75fr)_minmax(6rem,0.55fr)]'
                     : 'grid-cols-[minmax(13rem,1.25fr)_minmax(9rem,0.9fr)_minmax(8rem,0.75fr)_minmax(8rem,0.75fr)_minmax(7rem,0.65fr)_minmax(7rem,0.65fr)_minmax(10rem,0.9fr)_minmax(8rem,0.75fr)_minmax(6rem,0.55fr)]'"
@@ -431,7 +431,7 @@
                         <span
                             v-for="valueLabel in variationValueLabels(variation.variation_value_ids)"
                             :key="valueLabel"
-                            class="inline-flex rounded-[10px] bg-cyan-100 px-2 py-1 text-[11px] font-medium text-cyan-700 dark:bg-cyan-950/50 dark:text-cyan-300"
+                            class="erp-badge erp-badge-info px-2 text-[11px] font-medium"
                         >
                             {{ valueLabel }}
                         </span>
@@ -508,7 +508,7 @@
 
             <div
                 v-else
-                class="rounded-[5px] border border-slate-200/70 bg-slate-50/80 px-4 py-3 text-sm text-slate-600 dark:border-slate-800/80 dark:bg-slate-900/70 dark:text-slate-300"
+                class="erp-preview-tile text-sm text-slate-600 dark:text-slate-300"
             >
                 Choose one or more variation templates above to begin.
             </div>
@@ -657,7 +657,7 @@
                   </div>
                   <div
                     v-else
-                    class="rounded-[5px] border border-slate-200/80 bg-slate-50/80 px-4 py-3 text-sm text-slate-600 dark:border-slate-800/80 dark:bg-slate-900/70 dark:text-slate-300"
+                    class="erp-preview-tile text-sm text-slate-600 dark:text-slate-300"
                   >
                     Turn on <span class="font-medium">Track inventory</span> to configure stock mode, rack location, and stock alerts.
                   </div>

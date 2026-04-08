@@ -28,7 +28,7 @@ export default {
     groups: {
       overview: 'Overview',
       platform: 'Platform',
-      userManagement: 'User Management',
+      userManagement: 'User Mgmt',
       foundation: 'Foundation',
       catalog: 'Catalog',
       inventory: 'Inventory',

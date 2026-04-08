@@ -18,7 +18,7 @@
       <PageBlurSkeleton v-else-if="loading" variant="form" />
 
       <div v-else class="space-y-6">
-        <section class="rounded-[10px] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <section class="erp-form-page relative z-0 overflow-visible focus-within:z-20">
           <div class="mb-5 flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div>
               <h2 class="text-lg font-semibold text-slate-950 dark:text-white">
@@ -34,14 +34,14 @@
             <div class="flex flex-wrap items-center gap-2 self-start">
               <div
                 v-if="isEditMode && transfer"
-                class="inline-flex items-center gap-2 rounded-full bg-slate-100 px-3 py-1 text-xs font-semibold text-slate-700 dark:bg-slate-800 dark:text-slate-200"
+                class="erp-badge erp-badge-neutral gap-2 px-3"
               >
                 <i class="fa-solid fa-file-lines"></i>
                 {{ transfer.reference_no }}
               </div>
               <div
                 v-if="isEditMode && transfer"
-                class="inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-semibold capitalize"
+                class="erp-badge gap-2 px-3 capitalize"
                 :class="statusClasses(transfer.status)"
               >
                 <i class="fa-solid fa-arrow-right-arrow-left"></i>
@@ -85,7 +85,7 @@
           </div>
         </section>
 
-        <section class="rounded-[10px] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <section class="erp-form-page relative z-0 overflow-visible focus-within:z-20">
           <div class="space-y-3">
             <div>
               <h2 class="text-lg font-semibold text-slate-950 dark:text-white">Transfer items</h2>
@@ -103,7 +103,7 @@
 
           <div
             v-if="form.items.length === 0"
-            class="mt-4 rounded-[5px] border border-dashed border-slate-300 px-4 py-6 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400"
+            class="erp-empty-state mt-4 text-sm text-slate-500 dark:text-slate-400"
           >
             No lines yet. Scan or search a product above to start.
           </div>
@@ -149,9 +149,9 @@
                         <span v-if="item.variation_name" class="text-slate-500 dark:text-slate-400">/ {{ item.variation_name }}</span>
                       </div>
                       <div class="mt-2 flex flex-wrap gap-2 text-xs text-slate-500 dark:text-slate-400">
-                        <span v-if="item.sku" class="rounded-[5px] bg-slate-100 px-2 py-1 dark:bg-slate-800">SKU: {{ item.sku }}</span>
-                        <span v-if="item.lot_number" class="rounded-[5px] bg-amber-50 px-2 py-1 text-amber-700 dark:bg-amber-950/35 dark:text-amber-300">Lot: {{ item.lot_number }}</span>
-                        <span v-if="item.serial_number" class="rounded-[5px] bg-violet-50 px-2 py-1 text-violet-700 dark:bg-violet-950/35 dark:text-violet-300">Serial: {{ item.serial_number }}</span>
+                        <span v-if="item.sku" class="erp-badge erp-badge-neutral px-2 text-[11px]">SKU: {{ item.sku }}</span>
+                        <span v-if="item.lot_number" class="erp-badge erp-badge-warning px-2 text-[11px]">Lot: {{ item.lot_number }}</span>
+                        <span v-if="item.serial_number" class="erp-badge erp-badge-info px-2 text-[11px]">Serial: {{ item.serial_number }}</span>
                       </div>
                     </td>
                     <td>

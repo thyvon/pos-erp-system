@@ -53,6 +53,45 @@ const emit = defineEmits(['update:modelValue'])
 
 const editorRef = ref(null)
 
+const stripInlineColors = (root) => {
+  if (!root) {
+    return
+  }
+
+  root.querySelectorAll('*').forEach((node) => {
+    if (!(node instanceof HTMLElement)) {
+      return
+    }
+
+    if (node.hasAttribute('color')) {
+      node.removeAttribute('color')
+    }
+
+    const style = node.getAttribute('style')
+
+    if (!style) {
+      return
+    }
+
+    const declarations = style
+      .split(';')
+      .map((part) => part.trim())
+      .filter(Boolean)
+      .filter((declaration) => {
+        const property = declaration.split(':')[0]?.trim().toLowerCase()
+
+        return !['color', 'background', 'background-color', '-webkit-text-fill-color'].includes(property)
+      })
+
+    if (declarations.length > 0) {
+      node.setAttribute('style', declarations.join('; '))
+      return
+    }
+
+    node.removeAttribute('style')
+  })
+}
+
 const normalizeHtml = (value) => {
   const html = (value || '').trim()
 
@@ -70,6 +109,7 @@ const syncEditor = async (value) => {
 
   if (editorRef.value.innerHTML !== normalized) {
     editorRef.value.innerHTML = normalized
+    stripInlineColors(editorRef.value)
   }
 }
 
@@ -78,6 +118,7 @@ const emitContent = () => {
     return
   }
 
+  stripInlineColors(editorRef.value)
   emit('update:modelValue', normalizeHtml(editorRef.value.innerHTML))
 }
 
@@ -148,6 +189,15 @@ onMounted(async () => {
   outline: none;
 }
 
+.erp-rich-editor__content :deep(*) {
+  color: inherit;
+}
+
+.erp-rich-editor__content :deep(a) {
+  color: rgb(8 145 178);
+  text-decoration: underline;
+}
+
 .erp-rich-editor__content:empty::before {
   content: attr(data-placeholder);
   color: rgb(100 116 139);
@@ -171,6 +221,14 @@ onMounted(async () => {
 
 :global(.dark) .erp-rich-editor__content {
   color: rgb(226 232 240);
+}
+
+:global(.dark) .erp-rich-editor__content :deep(*) {
+  color: inherit !important;
+}
+
+:global(.dark) .erp-rich-editor__content :deep(a) {
+  color: rgb(125 211 252) !important;
 }
 
 :global(.dark) .erp-rich-editor__content:empty::before {

@@ -19,10 +19,7 @@
             <div class="min-w-0">
               <div class="flex flex-wrap items-center gap-3">
                 <h1 class="text-2xl font-semibold text-slate-950 dark:text-white">{{ transfer.reference_no }}</h1>
-                <span
-                  class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize"
-                  :class="statusClasses(transfer.status)"
-                >
+                <span class="erp-badge capitalize" :class="statusClasses(transfer.status)">
                   {{ statusLabel(transfer.status) }}
                 </span>
               </div>
@@ -63,23 +60,23 @@
           </div>
 
           <div class="grid gap-4 xl:grid-cols-2">
-            <div class="rounded-[5px] border border-slate-200/80 bg-white/80 p-5 shadow-sm dark:border-slate-800/80 dark:bg-slate-950/80">
+            <div class="erp-preview-card">
               <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Transfer overview</div>
               <div class="mt-4 grid gap-4 sm:grid-cols-2">
-                <div class="rounded-md bg-slate-50/80 p-3 dark:bg-slate-900/80">
+                <div class="erp-preview-tile">
                   <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Date</div>
                   <div class="mt-1 text-sm text-slate-900 dark:text-white">{{ formatDate(transfer.date) }}</div>
                 </div>
-                <div class="rounded-md bg-slate-50/80 p-3 dark:bg-slate-900/80">
+                <div class="erp-preview-tile">
                   <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Lines</div>
                   <div class="mt-1 text-sm text-slate-900 dark:text-white">{{ transfer.items?.length || 0 }}</div>
                 </div>
-                <div class="rounded-md bg-slate-50/80 p-3 dark:bg-slate-900/80">
+                <div class="erp-preview-tile">
                   <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">From warehouse</div>
                   <div class="mt-1 text-sm text-slate-900 dark:text-white">{{ transfer.from_warehouse?.name || 'Unknown warehouse' }}</div>
                   <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ transfer.from_warehouse?.branch_name || 'No branch' }}</div>
                 </div>
-                <div class="rounded-md bg-slate-50/80 p-3 dark:bg-slate-900/80">
+                <div class="erp-preview-tile">
                   <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">To warehouse</div>
                   <div class="mt-1 text-sm text-slate-900 dark:text-white">{{ transfer.to_warehouse?.name || 'Unknown warehouse' }}</div>
                   <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ transfer.to_warehouse?.branch_name || 'No branch' }}</div>
@@ -87,22 +84,22 @@
               </div>
             </div>
 
-            <div class="rounded-[5px] border border-slate-200/80 bg-white/80 p-5 shadow-sm dark:border-slate-800/80 dark:bg-slate-950/80">
+            <div class="erp-preview-card">
               <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Agreement trail</div>
               <div class="mt-4 grid gap-4">
-                <div class="rounded-md bg-slate-50/80 p-3 dark:bg-slate-900/80">
+                <div class="erp-preview-tile">
                   <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">In transit by</div>
                   <div class="mt-1 text-sm text-slate-900 dark:text-white">{{ transfer.sender?.name || 'Not in transit yet' }}</div>
                   <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ transfer.sent_at ? formatDateTime(transfer.sent_at) : 'Waiting for send confirmation' }}</div>
                 </div>
-                <div class="rounded-md bg-slate-50/80 p-3 dark:bg-slate-900/80">
+                <div class="erp-preview-tile">
                   <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Receiver confirmed</div>
                   <div class="mt-1 text-sm text-slate-900 dark:text-white">{{ transfer.receiver?.name || 'Pending destination confirmation' }}</div>
                   <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">
                     {{ transfer.received_at ? formatDateTime(transfer.received_at) : 'Not received yet' }}
                   </div>
                 </div>
-                <div class="rounded-md bg-slate-50/80 p-3 dark:bg-slate-900/80">
+                <div class="erp-preview-tile">
                   <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Notes</div>
                   <div class="mt-1 text-sm text-slate-900 dark:text-white">{{ transfer.notes || 'No notes provided.' }}</div>
                 </div>
@@ -147,7 +144,7 @@
                   </tr>
                 </thead>
                 <tbody>
-                  <tr v-for="item in filteredTransferItems" :key="item.id" class="odd:bg-slate-50/80 dark:odd:bg-slate-900/50">
+                  <tr v-for="item in filteredTransferItems" :key="item.id" class="odd:bg-white/10 dark:odd:bg-white/[0.04]">
                     <td>
                       <div class="font-semibold text-slate-950 dark:text-white">
                         {{ item.product?.name || 'Unknown product' }}

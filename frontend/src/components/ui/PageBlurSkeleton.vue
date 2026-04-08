@@ -1,67 +1,17 @@
 <template>
-  <div class="space-y-5">
-    <div class="erp-skeleton-card">
-      <div class="erp-skeleton-shimmer"></div>
+  <div
+    class="erp-page-blur-skeleton"
+    :class="`erp-page-blur-skeleton--${variant}`"
+    aria-busy="true"
+    aria-live="polite"
+  >
+    <div class="erp-page-blur-skeleton__wash"></div>
+    <div class="erp-page-blur-skeleton__glow erp-page-blur-skeleton__glow--one"></div>
+    <div class="erp-page-blur-skeleton__glow erp-page-blur-skeleton__glow--two"></div>
 
-      <template v-if="variant === 'settings'">
-        <div class="grid gap-4 xl:grid-cols-[18rem_minmax(0,1fr)]">
-          <div class="space-y-3">
-            <div v-for="item in 5" :key="`settings-nav-${item}`" class="erp-skeleton-block h-16 w-full"></div>
-          </div>
-          <div class="space-y-5">
-            <div class="space-y-3">
-              <div class="erp-skeleton-line h-3 w-28"></div>
-              <div class="erp-skeleton-line h-8 w-72"></div>
-              <div class="erp-skeleton-line h-4 w-full max-w-3xl"></div>
-            </div>
-            <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-              <div v-for="item in 8" :key="`settings-field-${item}`" class="space-y-2">
-                <div class="erp-skeleton-line h-3 w-24"></div>
-                <div class="erp-skeleton-block h-11 w-full"></div>
-              </div>
-            </div>
-            <div class="erp-skeleton-block h-44 w-full"></div>
-          </div>
-        </div>
-      </template>
-
-      <template v-else-if="variant === 'detail'">
-        <div class="space-y-5">
-          <div class="flex flex-col gap-3 xl:flex-row xl:items-start xl:justify-between">
-            <div class="space-y-3">
-              <div class="erp-skeleton-line h-8 w-72"></div>
-              <div class="erp-skeleton-line h-4 w-full max-w-2xl"></div>
-            </div>
-            <div class="flex gap-2">
-              <div class="erp-skeleton-block h-10 w-32"></div>
-              <div class="erp-skeleton-block h-10 w-36"></div>
-            </div>
-          </div>
-          <div class="grid gap-4 xl:grid-cols-2">
-            <div class="erp-skeleton-block h-56 w-full"></div>
-            <div class="erp-skeleton-block h-56 w-full"></div>
-          </div>
-          <div class="erp-skeleton-block h-72 w-full"></div>
-        </div>
-      </template>
-
-      <template v-else>
-        <div class="space-y-5">
-          <div class="space-y-3">
-            <div class="erp-skeleton-line h-3 w-24"></div>
-            <div class="erp-skeleton-line h-7 w-56"></div>
-            <div class="erp-skeleton-line h-4 w-full max-w-2xl"></div>
-          </div>
-          <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-            <div v-for="item in 6" :key="`form-field-${item}`" class="space-y-2">
-              <div class="erp-skeleton-line h-3 w-20"></div>
-              <div class="erp-skeleton-block h-11 w-full"></div>
-            </div>
-          </div>
-          <div class="erp-skeleton-block h-24 w-full"></div>
-          <div class="erp-skeleton-block h-64 w-full"></div>
-        </div>
-      </template>
+    <div class="erp-page-blur-skeleton__center">
+      <div class="erp-page-blur-skeleton__pulse"></div>
+      <div class="erp-page-blur-skeleton__label">Loading</div>
     </div>
   </div>
 </template>
@@ -76,63 +26,173 @@ defineProps({
 </script>
 
 <style scoped>
-.erp-skeleton-card {
+.erp-page-blur-skeleton {
   position: relative;
   overflow: hidden;
-  border-radius: 10px;
-  border: 1px solid rgba(226, 232, 240, 0.92);
+  border-radius: 24px;
+  border: 1px solid rgba(191, 205, 224, 0.62);
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.9), rgba(248, 250, 252, 0.84));
-  padding: 1.5rem;
-  box-shadow: 0 18px 45px rgba(56, 77, 112, 0.08);
-  backdrop-filter: blur(18px);
+    linear-gradient(160deg, rgba(255, 255, 255, 0.38), rgba(255, 255, 255, 0.16)),
+    linear-gradient(135deg, rgba(88, 135, 255, 0.12), transparent 46%),
+    linear-gradient(220deg, rgba(34, 211, 238, 0.08), transparent 62%),
+    linear-gradient(315deg, rgba(251, 146, 60, 0.08), transparent 70%);
+  box-shadow:
+    0 24px 60px rgba(54, 65, 154, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.58);
+  backdrop-filter: blur(28px) saturate(170%);
+  -webkit-backdrop-filter: blur(28px) saturate(170%);
+  isolation: isolate;
 }
 
-.dark .erp-skeleton-card {
-  border-color: rgba(51, 65, 85, 0.85);
-  background:
-    linear-gradient(180deg, rgba(15, 23, 42, 0.9), rgba(15, 23, 42, 0.76));
-  box-shadow: 0 20px 50px rgba(2, 6, 23, 0.4);
+.erp-page-blur-skeleton--form {
+  min-height: 26rem;
 }
 
-.erp-skeleton-shimmer {
+.erp-page-blur-skeleton--detail {
+  min-height: 30rem;
+}
+
+.erp-page-blur-skeleton--settings {
+  min-height: 36rem;
+}
+
+.erp-page-blur-skeleton__wash {
   position: absolute;
   inset: 0;
   background:
-    linear-gradient(105deg, transparent 0%, rgba(255, 255, 255, 0.24) 42%, rgba(255, 255, 255, 0.55) 50%, rgba(255, 255, 255, 0.24) 58%, transparent 100%);
-  transform: translateX(-120%);
-  animation: erp-skeleton-shimmer 1.6s ease-in-out infinite;
-  pointer-events: none;
+    linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.08) 36%, rgba(255, 255, 255, 0.14) 100%);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
 }
 
-.dark .erp-skeleton-shimmer {
-  background:
-    linear-gradient(105deg, transparent 0%, rgba(148, 163, 184, 0.05) 42%, rgba(148, 163, 184, 0.12) 50%, rgba(148, 163, 184, 0.05) 58%, transparent 100%);
+.erp-page-blur-skeleton__glow {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(10px);
+  opacity: 0.85;
+  animation: erp-page-blur-float 9s ease-in-out infinite;
 }
 
-.erp-skeleton-line,
-.erp-skeleton-block {
+.erp-page-blur-skeleton__glow--one {
+  left: -4rem;
+  top: -3rem;
+  width: 14rem;
+  height: 14rem;
+  background: radial-gradient(circle, rgba(88, 135, 255, 0.28) 0%, rgba(88, 135, 255, 0.08) 48%, transparent 72%);
+}
+
+.erp-page-blur-skeleton__glow--two {
+  right: -4rem;
+  bottom: -4rem;
+  width: 16rem;
+  height: 16rem;
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.2) 0%, rgba(251, 146, 60, 0.12) 44%, transparent 72%);
+  animation-delay: -4s;
+}
+
+.erp-page-blur-skeleton__center {
   position: relative;
-  overflow: hidden;
-  border-radius: 8px;
-  background:
-    linear-gradient(180deg, rgba(226, 232, 240, 0.78), rgba(226, 232, 240, 0.52));
-  filter: blur(0.2px);
+  z-index: 1;
+  display: flex;
+  min-height: inherit;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.85rem;
+  padding: 2rem;
 }
 
-.dark .erp-skeleton-line,
-.dark .erp-skeleton-block {
+.erp-page-blur-skeleton__pulse {
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 9999px;
+  border: 1px solid rgba(255, 255, 255, 0.55);
   background:
-    linear-gradient(180deg, rgba(51, 65, 85, 0.92), rgba(30, 41, 59, 0.78));
+    linear-gradient(180deg, rgba(255, 255, 255, 0.52), rgba(255, 255, 255, 0.18)),
+    radial-gradient(circle at 35% 30%, rgba(255, 255, 255, 0.58), transparent 55%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.65),
+    0 18px 34px rgba(58, 123, 255, 0.12);
+  backdrop-filter: blur(18px) saturate(160%);
+  -webkit-backdrop-filter: blur(18px) saturate(160%);
+  animation: erp-page-blur-pulse 1.8s ease-in-out infinite;
 }
 
-@keyframes erp-skeleton-shimmer {
+.erp-page-blur-skeleton__label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: rgba(56, 80, 110, 0.74);
+}
+
+.dark .erp-page-blur-skeleton {
+  border-color: rgba(100, 116, 139, 0.26);
+  background:
+    linear-gradient(160deg, rgba(18, 26, 46, 0.5), rgba(10, 16, 30, 0.2)),
+    linear-gradient(135deg, rgba(99, 102, 241, 0.16), transparent 48%),
+    linear-gradient(220deg, rgba(34, 211, 238, 0.1), transparent 64%),
+    linear-gradient(315deg, rgba(236, 72, 153, 0.08), transparent 72%);
+  box-shadow:
+    0 28px 72px rgba(2, 6, 23, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+}
+
+.dark .erp-page-blur-skeleton__wash {
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.16), rgba(15, 23, 42, 0.06) 36%, rgba(15, 23, 42, 0.12) 100%);
+}
+
+.dark .erp-page-blur-skeleton__glow--one {
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.22) 0%, rgba(99, 102, 241, 0.06) 48%, transparent 72%);
+}
+
+.dark .erp-page-blur-skeleton__glow--two {
+  background: radial-gradient(circle, rgba(34, 211, 238, 0.16) 0%, rgba(236, 72, 153, 0.08) 44%, transparent 72%);
+}
+
+.dark .erp-page-blur-skeleton__pulse {
+  border-color: rgba(148, 163, 184, 0.28);
+  background:
+    linear-gradient(180deg, rgba(30, 41, 59, 0.52), rgba(15, 23, 42, 0.18)),
+    radial-gradient(circle at 35% 30%, rgba(191, 219, 254, 0.14), transparent 55%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.06),
+    0 18px 34px rgba(15, 23, 42, 0.18);
+}
+
+.dark .erp-page-blur-skeleton__label {
+  color: rgba(203, 213, 225, 0.72);
+}
+
+@keyframes erp-page-blur-pulse {
   0% {
-    transform: translateX(-120%);
+    transform: scale(0.96);
+    opacity: 0.78;
+  }
+
+  50% {
+    transform: scale(1);
+    opacity: 1;
   }
 
   100% {
-    transform: translateX(120%);
+    transform: scale(0.96);
+    opacity: 0.78;
+  }
+}
+
+@keyframes erp-page-blur-float {
+  0% {
+    transform: translate3d(0, 0, 0);
+  }
+
+  50% {
+    transform: translate3d(0, 12px, 0);
+  }
+
+  100% {
+    transform: translate3d(0, 0, 0);
   }
 }
 </style>

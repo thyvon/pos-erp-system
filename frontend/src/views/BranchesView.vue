@@ -47,12 +47,9 @@
         <template #status="{ row }">
           <div class="flex flex-wrap items-center gap-2">
             <StatusBadge :status="row.is_active ? 'active' : 'inactive'" />
-            <span
-              v-if="row.is_default"
-              class="inline-flex rounded-[5px] bg-cyan-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-cyan-700 dark:bg-cyan-950/60 dark:text-cyan-300"
-            >
-              Default
-            </span>
+              <span v-if="row.is_default" class="erp-badge erp-badge-info px-3 uppercase tracking-[0.16em]">
+                Default
+              </span>
           </div>
         </template>
 
@@ -98,21 +95,27 @@
           <div class="grid gap-4 md:grid-cols-2">
             <div>
               <label class="erp-label" for="type">Type</label>
-              <Field id="type" as="select" name="type" class="erp-select">
-                <option value="">Select type</option>
-                <option value="retail">Retail</option>
-                <option value="warehouse">Warehouse</option>
-                <option value="office">Office</option>
-                <option value="online">Online</option>
-              </Field>
+              <AppSelect
+                :model-value="values.type || null"
+                :options="branchTypeOptions"
+                clearable
+                placeholder="Select type"
+                @update:model-value="setFieldValue('type', $event || '')"
+              />
               <ErrorMessage name="type" class="erp-helper text-rose-500 dark:text-rose-400" />
             </div>
             <div>
               <label class="erp-label" for="manager_id">Manager</label>
-              <Field id="manager_id" as="select" name="manager_id" class="erp-select">
-                <option value="">No manager</option>
-                <option v-for="user in managerOptions" :key="user.id" :value="user.id">{{ user.full_name }}</option>
-              </Field>
+              <AppSelect
+                :model-value="values.manager_id || null"
+                :options="managerSelectOptions"
+                clearable
+                searchable
+                placeholder="No manager"
+                search-placeholder="Search managers"
+                empty-text="No managers found."
+                @update:model-value="setFieldValue('manager_id', $event || '')"
+              />
               <ErrorMessage name="manager_id" class="erp-helper text-rose-500 dark:text-rose-400" />
             </div>
           </div>
@@ -194,6 +197,7 @@ import { ErrorMessage, Field, Form } from 'vee-validate'
 import * as yup from 'yup'
 import AppAlert from '@components/ui/AppAlert.vue'
 import AppModal from '@components/ui/AppModal.vue'
+import AppSelect from '@components/ui/AppSelect.vue'
 import ConfirmDelete from '@components/ui/ConfirmDelete.vue'
 import DataTable from '@components/ui/DataTable.vue'
 import StatusBadge from '@components/ui/StatusBadge.vue'
@@ -204,6 +208,12 @@ import { useBranchesStore } from '@stores/branches'
 
 const auth = useAuthStore()
 const store = useBranchesStore()
+const branchTypeOptions = [
+  { value: 'retail', label: 'Retail' },
+  { value: 'warehouse', label: 'Warehouse' },
+  { value: 'office', label: 'Office' },
+  { value: 'online', label: 'Online' },
+]
 
 const canCreateBranch = computed(() => auth.can('branches.create'))
 const canEditBranch = computed(() => auth.can('branches.edit'))
@@ -229,6 +239,12 @@ const alert = reactive({ show: false, type: 'success', title: 'Success', message
 const modal = reactive({ show: false, mode: 'create', branch: null })
 const deleteDialog = reactive({ show: false, branch: null, itemName: '' })
 const managerOptions = ref([])
+const managerSelectOptions = computed(() =>
+  managerOptions.value.map((user) => ({
+    value: user.id,
+    label: user.full_name,
+  }))
+)
 const formKey = ref(0)
 
 const formValues = computed(() => ({

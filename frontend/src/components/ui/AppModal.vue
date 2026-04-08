@@ -3,15 +3,19 @@
     <Transition name="erp-fade">
       <div
         v-if="show"
-        class="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/80 px-3 py-4"
+        class="fixed inset-0 z-[80] flex items-center justify-center bg-slate-950/44 px-3 py-4 backdrop-blur-2xl dark:bg-slate-950/62"
         :class="overlayClass"
         @click.self="handleBackdrop"
       >
         <div
-          class="flex w-full flex-col overflow-hidden rounded-[5px] border border-slate-800/80 bg-white/90 shadow-[0_30px_90px_rgba(0,0,0,0.28)] dark:border-slate-700/70 dark:bg-slate-900/95"
+          class="relative flex w-full flex-col overflow-hidden rounded-[28px] border border-slate-200/80 bg-white/78 text-slate-900 shadow-[0_34px_90px_rgba(15,23,42,0.22)] backdrop-blur-[30px] dark:border-slate-700/70 dark:bg-slate-950/54 dark:text-slate-100 dark:shadow-[0_34px_90px_rgba(0,0,0,0.44)]"
           :class="[sizeClass, containerClass]"
         >
-          <div class="flex items-start justify-between gap-4 border-b border-slate-200/70 px-4 py-4 dark:border-slate-800/80">
+          <div class="pointer-events-none absolute inset-0 bg-gradient-to-b from-white/92 via-white/72 to-white/54 dark:from-slate-800/88 dark:via-slate-900/76 dark:to-slate-950/68"></div>
+          <div class="pointer-events-none absolute inset-x-0 top-0 h-24 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.72),transparent_72%)] opacity-85 dark:bg-[radial-gradient(circle_at_top,rgba(148,197,255,0.2),transparent_72%)] dark:opacity-90"></div>
+          <div class="pointer-events-none absolute inset-px rounded-[27px] border border-white/70 dark:border-white/5"></div>
+
+          <div class="relative z-10 flex items-start justify-between gap-4 border-b border-slate-200/80 px-5 py-4 dark:border-white/10">
             <div>
               <div v-if="icon" class="mb-2 text-xs font-semibold uppercase tracking-[0.18em] text-cyan-600 dark:text-cyan-400">
                 {{ icon }}
@@ -21,7 +25,7 @@
 
             <button
               type="button"
-              class="inline-flex h-10 w-10 items-center justify-center rounded-[5px] border border-slate-200/80 bg-white/70 text-slate-500 transition hover:border-slate-300 hover:text-slate-900 dark:border-slate-700/80 dark:bg-slate-800/80 dark:text-slate-400 dark:hover:border-slate-600 dark:hover:text-white"
+              class="inline-flex h-10 w-10 items-center justify-center rounded-[16px] border border-slate-200/80 bg-white/78 text-slate-600 shadow-[inset_0_1px_0_rgba(255,255,255,0.82)] backdrop-blur-md transition hover:border-sky-300 hover:bg-white hover:text-slate-900 dark:border-white/10 dark:bg-white/5 dark:text-slate-300 dark:hover:border-sky-300/30 dark:hover:bg-white/10 dark:hover:text-white"
               aria-label="Close modal"
               @click="$emit('close')"
             >
@@ -29,11 +33,11 @@
             </button>
           </div>
 
-          <div class="max-h-[70vh] overflow-y-auto px-4 py-4" :class="bodyClass">
+          <div class="relative z-10 max-h-[70vh] overflow-y-auto px-5 py-5 text-slate-800 dark:text-slate-100" :class="bodyClass">
             <slot />
           </div>
 
-          <div v-if="$slots.footer" class="border-t border-slate-200/70 px-4 py-4 dark:border-slate-800/80">
+          <div v-if="$slots.footer" class="relative z-10 border-t border-slate-200/80 px-5 py-4 dark:border-white/10">
             <slot name="footer" />
           </div>
         </div>
@@ -68,7 +72,7 @@ const overlayClass = computed(() => props.mobileFullScreen
   : '')
 
 const containerClass = computed(() => props.mobileFullScreen
-  ? 'h-[100dvh] max-h-[100dvh] max-w-none rounded-none border-0 shadow-none sm:h-auto sm:max-h-[calc(100dvh-2rem)] sm:rounded-[5px] sm:border sm:shadow-[0_30px_90px_rgba(0,0,0,0.28)]'
+  ? 'h-[100dvh] max-h-[100dvh] max-w-none rounded-none border-0 shadow-none sm:h-auto sm:max-h-[calc(100dvh-2rem)] sm:rounded-[28px] sm:border sm:shadow-[0_34px_90px_rgba(15,23,42,0.2)] sm:dark:shadow-[0_34px_90px_rgba(0,0,0,0.44)]'
   : 'max-h-[calc(100dvh-2rem)]')
 
 const bodyClass = computed(() => props.mobileFullScreen

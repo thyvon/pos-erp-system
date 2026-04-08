@@ -142,16 +142,17 @@
                           <span v-if="item.variation_name" class="text-slate-500 dark:text-slate-400">/ {{ item.variation_name }}</span>
                         </div>
                         <div class="mt-2 flex flex-wrap gap-2 text-xs text-slate-500 dark:text-slate-400">
-                          <span v-if="item.sku" class="rounded-[5px] bg-slate-100 px-2 py-1 dark:bg-slate-800">SKU: {{ item.sku }}</span>
-                          <span v-if="item.lot_number" class="rounded-[5px] bg-amber-50 px-2 py-1 text-amber-700 dark:bg-amber-950/35 dark:text-amber-300">Lot: {{ item.lot_number }}</span>
-                          <span v-if="item.serial_number" class="rounded-[5px] bg-violet-50 px-2 py-1 text-violet-700 dark:bg-violet-950/35 dark:text-violet-300">Serial: {{ item.serial_number }}</span>
+                          <span v-if="item.sku" class="erp-badge erp-badge-neutral px-2 text-[11px]">SKU: {{ item.sku }}</span>
+                          <span v-if="item.lot_number" class="erp-badge erp-badge-warning px-2 text-[11px]">Lot: {{ item.lot_number }}</span>
+                          <span v-if="item.serial_number" class="erp-badge erp-badge-info px-2 text-[11px]">Serial: {{ item.serial_number }}</span>
                         </div>
                       </td>
                       <td>
-                        <select v-model="item.direction" class="erp-select">
-                          <option value="in">In</option>
-                          <option value="out">Out</option>
-                        </select>
+                        <AppSelect
+                          :model-value="item.direction"
+                          :options="adjustmentDirectionOptions"
+                          @update:model-value="item.direction = $event || 'in'"
+                        />
                       </td>
                       <td>
                         <input v-model.number="item.quantity" type="number" min="0" step="0.0001" class="erp-input" />
@@ -208,6 +209,10 @@ const columns = [
   { key: 'items_count', label: 'Lines' },
   { key: 'creator', label: 'Created by' },
   { key: 'actions', label: 'Actions' },
+]
+const adjustmentDirectionOptions = [
+  { value: 'in', label: 'In' },
+  { value: 'out', label: 'Out' },
 ]
 
 const alert = reactive({ show: false, type: 'success', title: 'Success', message: '' })

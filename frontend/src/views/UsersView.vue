@@ -44,7 +44,7 @@
         </template>
 
         <template #role="{ row }">
-          <span class="inline-flex rounded-[5px] bg-cyan-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-cyan-700 dark:bg-cyan-950/60 dark:text-cyan-300">
+          <span class="erp-badge erp-badge-info px-3 uppercase tracking-[0.16em]">
             {{ row.roles?.[0] || t('usersPage.notApplicable') }}
           </span>
         </template>
@@ -60,13 +60,13 @@
             <span
               v-for="branch in (row.branches || []).slice(0, 2)"
               :key="branch.id"
-              class="inline-flex rounded-[5px] bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+              class="erp-badge erp-badge-neutral px-2 text-[11px] font-medium"
             >
               {{ branch.name }}
             </span>
             <span
               v-if="(row.branches || []).length > 2"
-              class="inline-flex rounded-[5px] bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+              class="erp-badge erp-badge-neutral px-2 text-[11px] font-medium"
             >
               +{{ row.branches.length - 2 }}
             </span>
@@ -167,11 +167,12 @@
 
                     <div>
                       <label class="erp-label" for="status">{{ t('usersPage.status') }}</label>
-                      <Field id="status" as="select" name="status" class="erp-select">
-                        <option value="active">{{ t('usersPage.statusActive') }}</option>
-                        <option value="inactive">{{ t('usersPage.statusInactive') }}</option>
-                        <option value="suspended">{{ t('usersPage.statusSuspended') }}</option>
-                      </Field>
+                      <AppSelect
+                        :model-value="values.status || null"
+                        :options="statusOptions"
+                        :placeholder="t('usersPage.status')"
+                        @update:model-value="setFieldValue('status', $event || 'active')"
+                      />
                       <ErrorMessage name="status" class="erp-helper text-rose-500 dark:text-rose-400" />
                     </div>
                   </div>
@@ -182,7 +183,7 @@
                       <span
                         v-for="permission in selectedRolePermissions(values.role)"
                         :key="permission"
-                        class="inline-flex rounded-[5px] bg-cyan-100 px-2.5 py-1 text-[11px] font-medium text-cyan-700 dark:bg-cyan-950/50 dark:text-cyan-300"
+                        class="erp-badge erp-badge-info text-[11px] font-medium"
                       >
                         {{ permission }}
                       </span>
@@ -216,13 +217,9 @@
                         v-if="values.direct_permissions.length"
                         class="mt-3 flex flex-wrap gap-2"
                       >
-                        <span
-                          v-for="permission in values.direct_permissions"
-                          :key="permission"
-                          class="inline-flex rounded-[5px] bg-slate-100 px-2.5 py-1 text-[11px] font-medium text-slate-700 dark:bg-slate-800 dark:text-slate-200"
-                        >
-                          {{ permission }}
-                        </span>
+                          <span v-for="permission in values.direct_permissions" :key="permission" class="erp-badge erp-badge-neutral text-[11px] font-medium">
+                            {{ permission }}
+                          </span>
                       </div>
                     </div>
                   </div>
@@ -239,16 +236,13 @@
                 <div v-if="roleUsesScopedBranchAccess(values.role)" class="mt-4 space-y-4">
                   <div>
                     <label class="erp-label" for="default_branch_id">{{ t('usersPage.defaultBranch') }}</label>
-                    <Field id="default_branch_id" as="select" name="default_branch_id" class="erp-select">
-                      <option value="">{{ t('usersPage.selectDefaultBranch') }}</option>
-                      <option
-                        v-for="branch in selectedBranches(values.branch_ids)"
-                        :key="branch.id"
-                        :value="branch.id"
-                      >
-                        {{ branch.name }}
-                      </option>
-                    </Field>
+                    <AppSelect
+                      :model-value="values.default_branch_id || null"
+                      :options="defaultBranchOptions(values.branch_ids)"
+                      clearable
+                      :placeholder="t('usersPage.selectDefaultBranch')"
+                      @update:model-value="setFieldValue('default_branch_id', $event || '')"
+                    />
                     <ErrorMessage name="default_branch_id" class="erp-helper text-rose-500 dark:text-rose-400" />
                   </div>
 
@@ -272,10 +266,7 @@
                             <div class="text-xs text-slate-500 dark:text-slate-400">{{ branch.code }}</div>
                           </div>
                         </div>
-                        <span
-                          v-if="branch.is_default"
-                          class="inline-flex rounded-[5px] bg-emerald-100 px-2 py-1 text-[11px] font-medium text-emerald-700 dark:bg-emerald-950/50 dark:text-emerald-300"
-                        >
+                        <span v-if="branch.is_default" class="erp-badge erp-badge-success px-2 text-[11px] font-medium">
                           {{ t('usersPage.businessDefault') }}
                         </span>
                       </label>
@@ -382,6 +373,11 @@ const roleOptions = computed(() => roles.value.map((role) => ({
   value: role.name,
   label: role.name,
 })))
+const statusOptions = computed(() => [
+  { value: 'active', label: t('usersPage.statusActive') },
+  { value: 'inactive', label: t('usersPage.statusInactive') },
+  { value: 'suspended', label: t('usersPage.statusSuspended') },
+])
 const permissionOptions = computed(() =>
   permissionGroups.value.flatMap((group) =>
     group.permissions.map((permission) => ({
@@ -496,6 +492,12 @@ const selectedRolePermissions = (roleName) =>
 
 const selectedBranches = (branchIds = []) =>
   branches.value.filter((branch) => branchIds.includes(branch.id))
+
+const defaultBranchOptions = (branchIds = []) =>
+  selectedBranches(branchIds).map((branch) => ({
+    value: branch.id,
+    label: branch.name,
+  }))
 
 const roleUsesScopedBranchAccess = (roleName) => !['super_admin', 'admin'].includes(roleName || '')
 

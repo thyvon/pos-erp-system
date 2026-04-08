@@ -11,18 +11,18 @@ export const getStockTransferStatusLabel = (status) => {
 
 export const getStockTransferStatusClasses = (status) => {
   if (status === TRANSFER_STATUS_PENDING) {
-    return 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
+    return 'erp-badge-warning'
   }
 
   if (status === TRANSFER_STATUS_IN_TRANSIT) {
-    return 'bg-sky-100 text-sky-700 dark:bg-sky-950/40 dark:text-sky-300'
+    return 'erp-badge-info'
   }
 
   if (status === TRANSFER_STATUS_RECEIVED) {
-    return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
+    return 'erp-badge-success'
   }
 
-  return 'bg-slate-100 text-slate-700 dark:bg-slate-900 dark:text-slate-300'
+  return 'erp-badge-neutral'
 }
 
 export const isStockTransferEditable = (status) =>

@@ -39,44 +39,44 @@
           <div class="space-y-4">
               <div class="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(0,0.7fr)] items-start">
                 <div class="space-y-4">
-                  <div class="rounded-[5px] border border-slate-200/80 bg-white/80 p-5 shadow-sm dark:border-slate-800/80 dark:bg-slate-950/80">
+                  <div class="erp-preview-card">
                     <div class="grid gap-4 sm:grid-cols-2">
-                      <div class="flex items-center justify-between gap-3 rounded-md bg-slate-50/80 p-3 dark:bg-slate-900/80">
+                      <div class="erp-preview-tile flex items-center justify-between gap-3">
                         <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Type</div>
                         <div class="text-sm text-slate-900 dark:text-white">{{ formatType(product.type) }}</div>
                       </div>
-                      <div class="flex items-center justify-between gap-3 rounded-md bg-slate-50/80 p-3 dark:bg-slate-900/80">
+                      <div class="erp-preview-tile flex items-center justify-between gap-3">
                         <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Status</div>
                         <div class="text-sm text-slate-900 dark:text-white">{{ product.is_active ? 'Active' : 'Inactive' }}</div>
                       </div>
-                      <div class="flex items-center justify-between gap-3 rounded-md bg-slate-50/80 p-3 dark:bg-slate-900/80">
+                      <div class="erp-preview-tile flex items-center justify-between gap-3">
                         <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Category</div>
                         <div class="text-sm text-slate-900 dark:text-white">{{ product.category?.name || 'No category' }}</div>
                       </div>
-                      <div class="flex items-center justify-between gap-3 rounded-md bg-slate-50/80 p-3 dark:bg-slate-900/80">
+                      <div class="erp-preview-tile flex items-center justify-between gap-3">
                         <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Brand</div>
                         <div class="text-sm text-slate-900 dark:text-white">{{ product.brand?.name || 'No brand' }}</div>
                       </div>
-                      <div class="flex items-center justify-between gap-3 rounded-md bg-slate-50/80 p-3 dark:bg-slate-900/80">
+                      <div class="erp-preview-tile flex items-center justify-between gap-3">
                         <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Unit</div>
                         <div class="text-sm text-slate-900 dark:text-white">{{ product.unit?.name || 'No unit' }}</div>
                       </div>
-                      <div class="flex items-center justify-between gap-3 rounded-md bg-slate-50/80 p-3 dark:bg-slate-900/80">
+                      <div class="erp-preview-tile flex items-center justify-between gap-3">
                         <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Sub unit</div>
                         <div class="text-sm text-slate-900 dark:text-white">{{ product.sub_unit?.name || 'None' }}</div>
                       </div>
-                      <div class="flex items-center justify-between gap-3 rounded-md bg-slate-50/80 p-3 dark:bg-slate-900/80">
+                      <div class="erp-preview-tile flex items-center justify-between gap-3">
                         <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Tax profile</div>
                         <div class="text-sm text-slate-900 dark:text-white">{{ product.tax_type || 'None' }}</div>
                       </div>
-                      <div class="flex items-center justify-between gap-3 rounded-md bg-slate-50/80 p-3 dark:bg-slate-900/80">
+                      <div class="erp-preview-tile flex items-center justify-between gap-3">
                         <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Tax rate</div>
                         <div class="text-sm text-slate-900 dark:text-white">{{ product.tax_rate?.name || 'None' }}</div>
                       </div>
                     </div>
                   </div>
 
-                  <div class="rounded-[5px] border border-slate-200/80 bg-white/80 p-5 shadow-sm dark:border-slate-800/80 dark:bg-slate-950/80">
+                  <div class="erp-preview-card">
                     <div class="grid gap-4 sm:grid-cols-2">
                       <div>
                         <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Pricing</div>
@@ -123,7 +123,7 @@
                     </div>
                   </div>
 
-                  <div class="rounded-[5px] border border-slate-200/80 bg-white/80 p-5 shadow-sm dark:border-slate-800/80 dark:bg-slate-950/80">
+                  <div class="erp-preview-card">
                     <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Description & Details</div>
                     <div class="mt-3 grid gap-4 lg:grid-cols-[minmax(0,1.4fr)_minmax(0,0.6fr)]">
                       <div class="text-sm leading-6 text-slate-700 dark:text-slate-300">
@@ -135,15 +135,15 @@
                         </template>
                       </div>
                       <div class="space-y-3 text-sm text-slate-900 dark:text-white">
-                        <div class="flex items-center justify-between gap-3 rounded-md bg-slate-50/80 p-3 dark:bg-slate-900/80">
+                        <div class="erp-preview-tile flex items-center justify-between gap-3">
                           <span>Barcode type</span>
                           <span class="font-semibold">{{ product.barcode_type || 'N/A' }}</span>
                         </div>
-                        <div class="flex items-center justify-between gap-3 rounded-md bg-slate-50/80 p-3 dark:bg-slate-900/80">
+                        <div class="erp-preview-tile flex items-center justify-between gap-3">
                           <span>Price group</span>
                           <span class="font-semibold">{{ product.price_group?.name || 'Default' }}</span>
                         </div>
-                        <div class="flex items-center justify-between gap-3 rounded-md bg-slate-50/80 p-3 dark:bg-slate-900/80">
+                        <div class="erp-preview-tile flex items-center justify-between gap-3">
                           <span>Weight</span>
                           <span class="font-semibold">{{ product.weight || 'N/A' }}</span>
                         </div>
@@ -152,7 +152,7 @@
                   </div>
                 </div>
                 <aside class="space-y-4 self-start xl:self-start">
-                  <div v-if="product.image_url" class="min-h-[400px] rounded-[5px] border border-slate-200/80 bg-white/80 p-5 shadow-sm dark:border-slate-800/80 dark:bg-slate-950/80">
+                  <div v-if="product.image_url" class="erp-preview-card min-h-[400px]">
                     <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Product image</div>
                     <img :src="product.image_url" alt="Product image" class="mt-3 h-full w-full rounded-[10px] object-cover" />
                   </div>
@@ -168,7 +168,7 @@
               <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">View generated product variants and pricing.</p>
             </div>
           </div>
-          <div class="overflow-x-auto rounded-[5px] border border-slate-200/80 bg-white/80 shadow-sm dark:border-slate-800/80 dark:bg-slate-950/80">
+          <div class="erp-table-shell overflow-x-auto">
             <table class="erp-table min-w-full">
               <thead>
                 <tr>
@@ -180,7 +180,7 @@
                 </tr>
               </thead>
               <tbody>
-                <tr v-for="variation in product.variations" :key="variation.id" class="odd:bg-slate-50/80 dark:odd:bg-slate-900/50">
+                <tr v-for="variation in product.variations" :key="variation.id" class="odd:bg-white/10 dark:odd:bg-white/[0.04]">
                   <td>{{ variation.name }}</td>
                   <td>{{ variation.sku || 'Auto-generated' }}</td>
                   <td>{{ formatMoney(variation.selling_price) }}</td>
@@ -199,9 +199,9 @@
               <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">Items included in this combo product.</p>
             </div>
           </div>
-          <div class="overflow-x-auto rounded-[5px] border border-slate-200/80 dark:border-slate-800/80">
+          <div class="erp-table-shell overflow-x-auto">
             <div class="min-w-[640px]">
-              <div class="grid gap-3 border-b border-slate-200/80 bg-slate-50/80 px-3 py-2 text-xs font-semibold text-slate-500 dark:border-slate-800/80 dark:bg-slate-900/50 dark:text-slate-400 grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0.8fr)]">
+              <div class="grid gap-3 border-b border-slate-200/80 bg-white/15 px-3 py-2 text-xs font-semibold text-slate-500 dark:border-slate-800/80 dark:bg-white/[0.04] dark:text-slate-400 grid-cols-[minmax(0,1.5fr)_minmax(0,1fr)_minmax(0.8fr)]">
                 <div>Component</div>
                 <div>Variation</div>
                 <div>Qty</div>

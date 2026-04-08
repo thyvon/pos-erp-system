@@ -16,10 +16,8 @@
       </div>
     </div>
 
-    <div class="relative">
-      <LoadingSpinner :show="loading" :title="t('table.loadingTitle')" :message="t('table.loadingMessage')" />
-
-      <div class="overflow-x-auto">
+    <div class="erp-table-stage" :class="{ 'erp-table-stage--loading': loading }">
+      <div class="overflow-x-auto" :class="{ 'erp-table-content--loading': loading && rows.length > 0 }">
         <table class="erp-table">
           <thead>
             <tr>
@@ -32,8 +30,8 @@
               >
                 <div class="flex items-center gap-2">
                   <span>{{ column.label }}</span>
-                  <span v-if="column.sortable" class="text-[10px]">
-                    {{ sortIcon(column.key) }}
+                  <span v-if="column.sortable" class="inline-flex h-4 w-4 items-center justify-center text-[10px] text-slate-400 dark:text-slate-500">
+                    <i class="fa-solid" :class="sortIconClass(column.key)"></i>
                   </span>
                 </div>
               </th>
@@ -64,9 +62,11 @@
           </tbody>
         </table>
       </div>
+
+      <div v-if="loading" class="erp-table-loading-wash" aria-hidden="true"></div>
     </div>
 
-    <div class="flex flex-col gap-3 border-t border-slate-200/70 px-4 py-3 dark:border-slate-800 sm:flex-row sm:items-center sm:justify-between">
+    <div class="flex flex-col gap-3 border-t border-white/40 px-4 py-3 dark:border-white/10 sm:flex-row sm:items-center sm:justify-between">
       <div class="flex flex-col gap-2.5 text-sm text-slate-500 dark:text-slate-400 sm:flex-row sm:items-center">
         <span>{{ t('table.pageOf', { current: currentPage, last: lastPage }) }}</span>
         <label class="flex items-center gap-2">
@@ -96,7 +96,6 @@
 import { ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AppPagination from './AppPagination.vue'
-import LoadingSpinner from './LoadingSpinner.vue'
 import SearchInput from './SearchInput.vue'
 
 const props = defineProps({
@@ -151,6 +150,14 @@ const handleSort = (column) => {
   })
 }
 
+const sortIconClass = (key) => {
+  if (props.sortKey !== key) {
+    return 'fa-arrows-up-down'
+  }
+
+  return props.sortDirection === 'asc' ? 'fa-arrow-up-wide-short' : 'fa-arrow-down-wide-short'
+}
+
 const sortIcon = (key) => {
   if (props.sortKey !== key) {
     return '↕'
@@ -159,3 +166,45 @@ const sortIcon = (key) => {
   return props.sortDirection === 'asc' ? '↑' : '↓'
 }
 </script>
+
+<style scoped>
+.erp-table-stage {
+  position: relative;
+  min-height: 12rem;
+}
+
+.erp-table-content--loading {
+  filter: blur(10px);
+  opacity: 0.68;
+  transition:
+    filter 0.18s ease,
+    opacity 0.18s ease;
+}
+
+.erp-table-loading-wash {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  border-radius: 1.5rem;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.08)),
+    radial-gradient(circle at 20% 18%, rgba(96, 165, 250, 0.14), transparent 34%),
+    radial-gradient(circle at 82% 78%, rgba(34, 211, 238, 0.12), transparent 30%);
+  backdrop-filter: blur(16px) saturate(1.08);
+  -webkit-backdrop-filter: blur(16px) saturate(1.08);
+}
+
+.dark .erp-table-loading-wash {
+  background:
+    linear-gradient(180deg, rgba(15, 23, 42, 0.26), rgba(15, 23, 42, 0.14)),
+    radial-gradient(circle at 18% 16%, rgba(59, 130, 246, 0.14), transparent 36%),
+    radial-gradient(circle at 82% 78%, rgba(14, 165, 233, 0.12), transparent 32%);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .erp-table-content--loading {
+    transition: none;
+  }
+}
+</style>

@@ -56,7 +56,7 @@
             <span
               v-for="taxRate in row.tax_rates"
               :key="taxRate.id"
-              class="inline-flex rounded-[10px] bg-cyan-100 px-2 py-1 text-[11px] font-medium text-cyan-700 dark:bg-cyan-950/50 dark:text-cyan-300"
+              class="erp-badge erp-badge-info px-2 text-[11px] font-medium"
             >
               {{ formatTaxRate(taxRate) }}
             </span>

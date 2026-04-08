@@ -54,6 +54,7 @@
             <div v-else-if="isBusinessGroup" class="space-y-6">
               <section v-if="canViewBusiness" class="space-y-6">
                 <Form
+                  v-slot="{ values, setFieldValue }"
                   v-if="businessStore.item"
                   :key="`business-${businessFormKey}`"
                   :validation-schema="businessSchema"
@@ -111,9 +112,12 @@
 
                       <div>
                         <label class="erp-label" for="locale">Locale</label>
-                        <Field id="locale" name="locale" as="select" class="erp-select">
-                          <option v-for="option in localeOptions" :key="option.value" :value="option.value">{{ option.label }}</option>
-                        </Field>
+                        <AppSelect
+                          :model-value="values.locale || null"
+                          :options="localeOptions"
+                          placeholder="Select locale"
+                          @update:model-value="setFieldValue('locale', $event || '')"
+                        />
                         <ErrorMessage name="locale" class="erp-helper text-rose-500 dark:text-rose-400" />
                       </div>
                     </div>
@@ -121,9 +125,12 @@
                     <div class="grid gap-4 md:grid-cols-2">
                       <div>
                         <label class="erp-label" for="timezone">Timezone</label>
-                        <Field id="timezone" name="timezone" as="select" class="erp-select">
-                          <option v-for="zone in timezones" :key="zone" :value="zone">{{ zone }}</option>
-                        </Field>
+                        <AppSelect
+                          :model-value="values.timezone || null"
+                          :options="timezoneOptions"
+                          placeholder="Select timezone"
+                          @update:model-value="setFieldValue('timezone', $event || '')"
+                        />
                         <ErrorMessage name="timezone" class="erp-helper text-rose-500 dark:text-rose-400" />
                       </div>
 
@@ -191,7 +198,12 @@
                   </fieldset>
                 </Form>
 
-                <PageBlurSkeleton v-else variant="settings" />
+                <div
+                  v-else
+                  class="rounded-[5px] border border-dashed border-slate-300/80 bg-white/35 px-5 py-8 text-sm text-slate-600 backdrop-blur-xl dark:border-slate-700/70 dark:bg-slate-900/25 dark:text-slate-300"
+                >
+                  Business profile data is not available yet.
+                </div>
               </section>
 
               <section v-if="canViewSettings" class="grid gap-4 xl:grid-cols-[1fr_22rem]">
@@ -301,6 +313,7 @@
             </div>
 
             <Form
+              v-slot="{ values, setFieldValue }"
               v-else-if="currentGroupValues"
               :key="`${activeGroup}-${settingsFormKey}`"
               :initial-values="settingsDraftValues"
@@ -316,15 +329,13 @@
                   <label class="erp-label" :for="field.key">{{ field.label }}</label>
                   <p class="mb-3 text-xs text-slate-500 dark:text-slate-400">{{ field.help }}</p>
 
-                  <Field
+                  <AppSelect
                     v-if="field.component === 'select'"
-                    :id="field.key"
-                    :name="field.key"
-                    as="select"
-                    class="erp-select"
-                  >
-                    <option v-for="option in field.options" :key="option.value" :value="option.value">{{ option.label }}</option>
-                  </Field>
+                    :model-value="values[field.key] ?? null"
+                    :options="field.options || []"
+                    :placeholder="field.label"
+                    @update:model-value="setFieldValue(field.key, $event ?? '')"
+                  />
 
                   <Field
                     v-else-if="field.component === 'checkbox'"
@@ -378,6 +389,7 @@ import { useRoute, useRouter } from 'vue-router'
 import { ErrorMessage, Field, Form } from 'vee-validate'
 import * as yup from 'yup'
 import AppAlert from '@components/ui/AppAlert.vue'
+import AppSelect from '@components/ui/AppSelect.vue'
 import PageBlurSkeleton from '@components/ui/PageBlurSkeleton.vue'
 import StatusBadge from '@components/ui/StatusBadge.vue'
 import AppLayout from '@layouts/AppLayout.vue'
@@ -395,6 +407,7 @@ const settingsFormKey = ref(0)
 const businessFormKey = ref(0)
 const generalFormKey = ref(0)
 const timezones = ['Asia/Phnom_Penh', 'Asia/Bangkok', 'UTC']
+const timezoneOptions = timezones.map((zone) => ({ value: zone, label: zone }))
 const localeOptions = [
   { value: 'en', label: 'English' },
   { value: 'km', label: 'Khmer' },

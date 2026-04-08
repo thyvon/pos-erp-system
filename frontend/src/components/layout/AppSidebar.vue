@@ -1,51 +1,51 @@
 <template>
   <div
     v-if="isDesktop"
-    class="erp-sidebar-brand fixed left-0 top-0 z-30 flex h-[72px] items-center px-4"
+    class="erp-sidebar-brand fixed left-0 top-0 z-30 flex h-[64px] items-center px-3.5"
     :style="desktopBrandStyle"
   >
     <RouterLink to="/dashboard" class="flex min-w-0 items-center gap-3">
-      <div class="flex h-11 w-11 items-center justify-center rounded-[5px] bg-[linear-gradient(135deg,#ecf5ff,#8cc7ff_55%,#4d84ff)] text-lg font-bold text-slate-950 shadow-[0_18px_30px_rgba(77,132,255,0.28)]">
+      <div class="flex h-10 w-10 items-center justify-center rounded-[16px] bg-[linear-gradient(135deg,rgba(255,255,255,0.92),rgba(208,230,255,0.92)_55%,rgba(90,152,255,0.95))] text-base font-bold text-slate-950 shadow-[0_18px_30px_rgba(77,132,255,0.22)]">
         E
       </div>
       <div v-if="!sidebarCollapsed" class="min-w-0">
-        <div class="erp-sidebar-brand-kicker text-[11px] font-semibold uppercase tracking-[0.28em]">
+        <div class="erp-sidebar-brand-kicker text-[10px] font-semibold uppercase tracking-[0.24em]">
           POS ERP
         </div>
-        <div class="erp-sidebar-brand-title mt-1 truncate text-sm font-medium">Liquid Workspace</div>
+        <div class="erp-sidebar-brand-title mt-0.5 truncate text-[13px] font-medium">Liquid Workspace</div>
       </div>
     </RouterLink>
   </div>
 
   <aside
-    class="erp-sidebar-shell fixed inset-y-0 left-0 z-50 flex w-[16rem] max-w-[88vw] flex-col overflow-hidden rounded-r-[5px] transition-all duration-300 lg:bottom-0 lg:top-[72px] lg:z-20 lg:max-w-none lg:rounded-none lg:translate-x-0"
+    class="erp-sidebar-shell fixed inset-y-0 left-0 z-50 flex w-[15rem] max-w-[88vw] flex-col overflow-hidden rounded-r-[28px] transition-all duration-300 lg:bottom-0 lg:top-[64px] lg:z-20 lg:max-w-none lg:rounded-none lg:translate-x-0"
     :style="desktopSidebarStyle"
     :class="[
       sidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0',
-      sidebarCollapsed && isDesktop ? 'lg:overflow-visible' : '',
+      sidebarCollapsed && isDesktop ? 'lg:z-40 lg:overflow-visible' : '',
     ]"
   >
-    <div class="erp-sidebar-shell-bg absolute inset-0 rounded-r-[5px] lg:rounded-none"></div>
-    <div class="erp-sidebar-shell-border absolute inset-0 rounded-r-[5px] lg:rounded-none"></div>
-    <div class="erp-sidebar-shell-glow absolute inset-x-0 top-0 h-28 rounded-tr-[5px] lg:rounded-none"></div>
+    <div class="erp-sidebar-shell-bg absolute inset-0 rounded-r-[28px] lg:rounded-none"></div>
+    <div class="erp-sidebar-shell-border absolute inset-0 rounded-r-[28px] lg:rounded-none"></div>
+    <div class="erp-sidebar-shell-glow absolute inset-x-0 top-0 h-28 rounded-tr-[28px] lg:rounded-none"></div>
 
-    <div v-if="!isDesktop" class="erp-sidebar-mobile-head relative flex min-h-[88px] items-center justify-between px-4 py-4">
+    <div v-if="!isDesktop" class="erp-sidebar-mobile-head relative flex min-h-[76px] items-center justify-between px-3.5 py-3.5">
       <RouterLink to="/dashboard" class="flex items-center gap-3" @click="emitClose">
-        <div class="flex h-12 w-12 items-center justify-center rounded-[5px] bg-[linear-gradient(135deg,#ecf5ff,#8cc7ff_55%,#4d84ff)] text-lg font-bold text-slate-950 shadow-[0_18px_30px_rgba(77,132,255,0.28)]">
+        <div class="flex h-10 w-10 items-center justify-center rounded-[16px] bg-[linear-gradient(135deg,rgba(255,255,255,0.92),rgba(208,230,255,0.92)_55%,rgba(90,152,255,0.95))] text-base font-bold text-slate-950 shadow-[0_18px_30px_rgba(77,132,255,0.22)]">
           E
         </div>
         <div v-if="!sidebarCollapsed" class="min-w-0">
-          <div class="erp-sidebar-brand-kicker text-[11px] font-semibold uppercase tracking-[0.28em]">
+          <div class="erp-sidebar-brand-kicker text-[10px] font-semibold uppercase tracking-[0.24em]">
             POS ERP
           </div>
-          <div class="erp-sidebar-brand-title mt-1 text-sm font-medium">Liquid Workspace</div>
+          <div class="erp-sidebar-brand-title mt-0.5 text-[13px] font-medium">Liquid Workspace</div>
         </div>
       </RouterLink>
 
       <div class="flex items-center gap-2">
         <button
           type="button"
-          class="erp-sidebar-mobile-close rounded-[5px] px-2.5 py-1.5 text-sm lg:hidden"
+          class="erp-sidebar-mobile-close rounded-[16px] px-2.5 py-1.5 text-sm lg:hidden"
           @click="emitClose"
         >
           <i class="fa-solid fa-xmark"></i>
@@ -55,7 +55,7 @@
 
     <div
       ref="sidebarScrollRef"
-      class="relative flex-1 overscroll-y-contain px-0 py-3 erp-sidebar-scroll"
+      class="relative flex-1 overscroll-y-contain px-2.5 py-2.5 erp-sidebar-scroll"
       :class="sidebarScrollClasses"
       @mouseenter="sidebarHovered = true"
       @mouseleave="sidebarHovered = false"
@@ -125,10 +125,7 @@
                   :class="isItemActive(child) ? 'erp-sidebar-link-active' : ''"
                   @click="handleItemNavigation"
                 >
-                  <div class="flex min-w-0 items-center gap-3">
-                    <span class="erp-nav-icon">
-                      <i :class="child.icon"></i>
-                    </span>
+                  <div class="flex min-w-0 items-center">
                     <div class="min-w-0">
                       <div class="text-sm font-medium">{{ child.label }}</div>
                     </div>
@@ -146,8 +143,10 @@
                 @mouseleave="handleCollapsedFlyoutLeave(item)"
               >
                 <div class="erp-sidebar-flyout-title">
-                  <span>{{ item.label }}</span>
-                  <span class="erp-nav-badge" :class="item.statusClass">
+                  <div class="erp-sidebar-flyout-title-text-wrap">
+                    <span class="erp-sidebar-flyout-title-text">{{ item.label }}</span>
+                  </div>
+                  <span class="erp-nav-badge erp-sidebar-flyout-title-badge" :class="item.statusClass">
                     {{ item.status }}
                   </span>
                 </div>
@@ -161,10 +160,7 @@
                     :class="isItemActive(child) ? 'erp-sidebar-link-active' : ''"
                     @click="handleItemNavigation"
                   >
-                    <div class="flex min-w-0 items-center gap-3">
-                      <span class="erp-nav-icon">
-                        <i :class="child.icon"></i>
-                      </span>
+                    <div class="flex min-w-0 items-center">
                       <div class="min-w-0 text-left">
                         <div class="text-sm font-medium">{{ child.label }}</div>
                       </div>
@@ -209,7 +205,7 @@
         </section>
       </div>
 
-      <div v-if="!sidebarCollapsed" class="erp-sidebar-callout mt-6 rounded-[5px] p-3">
+      <div v-if="!sidebarCollapsed" class="erp-sidebar-callout mt-6 rounded-[22px] p-3.5">
         <div class="erp-sidebar-callout-kicker text-[11px] font-semibold uppercase tracking-[0.22em]">
           {{ t('layout.nextBuildTarget') }}
         </div>

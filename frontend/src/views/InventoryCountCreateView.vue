@@ -7,7 +7,7 @@
     <div class="mx-auto max-w-4xl space-y-6">
       <AppAlert v-model:show="alert.show" :type="alert.type" :title="alert.title" :message="alert.message" />
 
-      <div class="rounded-[10px] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <div class="erp-form-page relative z-0 overflow-visible focus-within:z-20">
         <div class="mb-5">
           <h2 class="text-lg font-semibold text-slate-950 dark:text-white">Count Setup</h2>
           <p class="mt-1 text-sm text-slate-500 dark:text-slate-400">

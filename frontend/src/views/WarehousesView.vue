@@ -47,12 +47,9 @@
         <template #status="{ row }">
           <div class="flex flex-wrap items-center gap-2">
             <StatusBadge :status="row.is_active ? 'active' : 'inactive'" />
-            <span
-              v-if="row.is_default"
-              class="inline-flex rounded-[5px] bg-cyan-100 px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em] text-cyan-700 dark:bg-cyan-950/60 dark:text-cyan-300"
-            >
-              Default
-            </span>
+              <span v-if="row.is_default" class="erp-badge erp-badge-info px-3 uppercase tracking-[0.16em]">
+                Default
+              </span>
           </div>
         </template>
 
@@ -112,13 +109,13 @@
             </div>
             <div>
               <label class="erp-label" for="type">Type</label>
-              <Field id="type" as="select" name="type" class="erp-select">
-                <option value="">Select type</option>
-                <option value="main">Main</option>
-                <option value="transit">Transit</option>
-                <option value="returns">Returns</option>
-                <option value="damaged">Damaged</option>
-              </Field>
+              <AppSelect
+                :model-value="values.type || null"
+                :options="warehouseTypeOptions"
+                clearable
+                placeholder="Select type"
+                @update:model-value="setFieldValue('type', $event || '')"
+              />
               <ErrorMessage name="type" class="erp-helper text-rose-500 dark:text-rose-400" />
             </div>
           </div>
@@ -219,6 +216,12 @@ const alert = reactive({ show: false, type: 'success', title: 'Success', message
 const modal = reactive({ show: false, mode: 'create', warehouse: null })
 const deleteDialog = reactive({ show: false, warehouse: null, itemName: '' })
 const branchOptions = ref([])
+const warehouseTypeOptions = [
+  { value: 'main', label: 'Main' },
+  { value: 'transit', label: 'Transit' },
+  { value: 'returns', label: 'Returns' },
+  { value: 'damaged', label: 'Damaged' },
+]
 const branchSelectOptions = computed(() => branchOptions.value.map((branch) => ({
   value: branch.id,
   label: branch.name,

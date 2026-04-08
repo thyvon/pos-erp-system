@@ -1,5 +1,16 @@
 <template>
   <div class="erp-shell min-h-screen">
+    <div class="erp-bg-orbs" aria-hidden="true">
+      <div class="erp-bg-orb-node erp-bg-orb-node-a">
+        <div class="erp-bg-orb erp-bg-orb-a"></div>
+      </div>
+      <div class="erp-bg-orb-node erp-bg-orb-node-b">
+        <div class="erp-bg-orb erp-bg-orb-b"></div>
+      </div>
+      <div class="erp-bg-orb-node erp-bg-orb-node-c">
+        <div class="erp-bg-orb erp-bg-orb-c"></div>
+      </div>
+    </div>
     <div class="relative min-h-screen">
       <div
         v-if="sidebarOpen"
@@ -8,7 +19,7 @@
       ></div>
 
       <header v-if="isDesktop" class="fixed top-0 z-30" :style="desktopHeaderStyle">
-        <div class="erp-panel-float flex min-h-[72px] w-full items-center justify-between gap-3 rounded-none border-x-0 border-t-0 px-4 py-2.5 lg:px-6">
+        <div class="erp-panel-float erp-shell-bar flex min-h-[64px] w-full items-center justify-between gap-2.5 rounded-none border-x-0 border-t-0 px-3.5 py-2 lg:px-5">
           <div class="flex items-center gap-3">
             <button
               type="button"
@@ -35,7 +46,7 @@
           </div>
 
           <div class="flex items-center gap-2 sm:gap-3">
-            <div class="erp-glass-band hidden items-center gap-2.5 px-3 py-1.5 text-sm text-slate-600 dark:text-slate-300 xl:flex">
+            <div class="erp-glass-band hidden items-center gap-2 px-2.5 py-1 text-[13px] text-slate-600 dark:text-slate-300 xl:flex">
               <div class="h-2.5 w-2.5 rounded-full bg-emerald-500"></div>
               <span>{{ t('layout.backendConnected') }}</span>
             </div>
@@ -105,7 +116,7 @@
 
       <div class="erp-main-wrap min-w-0 overflow-x-hidden" :style="mainWrapStyle">
         <header v-if="!isDesktop" class="sticky top-0 z-30">
-          <div class="erp-panel-float flex min-h-[72px] w-full items-center justify-between gap-3 rounded-none border-x-0 border-t-0 px-4 py-2.5 lg:px-6">
+          <div class="erp-panel-float erp-shell-bar flex min-h-[64px] w-full items-center justify-between gap-2.5 rounded-none border-x-0 border-t-0 px-3.5 py-2 lg:px-5">
             <div class="flex items-center gap-3">
               <button type="button" class="erp-topbar-button lg:hidden" @click="sidebarOpen = true">
                 <i class="fa-solid fa-bars"></i>
@@ -136,7 +147,7 @@
             </div>
 
             <div class="flex items-center gap-2 sm:gap-3">
-              <div class="erp-glass-band hidden items-center gap-2.5 px-3 py-1.5 text-sm text-slate-600 dark:text-slate-300 xl:flex">
+              <div class="erp-glass-band hidden items-center gap-2 px-2.5 py-1 text-[13px] text-slate-600 dark:text-slate-300 xl:flex">
                 <div class="h-2.5 w-2.5 rounded-full bg-emerald-500"></div>
                 <span>{{ t('layout.backendConnected') }}</span>
               </div>
@@ -191,7 +202,7 @@
         </header>
 
         <main class="min-h-full px-0 py-0">
-          <div class="w-full px-4 py-4 pb-40 lg:px-6 lg:py-5 lg:pb-36">
+          <div class="erp-route-content w-full px-3.5 py-3.5 pb-32 lg:px-5 lg:py-4 lg:pb-32">
             <slot />
           </div>
         </main>
@@ -200,17 +211,17 @@
           class="fixed bottom-0 right-0 z-20 bg-transparent px-0 py-0 text-sm text-slate-500 dark:text-slate-400"
           :style="footerDesktopStyle"
         >
-          <div class="erp-panel-float flex w-full flex-col gap-3 rounded-none border-x-0 border-b-0 px-4 py-2.5 sm:flex-row sm:items-center sm:justify-between lg:px-6">
+          <div class="erp-panel-float erp-shell-bar erp-footer-bar flex w-full flex-col gap-2.5 rounded-none border-x-0 border-b-0 px-3.5 py-2 sm:flex-row sm:items-center sm:justify-between lg:px-5">
             <div>
-              <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
+              <div class="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
                 {{ appName }}
               </div>
-              <div class="mt-1 text-sm text-slate-600 dark:text-slate-300">
+              <div class="mt-1 text-[13px] text-slate-600 dark:text-slate-300">
                 {{ t('layout.footerDescription') }}
               </div>
             </div>
             <div class="flex flex-col items-start gap-1 text-left sm:items-end">
-              <div class="font-medium text-slate-700 dark:text-slate-200">{{ today }}</div>
+              <div class="text-[13px] font-medium text-slate-700 dark:text-slate-200">{{ today }}</div>
               <div class="text-xs text-slate-500 dark:text-slate-400">{{ currentYear }} © {{ t('layout.allRightsReserved') }}</div>
             </div>
           </div>
@@ -258,8 +269,8 @@ const userMenuRef = ref(null)
 
 const themeKey = 'erp_theme'
 const appName = import.meta.env.VITE_APP_NAME || 'ERP System'
-const expandedSidebarWidth = '16rem'
-const collapsedSidebarWidth = '5.5rem'
+const expandedSidebarWidth = '15rem'
+const collapsedSidebarWidth = '4.75rem'
 const currentYear = new Date().getFullYear()
 
 const isDesktop = computed(() => viewportWidth.value >= 1024)
@@ -326,8 +337,8 @@ const desktopHeaderStyle = computed(() => ({
 
 const mainWrapStyle = computed(() => ({
   marginLeft: isDesktop.value ? (sidebarCollapsed.value ? collapsedSidebarWidth : expandedSidebarWidth) : '0',
-  paddingTop: isDesktop.value ? '72px' : '0',
-  paddingBottom: isDesktop.value ? '6rem' : '7rem',
+  paddingTop: isDesktop.value ? '64px' : '0',
+  paddingBottom: isDesktop.value ? '5.25rem' : '6rem',
 }))
 
 const footerDesktopStyle = computed(() => ({

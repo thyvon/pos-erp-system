@@ -47,7 +47,7 @@
         </template>
 
         <template #status="{ row }">
-          <span class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold" :class="lotStatusClass(row.status)">
+          <span class="erp-badge" :class="lotStatusClass(row.status)">
             {{ row.status }}
           </span>
         </template>
@@ -68,13 +68,12 @@
 
           <div>
             <label class="erp-label">Status</label>
-            <select v-model="statusModal.status" class="erp-select">
-              <option value="active">active</option>
-              <option value="depleted">depleted</option>
-              <option value="expired">expired</option>
-              <option value="recalled">recalled</option>
-              <option value="quarantine">quarantine</option>
-            </select>
+            <AppSelect
+              :model-value="statusModal.status"
+              :options="lotStatusOptions"
+              placeholder="Select status"
+              @update:model-value="statusModal.status = $event || 'active'"
+            />
           </div>
 
           <div>
@@ -99,6 +98,7 @@
 import { computed, onMounted, reactive } from 'vue'
 import AppAlert from '@components/ui/AppAlert.vue'
 import AppModal from '@components/ui/AppModal.vue'
+import AppSelect from '@components/ui/AppSelect.vue'
 import DataTable from '@components/ui/DataTable.vue'
 import AppLayout from '@layouts/AppLayout.vue'
 import { useAuthStore } from '@stores/auth'
@@ -115,14 +115,21 @@ const columns = [
   { key: 'status', label: 'Status' },
   { key: 'actions', label: 'Actions' },
 ]
+const lotStatusOptions = [
+  { value: 'active', label: 'Active' },
+  { value: 'depleted', label: 'Depleted' },
+  { value: 'expired', label: 'Expired' },
+  { value: 'recalled', label: 'Recalled' },
+  { value: 'quarantine', label: 'Quarantine' },
+]
 
 const alert = reactive({ show: false, type: 'success', title: 'Success', message: '' })
 const statusModal = reactive({ show: false, lot: null, status: 'active', reason: '' })
 
 const lotStatusClass = (status) => {
-  if (status === 'active') return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-300'
-  if (status === 'expired' || status === 'recalled') return 'bg-rose-100 text-rose-700 dark:bg-rose-950/40 dark:text-rose-300'
-  return 'bg-amber-100 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300'
+  if (status === 'active') return 'erp-badge-success'
+  if (status === 'expired' || status === 'recalled') return 'erp-badge-danger'
+  return 'erp-badge-warning'
 }
 
 const showToast = (type, message) => {

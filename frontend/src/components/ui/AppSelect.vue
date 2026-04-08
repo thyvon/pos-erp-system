@@ -1,8 +1,8 @@
 <template>
-  <div ref="root" class="relative">
+  <div ref="root" class="relative" :class="open ? 'z-[160]' : 'z-0'">
     <button
       type="button"
-      class="erp-input flex min-h-[46px] items-center justify-between gap-3 text-left"
+      class="erp-input flex items-center justify-between gap-3 text-left"
       :class="[
         disabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer',
         open ? 'border-cyan-400/70 shadow-[0_0_0_4px_rgba(58,123,255,0.10),inset_0_1px_0_rgba(255,255,255,0.72)]' : '',
@@ -16,13 +16,13 @@
             <span
               v-for="item in previewItems"
               :key="String(item.value)"
-              class="inline-flex max-w-full items-center rounded-[10px] bg-cyan-100 px-2 py-1 text-[11px] font-medium text-cyan-700 dark:bg-cyan-950/50 dark:text-cyan-300"
+              class="erp-badge erp-badge-info max-w-full px-2 text-[11px] font-medium"
             >
               <span class="truncate">{{ item.label }}</span>
             </span>
             <span
               v-if="selectedItems.length > previewItems.length"
-              class="inline-flex rounded-[10px] bg-slate-100 px-2 py-1 text-[11px] font-medium text-slate-600 dark:bg-slate-800 dark:text-slate-300"
+              class="erp-badge erp-badge-neutral px-2 text-[11px] font-medium"
             >
               +{{ selectedItems.length - previewItems.length }}
             </span>
@@ -56,64 +56,68 @@
       </div>
     </button>
 
-    <Transition name="erp-select-pop">
-      <div
-        v-if="open"
-        class="absolute left-0 right-0 top-[calc(100%+0.5rem)] z-[90] overflow-hidden rounded-[15px] border border-slate-200/80 bg-white/95 shadow-[0_22px_50px_rgba(44,62,99,0.16)] dark:border-slate-700/70 dark:bg-slate-900/95 dark:shadow-[0_22px_50px_rgba(0,0,0,0.36)]"
-      >
-        <div v-if="searchable" class="border-b border-slate-200/70 p-3 dark:border-slate-800/70">
-          <SearchInput
-            v-model="searchTerm"
-            :placeholder="searchPlaceholder"
-          />
-        </div>
+    <Teleport to="body">
+      <Transition name="erp-select-pop">
+        <div
+          v-if="open"
+          ref="panel"
+          class="fixed z-[170] overflow-hidden rounded-[24px] border border-white/50 bg-white/72 shadow-[0_24px_56px_rgba(44,62,99,0.16)] backdrop-blur-[26px] dark:border-white/10 dark:bg-slate-950/76 dark:shadow-[0_24px_56px_rgba(0,0,0,0.34)]"
+          :style="panelStyle"
+        >
+          <div v-if="searchable" class="border-b border-white/40 p-3 dark:border-white/10">
+            <SearchInput
+              v-model="searchTerm"
+              :placeholder="searchPlaceholder"
+            />
+          </div>
 
-        <div class="max-h-72 overflow-y-auto py-2">
-          <template v-if="filteredGroups.length">
-            <div
-              v-for="group in filteredGroups"
-              :key="group.key"
-              class="py-1"
-            >
+          <div class="max-h-72 overflow-y-auto py-2">
+            <template v-if="filteredGroups.length">
               <div
-                v-if="group.label"
-                class="px-3 pb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500"
+                v-for="group in filteredGroups"
+                :key="group.key"
+                class="py-1"
               >
-                {{ group.label }}
-              </div>
+                <div
+                  v-if="group.label"
+                  class="px-4 pb-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-400 dark:text-slate-500"
+                >
+                  {{ group.label }}
+                </div>
 
-              <button
-                v-for="option in group.options"
-                :key="String(option.value)"
+                <button
+                  v-for="option in group.options"
+                  :key="String(option.value)"
                 type="button"
-                class="flex w-full items-center justify-between gap-3 px-3 py-2.5 text-left text-sm transition hover:bg-cyan-50/80 hover:text-cyan-700 dark:hover:bg-cyan-950/30 dark:hover:text-cyan-300"
-                :class="isSelected(option.value) ? 'bg-cyan-50/70 text-cyan-700 dark:bg-cyan-950/20 dark:text-cyan-300' : 'text-slate-700 dark:text-slate-200'"
+                class="mx-2 flex w-[calc(100%-1rem)] items-center justify-between gap-3 rounded-[18px] px-3 py-2.5 text-left text-sm transition hover:bg-sky-50/70 hover:text-cyan-700 dark:hover:bg-cyan-950/24 dark:hover:text-cyan-300"
+                :class="isSelected(option.value) ? 'bg-sky-50/80 text-cyan-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.68)] dark:border dark:border-cyan-400/28 dark:bg-[linear-gradient(135deg,rgba(34,211,238,0.26),rgba(59,130,246,0.18))] dark:text-cyan-50 dark:shadow-[0_10px_20px_rgba(8,47,73,0.28),inset_0_1px_0_rgba(255,255,255,0.08)]' : 'text-slate-700 dark:text-slate-200'"
                 :disabled="option.disabled"
                 @click="selectOption(option)"
               >
-                <div class="min-w-0 flex-1">
-                  <div class="truncate font-medium">{{ option.label }}</div>
-                  <div v-if="option.description" class="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">
-                    {{ option.description }}
+                  <div class="min-w-0 flex-1">
+                    <div class="truncate font-medium">{{ option.label }}</div>
+                    <div v-if="option.description" class="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">
+                      {{ option.description }}
+                    </div>
                   </div>
-                </div>
-                <i
-                  v-if="isSelected(option.value)"
-                  class="fa-solid fa-check text-xs"
-                ></i>
-              </button>
-            </div>
-          </template>
+                  <i
+                    v-if="isSelected(option.value)"
+                    class="fa-solid fa-check text-xs"
+                  ></i>
+                </button>
+              </div>
+            </template>
 
-          <div
-            v-else
-            class="px-3 py-6 text-center text-sm text-slate-500 dark:text-slate-400"
-          >
-            {{ emptyText }}
+            <div
+              v-else
+              class="px-3 py-6 text-center text-sm text-slate-500 dark:text-slate-400"
+            >
+              {{ emptyText }}
+            </div>
           </div>
         </div>
-      </div>
-    </Transition>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
@@ -137,8 +141,10 @@ const props = defineProps({
 const emit = defineEmits(['update:modelValue', 'change'])
 
 const root = ref(null)
+const panel = ref(null)
 const open = ref(false)
 const searchTerm = ref('')
+const panelStyle = ref({})
 
 const normalizedOptions = computed(() =>
   (props.options || []).map((option) => ({
@@ -210,16 +216,37 @@ const close = () => {
   searchTerm.value = ''
 }
 
+const updatePanelPosition = () => {
+  if (!root.value) {
+    return
+  }
+
+  const rect = root.value.getBoundingClientRect()
+  const viewportWidth = window.innerWidth
+  const gutter = 12
+  const preferredWidth = Math.max(rect.width, 220)
+  const availableWidth = Math.max(180, viewportWidth - (gutter * 2))
+  const width = Math.min(preferredWidth, availableWidth)
+  const left = Math.min(Math.max(rect.left, gutter), viewportWidth - width - gutter)
+
+  panelStyle.value = {
+    top: `${rect.bottom + 10}px`,
+    left: `${left}px`,
+    width: `${width}px`,
+  }
+}
+
 const openDropdown = async () => {
   if (props.disabled) {
     return
   }
 
   open.value = true
+  await nextTick()
+  updatePanelPosition()
 
   if (props.searchable) {
-    await nextTick()
-    root.value?.querySelector('input')?.focus()
+    panel.value?.querySelector('input')?.focus()
   }
 }
 
@@ -268,7 +295,13 @@ const handleDocumentPointerDown = (event) => {
     return
   }
 
-  if (root.value && !root.value.contains(event.target)) {
+  const target = event.target
+
+  if (root.value?.contains(target) || panel.value?.contains(target)) {
+    return
+  }
+
+  if (root.value) {
     close()
   }
 }
@@ -288,14 +321,29 @@ watch(
   }
 )
 
+watch(open, (isOpen) => {
+  if (!isOpen) {
+    panelStyle.value = {}
+    return
+  }
+
+  nextTick(() => {
+    updatePanelPosition()
+  })
+})
+
 onMounted(() => {
   document.addEventListener('mousedown', handleDocumentPointerDown)
   document.addEventListener('keydown', handleEscape)
+  window.addEventListener('resize', updatePanelPosition)
+  window.addEventListener('scroll', updatePanelPosition, true)
 })
 
 onBeforeUnmount(() => {
   document.removeEventListener('mousedown', handleDocumentPointerDown)
   document.removeEventListener('keydown', handleEscape)
+  window.removeEventListener('resize', updatePanelPosition)
+  window.removeEventListener('scroll', updatePanelPosition, true)
 })
 </script>
 

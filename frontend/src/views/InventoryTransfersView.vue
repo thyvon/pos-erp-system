@@ -94,12 +94,9 @@
         </template>
 
         <template #status="{ row }">
-          <span
-            class="inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize"
-            :class="statusClasses(row.status)"
-          >
-            {{ statusLabel(row.status) }}
-          </span>
+            <span class="erp-badge capitalize" :class="statusClasses(row.status)">
+              {{ statusLabel(row.status) }}
+            </span>
         </template>
 
         <template #sender="{ row }">
