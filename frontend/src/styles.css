@@ -133,16 +133,16 @@
   .erp-shell::before {
     content: "";
     position: fixed;
-    inset: -12%;
+    inset: -16%;
     z-index: -4;
     pointer-events: none;
     background:
-      radial-gradient(circle at 14% 16%, rgba(79, 140, 255, 0.58), transparent 30%),
-      radial-gradient(circle at 84% 14%, rgba(51, 207, 255, 0.34), transparent 28%),
-      radial-gradient(circle at 76% 74%, rgba(255, 127, 182, 0.3), transparent 30%),
-      radial-gradient(circle at 22% 84%, rgba(255, 177, 120, 0.3), transparent 28%),
+      radial-gradient(circle at 14% 16%, rgba(79, 140, 255, 0.6) 0%, rgba(79, 140, 255, 0.36) 22%, transparent 54%),
+      radial-gradient(circle at 84% 14%, rgba(51, 207, 255, 0.36) 0%, rgba(51, 207, 255, 0.18) 20%, transparent 52%),
+      radial-gradient(circle at 76% 74%, rgba(255, 127, 182, 0.32) 0%, rgba(255, 127, 182, 0.16) 22%, transparent 56%),
+      radial-gradient(circle at 22% 84%, rgba(255, 177, 120, 0.32) 0%, rgba(255, 177, 120, 0.18) 22%, transparent 54%),
       linear-gradient(135deg, #f8fbff 0%, #edf3ff 34%, #eef7ff 68%, #fdf5ff 100%);
-    filter: blur(12px) saturate(130%);
+    filter: blur(28px) saturate(138%);
     transform: translate3d(0, 0, 0) scale(1.08);
     transform-origin: center;
     will-change: transform;
@@ -151,28 +151,28 @@
 
   .dark .erp-shell::before {
     background:
-      radial-gradient(circle at 16% 18%, rgba(94, 96, 255, 0.42), transparent 30%),
-      radial-gradient(circle at 84% 16%, rgba(34, 211, 238, 0.24), transparent 26%),
-      radial-gradient(circle at 76% 78%, rgba(236, 72, 153, 0.22), transparent 28%),
-      radial-gradient(circle at 26% 84%, rgba(249, 115, 22, 0.16), transparent 26%),
+      radial-gradient(circle at 16% 18%, rgba(94, 96, 255, 0.44) 0%, rgba(94, 96, 255, 0.2) 22%, transparent 54%),
+      radial-gradient(circle at 84% 16%, rgba(34, 211, 238, 0.26) 0%, rgba(34, 211, 238, 0.12) 20%, transparent 50%),
+      radial-gradient(circle at 76% 78%, rgba(236, 72, 153, 0.24) 0%, rgba(236, 72, 153, 0.1) 22%, transparent 54%),
+      radial-gradient(circle at 26% 84%, rgba(249, 115, 22, 0.18) 0%, rgba(249, 115, 22, 0.08) 20%, transparent 48%),
       linear-gradient(135deg, #090d1d 0%, #111733 38%, #10152d 70%, #180f2e 100%);
-    filter: blur(14px) saturate(125%);
+    filter: blur(30px) saturate(134%);
   }
 
   .erp-shell::after {
     content: "";
     position: fixed;
-    inset: -8%;
+    inset: -12%;
     z-index: -3;
     pointer-events: none;
     background:
-      radial-gradient(circle at 18% 22%, rgba(255, 255, 255, 0.46), transparent 24%),
-      radial-gradient(circle at 72% 20%, rgba(96, 165, 250, 0.34), transparent 24%),
-      radial-gradient(circle at 68% 74%, rgba(244, 114, 182, 0.22), transparent 24%),
-      radial-gradient(circle at 34% 72%, rgba(45, 212, 191, 0.2), transparent 24%),
+      radial-gradient(circle at 18% 22%, rgba(255, 255, 255, 0.48) 0%, rgba(255, 255, 255, 0.18) 18%, transparent 48%),
+      radial-gradient(circle at 72% 20%, rgba(96, 165, 250, 0.34) 0%, rgba(96, 165, 250, 0.14) 18%, transparent 48%),
+      radial-gradient(circle at 68% 74%, rgba(244, 114, 182, 0.22) 0%, rgba(244, 114, 182, 0.1) 18%, transparent 50%),
+      radial-gradient(circle at 34% 72%, rgba(45, 212, 191, 0.22) 0%, rgba(45, 212, 191, 0.1) 18%, transparent 48%),
       linear-gradient(180deg, rgba(255, 255, 255, 0.22), rgba(255, 255, 255, 0.02) 26%, rgba(255, 255, 255, 0.08) 100%);
     opacity: 0.86;
-    filter: blur(34px) saturate(150%);
+    filter: blur(62px) saturate(162%);
     mix-blend-mode: soft-light;
     transform: translate3d(0, 0, 0) scale(1.12);
     transform-origin: center;
@@ -182,13 +182,13 @@
 
   .dark .erp-shell::after {
     background:
-      radial-gradient(circle at 18% 22%, rgba(147, 197, 253, 0.14), transparent 24%),
-      radial-gradient(circle at 74% 18%, rgba(34, 211, 238, 0.16), transparent 24%),
-      radial-gradient(circle at 70% 76%, rgba(236, 72, 153, 0.14), transparent 24%),
-      radial-gradient(circle at 32% 78%, rgba(249, 115, 22, 0.1), transparent 24%),
+      radial-gradient(circle at 18% 22%, rgba(147, 197, 253, 0.16) 0%, rgba(147, 197, 253, 0.06) 18%, transparent 48%),
+      radial-gradient(circle at 74% 18%, rgba(34, 211, 238, 0.18) 0%, rgba(34, 211, 238, 0.08) 18%, transparent 48%),
+      radial-gradient(circle at 70% 76%, rgba(236, 72, 153, 0.16) 0%, rgba(236, 72, 153, 0.07) 18%, transparent 48%),
+      radial-gradient(circle at 32% 78%, rgba(249, 115, 22, 0.12) 0%, rgba(249, 115, 22, 0.05) 18%, transparent 46%),
       linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.01) 28%, rgba(255, 255, 255, 0.03) 100%);
     opacity: 0.78;
-    filter: blur(40px) saturate(145%);
+    filter: blur(68px) saturate(154%);
     mix-blend-mode: screen;
   }
 
@@ -198,6 +198,21 @@
     z-index: -2;
     pointer-events: none;
     overflow: hidden;
+  }
+
+  .erp-bg-orbs::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background-image:
+      radial-gradient(rgba(255, 255, 255, 0.08) 0.7px, transparent 0.8px),
+      radial-gradient(rgba(96, 165, 250, 0.05) 0.7px, transparent 0.8px);
+    background-position: 0 0, 9px 11px;
+    background-size: 18px 18px, 22px 22px;
+    opacity: 0.18;
+    mix-blend-mode: soft-light;
+    filter: blur(0.7px);
   }
 
   .erp-bg-orb-node {
@@ -223,64 +238,71 @@
     position: absolute;
     border-radius: 9999px;
     will-change: transform, opacity;
-    filter: blur(56px) saturate(155%);
-    opacity: 0.92;
+    filter: blur(96px) saturate(168%);
+    opacity: 0.96;
     mix-blend-mode: screen;
     transform: translate(-50%, -50%);
+    backface-visibility: hidden;
   }
 
   .erp-bg-orb-a {
     top: 0;
     left: 0;
-    width: min(42rem, 48vw);
-    height: min(42rem, 48vw);
+    width: min(48rem, 56vw);
+    height: min(48rem, 56vw);
     background:
-      radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.6), transparent 18%),
-      radial-gradient(circle at center, rgba(79, 140, 255, 0.74), rgba(56, 189, 248, 0.3) 58%, transparent 76%);
+      radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.68), transparent 16%),
+      radial-gradient(circle at 52% 48%, rgba(125, 211, 252, 0.34), rgba(79, 140, 255, 0.22) 34%, transparent 56%),
+      radial-gradient(circle at center, rgba(79, 140, 255, 0.74), rgba(56, 189, 248, 0.34) 58%, transparent 82%);
   }
 
   .erp-bg-orb-b {
     top: 0;
     left: 0;
-    width: min(34rem, 38vw);
-    height: min(34rem, 38vw);
+    width: min(40rem, 46vw);
+    height: min(40rem, 46vw);
     background:
-      radial-gradient(circle at 40% 40%, rgba(255, 255, 255, 0.42), transparent 18%),
-      radial-gradient(circle at center, rgba(255, 126, 181, 0.56), rgba(251, 146, 60, 0.32) 62%, transparent 78%);
+      radial-gradient(circle at 40% 40%, rgba(255, 255, 255, 0.5), transparent 16%),
+      radial-gradient(circle at 54% 46%, rgba(255, 196, 144, 0.28), rgba(255, 126, 181, 0.18) 34%, transparent 54%),
+      radial-gradient(circle at center, rgba(255, 126, 181, 0.58), rgba(251, 146, 60, 0.34) 62%, transparent 82%);
   }
 
   .erp-bg-orb-c {
     top: 0;
     left: 0;
-    width: min(38rem, 42vw);
-    height: min(38rem, 42vw);
+    width: min(44rem, 50vw);
+    height: min(44rem, 50vw);
     background:
-      radial-gradient(circle at 38% 38%, rgba(255, 255, 255, 0.42), transparent 20%),
-      radial-gradient(circle at center, rgba(45, 212, 191, 0.5), rgba(99, 102, 241, 0.28) 60%, transparent 78%);
+      radial-gradient(circle at 38% 38%, rgba(255, 255, 255, 0.48), transparent 18%),
+      radial-gradient(circle at 56% 44%, rgba(125, 211, 252, 0.24), rgba(45, 212, 191, 0.18) 34%, transparent 54%),
+      radial-gradient(circle at center, rgba(45, 212, 191, 0.52), rgba(99, 102, 241, 0.3) 60%, transparent 82%);
   }
 
   .dark .erp-bg-orb {
-    opacity: 0.76;
-    filter: blur(64px) saturate(145%);
+    opacity: 0.82;
+    filter: blur(108px) saturate(156%);
     mix-blend-mode: screen;
   }
 
   .dark .erp-bg-orb-a {
     background:
-      radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.08), transparent 18%),
-      radial-gradient(circle at center, rgba(59, 130, 246, 0.38), rgba(34, 211, 238, 0.18) 58%, transparent 76%);
+      radial-gradient(circle at 35% 35%, rgba(255, 255, 255, 0.09), transparent 16%),
+      radial-gradient(circle at 52% 48%, rgba(125, 211, 252, 0.16), rgba(59, 130, 246, 0.1) 34%, transparent 56%),
+      radial-gradient(circle at center, rgba(59, 130, 246, 0.4), rgba(34, 211, 238, 0.2) 58%, transparent 82%);
   }
 
   .dark .erp-bg-orb-b {
     background:
-      radial-gradient(circle at 40% 40%, rgba(255, 255, 255, 0.05), transparent 18%),
-      radial-gradient(circle at center, rgba(236, 72, 153, 0.28), rgba(249, 115, 22, 0.16) 62%, transparent 78%);
+      radial-gradient(circle at 40% 40%, rgba(255, 255, 255, 0.06), transparent 16%),
+      radial-gradient(circle at 54% 46%, rgba(251, 191, 36, 0.1), rgba(236, 72, 153, 0.08) 34%, transparent 54%),
+      radial-gradient(circle at center, rgba(236, 72, 153, 0.3), rgba(249, 115, 22, 0.18) 62%, transparent 82%);
   }
 
   .dark .erp-bg-orb-c {
     background:
-      radial-gradient(circle at 38% 38%, rgba(255, 255, 255, 0.05), transparent 20%),
-      radial-gradient(circle at center, rgba(20, 184, 166, 0.26), rgba(99, 102, 241, 0.16) 60%, transparent 78%);
+      radial-gradient(circle at 38% 38%, rgba(255, 255, 255, 0.06), transparent 18%),
+      radial-gradient(circle at 56% 44%, rgba(125, 211, 252, 0.08), rgba(20, 184, 166, 0.08) 34%, transparent 54%),
+      radial-gradient(circle at center, rgba(20, 184, 166, 0.28), rgba(99, 102, 241, 0.18) 60%, transparent 82%);
   }
 
   .erp-card {
@@ -846,6 +868,11 @@
     z-index: 1;
   }
 
+  .erp-sidebar-tree-shell {
+    overflow: hidden;
+    transform-origin: top center;
+  }
+
   .erp-sidebar-group-panel .erp-sidebar-tree {
     margin-top: 0;
     margin-left: 0;
@@ -932,10 +959,10 @@
   }
 
   .erp-sidebar-tree-link.erp-sidebar-link-active::after {
-    background: #2563eb;
+    background: #ef4444;
     box-shadow:
       0 0 0 4px rgba(219, 234, 254, 0.98),
-      0 0 0 1px rgba(37, 99, 235, 0.32);
+      0 0 0 1px rgba(239, 68, 68, 0.34);
   }
 
   .erp-sidebar-flyout {
@@ -1264,10 +1291,10 @@
   }
 
   .dark .erp-sidebar-tree-link.erp-sidebar-link-active::after {
-    background: #22d3ee;
+    background: #f87171;
     box-shadow:
       0 0 0 4px rgba(15, 23, 42, 0.98),
-      0 0 0 1px rgba(34, 211, 238, 0.35);
+      0 0 0 1px rgba(248, 113, 113, 0.35);
   }
 
   .dark .erp-sidebar-flyout {
@@ -1477,6 +1504,28 @@
     min-height: var(--erp-control-height);
   }
 
+  input[type='file'].erp-input {
+    display: block;
+    min-height: var(--erp-control-height);
+    padding-top: 0.1875rem;
+    padding-bottom: 0.1875rem;
+    padding-right: 0.6rem;
+    line-height: 1.2;
+  }
+
+  input[type='file'].erp-input::file-selector-button {
+    height: calc(var(--erp-control-height) - 0.375rem);
+    margin: 0 0.7rem 0 0;
+    padding: 0 0.9rem;
+    border: 0;
+    border-right: 1px solid rgba(193, 205, 224, 0.64);
+    background: transparent;
+    color: inherit;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+  }
+
   .erp-select {
     @apply cursor-pointer pr-14;
     appearance: none;
@@ -1523,6 +1572,10 @@
   .dark .erp-input::placeholder,
   .dark .erp-select::placeholder {
     color: #9ca3af;
+  }
+
+  .dark input[type='file'].erp-input::file-selector-button {
+    border-right-color: rgba(148, 163, 184, 0.14);
   }
 
   .dark .erp-select {

@@ -113,28 +113,39 @@
                 </div>
               </button>
 
-              <div
-                v-if="item.children?.length && !sidebarCollapsed && isNavItemExpanded(item)"
-                class="erp-sidebar-tree"
+              <Transition
+                @before-enter="handleTreeBeforeEnter"
+                @enter="handleTreeEnter"
+                @after-enter="handleTreeAfterEnter"
+                @before-leave="handleTreeBeforeLeave"
+                @leave="handleTreeLeave"
+                @after-leave="handleTreeAfterLeave"
               >
-                <RouterLink
-                  v-for="child in item.children"
-                  :key="child.key || child.label"
-                  :to="child.to"
-                  class="erp-sidebar-link erp-sidebar-tree-link"
-                  :class="isItemActive(child) ? 'erp-sidebar-link-active' : ''"
-                  @click="handleItemNavigation"
+                <div
+                  v-if="item.children?.length && !sidebarCollapsed && isNavItemExpanded(item)"
+                  class="erp-sidebar-tree-shell"
                 >
-                  <div class="flex min-w-0 items-center">
-                    <div class="min-w-0">
-                      <div class="text-sm font-medium">{{ child.label }}</div>
-                    </div>
+                  <div class="erp-sidebar-tree">
+                    <RouterLink
+                      v-for="child in item.children"
+                      :key="child.key || child.label"
+                      :to="child.to"
+                      class="erp-sidebar-link erp-sidebar-tree-link"
+                      :class="isItemActive(child) ? 'erp-sidebar-link-active' : ''"
+                      @click="handleItemNavigation"
+                    >
+                      <div class="flex min-w-0 items-center">
+                        <div class="min-w-0">
+                          <div class="text-sm font-medium">{{ child.label }}</div>
+                        </div>
+                      </div>
+                      <span class="erp-nav-badge" :class="child.statusClass">
+                        {{ child.status }}
+                      </span>
+                    </RouterLink>
                   </div>
-                  <span class="erp-nav-badge" :class="child.statusClass">
-                    {{ child.status }}
-                  </span>
-                </RouterLink>
-              </div>
+                </div>
+              </Transition>
 
               <div
                 v-if="item.children?.length && isCollapsedDesktop && activeCollapsedFlyoutKey === item.key"
@@ -290,5 +301,75 @@ const emitClose = () => {
 
 const handleItemNavigation = () => {
   emitClose()
+}
+
+const getSidebarTreeTransition = () => {
+  if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    return 'none'
+  }
+
+  return [
+    'height 460ms cubic-bezier(0.2, 0.9, 0.2, 1)',
+    'opacity 420ms cubic-bezier(0.16, 1, 0.3, 1)',
+    'transform 460ms cubic-bezier(0.2, 0.9, 0.2, 1)',
+  ].join(', ')
+}
+
+const prepareTreeElement = (element) => {
+  element.style.overflow = 'hidden'
+  element.style.transformOrigin = 'top center'
+}
+
+const handleTreeBeforeEnter = (element) => {
+  prepareTreeElement(element)
+  element.style.height = '0px'
+  element.style.opacity = '0'
+  element.style.transform = 'translateY(-10px)'
+}
+
+const handleTreeEnter = (element) => {
+  prepareTreeElement(element)
+  element.style.transition = getSidebarTreeTransition()
+
+  requestAnimationFrame(() => {
+    element.style.height = `${element.scrollHeight}px`
+    element.style.opacity = '1'
+    element.style.transform = 'translateY(0)'
+  })
+}
+
+const handleTreeAfterEnter = (element) => {
+  element.style.height = 'auto'
+  element.style.overflow = ''
+  element.style.transition = ''
+  element.style.opacity = ''
+  element.style.transform = ''
+}
+
+const handleTreeBeforeLeave = (element) => {
+  prepareTreeElement(element)
+  element.style.height = `${element.scrollHeight}px`
+  element.style.opacity = '1'
+  element.style.transform = 'translateY(0)'
+}
+
+const handleTreeLeave = (element) => {
+  prepareTreeElement(element)
+  element.style.transition = getSidebarTreeTransition()
+  void element.offsetHeight
+
+  requestAnimationFrame(() => {
+    element.style.height = '0px'
+    element.style.opacity = '0'
+    element.style.transform = 'translateY(-10px)'
+  })
+}
+
+const handleTreeAfterLeave = (element) => {
+  element.style.overflow = ''
+  element.style.transition = ''
+  element.style.height = ''
+  element.style.opacity = ''
+  element.style.transform = ''
 }
 </script>

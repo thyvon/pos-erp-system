@@ -40,9 +40,23 @@
       </div>
     </button>
 
-    <div v-if="expanded" class="rounded-b-[20px] border-t border-white/40 bg-transparent px-3.5 py-3 dark:border-slate-700/70">
-      <slot />
-    </div>
+    <Transition
+      @before-enter="handlePanelBeforeEnter"
+      @enter="handlePanelEnter"
+      @after-enter="handlePanelAfterEnter"
+      @before-leave="handlePanelBeforeLeave"
+      @leave="handlePanelLeave"
+      @after-leave="handlePanelAfterLeave"
+    >
+      <div
+        v-if="expanded"
+        class="erp-filter-panel-shell"
+      >
+        <div class="erp-filter-panel-body rounded-b-[20px] border-t border-white/40 bg-transparent px-3.5 py-3 dark:border-slate-700/70">
+          <slot />
+        </div>
+      </div>
+    </Transition>
   </section>
 </template>
 
@@ -56,4 +70,129 @@ defineProps({
 })
 
 defineEmits(['update:expanded', 'clear'])
+
+const getPanelTransition = () => {
+  if (typeof window !== 'undefined' && window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+    return 'none'
+  }
+
+  return [
+    'height 300ms cubic-bezier(0.22, 1, 0.36, 1)',
+    'opacity 220ms ease',
+  ].join(', ')
+}
+
+const preparePanelElement = (element) => {
+  element.style.overflow = 'hidden'
+  element.style.willChange = 'height, opacity'
+}
+
+const getPanelBody = (element) => element.firstElementChild
+
+const preparePanelBody = (element) => {
+  const body = getPanelBody(element)
+
+  if (!body) {
+    return null
+  }
+
+  body.style.willChange = 'opacity, transform'
+  return body
+}
+
+const handlePanelBeforeEnter = (element) => {
+  preparePanelElement(element)
+  const body = preparePanelBody(element)
+  element.style.height = '0px'
+  element.style.opacity = '0.55'
+
+  if (body) {
+    body.style.opacity = '0'
+    body.style.transform = 'translateY(-6px)'
+  }
+}
+
+const handlePanelEnter = (element) => {
+  preparePanelElement(element)
+  const body = preparePanelBody(element)
+  element.style.transition = getPanelTransition()
+  if (body) {
+    body.style.transition = 'opacity 220ms ease 40ms, transform 300ms cubic-bezier(0.22, 1, 0.36, 1)'
+  }
+
+  requestAnimationFrame(() => {
+    element.style.height = `${element.scrollHeight}px`
+    element.style.opacity = '1'
+
+    if (body) {
+      body.style.opacity = '1'
+      body.style.transform = 'translateY(0)'
+    }
+  })
+}
+
+const handlePanelAfterEnter = (element) => {
+  const body = getPanelBody(element)
+  element.style.height = 'auto'
+  element.style.overflow = ''
+  element.style.transition = ''
+  element.style.opacity = ''
+  element.style.willChange = ''
+
+  if (body) {
+    body.style.transition = ''
+    body.style.opacity = ''
+    body.style.transform = ''
+    body.style.willChange = ''
+  }
+}
+
+const handlePanelBeforeLeave = (element) => {
+  preparePanelElement(element)
+  const body = preparePanelBody(element)
+  element.style.height = `${element.scrollHeight}px`
+  element.style.opacity = '1'
+
+  if (body) {
+    body.style.opacity = '1'
+    body.style.transform = 'translateY(0)'
+  }
+}
+
+const handlePanelLeave = (element) => {
+  preparePanelElement(element)
+  const body = preparePanelBody(element)
+  element.style.transition = getPanelTransition()
+  void element.offsetHeight
+
+  if (body) {
+    body.style.transition = 'opacity 160ms ease, transform 220ms ease'
+  }
+
+  requestAnimationFrame(() => {
+    element.style.height = '0px'
+    element.style.opacity = '0'
+
+    if (body) {
+      body.style.opacity = '0'
+      body.style.transform = 'translateY(-4px)'
+    }
+  })
+}
+
+const handlePanelAfterLeave = (element) => {
+  const body = getPanelBody(element)
+  element.style.overflow = ''
+  element.style.transition = ''
+  element.style.height = ''
+  element.style.opacity = ''
+  element.style.willChange = ''
+
+  if (body) {
+    body.style.transition = ''
+    body.style.opacity = ''
+    body.style.transform = ''
+    body.style.willChange = ''
+  }
+}
 </script>
