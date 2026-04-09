@@ -91,12 +91,12 @@
             </div>
             <div>
               <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Date</div>
-              <div class="mt-1 text-sm font-semibold text-slate-950 dark:text-white">{{ workspace.date || 'Not set' }}</div>
+              <div class="mt-1 text-sm font-semibold text-slate-950 dark:text-white">{{ formatHumanDate(workspace.date) }}</div>
             </div>
             <div>
               <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Mode</div>
               <div class="mt-1 text-sm text-slate-600 dark:text-slate-300">
-                {{ isCompletedWorkspace ? 'Completed' : 'Live mode' }}
+                {{ isCompletedWorkspace ? 'Read-only review' : 'Live mode' }}
               </div>
             </div>
           </div>
@@ -517,6 +517,7 @@ import ConfirmDelete from '@components/ui/ConfirmDelete.vue'
 import PageBlurSkeleton from '@components/ui/PageBlurSkeleton.vue'
 import SearchInput from '@components/ui/SearchInput.vue'
 import AppLayout from '@layouts/AppLayout.vue'
+import { formatHumanDate } from '@/utils/date'
 import { useAuthStore } from '@stores/auth'
 import { useInventoryCountsStore, useInventoryOptionsStore } from '@stores/inventory'
 

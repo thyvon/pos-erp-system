@@ -45,6 +45,10 @@
           </span>
         </template>
 
+        <template #warranty_expires="{ row }">
+          <span class="text-sm text-slate-600 dark:text-slate-300">{{ formatHumanDate(row.warranty_expires) }}</span>
+        </template>
+
         <template #actions="{ row }">
           <button
             v-if="canAdjust && !['written_off', 'sold'].includes(row.status)"
@@ -88,6 +92,7 @@ import AppAlert from '@components/ui/AppAlert.vue'
 import AppModal from '@components/ui/AppModal.vue'
 import DataTable from '@components/ui/DataTable.vue'
 import AppLayout from '@layouts/AppLayout.vue'
+import { formatHumanDate } from '@/utils/date'
 import { useAuthStore } from '@stores/auth'
 import { useInventorySerialsStore } from '@stores/inventory'
 

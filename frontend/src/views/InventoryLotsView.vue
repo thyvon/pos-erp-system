@@ -52,6 +52,10 @@
           </span>
         </template>
 
+        <template #expiry_date="{ row }">
+          <span class="text-sm text-slate-600 dark:text-slate-300">{{ formatHumanDate(row.expiry_date) }}</span>
+        </template>
+
         <template #actions="{ row }">
           <button v-if="canAdjust" type="button" class="erp-button-secondary" @click="openStatusModal(row)">
             Change status
@@ -101,6 +105,7 @@ import AppModal from '@components/ui/AppModal.vue'
 import AppSelect from '@components/ui/AppSelect.vue'
 import DataTable from '@components/ui/DataTable.vue'
 import AppLayout from '@layouts/AppLayout.vue'
+import { formatHumanDate } from '@/utils/date'
 import { useAuthStore } from '@stores/auth'
 import { useInventoryLotsStore } from '@stores/inventory'
 
