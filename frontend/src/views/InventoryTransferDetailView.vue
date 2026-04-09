@@ -179,6 +179,7 @@ import SearchInput from '@components/ui/SearchInput.vue'
 import AppLayout from '@layouts/AppLayout.vue'
 import { useAuthStore } from '@stores/auth'
 import { useInventoryTransfersStore } from '@stores/inventory'
+import { formatHumanDate, formatHumanDateTime } from '@/utils/date'
 import {
   getStockTransferStatusClasses,
   getStockTransferStatusLabel,
@@ -263,22 +264,8 @@ const showToast = (type, message) => {
 const statusLabel = getStockTransferStatusLabel
 const statusClasses = getStockTransferStatusClasses
 
-const formatDate = (value) => {
-  if (!value) return 'Not set'
-  return new Date(value).toLocaleDateString()
-}
-
-const formatDateTime = (value) => {
-  if (!value) return 'Not recorded'
-
-  return new Date(value).toLocaleString([], {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  })
-}
+const formatDate = (value) => formatHumanDate(value)
+const formatDateTime = (value) => formatHumanDateTime(value)
 
 const formatQuantity = (value) => Number(value || 0).toFixed(4)
 

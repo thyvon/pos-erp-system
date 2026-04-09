@@ -195,6 +195,7 @@ import DataTable from '@components/ui/DataTable.vue'
 import AppLayout from '@layouts/AppLayout.vue'
 import { useAuthStore } from '@stores/auth'
 import { useInventoryAdjustmentsStore, useInventoryOptionsStore } from '@stores/inventory'
+import { formatHumanDate } from '@/utils/date'
 
 const auth = useAuthStore()
 const store = useInventoryAdjustmentsStore()
@@ -358,7 +359,7 @@ const submitForm = async () => {
 const handleSearch = (value) => store.fetchItems({ search: value, page: 1 })
 const handlePageChange = (page) => store.fetchItems({ page })
 const handlePerPageChange = (perPage) => store.fetchItems({ per_page: perPage, page: 1 })
-const formatDate = (value) => value || 'n/a'
+const formatDate = (value) => formatHumanDate(value, 'N/A')
 
 onMounted(async () => {
   await Promise.all([

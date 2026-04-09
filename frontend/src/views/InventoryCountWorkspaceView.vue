@@ -192,14 +192,44 @@
           </div>
 
           <div class="relative">
-            <LoadingSpinner
-              :show="store.workspaceItemsLoading"
-              title="Loading counted lines"
-              message="Updating counted item results for this stock count."
-            />
+            <div v-if="showWorkspaceRefreshingState" class="erp-workspace-table-refresh-chip" aria-live="polite">
+              <span class="erp-workspace-table-refresh-chip__dot"></span>
+              <span class="erp-workspace-table-refresh-chip__label">Refreshing</span>
+            </div>
+
+            <div v-if="showWorkspaceRefreshingState" class="erp-workspace-table-refresh-bar" aria-hidden="true">
+              <span></span>
+            </div>
+
+            <div v-if="showWorkspaceSkeletonRows" class="space-y-3 p-4 md:hidden">
+              <div
+                v-for="rowIndex in workspaceSkeletonRowCount"
+                :key="`workspace-mobile-skeleton-${rowIndex}`"
+                class="erp-preview-card animate-pulse"
+              >
+                <div class="flex items-start justify-between gap-3">
+                  <div class="min-w-0 flex-1 space-y-2">
+                    <div class="h-4 rounded-full bg-slate-200/90 dark:bg-slate-700/80" style="width: 68%"></div>
+                    <div class="h-3 rounded-full bg-slate-200/75 dark:bg-slate-700/60" style="width: 40%"></div>
+                  </div>
+                  <div class="h-6 rounded-full bg-slate-200/85 dark:bg-slate-700/75" style="width: 4.5rem"></div>
+                </div>
+
+                <div class="mt-4 grid gap-3 sm:grid-cols-2">
+                  <div class="erp-preview-tile px-3 py-2">
+                    <div class="h-3 rounded-full bg-slate-200/80 dark:bg-slate-700/70" style="width: 48%"></div>
+                    <div class="mt-2 h-4 rounded-full bg-slate-200/90 dark:bg-slate-700/80" style="width: 58%"></div>
+                  </div>
+                  <div>
+                    <div class="mb-2 h-3 rounded-full bg-slate-200/80 dark:bg-slate-700/70" style="width: 42%"></div>
+                    <div class="h-12 rounded-[16px] bg-slate-200/90 dark:bg-slate-700/80"></div>
+                  </div>
+                </div>
+              </div>
+            </div>
 
             <div
-              v-if="!store.workspaceItemsLoading && workspaceItemPagination.total === 0 && !workspace.item_search"
+              v-else-if="!store.workspaceItemsLoading && workspaceItemPagination.total === 0 && !workspace.item_search"
               class="px-4 py-12 text-center text-sm text-slate-500 dark:text-slate-400"
             >
               No counted lines yet. Scan or search an item above to start capturing quantities.
@@ -296,7 +326,30 @@
           </div>
             </div>
 
-            <div v-if="workspace.items.length > 0" class="hidden md:block overflow-x-auto">
+            <div v-if="showWorkspaceSkeletonRows" class="hidden md:block overflow-x-auto">
+            <table class="erp-table min-w-full">
+              <thead>
+                <tr>
+                  <th class="w-[34%]">Product</th>
+                  <th class="w-[16%]">SKU</th>
+                  <th class="w-[14%]">Lot</th>
+                  <th class="w-[14%]">System qty</th>
+                  <th class="w-[18%]">Counted qty</th>
+                  <th class="w-[12%]">Difference</th>
+                  <th v-if="!isCompletedWorkspace" class="w-[18%]">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr v-for="rowIndex in workspaceSkeletonRowCount" :key="`workspace-skeleton-${rowIndex}`" class="erp-workspace-table-skeleton-row">
+                  <td v-for="columnKey in ['product', 'sku', 'lot', 'system', 'counted', 'difference', ...(!isCompletedWorkspace ? ['action'] : [])]" :key="`${rowIndex}-${columnKey}`">
+                    <span class="erp-workspace-table-skeleton-cell" :style="getWorkspaceSkeletonCellStyle(rowIndex, columnKey)"></span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+            <div v-else-if="workspace.items.length > 0" class="hidden md:block overflow-x-auto">
             <table class="erp-table min-w-full">
               <thead>
                 <tr>
@@ -461,7 +514,6 @@ import AppAlert from '@components/ui/AppAlert.vue'
 import AppDatePicker from '@components/ui/AppDatePicker.vue'
 import AppSelect from '@components/ui/AppSelect.vue'
 import ConfirmDelete from '@components/ui/ConfirmDelete.vue'
-import LoadingSpinner from '@components/ui/LoadingSpinner.vue'
 import PageBlurSkeleton from '@components/ui/PageBlurSkeleton.vue'
 import SearchInput from '@components/ui/SearchInput.vue'
 import AppLayout from '@layouts/AppLayout.vue'
@@ -552,8 +604,25 @@ const deleteDialogLoading = computed(() =>
 const showWorkspaceTableShell = computed(() =>
   store.workspaceItemsLoading || workspaceItemPagination.value.total > 0 || workspace.item_search.trim() !== ''
 )
+const workspaceSkeletonWidths = ['92%', '76%', '58%', '66%', '84%', '62%']
+const workspaceSkeletonRowCount = computed(() => Math.max(4, Math.min(workspaceItemPagination.value.per_page || 6, 6)))
+const showWorkspaceSkeletonRows = computed(() => store.workspaceItemsLoading && workspace.items.length === 0)
+const showWorkspaceRefreshingState = computed(() => store.workspaceItemsLoading && workspace.items.length > 0)
 const isUpdatingItem = (itemId) => store.updatingItemId === itemId
 const hasItemChanged = (item) => Number(item.editable_counted_quantity ?? 0) !== Number(item.counted_quantity ?? 0)
+
+const getWorkspaceSkeletonCellStyle = (rowIndex, columnKey) => {
+  const seed = `${columnKey}-${rowIndex}`
+  let total = 0
+
+  for (let index = 0; index < seed.length; index += 1) {
+    total += seed.charCodeAt(index)
+  }
+
+  return {
+    width: workspaceSkeletonWidths[total % workspaceSkeletonWidths.length],
+  }
+}
 
 const showToast = (type, message) => {
   alert.type = type
@@ -1013,3 +1082,142 @@ onMounted(async () => {
   }
 })
 </script>
+
+<style scoped>
+.erp-workspace-table-skeleton-row td {
+  padding-top: 0.95rem;
+  padding-bottom: 0.95rem;
+}
+
+.erp-workspace-table-skeleton-cell {
+  position: relative;
+  display: block;
+  min-width: 3.5rem;
+  height: 0.78rem;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: linear-gradient(90deg, rgba(226, 232, 240, 0.92), rgba(241, 245, 249, 0.98));
+}
+
+.erp-workspace-table-skeleton-cell::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.78), transparent);
+  animation: erp-workspace-table-shimmer 1.2s ease-in-out infinite;
+}
+
+.erp-workspace-table-refresh-chip {
+  position: absolute;
+  top: 0.9rem;
+  right: 1rem;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.42rem 0.72rem;
+  border: 1px solid rgba(191, 219, 254, 0.9);
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 10px 24px rgba(148, 163, 184, 0.14);
+}
+
+.erp-workspace-table-refresh-chip__dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 9999px;
+  background: #2563eb;
+  box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.24);
+  animation: erp-workspace-table-pulse 1.2s ease-in-out infinite;
+}
+
+.erp-workspace-table-refresh-chip__label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #334155;
+}
+
+.erp-workspace-table-refresh-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  height: 2px;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: rgba(148, 163, 184, 0.14);
+}
+
+.erp-workspace-table-refresh-bar > span {
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 28%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #2563eb, #38bdf8);
+  animation: erp-workspace-table-slide 1.15s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.dark .erp-workspace-table-skeleton-cell {
+  background: linear-gradient(90deg, rgba(51, 65, 85, 0.94), rgba(71, 85, 105, 0.88));
+}
+
+.dark .erp-workspace-table-refresh-chip {
+  border-color: rgba(59, 130, 246, 0.28);
+  background: rgba(15, 23, 42, 0.92);
+  box-shadow: 0 10px 24px rgba(2, 6, 23, 0.24);
+}
+
+.dark .erp-workspace-table-refresh-chip__dot {
+  background: #38bdf8;
+  box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.2);
+}
+
+.dark .erp-workspace-table-refresh-chip__label {
+  color: #cbd5e1;
+}
+
+.dark .erp-workspace-table-refresh-bar {
+  background: rgba(51, 65, 85, 0.45);
+}
+
+@keyframes erp-workspace-table-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes erp-workspace-table-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.2);
+  }
+
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 0 0 7px rgba(37, 99, 235, 0);
+  }
+}
+
+@keyframes erp-workspace-table-slide {
+  0% {
+    transform: translateX(-120%);
+  }
+
+  100% {
+    transform: translateX(360%);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .erp-workspace-table-skeleton-cell::after,
+  .erp-workspace-table-refresh-chip__dot,
+  .erp-workspace-table-refresh-bar > span {
+    animation: none;
+  }
+}
+</style>

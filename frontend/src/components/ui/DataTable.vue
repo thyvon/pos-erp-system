@@ -16,8 +16,8 @@
       </div>
     </div>
 
-    <div class="erp-table-stage" :class="{ 'erp-table-stage--loading': loading }">
-      <div class="overflow-x-auto" :class="{ 'erp-table-content--loading': loading && rows.length > 0 }">
+    <div class="erp-table-stage">
+      <div class="overflow-x-auto" :class="{ 'erp-table-content--loading': showRefreshingState }">
         <table class="erp-table">
           <thead>
             <tr>
@@ -48,7 +48,15 @@
             </tr>
           </tbody>
 
-          <tbody v-else-if="!loading">
+          <tbody v-else-if="showSkeletonRows">
+            <tr v-for="rowIndex in skeletonRowCount" :key="`skeleton-${rowIndex}`" class="erp-table-skeleton-row">
+              <td v-for="column in columns" :key="`${rowIndex}-${column.key}`">
+                <span class="erp-table-skeleton-cell" :style="getSkeletonCellStyle(rowIndex, column.key)"></span>
+              </td>
+            </tr>
+          </tbody>
+
+          <tbody v-else>
             <tr>
               <td :colspan="columns.length" class="px-4 py-12 text-center">
                 <div class="mx-auto max-w-sm">
@@ -63,7 +71,12 @@
         </table>
       </div>
 
-      <div v-if="loading" class="erp-table-loading-wash" aria-hidden="true"></div>
+      <div v-if="showRefreshingState" class="erp-table-refresh-chip" aria-live="polite">
+        <span class="erp-table-refresh-chip__dot"></span>
+        <span class="erp-table-refresh-chip__label">Refreshing</span>
+      </div>
+
+      <div v-if="showRefreshingState" class="erp-table-refresh-bar" aria-hidden="true"></div>
     </div>
 
     <div class="flex flex-col gap-3 border-t border-white/40 px-4 py-3 dark:border-white/10 sm:flex-row sm:items-center sm:justify-between">
@@ -93,7 +106,7 @@
 </template>
 
 <script setup>
-import { ref, watch } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import AppPagination from './AppPagination.vue'
 import SearchInput from './SearchInput.vue'
@@ -119,6 +132,10 @@ const { t } = useI18n()
 
 const searchValue = ref(props.searchTerm)
 let searchTimer = null
+const skeletonWidths = ['92%', '78%', '64%', '56%', '84%', '70%']
+const skeletonRowCount = computed(() => Math.max(4, Math.min(props.perPage || 6, 6)))
+const showSkeletonRows = computed(() => props.loading && props.rows.length === 0)
+const showRefreshingState = computed(() => props.loading && props.rows.length > 0)
 
 watch(
   () => props.searchTerm,
@@ -165,6 +182,18 @@ const sortIcon = (key) => {
 
   return props.sortDirection === 'asc' ? '↑' : '↓'
 }
+const getSkeletonCellStyle = (rowIndex, columnKey) => {
+  const seed = `${columnKey}-${rowIndex}`
+  let total = 0
+
+  for (let index = 0; index < seed.length; index += 1) {
+    total += seed.charCodeAt(index)
+  }
+
+  return {
+    width: skeletonWidths[total % skeletonWidths.length],
+  }
+}
 </script>
 
 <style scoped>
@@ -174,37 +203,150 @@ const sortIcon = (key) => {
 }
 
 .erp-table-content--loading {
-  filter: blur(10px);
-  opacity: 0.68;
-  transition:
-    filter 0.18s ease,
-    opacity 0.18s ease;
+  opacity: 0.62;
+  transition: opacity 0.18s ease;
 }
 
-.erp-table-loading-wash {
+.erp-table-skeleton-row td {
+  padding-top: 0.95rem;
+  padding-bottom: 0.95rem;
+}
+
+.erp-table-skeleton-cell {
+  position: relative;
+  display: block;
+  min-width: 3.5rem;
+  height: 0.78rem;
+  overflow: hidden;
+  border-radius: 9999px;
+  background:
+    linear-gradient(90deg, rgba(226, 232, 240, 0.92), rgba(241, 245, 249, 0.98));
+}
+
+.erp-table-skeleton-cell::after {
+  content: "";
   position: absolute;
   inset: 0;
-  z-index: 1;
-  border-radius: 1.5rem;
-  pointer-events: none;
-  background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.18), rgba(255, 255, 255, 0.08)),
-    radial-gradient(circle at 20% 18%, rgba(96, 165, 250, 0.14), transparent 34%),
-    radial-gradient(circle at 82% 78%, rgba(34, 211, 238, 0.12), transparent 30%);
-  backdrop-filter: blur(16px) saturate(1.08);
-  -webkit-backdrop-filter: blur(16px) saturate(1.08);
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.78), transparent);
+  animation: erp-table-loading-shimmer 1.2s ease-in-out infinite;
 }
 
-.dark .erp-table-loading-wash {
-  background:
-    linear-gradient(180deg, rgba(15, 23, 42, 0.26), rgba(15, 23, 42, 0.14)),
-    radial-gradient(circle at 18% 16%, rgba(59, 130, 246, 0.14), transparent 36%),
-    radial-gradient(circle at 82% 78%, rgba(14, 165, 233, 0.12), transparent 32%);
+.erp-table-refresh-chip {
+  position: absolute;
+  top: 0.9rem;
+  right: 1rem;
+  z-index: 1;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.42rem 0.72rem;
+  border: 1px solid rgba(191, 219, 254, 0.9);
+  border-radius: 9999px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 10px 24px rgba(148, 163, 184, 0.14);
+}
+
+.erp-table-refresh-chip__dot {
+  width: 0.45rem;
+  height: 0.45rem;
+  border-radius: 9999px;
+  background: #2563eb;
+  box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.24);
+  animation: erp-table-loading-pulse 1.2s ease-in-out infinite;
+}
+
+.erp-table-refresh-chip__label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: #334155;
+}
+
+.erp-table-refresh-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  z-index: 1;
+  height: 2px;
+  overflow: hidden;
+  border-radius: 9999px;
+  background: rgba(148, 163, 184, 0.14);
+}
+
+.erp-table-refresh-bar::after {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 28%;
+  border-radius: inherit;
+  background: linear-gradient(90deg, #2563eb, #38bdf8);
+  animation: erp-table-refresh-slide 1.15s cubic-bezier(0.4, 0, 0.2, 1) infinite;
+}
+
+.dark .erp-table-skeleton-cell {
+  background: linear-gradient(90deg, rgba(51, 65, 85, 0.94), rgba(71, 85, 105, 0.88));
+}
+
+.dark .erp-table-refresh-chip {
+  border-color: rgba(59, 130, 246, 0.28);
+  background: rgba(15, 23, 42, 0.92);
+  box-shadow: 0 10px 24px rgba(2, 6, 23, 0.24);
+}
+
+.dark .erp-table-refresh-chip__dot {
+  background: #38bdf8;
+  box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.2);
+}
+
+.dark .erp-table-refresh-chip__label {
+  color: #cbd5e1;
+}
+
+.dark .erp-table-refresh-bar {
+  background: rgba(51, 65, 85, 0.45);
+}
+
+@keyframes erp-table-loading-shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
+
+@keyframes erp-table-loading-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 0 rgba(37, 99, 235, 0.2);
+  }
+
+  50% {
+    transform: scale(1.08);
+    box-shadow: 0 0 0 7px rgba(37, 99, 235, 0);
+  }
+}
+
+@keyframes erp-table-refresh-slide {
+  0% {
+    transform: translateX(-120%);
+  }
+
+  100% {
+    transform: translateX(360%);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
   .erp-table-content--loading {
     transition: none;
+  }
+
+  .erp-table-refresh-chip__dot,
+  .erp-table-skeleton-cell::after,
+  .erp-table-refresh-bar::after {
+    animation: none;
   }
 }
 </style>

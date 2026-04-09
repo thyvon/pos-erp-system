@@ -35,7 +35,7 @@
         <template #reference="{ row }">
           <div>
             <div class="font-semibold text-slate-950 dark:text-white">{{ row.reference_no }}</div>
-            <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ row.date }}</div>
+            <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ formatHumanDate(row.date) }}</div>
           </div>
         </template>
 
@@ -146,7 +146,7 @@
                   </div>
                   <div>
                     <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Date</div>
-                    <div class="mt-1 text-sm font-semibold text-slate-950 dark:text-white">{{ workspaceModal.date || 'Not set' }}</div>
+                    <div class="mt-1 text-sm font-semibold text-slate-950 dark:text-white">{{ formatHumanDate(workspaceModal.date) }}</div>
                   </div>
                   <div>
                     <div class="text-xs font-semibold uppercase tracking-[0.2em] text-slate-500 dark:text-slate-400">Mode</div>

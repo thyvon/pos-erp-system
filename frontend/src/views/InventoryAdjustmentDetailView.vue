@@ -156,6 +156,7 @@ import AppAlert from '@components/ui/AppAlert.vue'
 import PageBlurSkeleton from '@components/ui/PageBlurSkeleton.vue'
 import AppLayout from '@layouts/AppLayout.vue'
 import { useInventoryAdjustmentsStore } from '@stores/inventory'
+import { formatHumanDate } from '@/utils/date'
 
 const route = useRoute()
 const router = useRouter()
@@ -198,10 +199,7 @@ const totals = computed(() => {
   })
 })
 
-const formatDate = (value) => {
-  if (!value) return 'Not set'
-  return new Date(value).toLocaleDateString()
-}
+const formatDate = (value) => formatHumanDate(value)
 
 const formatQuantity = (value) => Number(value || 0).toFixed(4)
 

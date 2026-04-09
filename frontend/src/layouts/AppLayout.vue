@@ -236,9 +236,10 @@ import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { RouterLink, useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@stores/auth'
-import { applyLocale, getIntlLocale } from '@/i18n'
+import { applyLocale } from '@/i18n'
 import AppSidebar from '@components/layout/AppSidebar.vue'
 import NotificationBell from '@components/ui/NotificationBell.vue'
+import { formatHumanLongDate } from '@/utils/date'
 
 defineProps({
   title: {
@@ -276,14 +277,7 @@ const currentYear = new Date().getFullYear()
 const isDesktop = computed(() => viewportWidth.value >= 1024)
 const currentLocaleLabel = computed(() => (locale.value === 'km' ? 'KM' : 'EN'))
 
-const today = computed(() =>
-  new Date().toLocaleDateString(getIntlLocale(locale.value), {
-    weekday: 'short',
-    year: 'numeric',
-    month: 'long',
-    day: 'numeric',
-  })
-)
+const today = computed(() => formatHumanLongDate(new Date()))
 
 const userDisplayName = computed(() => {
   const fullName = auth.user?.full_name?.trim()
