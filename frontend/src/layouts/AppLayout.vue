@@ -211,18 +211,10 @@
           class="fixed bottom-0 right-0 z-20 bg-transparent px-0 py-0 text-sm text-slate-500 dark:text-slate-400"
           :style="footerDesktopStyle"
         >
-          <div class="erp-panel-float erp-shell-bar erp-footer-bar flex w-full flex-col gap-2.5 rounded-none border-x-0 border-b-0 px-3.5 py-2 sm:flex-row sm:items-center sm:justify-between lg:px-5">
-            <div>
-              <div class="text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-                {{ appName }}
-              </div>
-              <div class="mt-1 text-[13px] text-slate-600 dark:text-slate-300">
-                {{ t('layout.footerDescription') }}
-              </div>
-            </div>
+          <div class="erp-panel-float erp-shell-bar erp-footer-bar flex w-full flex-col gap-1.5 rounded-none border-x-0 border-b-0 px-3.5 py-2 sm:items-end lg:px-5">
             <div class="flex flex-col items-start gap-1 text-left sm:items-end">
               <div class="text-[13px] font-medium text-slate-700 dark:text-slate-200">{{ today }}</div>
-              <div class="text-xs text-slate-500 dark:text-slate-400">{{ currentYear }} © {{ t('layout.allRightsReserved') }}</div>
+              <div class="text-xs text-slate-500 dark:text-slate-400">{{ currentYear }} &copy; {{ t('layout.allRightsReserved') }}</div>
             </div>
           </div>
         </footer>
@@ -269,7 +261,6 @@ const userMenuOpen = ref(false)
 const userMenuRef = ref(null)
 
 const themeKey = 'erp_theme'
-const appName = import.meta.env.VITE_APP_NAME || 'ERP System'
 const expandedSidebarWidth = '15rem'
 const collapsedSidebarWidth = '4.75rem'
 const currentYear = new Date().getFullYear()
@@ -425,3 +416,4 @@ onBeforeUnmount(() => {
   document.removeEventListener('keydown', handleDocumentKeyDown)
 })
 </script>
+

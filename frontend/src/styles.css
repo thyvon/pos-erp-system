@@ -673,13 +673,19 @@
 
   .erp-sidebar-link-active {
     background:
-      linear-gradient(90deg, rgba(227, 239, 255, 0.94), rgba(247, 236, 255, 0.82) 64%, rgba(232, 248, 255, 0.68)),
-      linear-gradient(135deg, rgba(88, 135, 255, 0.16), transparent 52%);
+      linear-gradient(135deg, rgba(255, 255, 255, 0.46), rgba(255, 255, 255, 0.18) 42%, rgba(255, 255, 255, 0.08) 100%),
+      linear-gradient(90deg, rgba(147, 197, 253, 0.44), rgba(196, 181, 253, 0.2) 56%, rgba(103, 232, 249, 0.3)),
+      rgba(219, 234, 254, 0.34);
     color: #0b2f63;
+    border-color: rgba(147, 197, 253, 0.52);
     box-shadow:
-      0 16px 30px rgba(36, 124, 255, 0.12),
-      inset 0 1px 0 rgba(255, 255, 255, 0.9),
-      inset 0 0 0 1px rgba(147, 197, 253, 0.34);
+      0 18px 36px rgba(36, 124, 255, 0.18),
+      0 6px 18px rgba(14, 165, 233, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.82),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.18),
+      inset 0 0 0 1px rgba(147, 197, 253, 0.36);
+    backdrop-filter: blur(24px) saturate(185%);
+    -webkit-backdrop-filter: blur(24px) saturate(185%);
   }
 
   .erp-sidebar-link-active .erp-nav-icon {
@@ -707,7 +713,10 @@
     content: '';
     position: absolute;
     inset: 0;
-    background: linear-gradient(90deg, transparent 0, transparent 72%, rgba(59, 130, 246, 0.08) 100%);
+    background:
+      linear-gradient(180deg, rgba(255, 255, 255, 0.34), rgba(255, 255, 255, 0.04) 34%, transparent 72%),
+      radial-gradient(120% 90% at 12% 6%, rgba(255, 255, 255, 0.38), transparent 42%),
+      linear-gradient(90deg, transparent 0, transparent 72%, rgba(59, 130, 246, 0.12) 100%);
     pointer-events: none;
   }
 
@@ -736,11 +745,18 @@
 
   .erp-sidebar-parent-active {
     background:
-      linear-gradient(90deg, rgba(232, 241, 255, 0.82), rgba(244, 248, 255, 0.62));
+      linear-gradient(135deg, rgba(255, 255, 255, 0.38), rgba(255, 255, 255, 0.14) 42%, rgba(255, 255, 255, 0.06) 100%),
+      linear-gradient(90deg, rgba(147, 197, 253, 0.34), rgba(196, 181, 253, 0.14) 56%, rgba(103, 232, 249, 0.22)),
+      rgba(219, 234, 254, 0.24);
     color: #173765;
+    border-color: rgba(147, 197, 253, 0.42);
     box-shadow:
+      0 12px 26px rgba(59, 130, 246, 0.12),
       inset 0 1px 0 rgba(255, 255, 255, 0.72),
-      inset 0 0 0 1px rgba(147, 197, 253, 0.22);
+      inset 0 -1px 0 rgba(255, 255, 255, 0.12),
+      inset 0 0 0 1px rgba(147, 197, 253, 0.28);
+    backdrop-filter: blur(22px) saturate(175%);
+    -webkit-backdrop-filter: blur(22px) saturate(175%);
   }
 
   .erp-sidebar-parent-active .erp-nav-icon {
@@ -755,7 +771,9 @@
 
   .erp-sidebar-group-panel .erp-sidebar-parent-active {
     background:
-      linear-gradient(90deg, rgba(225, 238, 255, 0.92), rgba(239, 246, 255, 0.76));
+      linear-gradient(135deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.16) 42%, rgba(255, 255, 255, 0.06) 100%),
+      linear-gradient(90deg, rgba(147, 197, 253, 0.38), rgba(196, 181, 253, 0.16) 56%, rgba(103, 232, 249, 0.24)),
+      rgba(219, 234, 254, 0.28);
   }
 
   .erp-sidebar-group-panel .erp-sidebar-parent-link::after {
@@ -851,6 +869,12 @@
   }
 
   .erp-sidebar-tree {
+    --erp-tree-trunk-x: 0.42rem;
+    --erp-tree-row-mid: 1.4rem;
+    --erp-tree-branch-left: -0.8rem;
+    --erp-tree-branch-width: 0.8rem;
+    --erp-tree-dot-left: -0.04rem;
+    --erp-tree-dot-size: 0.38rem;
     position: relative;
     display: flex;
     flex-direction: column;
@@ -900,22 +924,26 @@
 
   .erp-sidebar-group-panel .erp-sidebar-tree-link.erp-sidebar-link-active {
     background:
-      linear-gradient(90deg, rgba(214, 232, 255, 0.94), rgba(233, 243, 255, 0.82));
+      linear-gradient(135deg, rgba(255, 255, 255, 0.42), rgba(255, 255, 255, 0.16) 42%, rgba(255, 255, 255, 0.06) 100%),
+      linear-gradient(90deg, rgba(147, 197, 253, 0.4), rgba(196, 181, 253, 0.16) 56%, rgba(103, 232, 249, 0.24)),
+      rgba(219, 234, 254, 0.28);
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.8),
+      0 12px 24px rgba(59, 130, 246, 0.1),
+      inset 0 1px 0 rgba(255, 255, 255, 0.78),
       inset 0 0 0 1px rgba(147, 197, 253, 0.34);
   }
 
   .erp-sidebar-tree::before {
     content: '';
     position: absolute;
-    left: 0.4rem;
-    top: 0;
-    bottom: 0;
+    left: var(--erp-tree-trunk-x);
+    top: var(--erp-tree-row-mid);
+    bottom: var(--erp-tree-row-mid);
     width: 1px;
     border-radius: 9999px;
     background: linear-gradient(180deg, rgba(71, 85, 105, 0.4), rgba(96, 165, 250, 0.45), rgba(186, 202, 226, 0.18));
     z-index: 1;
+    pointer-events: none;
   }
 
   .erp-sidebar-tree > * {
@@ -932,26 +960,28 @@
   .erp-sidebar-tree-link::before {
     content: '';
     position: absolute;
-    left: -0.85rem;
+    left: var(--erp-tree-branch-left);
     top: 50%;
-    width: 0.75rem;
+    width: var(--erp-tree-branch-width);
     height: 1px;
     border-radius: 0;
     background: rgba(148, 163, 184, 0.7);
     transform: translateY(-50%);
+    pointer-events: none;
   }
 
   .erp-sidebar-tree-link::after {
     content: '';
     position: absolute;
-    left: -0.05rem;
+    left: var(--erp-tree-dot-left);
     top: 50%;
-    width: 0.35rem;
-    height: 0.35rem;
+    width: var(--erp-tree-dot-size);
+    height: var(--erp-tree-dot-size);
     border-radius: 9999px;
     background: #3b82f6;
     box-shadow: 0 0 0 2px rgba(255, 255, 255, 0.94);
     transform: translateY(-50%);
+    pointer-events: none;
   }
 
   .erp-sidebar-tree-link.erp-sidebar-link-active::before {
@@ -1196,13 +1226,19 @@
 
   .dark .erp-sidebar-link-active {
     background:
-      linear-gradient(90deg, rgba(79, 70, 229, 0.42), rgba(29, 110, 160, 0.26) 72%, rgba(76, 29, 149, 0.16)),
-      linear-gradient(140deg, rgba(236, 72, 153, 0.12), transparent 62%);
+      linear-gradient(135deg, rgba(255, 255, 255, 0.12), rgba(255, 255, 255, 0.04) 42%, rgba(255, 255, 255, 0.02) 100%),
+      linear-gradient(90deg, rgba(99, 102, 241, 0.3), rgba(34, 211, 238, 0.18) 62%, rgba(244, 114, 182, 0.14)),
+      rgba(15, 23, 42, 0.22);
     color: #f8fbff;
+    border-color: rgba(255, 255, 255, 0.14);
     box-shadow:
-      0 18px 36px rgba(15, 23, 42, 0.28),
-      inset 0 1px 0 rgba(255, 255, 255, 0.05),
-      inset 0 0 0 1px rgba(56, 189, 248, 0.1);
+      0 20px 40px rgba(15, 23, 42, 0.26),
+      0 8px 20px rgba(14, 165, 233, 0.08),
+      inset 0 1px 0 rgba(255, 255, 255, 0.1),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.04),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(24px) saturate(180%);
+    -webkit-backdrop-filter: blur(24px) saturate(180%);
   }
 
   .dark .erp-sidebar-link-active .erp-nav-icon {
@@ -1220,9 +1256,19 @@
   }
 
   .dark .erp-sidebar-parent-active {
-    background: linear-gradient(90deg, rgba(30, 64, 175, 0.3), rgba(14, 116, 144, 0.18));
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.03) 42%, rgba(255, 255, 255, 0.01) 100%),
+      linear-gradient(90deg, rgba(99, 102, 241, 0.22), rgba(34, 211, 238, 0.14) 62%, rgba(244, 114, 182, 0.1)),
+      rgba(15, 23, 42, 0.16);
     color: #f8fbff;
-    box-shadow: inset 0 0 0 1px rgba(56, 189, 248, 0.1);
+    border-color: rgba(255, 255, 255, 0.1);
+    box-shadow:
+      0 14px 28px rgba(15, 23, 42, 0.18),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.03),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(22px) saturate(170%);
+    -webkit-backdrop-filter: blur(22px) saturate(170%);
   }
 
   .dark .erp-sidebar-parent-active .erp-nav-icon {
@@ -1236,7 +1282,10 @@
   }
 
   .dark .erp-sidebar-group-panel .erp-sidebar-parent-active {
-    background: linear-gradient(90deg, rgba(30, 64, 175, 0.3), rgba(14, 116, 144, 0.18));
+    background:
+      linear-gradient(135deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.04) 42%, rgba(255, 255, 255, 0.02) 100%),
+      linear-gradient(90deg, rgba(99, 102, 241, 0.24), rgba(34, 211, 238, 0.16) 62%, rgba(244, 114, 182, 0.12)),
+      rgba(15, 23, 42, 0.18);
   }
 
   .dark .erp-sidebar-group-panel .erp-sidebar-tree-link {
@@ -1251,10 +1300,16 @@
 
   .dark .erp-sidebar-group-panel .erp-sidebar-tree-link.erp-sidebar-link-active {
     background:
-      linear-gradient(90deg, rgba(30, 64, 175, 0.4), rgba(14, 116, 144, 0.24));
+      linear-gradient(135deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.04) 42%, rgba(255, 255, 255, 0.02) 100%),
+      linear-gradient(90deg, rgba(99, 102, 241, 0.26), rgba(34, 211, 238, 0.16) 62%, rgba(244, 114, 182, 0.12)),
+      rgba(15, 23, 42, 0.18);
     box-shadow:
-      inset 0 1px 0 rgba(255, 255, 255, 0.04),
-      inset 0 0 0 1px rgba(56, 189, 248, 0.12);
+      0 14px 28px rgba(15, 23, 42, 0.18),
+      inset 0 1px 0 rgba(255, 255, 255, 0.08),
+      inset 0 -1px 0 rgba(255, 255, 255, 0.03),
+      inset 0 0 0 1px rgba(255, 255, 255, 0.06);
+    backdrop-filter: blur(22px) saturate(170%);
+    -webkit-backdrop-filter: blur(22px) saturate(170%);
   }
 
   .dark .erp-sidebar-group-panel .erp-sidebar-parent-link::after {
