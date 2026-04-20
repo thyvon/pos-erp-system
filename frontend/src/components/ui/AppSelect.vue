@@ -89,20 +89,24 @@
                   v-for="option in group.options"
                   :key="String(option.value)"
                 type="button"
-                class="mx-2 flex w-[calc(100%-1rem)] items-center justify-between gap-3 rounded-[18px] px-3 py-2.5 text-left text-sm transition hover:bg-sky-50/70 hover:text-cyan-700 dark:hover:bg-cyan-950/24 dark:hover:text-cyan-300"
-                :class="isSelected(option.value) ? 'bg-sky-50/80 text-cyan-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.68)] dark:border dark:border-cyan-400/28 dark:bg-[linear-gradient(135deg,rgba(34,211,238,0.26),rgba(59,130,246,0.18))] dark:text-cyan-50 dark:shadow-[0_10px_20px_rgba(8,47,73,0.28),inset_0_1px_0_rgba(255,255,255,0.08)]' : 'text-slate-700 dark:text-slate-200'"
+                class="mx-2 flex w-[calc(100%-1rem)] items-center justify-between gap-3 rounded-[18px] px-3 py-2.5 text-left text-sm transition hover:text-cyan-700 hover:shadow-[0_12px_22px_rgba(36,124,255,0.08),inset_0_1px_0_rgba(255,255,255,0.72),inset_0_0_0_1px_rgba(147,197,253,0.16)] hover:[background:linear-gradient(90deg,rgba(239,246,255,0.92),rgba(245,243,255,0.72)_64%,rgba(236,254,255,0.58)),linear-gradient(135deg,rgba(88,135,255,0.10),transparent_56%)] dark:hover:text-cyan-100 dark:hover:shadow-[0_14px_28px_rgba(15,23,42,0.24),inset_0_1px_0_rgba(255,255,255,0.04),inset_0_0_0_1px_rgba(56,189,248,0.08)] dark:hover:[background:linear-gradient(90deg,rgba(49,46,129,0.34),rgba(14,116,144,0.18)_72%,rgba(76,29,149,0.10)),linear-gradient(140deg,rgba(236,72,153,0.08),transparent_64%)]"
+                :class="isSelected(option.value) ? 'text-cyan-700 shadow-[0_16px_30px_rgba(36,124,255,0.12),inset_0_1px_0_rgba(255,255,255,0.9),inset_0_0_0_1px_rgba(147,197,253,0.34)] [background:linear-gradient(90deg,rgba(227,239,255,0.94),rgba(247,236,255,0.82)_64%,rgba(232,248,255,0.68)),linear-gradient(135deg,rgba(88,135,255,0.16),transparent_52%)] dark:text-white dark:shadow-[0_18px_36px_rgba(15,23,42,0.28),inset_0_1px_0_rgba(255,255,255,0.05),inset_0_0_0_1px_rgba(56,189,248,0.1)] dark:[background:linear-gradient(90deg,rgba(79,70,229,0.42),rgba(29,110,160,0.26)_72%,rgba(76,29,149,0.16)),linear-gradient(140deg,rgba(236,72,153,0.12),transparent_62%)]' : 'text-slate-700 dark:text-slate-200'"
                 :disabled="option.disabled"
                 @click="selectOption(option)"
               >
                   <div class="min-w-0 flex-1">
                     <div class="truncate font-medium">{{ option.label }}</div>
-                    <div v-if="option.description" class="mt-0.5 truncate text-xs text-slate-500 dark:text-slate-400">
+                    <div
+                      v-if="option.description"
+                      class="mt-0.5 truncate text-xs"
+                      :class="isSelected(option.value) ? 'text-[#1743a3] dark:text-cyan-200/78' : 'text-slate-500 dark:text-slate-400'"
+                    >
                       {{ option.description }}
                     </div>
                   </div>
                   <i
                     v-if="isSelected(option.value)"
-                    class="fa-solid fa-check text-xs"
+                    class="fa-solid fa-check text-xs text-[#1d4ed8] dark:text-sky-300"
                   ></i>
                 </button>
               </div>

@@ -4,10 +4,14 @@ import { useAuthStore } from '@stores/auth'
 const AdminBusinessesView = () => import('@views/AdminBusinessesView.vue')
 const BrandsView = () => import('@views/BrandsView.vue')
 const BranchesView = () => import('@views/BranchesView.vue')
+const ChartOfAccountsView = () => import('@views/ChartOfAccountsView.vue')
 const LoginView = () => import('@views/LoginView.vue')
 const ForgotPasswordView = () => import('@views/ForgotPasswordView.vue')
+const FiscalYearsView = () => import('@views/FiscalYearsView.vue')
+const JournalsView = () => import('@views/JournalsView.vue')
 const ResetPasswordView = () => import('@views/ResetPasswordView.vue')
 const NoBranchAccessView = () => import('@views/NoBranchAccessView.vue')
+const PaymentAccountsView = () => import('@views/PaymentAccountsView.vue')
 const CustomFieldsView = () => import('@views/CustomFieldsView.vue')
 const CategoriesView = () => import('@views/CategoriesView.vue')
 const CustomerGroupsView = () => import('@views/CustomerGroupsView.vue')
@@ -168,6 +172,34 @@ const router = createRouter({
       name: 'inventory-serials',
       component: InventorySerialsView,
       meta: { requiresAuth: true, requiredPermission: 'inventory.index' },
+    },
+    {
+      path: '/accounting',
+      redirect: '/accounting/journals',
+    },
+    {
+      path: '/accounting/chart-of-accounts',
+      name: 'accounting-chart-of-accounts',
+      component: ChartOfAccountsView,
+      meta: { requiresAuth: true, requiredAnyPermissions: ['accounting.index', 'accounting.coa'] },
+    },
+    {
+      path: '/accounting/journals',
+      name: 'accounting-journals',
+      component: JournalsView,
+      meta: { requiresAuth: true, requiredAnyPermissions: ['accounting.index', 'accounting.journals'] },
+    },
+    {
+      path: '/accounting/payment-accounts',
+      name: 'accounting-payment-accounts',
+      component: PaymentAccountsView,
+      meta: { requiresAuth: true, requiredPermission: 'accounting.index' },
+    },
+    {
+      path: '/accounting/fiscal-years',
+      name: 'accounting-fiscal-years',
+      component: FiscalYearsView,
+      meta: { requiresAuth: true, requiredPermission: 'accounting.index' },
     },
     {
       path: '/custom-fields',

@@ -435,6 +435,69 @@ export const createSidebarGroups = ({ t, auth, isSuperAdmin }) => {
     })
   }
 
+  if (auth.isSuperAdmin || auth.canAny(['accounting.index', 'accounting.journals', 'accounting.coa'])) {
+    groups.push({
+      label: t('layout.groups.accounting'),
+      items: [
+        {
+          key: 'accounting',
+          label: t('layout.nav.accounting.label'),
+          description: t('layout.nav.accounting.description'),
+          short: 'AC',
+          status: statuses.ready,
+          statusClass: readyClass,
+          icon: 'fa-solid fa-book-open-reader',
+          children: [
+            {
+              key: 'accounting-journals',
+              label: t('layout.nav.journals.label'),
+              description: t('layout.nav.journals.description'),
+              short: 'JR',
+              to: '/accounting/journals',
+              permissionAny: ['accounting.index', 'accounting.journals'],
+              status: statuses.ready,
+              statusClass: readyClass,
+              icon: 'fa-solid fa-book',
+            },
+            {
+              key: 'accounting-chart-of-accounts',
+              label: t('layout.nav.chartOfAccounts.label'),
+              description: t('layout.nav.chartOfAccounts.description'),
+              short: 'CO',
+              to: '/accounting/chart-of-accounts',
+              permissionAny: ['accounting.index', 'accounting.coa'],
+              status: statuses.ready,
+              statusClass: readyClass,
+              icon: 'fa-solid fa-list-tree',
+            },
+            {
+              key: 'accounting-payment-accounts',
+              label: t('layout.nav.paymentAccounts.label'),
+              description: t('layout.nav.paymentAccounts.description'),
+              short: 'PA',
+              to: '/accounting/payment-accounts',
+              permission: 'accounting.index',
+              status: statuses.ready,
+              statusClass: readyClass,
+              icon: 'fa-solid fa-wallet',
+            },
+            {
+              key: 'accounting-fiscal-years',
+              label: t('layout.nav.fiscalYears.label'),
+              description: t('layout.nav.fiscalYears.description'),
+              short: 'FY',
+              to: '/accounting/fiscal-years',
+              permission: 'accounting.index',
+              status: statuses.ready,
+              statusClass: readyClass,
+              icon: 'fa-solid fa-calendar-days',
+            },
+          ],
+        },
+      ],
+    })
+  }
+
   groups.push({
     label: t('layout.groups.roadmap'),
     items: [

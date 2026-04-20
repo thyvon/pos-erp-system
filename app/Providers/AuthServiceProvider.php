@@ -24,6 +24,10 @@ use App\Models\StockLot;
 use App\Models\StockSerial;
 use App\Models\StockTransfer;
 use App\Models\Supplier;
+use App\Models\ChartOfAccount;
+use App\Models\FiscalYear;
+use App\Models\Journal;
+use App\Models\PaymentAccount;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
 
@@ -55,6 +59,10 @@ use App\Policies\StockAdjustmentPolicy;
 use App\Policies\StockCountPolicy;
 use App\Policies\StockTransferPolicy;
 use App\Policies\SupplierPolicy;
+use App\Policies\ChartOfAccountPolicy;
+use App\Policies\FiscalYearPolicy;
+use App\Policies\JournalPolicy;
+use App\Policies\PaymentAccountPolicy;
 use App\Policies\UserPolicy;
 use App\Policies\WarehousePolicy;
 use Spatie\Permission\Models\Role;
@@ -85,6 +93,10 @@ class AuthServiceProvider extends ServiceProvider
         StockCount::class => StockCountPolicy::class,
         StockTransfer::class => StockTransferPolicy::class,
         Supplier::class => SupplierPolicy::class,
+        ChartOfAccount::class => ChartOfAccountPolicy::class,
+        FiscalYear::class => FiscalYearPolicy::class,
+        Journal::class => JournalPolicy::class,
+        PaymentAccount::class => PaymentAccountPolicy::class,
         User::class => UserPolicy::class,
         Role::class => RolePolicy::class,
         Branch::class => BranchPolicy::class,

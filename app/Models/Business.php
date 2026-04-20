@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\HasUuid;
+use App\Support\Accounting\DefaultChartOfAccounts;
 use App\Support\Foundation\DefaultSettings;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -38,6 +39,10 @@ class Business extends Model
         static::created(function (Business $business): void {
             if (Schema::hasTable('settings')) {
                 DefaultSettings::seedBusiness($business->id);
+            }
+
+            if (Schema::hasTable('chart_of_accounts')) {
+                DefaultChartOfAccounts::seedBusiness($business->id);
             }
         });
     }
@@ -117,5 +122,25 @@ class Business extends Model
     public function suppliers(): HasMany
     {
         return $this->hasMany(Supplier::class);
+    }
+
+    public function chartOfAccounts(): HasMany
+    {
+        return $this->hasMany(ChartOfAccount::class);
+    }
+
+    public function fiscalYears(): HasMany
+    {
+        return $this->hasMany(FiscalYear::class);
+    }
+
+    public function paymentAccounts(): HasMany
+    {
+        return $this->hasMany(PaymentAccount::class);
+    }
+
+    public function journals(): HasMany
+    {
+        return $this->hasMany(Journal::class);
     }
 }

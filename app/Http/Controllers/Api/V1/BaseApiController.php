@@ -18,7 +18,11 @@ class BaseApiController extends Controller
         ], $status);
     }
 
-    protected function paginated(LengthAwarePaginator $paginator, string|JsonResource $resource): JsonResponse
+    protected function paginated(
+        LengthAwarePaginator $paginator,
+        string|JsonResource $resource,
+        array $extra = []
+    ): JsonResponse
     {
         $resourceClass = is_string($resource) ? $resource : $resource::class;
         $resourceCollection = $resourceClass::collection($paginator->items());
@@ -34,6 +38,7 @@ class BaseApiController extends Controller
                 'from' => $paginator->firstItem(),
                 'to' => $paginator->lastItem(),
             ],
+            ...$extra,
         ]);
     }
 

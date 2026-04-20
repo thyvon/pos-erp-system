@@ -35,87 +35,91 @@
       </div>
     </button>
 
-    <Transition
-      enter-active-class="transition duration-150 ease-out"
-      enter-from-class="translate-y-1 scale-[0.98] opacity-0"
-      enter-to-class="translate-y-0 scale-100 opacity-100"
-      leave-active-class="transition duration-120 ease-in"
-      leave-from-class="translate-y-0 scale-100 opacity-100"
-      leave-to-class="translate-y-1 scale-[0.98] opacity-0"
-    >
-      <div
-        v-if="open"
-        class="absolute left-0 top-[calc(100%+0.5rem)] z-[170] w-[20.5rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-[15px] border border-slate-200/80 bg-white/95 shadow-[0_22px_50px_rgba(44,62,99,0.16)] dark:border-slate-700/70 dark:bg-slate-900/95 dark:shadow-[0_22px_50px_rgba(0,0,0,0.36)]"
+    <Teleport to="body">
+      <Transition
+        enter-active-class="transition duration-150 ease-out"
+        enter-from-class="translate-y-1 scale-[0.98] opacity-0"
+        enter-to-class="translate-y-0 scale-100 opacity-100"
+        leave-active-class="transition duration-120 ease-in"
+        leave-from-class="translate-y-0 scale-100 opacity-100"
+        leave-to-class="translate-y-1 scale-[0.98] opacity-0"
       >
-        <div class="flex items-center justify-between border-b border-slate-200/70 px-3 py-3 dark:border-slate-800/70">
-          <button
-            type="button"
-            class="inline-flex h-9 w-9 items-center justify-center rounded-[10px] text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
-            @click="moveMonth(-1)"
-          >
-            <i class="fa-solid fa-chevron-left text-xs"></i>
-          </button>
-          <div class="text-sm font-semibold text-slate-900 dark:text-white">
-            {{ monthYearLabel }}
+        <div
+          v-if="open"
+          ref="panel"
+          class="fixed z-[170] w-[20.5rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-[15px] border border-slate-200/80 bg-white/95 shadow-[0_22px_50px_rgba(44,62,99,0.16)] dark:border-slate-700/70 dark:bg-slate-900/95 dark:shadow-[0_22px_50px_rgba(0,0,0,0.36)]"
+          :style="panelStyle"
+        >
+          <div class="flex items-center justify-between border-b border-slate-200/70 px-3 py-3 dark:border-slate-800/70">
+            <button
+              type="button"
+              class="inline-flex h-9 w-9 items-center justify-center rounded-[10px] text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
+              @click="moveMonth(-1)"
+            >
+              <i class="fa-solid fa-chevron-left text-xs"></i>
+            </button>
+            <div class="text-sm font-semibold text-slate-900 dark:text-white">
+              {{ monthYearLabel }}
+            </div>
+            <button
+              type="button"
+              class="inline-flex h-9 w-9 items-center justify-center rounded-[10px] text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
+              @click="moveMonth(1)"
+            >
+              <i class="fa-solid fa-chevron-right text-xs"></i>
+            </button>
           </div>
-          <button
-            type="button"
-            class="inline-flex h-9 w-9 items-center justify-center rounded-[10px] text-slate-500 transition hover:bg-slate-100 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 dark:hover:text-white"
-            @click="moveMonth(1)"
-          >
-            <i class="fa-solid fa-chevron-right text-xs"></i>
-          </button>
-        </div>
 
-        <div class="grid grid-cols-7 gap-1 px-3 pt-3">
-          <div
-            v-for="weekday in weekdays"
-            :key="weekday"
-            class="py-1 text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500"
-          >
-            {{ weekday }}
+          <div class="grid grid-cols-7 gap-1 px-3 pt-3">
+            <div
+              v-for="weekday in weekdays"
+              :key="weekday"
+              class="py-1 text-center text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-400 dark:text-slate-500"
+            >
+              {{ weekday }}
+            </div>
+          </div>
+
+          <div class="grid grid-cols-7 gap-1 p-3 pt-2">
+            <button
+              v-for="day in calendarDays"
+              :key="day.key"
+              type="button"
+              class="inline-flex aspect-square items-center justify-center rounded-[12px] text-sm font-medium transition"
+              :class="dayClasses(day)"
+              :disabled="day.disabled"
+              @click="selectDay(day)"
+            >
+              {{ day.date.getDate() }}
+            </button>
+          </div>
+
+          <div class="flex items-center justify-between border-t border-slate-200/70 px-3 py-3 dark:border-slate-800/70">
+            <button
+              type="button"
+              class="text-sm font-medium text-cyan-600 transition hover:text-cyan-700 disabled:cursor-not-allowed disabled:opacity-40 dark:text-cyan-300 dark:hover:text-cyan-200"
+              :disabled="todayDisabled"
+              @click="selectToday"
+            >
+              Today
+            </button>
+            <button
+              type="button"
+              class="text-sm font-medium text-slate-500 transition hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-40 dark:text-slate-400 dark:hover:text-slate-200"
+              :disabled="!modelValue"
+              @click="clearSelection"
+            >
+              Clear
+            </button>
           </div>
         </div>
-
-        <div class="grid grid-cols-7 gap-1 p-3 pt-2">
-          <button
-            v-for="day in calendarDays"
-            :key="day.key"
-            type="button"
-            class="inline-flex aspect-square items-center justify-center rounded-[12px] text-sm font-medium transition"
-            :class="dayClasses(day)"
-            :disabled="day.disabled"
-            @click="selectDay(day)"
-          >
-            {{ day.date.getDate() }}
-          </button>
-        </div>
-
-        <div class="flex items-center justify-between border-t border-slate-200/70 px-3 py-3 dark:border-slate-800/70">
-          <button
-            type="button"
-            class="text-sm font-medium text-cyan-600 transition hover:text-cyan-700 disabled:cursor-not-allowed disabled:opacity-40 dark:text-cyan-300 dark:hover:text-cyan-200"
-            :disabled="todayDisabled"
-            @click="selectToday"
-          >
-            Today
-          </button>
-          <button
-            type="button"
-            class="text-sm font-medium text-slate-500 transition hover:text-slate-800 disabled:cursor-not-allowed disabled:opacity-40 dark:text-slate-400 dark:hover:text-slate-200"
-            :disabled="!modelValue"
-            @click="clearSelection"
-          >
-            Clear
-          </button>
-        </div>
-      </div>
-    </Transition>
+      </Transition>
+    </Teleport>
   </div>
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue'
+import { computed, nextTick, onBeforeUnmount, onMounted, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 
 const props = defineProps({
@@ -132,7 +136,9 @@ const emit = defineEmits(['update:modelValue', 'change'])
 
 const { locale } = useI18n()
 const root = ref(null)
+const panel = ref(null)
 const open = ref(false)
+const panelStyle = ref({})
 const viewMonth = ref(0)
 const viewYear = ref(0)
 
@@ -270,12 +276,42 @@ const close = () => {
   open.value = false
 }
 
-const toggleOpen = () => {
+const updatePanelPosition = () => {
+  if (!root.value) {
+    return
+  }
+
+  const rect = root.value.getBoundingClientRect()
+  const viewportWidth = window.innerWidth
+  const gutter = 12
+  const preferredWidth = 328
+  const availableWidth = Math.max(260, viewportWidth - (gutter * 2))
+  const width = Math.min(preferredWidth, availableWidth)
+  const left = Math.min(Math.max(rect.left, gutter), viewportWidth - width - gutter)
+
+  panelStyle.value = {
+    top: `${rect.bottom + 8}px`,
+    left: `${left}px`,
+    width: `${width}px`,
+  }
+}
+
+const openCalendar = async () => {
   if (props.disabled) {
     return
   }
 
-  open.value = !open.value
+  open.value = true
+  await nextTick()
+  updatePanelPosition()
+}
+
+const toggleOpen = () => {
+  if (open.value) {
+    close()
+  } else {
+    openCalendar()
+  }
 }
 
 const moveMonth = (offset) => {
@@ -312,8 +348,14 @@ const clearSelection = () => {
   close()
 }
 
-const handleDocumentClick = (event) => {
-  if (!root.value || root.value.contains(event.target)) {
+const handleDocumentPointerDown = (event) => {
+  if (!open.value) {
+    return
+  }
+
+  const target = event.target
+
+  if (root.value?.contains(target) || panel.value?.contains(target)) {
     return
   }
 
@@ -321,18 +363,42 @@ const handleDocumentClick = (event) => {
 }
 
 const handleEscape = (event) => {
-  if (event.key === 'Escape') {
+  if (event.key === 'Escape' && open.value) {
     close()
   }
 }
 
+watch(
+  () => props.disabled,
+  (disabled) => {
+    if (disabled) {
+      close()
+    }
+  }
+)
+
+watch(open, (isOpen) => {
+  if (!isOpen) {
+    panelStyle.value = {}
+    return
+  }
+
+  nextTick(() => {
+    updatePanelPosition()
+  })
+})
+
 onMounted(() => {
-  document.addEventListener('click', handleDocumentClick)
+  document.addEventListener('mousedown', handleDocumentPointerDown)
   document.addEventListener('keydown', handleEscape)
+  window.addEventListener('resize', updatePanelPosition)
+  window.addEventListener('scroll', updatePanelPosition, true)
 })
 
 onBeforeUnmount(() => {
-  document.removeEventListener('click', handleDocumentClick)
+  document.removeEventListener('mousedown', handleDocumentPointerDown)
   document.removeEventListener('keydown', handleEscape)
+  window.removeEventListener('resize', updatePanelPosition)
+  window.removeEventListener('scroll', updatePanelPosition, true)
 })
 </script>

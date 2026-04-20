@@ -62,6 +62,11 @@ class Journal extends Model
         return $this->belongsTo(self::class, 'reversed_by_id');
     }
 
+    public function reversalOf(): HasMany
+    {
+        return $this->hasMany(self::class, 'reversed_by_id');
+    }
+
     public function entries(): HasMany
     {
         return $this->hasMany(JournalEntry::class)->orderBy('created_at');
