@@ -1,0 +1,43 @@
+export default {
+  "login": {
+    "badge": "ERP platform",
+    "heroTitle": "A softer sign-in screen for the ERP control center.",
+    "heroBody": "The visual direction uses frosted panels, layered light, and calmer spacing so the first impression feels more like a product and less like a starter template.",
+    "mode": "Mode",
+    "modeValue": "API first",
+    "modeBody": "Vue talks to Laravel only through the backend endpoints.",
+    "style": "Style",
+    "styleValue": "Glass UI",
+    "styleBody": "Reusable frosted surfaces for future ERP pages.",
+    "welcomeBack": "Welcome back",
+    "continueMessage": "Sign in to continue building and testing the ERP modules.",
+    "signIn": "Sign in",
+    "email": "Email",
+    "password": "Password",
+    "passwordPlaceholder": "Enter your password",
+    "localCredentials": "Local test credentials",
+    "failedTitle": "Login failed",
+    "failedMessage": "Unable to sign in with the provided credentials."
+  },
+  "auth": {
+    "forgotLink": "Forgot password?",
+    "backToSignIn": "Back to sign in",
+    "forgotTitle": "Reset your password",
+    "forgotBody": "Enter the email you use for this ERP. If an account exists, we will send a reset link (check spam folders).",
+    "sendResetLink": "Send reset link",
+    "forgotSuccessTitle": "Check your email",
+    "forgotSuccessBody": "If that address is registered, password reset instructions are on the way.",
+    "forgotErrorTitle": "Could not send email",
+    "forgotErrorBody": "Something went wrong. Please try again or contact your administrator.",
+    "resetTitle": "Choose a new password",
+    "resetBody": "Paste the token from your email (or open the link from your inbox).",
+    "resetToken": "Reset token",
+    "newPassword": "New password",
+    "confirmPassword": "Confirm password",
+    "resetSubmit": "Update password",
+    "resetSuccessTitle": "Password updated",
+    "resetSuccessBody": "You can sign in with your new password.",
+    "resetErrorTitle": "Reset failed",
+    "resetErrorBody": "The token may be invalid or expired. Request a new link from the sign-in page."
+  }
+}
