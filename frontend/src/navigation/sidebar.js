@@ -498,20 +498,68 @@ export const createSidebarGroups = ({ t, auth, isSuperAdmin }) => {
     })
   }
 
-  groups.push({
-    label: t('layout.groups.roadmap'),
-    items: [
-      {
-        key: 'sales-roadmap',
-        label: t('layout.nav.sales.label'),
-        description: t('layout.nav.sales.description'),
-        short: 'SL',
-        status: statuses.planned,
-        statusClass: plannedClass,
-        icon: 'fa-solid fa-cash-register',
-      },
-    ],
-  })
+  if (auth.isSuperAdmin || auth.canAny(['sales.index', 'sales.return'])) {
+    groups.push({
+      label: t('layout.nav.sales.label'),
+      items: [
+        {
+          key: 'sales',
+          label: t('layout.nav.sales.label'),
+          description: t('layout.nav.sales.description'),
+          short: 'SL',
+          status: statuses.ready,
+          statusClass: readyClass,
+          icon: 'fa-solid fa-cash-register',
+          children: [
+            {
+              key: 'sales-documents',
+              label: t('layout.nav.salesDocuments.label'),
+              description: t('layout.nav.salesDocuments.description'),
+              short: 'SD',
+              to: '/sales',
+              permission: 'sales.index',
+              status: statuses.ready,
+              statusClass: readyClass,
+              icon: 'fa-solid fa-file-invoice-dollar',
+            },
+            {
+              key: 'sales-quotations',
+              label: t('layout.nav.quotations.label'),
+              description: t('layout.nav.quotations.description'),
+              short: 'QT',
+              to: '/sales/quotations',
+              permission: 'sales.index',
+              status: statuses.ready,
+              statusClass: readyClass,
+              icon: 'fa-solid fa-file-signature',
+            },
+            {
+              key: 'sales-registers',
+              label: t('layout.nav.cashRegisters.label'),
+              description: t('layout.nav.cashRegisters.description'),
+              short: 'CR',
+              to: '/sales/registers',
+              permission: 'sales.index',
+              status: statuses.ready,
+              statusClass: readyClass,
+              icon: 'fa-solid fa-cash-register',
+            },
+            {
+              key: 'sales-returns',
+              label: t('layout.nav.saleReturns.label'),
+              description: t('layout.nav.saleReturns.description'),
+              short: 'RT',
+              to: '/sales/returns',
+              permission: 'sales.return',
+              status: statuses.ready,
+              statusClass: readyClass,
+              icon: 'fa-solid fa-rotate-left',
+            },
+          ],
+        },
+      ],
+    })
+  }
 
   return groups
     .map((group) => ({

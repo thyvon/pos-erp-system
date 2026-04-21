@@ -6,6 +6,7 @@ use App\Models\Branch;
 use App\Models\Business;
 use App\Models\Product;
 use App\Models\StockLot;
+use App\Models\StockLevel;
 use App\Models\StockSerial;
 use App\Models\User;
 use App\Models\Unit;
@@ -365,9 +366,17 @@ class InventoryWorkflowApiTest extends TestCase
             'received_at' => now(),
         ]);
 
+        StockLevel::withoutGlobalScopes()->create([
+            'business_id' => $business->id,
+            'product_id' => $product->id,
+            'warehouse_id' => $warehouseA->id,
+            'quantity' => 10,
+            'reserved_quantity' => 0,
+        ]);
+
         $user = User::factory()->for($business)->create();
         $user->assignRole('inventory_manager');
-        $user->branches()->attach($branchA->id);
+        $user->branches()->attach([$branchA->id, $branchB->id]);
 
         Sanctum::actingAs($user);
 
@@ -375,6 +384,7 @@ class InventoryWorkflowApiTest extends TestCase
             'from_warehouse_id' => $warehouseA->id,
             'to_warehouse_id' => $warehouseB->id,
             'date' => now()->toDateString(),
+            'send' => true,
             'items' => [[
                 'product_id' => $product->id,
                 'lot_id' => $lot->id,
@@ -385,6 +395,10 @@ class InventoryWorkflowApiTest extends TestCase
         ])->assertCreated();
 
         $transferId = $response->json('data.id');
+
+        $this->postJson("/api/v1/inventory/transfers/{$transferId}/receive")
+            ->assertOk()
+            ->assertJsonPath('data.status', 'received');
 
         $this->assertDatabaseHas('stock_transfer_items', [
             'stock_transfer_id' => $transferId,

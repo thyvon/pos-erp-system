@@ -39,6 +39,10 @@ const UnitsView = () => import('@views/UnitsView.vue')
 const UsersView = () => import('@views/UsersView.vue')
 const VariationTemplatesView = () => import('@views/VariationTemplatesView.vue')
 const RackLocationsView = () => import('@views/RackLocationsView.vue')
+const SalesView = () => import('@views/SalesView.vue')
+const QuotationsView = () => import('@views/QuotationsView.vue')
+const CashRegistersView = () => import('@views/CashRegistersView.vue')
+const SaleReturnsView = () => import('@views/SaleReturnsView.vue')
 const WarehousesView = () => import('@views/WarehousesView.vue')
 
 const router = createRouter({
@@ -296,6 +300,30 @@ const router = createRouter({
       name: 'price-groups',
       component: PriceGroupsView,
       meta: { requiresAuth: true, requiredPermission: 'price_groups.index' },
+    },
+    {
+      path: '/sales',
+      name: 'sales',
+      component: SalesView,
+      meta: { requiresAuth: true, requiredPermission: 'sales.index' },
+    },
+    {
+      path: '/sales/quotations',
+      name: 'sales-quotations',
+      component: QuotationsView,
+      meta: { requiresAuth: true, requiredPermission: 'sales.index' },
+    },
+    {
+      path: '/sales/registers',
+      name: 'sales-registers',
+      component: CashRegistersView,
+      meta: { requiresAuth: true, requiredPermission: 'sales.index' },
+    },
+    {
+      path: '/sales/returns',
+      name: 'sales-returns',
+      component: SaleReturnsView,
+      meta: { requiresAuth: true, requiredPermission: 'sales.return' },
     },
     {
       path: '/users',

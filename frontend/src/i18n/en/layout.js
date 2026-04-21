@@ -153,6 +153,22 @@ export default {
       "sales": {
         "label": "Sales & POS",
         "description": "Order flow"
+      },
+      "salesDocuments": {
+        "label": "Sales",
+        "description": "Invoices, drafts, and POS sales"
+      },
+      "quotations": {
+        "label": "Quotations",
+        "description": "Quotes waiting for conversion"
+      },
+      "cashRegisters": {
+        "label": "Cash Registers",
+        "description": "Register setup and sessions"
+      },
+      "saleReturns": {
+        "label": "Returns",
+        "description": "Customer returns and refunds"
       }
     }
   },

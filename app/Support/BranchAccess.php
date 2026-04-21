@@ -9,8 +9,26 @@ class BranchAccess
 {
     public static function accessibleBranchIds(?User $user): ?array
     {
-        if (! $user instanceof User || $user->hasRole(['super_admin', 'admin'])) {
+        if (! $user instanceof User) {
+            if (! app()->bound('branch_scope')) {
+                return null;
+            }
+
+            $branchScope = app('branch_scope');
+
+            return is_array($branchScope) ? $branchScope : null;
+        }
+
+        if ($user->hasRole(['super_admin', 'admin'])) {
             return null;
+        }
+
+        $requestUser = request()?->user();
+
+        if ($requestUser instanceof User && $requestUser->is($user) && app()->bound('branch_scope')) {
+            $branchScope = app('branch_scope');
+
+            return is_array($branchScope) ? $branchScope : null;
         }
 
         return $user->accessibleBranchIds();
@@ -19,21 +37,7 @@ class BranchAccess
     public static function scopeBranchQuery(Builder $query, User|array|null $userOrBranchIds, string $column = 'id'): Builder
     {
         if ($userOrBranchIds instanceof User) {
-            if ($userOrBranchIds->hasRole(['super_admin', 'admin'])) {
-                return $query;
-            }
-
-            $qualifiedColumn = str_contains($column, '.')
-                ? $column
-                : $query->qualifyColumn($column);
-
-            return $query->whereExists(function ($subQuery) use ($qualifiedColumn, $userOrBranchIds): void {
-                $subQuery
-                    ->selectRaw('1')
-                    ->from('branch_user')
-                    ->where('branch_user.user_id', $userOrBranchIds->getKey())
-                    ->whereColumn('branch_user.branch_id', $qualifiedColumn);
-            });
+            $userOrBranchIds = static::accessibleBranchIds($userOrBranchIds);
         }
 
         $branchIds = $userOrBranchIds === null

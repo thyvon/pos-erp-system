@@ -2,20 +2,20 @@
 
 namespace App\Http\Controllers\Api\V1\Auth;
 
-use Throwable;
 use App\Models\User;
+use App\Services\Auth\AuthService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Str;
-use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Password;
-use Illuminate\Support\Facades\Schema;
-use Illuminate\Validation\ValidationException;
 use App\Http\Controllers\Api\V1\BaseApiController;
 use App\Http\Resources\Foundation\UserResource;
 
 class AuthController extends BaseApiController
 {
+    public function __construct(protected AuthService $authService)
+    {
+    }
+
     public function login(Request $request)
     {
         $validated = $request->validate([
@@ -23,28 +23,7 @@ class AuthController extends BaseApiController
             'password' => ['required', 'string'],
         ]);
 
-        $user = User::query()
-            ->with('business')
-            ->where('email', $validated['email'])
-            ->first();
-
-        if (! $user || ! Hash::check($validated['password'], $user->password)) {
-            return $this->error(__('Invalid credentials.'), 401);
-        }
-
-        if ($user->status !== 'active') {
-            return $this->error(__('This user account is not active.'), 403);
-        }
-
-        if (! $user->hasRole('super_admin') && $user->business?->status !== 'active') {
-            return $this->error(__('This business is not active.'), 403);
-        }
-
-        $user->forceFill([
-            'last_login_at' => now(),
-        ])->save();
-
-        $this->writeAuditLog($user, 'login');
+        $user = $this->authService->authenticate($validated['email'], $validated['password']);
 
         $token = $user->createToken('auth-token')->plainTextToken;
 
@@ -60,9 +39,7 @@ class AuthController extends BaseApiController
 
         $request->user()?->currentAccessToken()?->delete();
 
-        if ($user) {
-            $this->writeAuditLog($user, 'logout');
-        }
+        $this->authService->logout($user);
 
         return $this->success(null, __('Logout successful.'));
     }
@@ -81,19 +58,13 @@ class AuthController extends BaseApiController
             'new_password' => ['required', 'string', 'min:8'],
         ]);
 
-        $user = $request->user();
+        $user = $this->authService->updatePassword(
+            $request->user(),
+            $validated['current_password'],
+            $validated['new_password']
+        );
 
-        if (! Hash::check($validated['current_password'], $user->password)) {
-            throw ValidationException::withMessages([
-                'current_password' => ['The current password is incorrect.'],
-            ]);
-        }
-
-        $user->forceFill([
-            'password' => $validated['new_password'],
-        ])->save();
-
-        return $this->success(new UserResource($user->load(['business', 'roles', 'permissions', 'branches', 'defaultBranch'])), __('Password updated successfully.'));
+        return $this->success(new UserResource($user), __('Password updated successfully.'));
     }
 
     public function updatePreferences(Request $request)
@@ -106,12 +77,10 @@ class AuthController extends BaseApiController
         $preferences = $user->preferences ?? [];
         $preferences['locale'] = $validated['locale'];
 
-        $user->forceFill([
-            'preferences' => $preferences,
-        ])->save();
+        $user = $this->authService->updatePreferences($user, $preferences);
 
         return $this->success(
-            new UserResource($user->load(['business', 'roles', 'permissions', 'branches', 'defaultBranch'])),
+            new UserResource($user),
             __('Language updated successfully.')
         );
     }
@@ -155,31 +124,10 @@ class AuthController extends BaseApiController
             return $this->error(__($status), 400);
         }
 
+        $this->authService->recordPasswordReset(
+            User::query()->where('email', $validated['email'])->first()
+        );
+
         return $this->success(null, __($status));
-    }
-
-    protected function writeAuditLog(User $user, string $event): void
-    {
-        try {
-            if (! Schema::hasTable('audit_logs')) {
-                return;
-            }
-
-            DB::table('audit_logs')->insert([
-                'id' => (string) Str::uuid(),
-                'business_id' => $user->business_id,
-                'user_id' => $user->id,
-                'event' => $event,
-                'auditable_type' => User::class,
-                'auditable_id' => $user->id,
-                'old_values' => null,
-                'new_values' => null,
-                'ip_address' => request()->ip(),
-                'user_agent' => request()->userAgent(),
-                'created_at' => now(),
-            ]);
-        } catch (Throwable) {
-            // Do not block authentication on audit log write failures during setup.
-        }
     }
 }

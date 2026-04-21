@@ -4,6 +4,7 @@ import auth from './km/auth'
 import users from './km/users'
 import dashboard from './km/dashboard'
 import foundation from './km/foundation'
+import sales from './km/sales'
 
 export default {
   ...shared,
@@ -12,4 +13,5 @@ export default {
   ...users,
   ...dashboard,
   ...foundation,
+  ...sales,
 }

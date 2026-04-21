@@ -26,6 +26,7 @@ return Application::configure(basePath: dirname(__DIR__))
         ]);
         $middleware->appendToGroup('api', \App\Http\Middleware\SetApplicationLocale::class);
         $middleware->appendToGroup('api', \App\Http\Middleware\TenantResolver::class);
+        $middleware->appendToGroup('api', \App\Http\Middleware\BranchScopeMiddleware::class);
     })
     ->withExceptions(function (Exceptions $exceptions) {
         $exceptions->dontFlash([

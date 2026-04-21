@@ -153,6 +153,22 @@ export default {
       "sales": {
         "label": "លក់ និង POS",
         "description": "លំហូរការបញ្ជាទិញ"
+      },
+      "salesDocuments": {
+        "label": "ការលក់",
+        "description": "វិក្កយបត្រ សេចក្តីព្រាង និង POS"
+      },
+      "quotations": {
+        "label": "សម្រង់តម្លៃ",
+        "description": "សម្រង់រង់ចាំបម្លែង"
+      },
+      "cashRegisters": {
+        "label": "ប្រអប់សាច់ប្រាក់",
+        "description": "ការកំណត់ និង session"
+      },
+      "saleReturns": {
+        "label": "ការត្រឡប់",
+        "description": "ការត្រឡប់ទំនិញ និងសងប្រាក់"
       }
     }
   },

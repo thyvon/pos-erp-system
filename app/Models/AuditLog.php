@@ -15,12 +15,14 @@ class AuditLog extends Model
 
     protected $fillable = [
         'business_id',
+        'branch_id',
         'user_id',
         'event',
         'auditable_type',
         'auditable_id',
         'old_values',
         'new_values',
+        'notes',
         'ip_address',
         'user_agent',
         'created_at',
@@ -38,6 +40,11 @@ class AuditLog extends Model
     public function business(): BelongsTo
     {
         return $this->belongsTo(Business::class);
+    }
+
+    public function branch(): BelongsTo
+    {
+        return $this->belongsTo(Branch::class);
     }
 
     public function user(): BelongsTo

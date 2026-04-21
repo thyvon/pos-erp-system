@@ -28,6 +28,9 @@ use App\Models\ChartOfAccount;
 use App\Models\FiscalYear;
 use App\Models\Journal;
 use App\Models\PaymentAccount;
+use App\Models\Sale;
+use App\Models\SaleReturn;
+use App\Models\CashRegister;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
 
@@ -63,6 +66,10 @@ use App\Policies\ChartOfAccountPolicy;
 use App\Policies\FiscalYearPolicy;
 use App\Policies\JournalPolicy;
 use App\Policies\PaymentAccountPolicy;
+use App\Policies\SalePolicy;
+use App\Policies\SaleReturnPolicy;
+use App\Policies\CashRegisterPolicy;
+use App\Policies\QuotationPolicy;
 use App\Policies\UserPolicy;
 use App\Policies\WarehousePolicy;
 use Spatie\Permission\Models\Role;
@@ -97,6 +104,9 @@ class AuthServiceProvider extends ServiceProvider
         FiscalYear::class => FiscalYearPolicy::class,
         Journal::class => JournalPolicy::class,
         PaymentAccount::class => PaymentAccountPolicy::class,
+        Sale::class => SalePolicy::class,
+        SaleReturn::class => SaleReturnPolicy::class,
+        CashRegister::class => CashRegisterPolicy::class,
         User::class => UserPolicy::class,
         Role::class => RolePolicy::class,
         Branch::class => BranchPolicy::class,
@@ -110,6 +120,13 @@ class AuthServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->registerPolicies();
+
+        Gate::define('viewAnyQuotation', fn (User $user) => app(QuotationPolicy::class)->viewAny($user));
+        Gate::define('createQuotation', fn (User $user) => app(QuotationPolicy::class)->create($user));
+        Gate::define('viewQuotation', fn (User $user, Sale $sale) => app(QuotationPolicy::class)->view($user, $sale));
+        Gate::define('updateQuotation', fn (User $user, Sale $sale) => app(QuotationPolicy::class)->update($user, $sale));
+        Gate::define('convertQuotation', fn (User $user, Sale $sale) => app(QuotationPolicy::class)->convert($user, $sale));
+        Gate::define('cancelQuotation', fn (User $user, Sale $sale) => app(QuotationPolicy::class)->cancel($user, $sale));
 
         Gate::before(function (User $user, string $ability) {
             if ($user->hasRole('super_admin')) {

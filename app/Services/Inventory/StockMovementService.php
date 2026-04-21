@@ -280,7 +280,7 @@ class StockMovementService
                     $query->where('variation_id', $variation->id);
                 }
 
-                if ($type !== 'transfer_in') {
+                if (! in_array($type, self::INBOUND_TYPES, true) && $type !== 'transfer_in') {
                     $query->where('warehouse_id', $warehouse->id);
                 }
 

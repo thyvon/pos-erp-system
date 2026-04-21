@@ -33,6 +33,7 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'throttle:300,1'])->group(funct
     (require __DIR__.'/v1/catalog.php')();
     (require __DIR__.'/v1/accounting.php')();
     (require __DIR__.'/v1/inventory.php')();
+    (require __DIR__.'/v1/sales.php')();
 
     Route::prefix('admin')->middleware('super_admin')->group(function () {
         Route::get('businesses', [BusinessManagementController::class, 'index'])->middleware('can:businesses.index');
