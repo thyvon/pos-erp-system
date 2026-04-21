@@ -61,10 +61,10 @@
         <div
           v-if="open"
           ref="panel"
-          class="fixed z-[170] overflow-hidden rounded-[24px] border border-white/50 bg-white/72 shadow-[0_24px_56px_rgba(44,62,99,0.16)] backdrop-blur-[26px] dark:border-white/10 dark:bg-slate-950/76 dark:shadow-[0_24px_56px_rgba(0,0,0,0.34)]"
+          class="erp-select-panel fixed z-[170] overflow-hidden rounded-[24px] border border-white/50 bg-white/72 shadow-[0_24px_56px_rgba(44,62,99,0.16)] backdrop-blur-[26px] dark:border-white/10 dark:bg-slate-950/76 dark:shadow-[0_24px_56px_rgba(0,0,0,0.34)]"
           :style="panelStyle"
         >
-          <div v-if="searchable" class="border-b border-white/40 p-3 dark:border-white/10">
+          <div v-if="searchable" class="erp-select-search border-b border-white/40 p-3 dark:border-white/10">
             <SearchInput
               v-model="searchTerm"
               :placeholder="searchPlaceholder"
@@ -89,8 +89,8 @@
                   v-for="option in group.options"
                   :key="String(option.value)"
                 type="button"
-                class="mx-2 flex w-[calc(100%-1rem)] items-center justify-between gap-3 rounded-[18px] px-3 py-2.5 text-left text-sm transition hover:text-cyan-700 hover:shadow-[0_12px_22px_rgba(36,124,255,0.08),inset_0_1px_0_rgba(255,255,255,0.72),inset_0_0_0_1px_rgba(147,197,253,0.16)] hover:[background:linear-gradient(90deg,rgba(239,246,255,0.92),rgba(245,243,255,0.72)_64%,rgba(236,254,255,0.58)),linear-gradient(135deg,rgba(88,135,255,0.10),transparent_56%)] dark:hover:text-cyan-100 dark:hover:shadow-[0_14px_28px_rgba(15,23,42,0.24),inset_0_1px_0_rgba(255,255,255,0.04),inset_0_0_0_1px_rgba(56,189,248,0.08)] dark:hover:[background:linear-gradient(90deg,rgba(49,46,129,0.34),rgba(14,116,144,0.18)_72%,rgba(76,29,149,0.10)),linear-gradient(140deg,rgba(236,72,153,0.08),transparent_64%)]"
-                :class="isSelected(option.value) ? 'text-cyan-700 shadow-[0_16px_30px_rgba(36,124,255,0.12),inset_0_1px_0_rgba(255,255,255,0.9),inset_0_0_0_1px_rgba(147,197,253,0.34)] [background:linear-gradient(90deg,rgba(227,239,255,0.94),rgba(247,236,255,0.82)_64%,rgba(232,248,255,0.68)),linear-gradient(135deg,rgba(88,135,255,0.16),transparent_52%)] dark:text-white dark:shadow-[0_18px_36px_rgba(15,23,42,0.28),inset_0_1px_0_rgba(255,255,255,0.05),inset_0_0_0_1px_rgba(56,189,248,0.1)] dark:[background:linear-gradient(90deg,rgba(79,70,229,0.42),rgba(29,110,160,0.26)_72%,rgba(76,29,149,0.16)),linear-gradient(140deg,rgba(236,72,153,0.12),transparent_62%)]' : 'text-slate-700 dark:text-slate-200'"
+                class="erp-select-option mx-2 flex w-[calc(100%-1rem)] items-center justify-between gap-3 rounded-[18px] px-3 py-2.5 text-left text-sm transition hover:text-cyan-700 hover:shadow-[0_12px_22px_rgba(36,124,255,0.08),inset_0_1px_0_rgba(255,255,255,0.72),inset_0_0_0_1px_rgba(147,197,253,0.16)] hover:[background:linear-gradient(90deg,rgba(239,246,255,0.92),rgba(245,243,255,0.72)_64%,rgba(236,254,255,0.58)),linear-gradient(135deg,rgba(88,135,255,0.10),transparent_56%)] dark:hover:text-cyan-100 dark:hover:shadow-[0_14px_28px_rgba(15,23,42,0.24),inset_0_1px_0_rgba(255,255,255,0.04),inset_0_0_0_1px_rgba(56,189,248,0.08)] dark:hover:[background:linear-gradient(90deg,rgba(49,46,129,0.34),rgba(14,116,144,0.18)_72%,rgba(76,29,149,0.10)),linear-gradient(140deg,rgba(236,72,153,0.08),transparent_64%)]"
+                :class="isSelected(option.value) ? 'erp-select-option-active text-cyan-700 shadow-[0_16px_30px_rgba(36,124,255,0.12),inset_0_1px_0_rgba(255,255,255,0.9),inset_0_0_0_1px_rgba(147,197,253,0.34)] [background:linear-gradient(90deg,rgba(227,239,255,0.94),rgba(247,236,255,0.82)_64%,rgba(232,248,255,0.68)),linear-gradient(135deg,rgba(88,135,255,0.16),transparent_52%)] dark:text-white dark:shadow-[0_18px_36px_rgba(15,23,42,0.28),inset_0_1px_0_rgba(255,255,255,0.05),inset_0_0_0_1px_rgba(56,189,248,0.1)] dark:[background:linear-gradient(90deg,rgba(79,70,229,0.42),rgba(29,110,160,0.26)_72%,rgba(76,29,149,0.16)),linear-gradient(140deg,rgba(236,72,153,0.12),transparent_62%)]' : 'text-slate-700 dark:text-slate-200'"
                 :disabled="option.disabled"
                 @click="selectOption(option)"
               >

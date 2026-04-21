@@ -1,17 +1,17 @@
 <template>
   <AppLayout
-    title="Roles"
-    subtitle="Manage role definitions and the permissions each role grants."
+    :title="t('foundation.rolesPage.title')"
+    :subtitle="t('foundation.rolesPage.subtitle')"
     :breadcrumbs="[
-      { label: 'Dashboard', to: '/dashboard' },
-      { label: 'Roles' },
+      { label: t('dashboard.breadcrumb'), to: '/dashboard' },
+      { label: t('foundation.rolesPage.breadcrumb') },
     ]"
   >
     <div class="space-y-6">
       <AppAlert v-model:show="alert.show" :type="alert.type" :title="alert.title" :message="alert.message" />
 
       <DataTable
-        title="Roles"
+        :title="t('foundation.rolesPage.tableTitle')"
         :columns="columns"
         :rows="store.items"
         :loading="store.loading"
@@ -27,7 +27,7 @@
         <template #toolbar>
           <button v-if="canCreateRole" type="button" class="erp-button-primary" @click="openCreateModal">
             <i class="fa-solid fa-plus"></i>
-            New role
+            {{ t('foundation.rolesPage.newRole') }}
           </button>
         </template>
 
@@ -35,7 +35,7 @@
           <div class="flex items-center gap-2">
             <span class="font-semibold text-slate-950 dark:text-white">{{ row.name }}</span>
               <span v-if="row.is_protected" class="erp-badge erp-badge-warning px-2 text-[11px] font-medium">
-                Protected
+                {{ t('foundation.rolesPage.protectedBadge') }}
               </span>
           </div>
         </template>
@@ -68,7 +68,7 @@
 
       <AppModal
         :show="modal.show"
-        :title="modal.mode === 'create' ? 'Create role' : 'Edit role'"
+        :title="modal.mode === 'create' ? t('foundation.rolesPage.createTitle') : t('foundation.rolesPage.editTitle')"
         icon="user shield"
         size="xl"
         @close="closeModal"
@@ -82,17 +82,17 @@
         >
           <div class="space-y-6">
             <div>
-              <label class="erp-label" for="name">Role name</label>
+              <label class="erp-label" for="name">{{ t('foundation.rolesPage.fields.name') }}</label>
               <Field id="name" name="name" class="erp-input" :disabled="modal.role?.is_protected" />
               <ErrorMessage name="name" class="erp-helper text-rose-500 dark:text-rose-400" />
               <p v-if="modal.role?.is_protected" class="erp-helper">
-                Protected system roles can keep their name, but their permissions can still be adjusted here.
+                {{ t('foundation.rolesPage.hints.protectedRole') }}
               </p>
             </div>
 
             <div class="space-y-4">
               <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-                Permission matrix
+                {{ t('foundation.rolesPage.hints.permissionMatrix') }}
               </div>
 
               <div
@@ -122,14 +122,14 @@
 
             <div class="erp-form-actions">
               <button type="button" class="erp-button-secondary" :disabled="store.saving" @click="closeModal">
-                Cancel
+                {{ t('confirmDelete.cancel') }}
               </button>
               <button type="submit" class="erp-button-primary" :disabled="store.saving || store.optionsLoading">
                 <span
                   v-if="store.saving"
                   class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white dark:border-slate-950/25 dark:border-t-slate-950"
                 ></span>
-                {{ modal.mode === 'create' ? 'Create role' : 'Save changes' }}
+                {{ modal.mode === 'create' ? t('foundation.rolesPage.createTitle') : t('foundation.rolesPage.saveChanges') }}
               </button>
             </div>
           </div>
@@ -158,7 +158,9 @@ import DataTable from '@components/ui/DataTable.vue'
 import AppLayout from '@layouts/AppLayout.vue'
 import { useAuthStore } from '@stores/auth'
 import { useRolesStore } from '@stores/roles'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const auth = useAuthStore()
 const store = useRolesStore()
 
@@ -170,13 +172,13 @@ const permissionGroups = computed(() => store.options.permissions || [])
 
 const columns = computed(() => {
   const baseColumns = [
-    { key: 'name', label: 'Role' },
-    { key: 'permissions_count', label: 'Permissions' },
-    { key: 'users_count', label: 'Assigned Users' },
+    { key: 'name', label: t('foundation.rolesPage.columns.role') },
+    { key: 'permissions_count', label: t('foundation.rolesPage.columns.permissions') },
+    { key: 'users_count', label: t('foundation.rolesPage.columns.assignedUsers') },
   ]
 
   if (showActionsColumn.value) {
-    baseColumns.push({ key: 'actions', label: 'Actions' })
+    baseColumns.push({ key: 'actions', label: t('foundation.rolesPage.columns.actions') })
   }
 
   return baseColumns
@@ -185,7 +187,7 @@ const columns = computed(() => {
 const alert = reactive({
   show: false,
   type: 'success',
-  title: 'Success',
+  title: '',
   message: '',
 })
 
@@ -217,7 +219,7 @@ const schema = computed(() =>
 
 const showToast = (type, message) => {
   alert.type = type
-  alert.title = type === 'danger' ? 'Error' : 'Success'
+  alert.title = type === 'danger' ? t('common.error') : t('common.success')
   alert.message = message
   alert.show = true
 }
@@ -298,15 +300,15 @@ const submitForm = async (values) => {
 
     if (modal.mode === 'create') {
       await store.createRole(payload)
-      showToast('success', 'Role created successfully.')
+      showToast('success', t('foundation.rolesPage.toast.created'))
     } else {
       await store.updateRole(modal.role.id, payload)
-      showToast('success', 'Role updated successfully.')
+      showToast('success', t('foundation.rolesPage.toast.updated'))
     }
 
     closeModal()
   } catch (error) {
-    showToast('danger', error.response?.data?.message || 'Unable to save the role.')
+    showToast('danger', error.response?.data?.message || t('foundation.rolesPage.toast.saveFailed'))
   }
 }
 
@@ -317,10 +319,10 @@ const confirmDelete = async () => {
 
   try {
     await store.deleteRole(deleteDialog.role.id)
-    showToast('success', 'Role deleted successfully.')
+    showToast('success', t('foundation.rolesPage.toast.deleted'))
     closeDeleteModal()
   } catch (error) {
-    showToast('danger', error.response?.data?.message || 'Unable to delete the role.')
+    showToast('danger', error.response?.data?.message || t('foundation.rolesPage.toast.deleteFailed'))
   }
 }
 

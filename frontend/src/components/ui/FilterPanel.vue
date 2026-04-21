@@ -30,7 +30,7 @@
           Clear
         </button>
         <span
-          class="inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/55 bg-white/55 text-slate-500 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] backdrop-blur-md dark:border-slate-600/70 dark:bg-[linear-gradient(180deg,rgba(24,33,58,0.9),rgba(12,18,35,0.78))] dark:text-slate-100 dark:shadow-[0_12px_24px_rgba(2,6,23,0.18),inset_0_1px_0_rgba(255,255,255,0.05)]"
+          class="erp-filter-toggle-badge inline-flex h-8 w-8 items-center justify-center rounded-full border border-white/55 bg-white/55 text-slate-500 shadow-[inset_0_1px_0_rgba(255,255,255,0.72)] backdrop-blur-md dark:border-slate-600/70 dark:bg-[linear-gradient(180deg,rgba(24,33,58,0.9),rgba(12,18,35,0.78))] dark:text-slate-100 dark:shadow-[0_12px_24px_rgba(2,6,23,0.18),inset_0_1px_0_rgba(255,255,255,0.05)]"
         >
           <i class="fa-solid fa-filter text-xs transition" :class="expanded ? 'rotate-180 scale-95' : ''"></i>
         </span>

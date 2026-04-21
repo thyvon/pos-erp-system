@@ -1,4 +1,4 @@
-# ERP System — Master Build Plan v10
+﻿# ERP System — Master Build Plan v10
 **Laravel 11 REST API · Vue 3 SPA · Tailwind CSS · MariaDB 10.11**
 
 **Version:** 10.0 (2026)
@@ -639,7 +639,84 @@ Frontend second:
 
 ### 2.9 i18n Architecture
 
-businesses.locale column (default en). Vue frontend uses Vue i18n with translation files in /frontend/src/i18n/{locale}.json. Backend error messages use Laravel lang/{locale}/. Adding a new language requires only a new JSON file — zero code changes.
+businesses.locale column (default en). Vue frontend uses Vue i18n with one file per active frontend language at `/frontend/src/i18n/en.js`, `/frontend/src/i18n/km.js`, etc. Keys are grouped inside each file by module and page so translation can be added page-by-page while the product is still growing. Backend error messages use Laravel `lang/{locale}/`.
+
+Delivery rule for every frontend step or phase:
+1. Any new page, modal, alert, table label, button label, helper text, or toast message must add its translation keys in the same task.
+2. A page is not considered complete if new user-facing strings remain hardcoded in the Vue file.
+3. `en` and `km` keys must be added together during implementation, not as a later cleanup pass.
+4. Only split the frontend i18n files into many module files after the product has broad translation coverage and the single-file structure becomes a real maintenance problem.
+
+### 2.10 AI Delivery Standard — Project Pattern
+
+This section is mandatory for any AI or developer contributing code to the project. The goal is consistency first, speed second.
+
+#### Backend pattern
+
+Every backend feature must follow the same shape:
+1. Migration
+2. Model
+3. Form Request
+4. API Resource
+5. Repository
+6. Service
+7. Policy
+8. Controller
+9. Tests
+
+Required backend rules:
+- Controllers stay thin: receive request, call authorize(), delegate to service/store layer, return API Resource.
+- Services own business rules and workflow decisions. Services are auth-blind.
+- Repositories own query composition, filtering, eager loading, and cache usage.
+- Form Requests own validation and branch-access validation for incoming IDs.
+- API Resources define the response contract. Do not return raw Eloquent models.
+- New backend code must extend the shared base classes and reuse the existing traits instead of introducing parallel patterns.
+
+#### Frontend pattern
+
+Every frontend feature must follow the same shape:
+1. API file in `frontend/src/api`
+2. Pinia store in `frontend/src/stores`
+3. Page view in `frontend/src/views`
+4. Shared component only if the same UI pattern will be reused
+5. Translation keys in `frontend/src/i18n/en.js` and `frontend/src/i18n/km.js`
+6. Build verification
+
+Required frontend rules:
+- Views call store actions only. No direct Axios usage in page components.
+- Stores call API files only. Do not duplicate fetch logic in multiple pages.
+- If the UI purpose already exists, reuse the shared component or shared utility instead of creating a one-off version.
+- Dates shown to users must use the shared date utility and default to human-friendly display unless a raw system format is explicitly required.
+- Status badges, alerts, modals, tables, filter panels, selects, and date pickers must use the shared UI system before any page-specific alternative is considered.
+- New pages must include loading, empty, validation, and error states using the established shared patterns.
+
+#### Reuse-first rule
+
+Before adding a new helper, component, composable, style pattern, or formatter, check whether the project already has one for the same job.
+
+If an equivalent already exists:
+- reuse it directly, or
+- extend it carefully without breaking existing pages.
+
+Do NOT create duplicate patterns for:
+- date formatting
+- status display
+- table loading
+- modal behavior
+- select/dropdown behavior
+- filter panels
+- alert/toast behavior
+- theme handling
+- branch access handling
+
+#### Completion standard
+
+A task is not complete until all of the following are true:
+1. The code follows the backend/frontend pattern above.
+2. New user-facing text is translated in both `en` and `km`.
+3. Reusable project patterns were used instead of one-off replacements unless a documented exception was necessary.
+4. The changed scope is verified with the appropriate command (`npm run build`, PHPUnit/feature tests, or both).
+5. The implementation does not leave partial placeholder logic behind unless the plan explicitly allows scaffolding.
 
 ---
 
@@ -1112,7 +1189,7 @@ Vue 3 (latest), Pinia 2.x, Vue Router 4.x, Axios (latest), VeeValidate 4 + Yup, 
 Each phase must be fully working and tested before the next begins.
 
 **Phase 1 — Environment**
-Docker Compose (MariaDB 10.11, Redis 7, phpMyAdmin, MailHog). Laravel 11. .env configured. Strict SQL mode. Catch-all web route. SPA Blade entry. /frontend with Vite + Vue 3. All npm packages. Tailwind configured. Vite proxy configured. Vue i18n setup with en.json.
+Docker Compose (MariaDB 10.11, Redis 7, phpMyAdmin, MailHog). Laravel 11. .env configured. Strict SQL mode. Catch-all web route. SPA Blade entry. /frontend with Vite + Vue 3. All npm packages. Tailwind configured. Vite proxy configured. Vue i18n setup with `frontend/src/i18n/en.js` and `frontend/src/i18n/km.js`.
 
 **Phase 2 — Backend Foundation (Critical Path)**
 HasUuid, BelongsToTenant, BelongsToBranch, HasUserTracking, Auditable traits.
@@ -1340,6 +1417,12 @@ Ubuntu 22.04. Nginx. PHP 8.2-fpm. MariaDB 10.11 (not Docker). Redis. Supervisor.
 | 29 | Branch-scoped users CANNOT send a branch_id in requests that is not in their branch_users rows. Form Request must validate branch_id is in the user's allowed list. | User accesses another branch's data by guessing a branch UUID. |
 | 30 | AuditService MUST be called from Services only — never from Controllers, Models, or Repositories. | Audit calls are lost in non-HTTP contexts (queue jobs, CLI commands). |
 | 31 | A failed audit write MUST NOT cause the main operation to fail or roll back. | One broken queue worker silently stops all sales, purchases, and state changes. |
+| 32 | New frontend pages MUST add `en` and `km` translation keys in the same task. | Hardcoded UI text accumulates and translation becomes permanent cleanup debt. |
+| 33 | Views MUST use store actions only. Never import Axios or call HTTP directly from a page component. | API logic spreads across the UI and becomes inconsistent and untestable. |
+| 34 | If a shared UI component or utility already exists for the same purpose, it MUST be reused or extended instead of duplicated. | The design system drifts and identical behavior breaks in different ways. |
+| 35 | Human-facing dates MUST use the shared date formatting utilities unless a raw system format is explicitly required. | Users see inconsistent date formats across modules and the UI feels unfinished. |
+| 36 | New backend endpoints MUST return API Resources, not raw models or ad hoc arrays. | Response contracts drift and frontend integration becomes brittle. |
+| 37 | A phase or page is NOT complete until the changed scope passes build/tests appropriate to that scope. | Broken code is treated as done and defects compound into later phases. |
 
 ---
 
@@ -1510,3 +1593,4 @@ This section is the master list of all audit events. Every event listed here MUS
 **From v9:** Added Branch Data Filter Layer (Section 2.6) — branch_users pivot table (many-to-many), BranchScopeMiddleware loads array of allowed branch IDs, WHERE branch_id IN (...) filter, admin bypass, zero-rows = 403 block, stock transfer cross-branch special rule, branch selector on create forms, branch filter on list pages. Added Audit Layer (Section 2.7) — AuditService, AuditLogJob, Auditable trait, complete audit event catalogue including branch_access_changed. Added AuditLogPage to frontend. Added audit_logs.branch_id column. Added audit event requirements to every Phase in Section 10. Added 3 new absolute rules (29-31). Added Section 13 — Complete Audit Event Reference. Added audit_logs.view to permission matrix.
 **Contains:** Project overview, architecture, branch data filter layer (multi-branch per user), audit layer, authorization architecture, full database schema, all business rules with Policy and audit rules, complete API endpoint list, 23-phase build order with Policies and audit events per phase, 31 absolute rules, complete Policy reference, complete Audit Event Reference.
 **Does not contain:** Code, implementation details — those are Codex's responsibility.
+

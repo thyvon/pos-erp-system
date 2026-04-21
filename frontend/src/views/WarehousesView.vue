@@ -1,17 +1,17 @@
 <template>
   <AppLayout
-    title="Warehouses"
-    subtitle="Manage stock locations, warehouse defaults, and branch assignment."
+    :title="t('foundation.warehousesPage.title')"
+    :subtitle="t('foundation.warehousesPage.subtitle')"
     :breadcrumbs="[
-      { label: 'Dashboard', to: '/dashboard' },
-      { label: 'Warehouses' },
+      { label: t('dashboard.breadcrumb'), to: '/dashboard' },
+      { label: t('foundation.warehousesPage.breadcrumb') },
     ]"
   >
     <div class="space-y-6">
       <AppAlert v-model:show="alert.show" :type="alert.type" :title="alert.title" :message="alert.message" />
 
       <DataTable
-        title="Warehouses"
+        :title="t('foundation.warehousesPage.tableTitle')"
         :columns="columns"
         :rows="store.items"
         :loading="store.loading"
@@ -27,20 +27,20 @@
         <template #toolbar>
           <button v-if="canCreateWarehouse" type="button" class="erp-button-primary" @click="openCreateModal">
             <i class="fa-solid fa-plus"></i>
-            New warehouse
+            {{ t('foundation.warehousesPage.newWarehouse') }}
           </button>
         </template>
 
         <template #name="{ row }">
           <div>
             <div class="font-semibold text-slate-950 dark:text-white">{{ row.name }}</div>
-            <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ row.code || 'Auto code' }}</div>
+            <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ row.code || t('foundation.warehousesPage.noCode') }}</div>
           </div>
         </template>
 
         <template #branch="{ row }">
           <div class="text-sm text-slate-600 dark:text-slate-300">
-            {{ row.branch?.name || 'No branch' }}
+            {{ row.branch?.name || t('foundation.warehousesPage.noBranch') }}
           </div>
         </template>
 
@@ -48,7 +48,7 @@
           <div class="flex flex-wrap items-center gap-2">
             <StatusBadge :status="row.is_active ? 'active' : 'inactive'" />
               <span v-if="row.is_default" class="erp-badge erp-badge-info px-3 uppercase tracking-[0.16em]">
-                Default
+                {{ t('foundation.warehousesPage.defaultBadge') }}
               </span>
           </div>
         </template>
@@ -67,7 +67,7 @@
 
       <AppModal
         :show="modal.show"
-        :title="modal.mode === 'create' ? 'Create warehouse' : 'Edit warehouse'"
+        :title="modal.mode === 'create' ? t('foundation.warehousesPage.createTitle') : t('foundation.warehousesPage.editTitle')"
         icon="stock location"
         size="lg"
         @close="closeModal"
@@ -81,12 +81,12 @@
         >
           <div class="grid gap-4 md:grid-cols-2">
             <div>
-              <label class="erp-label" for="name">Warehouse name</label>
+              <label class="erp-label" for="name">{{ t('foundation.warehousesPage.fields.name') }}</label>
               <Field id="name" name="name" class="erp-input" />
               <ErrorMessage name="name" class="erp-helper text-rose-500 dark:text-rose-400" />
             </div>
             <div>
-              <label class="erp-label" for="code">Code</label>
+              <label class="erp-label" for="code">{{ t('foundation.warehousesPage.fields.code') }}</label>
               <Field id="code" name="code" class="erp-input" />
               <ErrorMessage name="code" class="erp-helper text-rose-500 dark:text-rose-400" />
             </div>
@@ -94,26 +94,26 @@
 
           <div class="grid gap-4 md:grid-cols-2">
             <div>
-              <label class="erp-label" for="branch_id">Branch</label>
+              <label class="erp-label" for="branch_id">{{ t('foundation.warehousesPage.fields.branch') }}</label>
               <AppSelect
                 :model-value="values.branch_id || null"
                 :options="branchSelectOptions"
                 searchable
                 clearable
-                placeholder="No branch"
-                search-placeholder="Search branches"
-                empty-text="No branches found."
+                :placeholder="t('foundation.warehousesPage.placeholders.noBranch')"
+                :search-placeholder="t('foundation.warehousesPage.placeholders.searchBranches')"
+                :empty-text="t('foundation.warehousesPage.placeholders.noBranchesFound')"
                 @update:model-value="setFieldValue('branch_id', $event || '')"
               />
               <ErrorMessage name="branch_id" class="erp-helper text-rose-500 dark:text-rose-400" />
             </div>
             <div>
-              <label class="erp-label" for="type">Type</label>
+              <label class="erp-label" for="type">{{ t('foundation.warehousesPage.fields.type') }}</label>
               <AppSelect
                 :model-value="values.type || null"
                 :options="warehouseTypeOptions"
                 clearable
-                placeholder="Select type"
+                :placeholder="t('foundation.warehousesPage.placeholders.selectType')"
                 @update:model-value="setFieldValue('type', $event || '')"
               />
               <ErrorMessage name="type" class="erp-helper text-rose-500 dark:text-rose-400" />
@@ -128,7 +128,7 @@
                 :checked="Boolean(values.is_default)"
                 @change="setFieldValue('is_default', $event.target.checked)"
               />
-              <span>Default warehouse</span>
+              <span>{{ t('foundation.warehousesPage.toggles.defaultWarehouse') }}</span>
             </label>
             <label class="flex items-center gap-3 rounded-[5px] border border-slate-200 px-4 py-3 text-sm text-slate-600 dark:border-slate-800 dark:text-slate-300">
               <input
@@ -137,7 +137,7 @@
                 :checked="Boolean(values.is_active)"
                 @change="setFieldValue('is_active', $event.target.checked)"
               />
-              <span>Warehouse is active</span>
+              <span>{{ t('foundation.warehousesPage.toggles.activeWarehouse') }}</span>
             </label>
             <label class="flex items-center gap-3 rounded-[5px] border border-slate-200 px-4 py-3 text-sm text-slate-600 dark:border-slate-800 dark:text-slate-300">
               <input
@@ -146,18 +146,18 @@
                 :checked="Boolean(values.allow_negative_stock)"
                 @change="setFieldValue('allow_negative_stock', $event.target.checked)"
               />
-              <span>Allow negative stock</span>
+              <span>{{ t('foundation.warehousesPage.toggles.allowNegativeStock') }}</span>
             </label>
           </div>
 
           <div class="erp-form-actions mt-6">
-            <button type="button" class="erp-button-secondary" :disabled="store.saving" @click="closeModal">Cancel</button>
+            <button type="button" class="erp-button-secondary" :disabled="store.saving" @click="closeModal">{{ t('confirmDelete.cancel') }}</button>
             <button type="submit" class="erp-button-primary" :disabled="store.saving">
               <span
                 v-if="store.saving"
                 class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white dark:border-slate-950/25 dark:border-t-slate-950"
               ></span>
-              {{ modal.mode === 'create' ? 'Create warehouse' : 'Save warehouse' }}
+              {{ modal.mode === 'create' ? t('foundation.warehousesPage.createTitle') : t('foundation.warehousesPage.saveButton') }}
             </button>
           </div>
         </Form>
@@ -188,7 +188,9 @@ import AppLayout from '@layouts/AppLayout.vue'
 import { getBranches } from '@api/branches'
 import { useAuthStore } from '@stores/auth'
 import { useWarehousesStore } from '@stores/warehouses'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const auth = useAuthStore()
 const store = useWarehousesStore()
 
@@ -199,29 +201,29 @@ const showActionsColumn = computed(() => canEditWarehouse.value || canDeleteWare
 
 const columns = computed(() => {
   const base = [
-    { key: 'name', label: 'Warehouse' },
-    { key: 'type', label: 'Type' },
-    { key: 'branch', label: 'Branch' },
-    { key: 'status', label: 'Status' },
+    { key: 'name', label: t('foundation.warehousesPage.columns.warehouse') },
+    { key: 'type', label: t('foundation.warehousesPage.columns.type') },
+    { key: 'branch', label: t('foundation.warehousesPage.columns.branch') },
+    { key: 'status', label: t('foundation.warehousesPage.columns.status') },
   ]
 
   if (showActionsColumn.value) {
-    base.push({ key: 'actions', label: 'Actions' })
+    base.push({ key: 'actions', label: t('foundation.warehousesPage.columns.actions') })
   }
 
   return base
 })
 
-const alert = reactive({ show: false, type: 'success', title: 'Success', message: '' })
+const alert = reactive({ show: false, type: 'success', title: '', message: '' })
 const modal = reactive({ show: false, mode: 'create', warehouse: null })
 const deleteDialog = reactive({ show: false, warehouse: null, itemName: '' })
 const branchOptions = ref([])
-const warehouseTypeOptions = [
-  { value: 'main', label: 'Main' },
-  { value: 'transit', label: 'Transit' },
-  { value: 'returns', label: 'Returns' },
-  { value: 'damaged', label: 'Damaged' },
-]
+const warehouseTypeOptions = computed(() => [
+  { value: 'main', label: t('foundation.warehousesPage.types.main') },
+  { value: 'transit', label: t('foundation.warehousesPage.types.transit') },
+  { value: 'returns', label: t('foundation.warehousesPage.types.returns') },
+  { value: 'damaged', label: t('foundation.warehousesPage.types.damaged') },
+])
 const branchSelectOptions = computed(() => branchOptions.value.map((branch) => ({
   value: branch.id,
   label: branch.name,
@@ -250,7 +252,7 @@ const schema = yup.object({
 
 const showToast = (type, message) => {
   alert.type = type
-  alert.title = type === 'danger' ? 'Error' : 'Success'
+  alert.title = type === 'danger' ? t('common.error') : t('common.success')
   alert.message = message
   alert.show = false
   requestAnimationFrame(() => { alert.show = true })
@@ -325,15 +327,15 @@ const submitForm = async (values) => {
 
     if (modal.mode === 'create') {
       await store.createWarehouse(payload)
-      showToast('success', 'Warehouse created successfully.')
+      showToast('success', t('foundation.warehousesPage.toast.created'))
     } else {
       await store.updateWarehouse(modal.warehouse.id, payload)
-      showToast('success', 'Warehouse updated successfully.')
+      showToast('success', t('foundation.warehousesPage.toast.updated'))
     }
 
     closeModal()
   } catch (error) {
-    showToast('danger', error.response?.data?.message || 'Unable to save the warehouse.')
+    showToast('danger', error.response?.data?.message || t('foundation.warehousesPage.toast.saveFailed'))
   }
 }
 
@@ -342,10 +344,10 @@ const confirmDelete = async () => {
 
   try {
     await store.deleteWarehouse(deleteDialog.warehouse.id)
-    showToast('success', 'Warehouse deleted successfully.')
+    showToast('success', t('foundation.warehousesPage.toast.deleted'))
     closeDeleteModal()
   } catch (error) {
-    showToast('danger', error.response?.data?.message || 'Unable to delete the warehouse.')
+    showToast('danger', error.response?.data?.message || t('foundation.warehousesPage.toast.deleteFailed'))
   }
 }
 

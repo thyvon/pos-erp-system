@@ -1,10 +1,10 @@
 <template>
   <AppLayout
-    title="Settings"
-    subtitle="Manage the current business profile and tenant defaults from one place."
+    :title="t('foundation.settingsPage.title')"
+    :subtitle="t('foundation.settingsPage.subtitle')"
     :breadcrumbs="[
-      { label: 'Dashboard', to: '/dashboard' },
-      { label: 'Settings' },
+      { label: t('dashboard.breadcrumb'), to: '/dashboard' },
+      { label: t('foundation.settingsPage.breadcrumb') },
     ]"
   >
     <div class="space-y-6">
@@ -12,7 +12,7 @@
 
       <div class="grid gap-4 xl:grid-cols-[18rem_minmax(0,1fr)]">
         <article class="erp-card p-4">
-          <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">Groups</div>
+          <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">{{ t('foundation.settingsPage.groupsLabel') }}</div>
           <div class="mt-4 space-y-2">
             <button
               v-for="group in availableGroups"
@@ -65,13 +65,13 @@
                   <fieldset :disabled="!canEditBusiness || businessStore.saving" class="space-y-6">
                     <div class="grid gap-4 md:grid-cols-2">
                       <div>
-                        <label class="erp-label" for="name">Business name</label>
+                        <label class="erp-label" for="name">{{ t('foundation.settingsPage.business.fields.businessName') }}</label>
                         <Field id="name" name="name" class="erp-input" />
                         <ErrorMessage name="name" class="erp-helper text-rose-500 dark:text-rose-400" />
                       </div>
 
                       <div>
-                        <label class="erp-label" for="legal_name">Legal name</label>
+                        <label class="erp-label" for="legal_name">{{ t('foundation.settingsPage.business.fields.legalName') }}</label>
                         <Field id="legal_name" name="legal_name" class="erp-input" />
                         <ErrorMessage name="legal_name" class="erp-helper text-rose-500 dark:text-rose-400" />
                       </div>
@@ -79,13 +79,13 @@
 
                     <div class="grid gap-4 md:grid-cols-2">
                       <div>
-                        <label class="erp-label" for="email">Email</label>
+                        <label class="erp-label" for="email">{{ t('foundation.settingsPage.business.fields.email') }}</label>
                         <Field id="email" name="email" type="email" class="erp-input" />
                         <ErrorMessage name="email" class="erp-helper text-rose-500 dark:text-rose-400" />
                       </div>
 
                       <div>
-                        <label class="erp-label" for="phone">Phone</label>
+                        <label class="erp-label" for="phone">{{ t('foundation.settingsPage.business.fields.phone') }}</label>
                         <Field id="phone" name="phone" class="erp-input" />
                         <ErrorMessage name="phone" class="erp-helper text-rose-500 dark:text-rose-400" />
                       </div>
@@ -93,29 +93,29 @@
 
                     <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                       <div>
-                        <label class="erp-label" for="tax_id">Tax ID</label>
+                        <label class="erp-label" for="tax_id">{{ t('foundation.settingsPage.business.fields.taxId') }}</label>
                         <Field id="tax_id" name="tax_id" class="erp-input" />
                         <ErrorMessage name="tax_id" class="erp-helper text-rose-500 dark:text-rose-400" />
                       </div>
 
                       <div>
-                        <label class="erp-label" for="currency">Currency</label>
+                        <label class="erp-label" for="currency">{{ t('foundation.settingsPage.business.fields.currency') }}</label>
                         <Field id="currency" name="currency" class="erp-input uppercase" maxlength="3" />
                         <ErrorMessage name="currency" class="erp-helper text-rose-500 dark:text-rose-400" />
                       </div>
 
                       <div>
-                        <label class="erp-label" for="country">Country</label>
+                        <label class="erp-label" for="country">{{ t('foundation.settingsPage.business.fields.country') }}</label>
                         <Field id="country" name="country" class="erp-input uppercase" maxlength="2" />
                         <ErrorMessage name="country" class="erp-helper text-rose-500 dark:text-rose-400" />
                       </div>
 
                       <div>
-                        <label class="erp-label" for="locale">Locale</label>
+                        <label class="erp-label" for="locale">{{ t('foundation.settingsPage.business.fields.locale') }}</label>
                         <AppSelect
                           :model-value="values.locale || null"
                           :options="localeOptions"
-                          placeholder="Select locale"
+                          :placeholder="t('foundation.settingsPage.business.placeholders.selectLocale')"
                           @update:model-value="setFieldValue('locale', $event || '')"
                         />
                         <ErrorMessage name="locale" class="erp-helper text-rose-500 dark:text-rose-400" />
@@ -124,18 +124,18 @@
 
                     <div class="grid gap-4 md:grid-cols-2">
                       <div>
-                        <label class="erp-label" for="timezone">Timezone</label>
+                        <label class="erp-label" for="timezone">{{ t('foundation.settingsPage.business.fields.timezone') }}</label>
                         <AppSelect
                           :model-value="values.timezone || null"
                           :options="timezoneOptions"
-                          placeholder="Select timezone"
+                          :placeholder="t('foundation.settingsPage.business.placeholders.selectTimezone')"
                           @update:model-value="setFieldValue('timezone', $event || '')"
                         />
                         <ErrorMessage name="timezone" class="erp-helper text-rose-500 dark:text-rose-400" />
                       </div>
 
                       <div>
-                        <label class="erp-label" for="logo_url">Logo URL</label>
+                        <label class="erp-label" for="logo_url">{{ t('foundation.settingsPage.business.fields.logoUrl') }}</label>
                         <Field id="logo_url" name="logo_url" class="erp-input" />
                         <ErrorMessage name="logo_url" class="erp-helper text-rose-500 dark:text-rose-400" />
                       </div>
@@ -143,37 +143,37 @@
 
                     <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
                       <div class="md:col-span-2">
-                        <label class="erp-label" for="address_line1">Address line 1</label>
+                        <label class="erp-label" for="address_line1">{{ t('foundation.settingsPage.business.fields.addressLine1') }}</label>
                         <Field id="address_line1" name="address.line1" class="erp-input" />
                         <ErrorMessage name="address.line1" class="erp-helper text-rose-500 dark:text-rose-400" />
                       </div>
 
                       <div class="md:col-span-2">
-                        <label class="erp-label" for="address_line2">Address line 2</label>
+                        <label class="erp-label" for="address_line2">{{ t('foundation.settingsPage.business.fields.addressLine2') }}</label>
                         <Field id="address_line2" name="address.line2" class="erp-input" />
                         <ErrorMessage name="address.line2" class="erp-helper text-rose-500 dark:text-rose-400" />
                       </div>
 
                       <div>
-                        <label class="erp-label" for="address_city">City</label>
+                        <label class="erp-label" for="address_city">{{ t('foundation.settingsPage.business.fields.city') }}</label>
                         <Field id="address_city" name="address.city" class="erp-input" />
                         <ErrorMessage name="address.city" class="erp-helper text-rose-500 dark:text-rose-400" />
                       </div>
 
                       <div>
-                        <label class="erp-label" for="address_state">State</label>
+                        <label class="erp-label" for="address_state">{{ t('foundation.settingsPage.business.fields.state') }}</label>
                         <Field id="address_state" name="address.state" class="erp-input" />
                         <ErrorMessage name="address.state" class="erp-helper text-rose-500 dark:text-rose-400" />
                       </div>
 
                       <div>
-                        <label class="erp-label" for="address_postal_code">Postal code</label>
+                        <label class="erp-label" for="address_postal_code">{{ t('foundation.settingsPage.business.fields.postalCode') }}</label>
                         <Field id="address_postal_code" name="address.postal_code" class="erp-input" />
                         <ErrorMessage name="address.postal_code" class="erp-helper text-rose-500 dark:text-rose-400" />
                       </div>
 
                       <div>
-                        <label class="erp-label" for="financial_year_start_month">Financial year start month</label>
+                        <label class="erp-label" for="financial_year_start_month">{{ t('foundation.settingsPage.business.fields.financialYearStartMonth') }}</label>
                         <Field
                           id="financial_year_start_month"
                           name="financial_year.start_month"
@@ -192,7 +192,7 @@
                           v-if="businessStore.saving"
                           class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white dark:border-slate-950/25 dark:border-t-slate-950"
                         ></span>
-                        Save business profile
+                        {{ t('foundation.settingsPage.buttons.saveBusinessProfile') }}
                       </button>
                     </div>
                   </fieldset>
@@ -202,7 +202,7 @@
                   v-else
                   class="rounded-[5px] border border-dashed border-slate-300/80 bg-white/35 px-5 py-8 text-sm text-slate-600 backdrop-blur-xl dark:border-slate-700/70 dark:bg-slate-900/25 dark:text-slate-300"
                 >
-                  Business profile data is not available yet.
+                  {{ t('foundation.settingsPage.business.emptyState') }}
                 </div>
               </section>
 
@@ -211,17 +211,17 @@
                   <div class="flex items-start justify-between gap-4">
                     <div>
                       <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-                        General defaults
+                        {{ t('foundation.settingsPage.general.eyebrow') }}
                       </div>
                       <h3 class="mt-2 text-lg font-semibold text-slate-950 dark:text-white">
-                        Regional and numeric defaults
+                        {{ t('foundation.settingsPage.general.heading') }}
                       </h3>
                       <p class="mt-2 text-sm text-slate-600 dark:text-slate-300">
-                        General settings are now kept on the same page as the business profile. Shared fields are shown only once above.
+                        {{ t('foundation.settingsPage.general.description') }}
                       </p>
                     </div>
                     <div class="rounded-[5px] border border-slate-200 bg-slate-50 px-3 py-2 text-xs text-slate-500 dark:border-slate-800 dark:bg-slate-900/60 dark:text-slate-400">
-                      {{ canEditSettings ? 'Editable' : 'Read only' }}
+                      {{ canEditSettings ? t('foundation.settingsPage.access.editable') : t('foundation.settingsPage.access.readOnly') }}
                     </div>
                   </div>
 
@@ -234,15 +234,15 @@
                     <fieldset :disabled="!canEditSettings || settingsStore.saving" class="space-y-5">
                       <div class="grid gap-4 md:grid-cols-2">
                         <div>
-                          <label class="erp-label" for="date_format">Date format</label>
+                          <label class="erp-label" for="date_format">{{ t('foundation.settingsPage.general.fields.dateFormat') }}</label>
                           <Field id="date_format" name="date_format" class="erp-input" />
-                          <p class="erp-helper">PHP-style date format string used for documents and lists.</p>
+                          <p class="erp-helper">{{ t('foundation.settingsPage.general.help.dateFormat') }}</p>
                         </div>
 
                         <div>
-                          <label class="erp-label" for="decimal_places">Decimal places</label>
+                          <label class="erp-label" for="decimal_places">{{ t('foundation.settingsPage.general.fields.decimalPlaces') }}</label>
                           <Field id="decimal_places" name="decimal_places" type="number" min="0" class="erp-input" />
-                          <p class="erp-helper">How many decimal places numeric values should show.</p>
+                          <p class="erp-helper">{{ t('foundation.settingsPage.general.help.decimalPlaces') }}</p>
                         </div>
                       </div>
 
@@ -252,7 +252,7 @@
                             v-if="settingsStore.saving"
                             class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white dark:border-slate-950/25 dark:border-t-slate-950"
                           ></span>
-                          Save general defaults
+                          {{ t('foundation.settingsPage.buttons.saveGeneralDefaults') }}
                         </button>
                       </div>
                     </fieldset>
@@ -263,47 +263,47 @@
                   <article class="erp-ios-stat">
                     <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
                       <i class="fa-solid fa-users text-cyan-600 dark:text-cyan-400"></i>
-                      User capacity
+                      {{ t('foundation.settingsPage.stats.userCapacity') }}
                     </div>
                     <div class="mt-4 text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">
                       {{ businessStore.item?.usage?.users_count ?? 0 }} / {{ businessStore.item?.max_users ?? 0 }}
                     </div>
                     <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                      Remaining seats: {{ businessStore.item?.usage?.remaining_users ?? 0 }}
+                      {{ t('foundation.settingsPage.stats.remainingSeats', { count: businessStore.item?.usage?.remaining_users ?? 0 }) }}
                     </p>
                   </article>
 
                   <article class="erp-ios-stat">
                     <div class="flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
                       <i class="fa-solid fa-code-branch text-cyan-600 dark:text-cyan-400"></i>
-                      Branch capacity
+                      {{ t('foundation.settingsPage.stats.branchCapacity') }}
                     </div>
                     <div class="mt-4 text-3xl font-semibold tracking-tight text-slate-950 dark:text-white">
                       {{ businessStore.item?.usage?.branches_count ?? 0 }} / {{ businessStore.item?.max_branches ?? 0 }}
                     </div>
                     <p class="mt-2 text-sm text-slate-500 dark:text-slate-400">
-                      Remaining branches: {{ businessStore.item?.usage?.remaining_branches ?? 0 }}
+                      {{ t('foundation.settingsPage.stats.remainingBranches', { count: businessStore.item?.usage?.remaining_branches ?? 0 }) }}
                     </p>
                   </article>
 
                   <article class="erp-card p-5">
                     <div class="flex items-center justify-between gap-3">
                       <div class="text-xs font-semibold uppercase tracking-[0.18em] text-slate-500 dark:text-slate-400">
-                        Workspace context
+                        {{ t('foundation.settingsPage.stats.workspaceContext') }}
                       </div>
                       <StatusBadge :status="businessStore.item?.status || 'active'" />
                     </div>
                     <div class="mt-4 space-y-3 text-sm text-slate-600 dark:text-slate-300">
                       <div class="flex items-center justify-between gap-3">
-                        <span>Tier</span>
+                        <span>{{ t('foundation.settingsPage.stats.tier') }}</span>
                         <span class="font-semibold uppercase text-slate-950 dark:text-white">{{ businessStore.item?.tier || 'basic' }}</span>
                       </div>
                       <div class="flex items-center justify-between gap-3">
-                        <span>Warehouses</span>
+                        <span>{{ t('foundation.settingsPage.stats.warehouses') }}</span>
                         <span class="font-semibold text-slate-950 dark:text-white">{{ businessStore.item?.usage?.warehouses_count ?? 0 }}</span>
                       </div>
                       <div class="flex items-center justify-between gap-3">
-                        <span>Business ID</span>
+                        <span>{{ t('foundation.settingsPage.stats.businessId') }}</span>
                         <span class="max-w-[11rem] truncate font-mono text-xs text-slate-500 dark:text-slate-400">{{ businessStore.item?.id }}</span>
                       </div>
                     </div>
@@ -371,7 +371,7 @@
                       v-if="settingsStore.saving"
                       class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white dark:border-slate-950/25 dark:border-t-slate-950"
                     ></span>
-                    Save {{ activeGroupMeta.label }}
+                    {{ t('foundation.settingsPage.buttons.saveGroup', { group: activeGroupMeta.label }) }}
                   </button>
                 </div>
               </fieldset>
@@ -393,10 +393,12 @@ import AppSelect from '@components/ui/AppSelect.vue'
 import PageBlurSkeleton from '@components/ui/PageBlurSkeleton.vue'
 import StatusBadge from '@components/ui/StatusBadge.vue'
 import AppLayout from '@layouts/AppLayout.vue'
+import { useI18n } from 'vue-i18n'
 import { useAuthStore } from '@stores/auth'
 import { useBusinessStore } from '@stores/business'
 import { useSettingsStore } from '@stores/settings'
 
+const { t } = useI18n()
 const auth = useAuthStore()
 const router = useRouter()
 const route = useRoute()
@@ -407,73 +409,73 @@ const settingsFormKey = ref(0)
 const businessFormKey = ref(0)
 const generalFormKey = ref(0)
 const timezones = ['Asia/Phnom_Penh', 'Asia/Bangkok', 'UTC']
-const timezoneOptions = timezones.map((zone) => ({ value: zone, label: zone }))
-const localeOptions = [
-  { value: 'en', label: 'English' },
-  { value: 'km', label: 'Khmer' },
-]
+const timezoneOptions = computed(() => timezones.map((zone) => ({ value: zone, label: zone })))
+const localeOptions = computed(() => [
+  { value: 'en', label: t('locales.en') },
+  { value: 'km', label: t('locales.km') },
+])
 
-const groups = [
+const groups = computed(() => [
   {
     key: 'business',
-    label: 'Business',
-    heading: 'Business profile and general defaults',
-    description: 'Keep company information and general tenant defaults together without duplicate fields.',
+    label: t('foundation.settingsPage.groups.business.label'),
+    heading: t('foundation.settingsPage.groups.business.heading'),
+    description: t('foundation.settingsPage.groups.business.description'),
     permissionAny: ['businesses.index', 'settings.index'],
   },
   {
     key: 'invoice',
-    label: 'Invoice',
-    heading: 'Invoice behavior',
-    description: 'Document prefixes, numbering, branding, and footer content.',
+    label: t('foundation.settingsPage.groups.invoice.label'),
+    heading: t('foundation.settingsPage.groups.invoice.heading'),
+    description: t('foundation.settingsPage.groups.invoice.description'),
     permission: 'settings.index',
   },
   {
     key: 'pos',
-    label: 'POS',
-    heading: 'POS defaults',
-    description: 'Checkout defaults, printer mode, discount rules, and session behavior.',
+    label: t('foundation.settingsPage.groups.pos.label'),
+    heading: t('foundation.settingsPage.groups.pos.heading'),
+    description: t('foundation.settingsPage.groups.pos.description'),
     permission: 'settings.index',
   },
   {
     key: 'stock',
-    label: 'Stock',
-    heading: 'Inventory defaults',
-    description: 'Lot, serial, and rack-related behavior used by stock workflows.',
+    label: t('foundation.settingsPage.groups.stock.label'),
+    heading: t('foundation.settingsPage.groups.stock.heading'),
+    description: t('foundation.settingsPage.groups.stock.description'),
     permission: 'settings.index',
   },
-]
+])
 
-const fieldsByGroup = {
+const fieldsByGroup = computed(() => ({
   invoice: [
-    { key: 'prefix', label: 'Invoice prefix', component: 'text', help: 'Prefix used for sales invoice numbering.' },
-    { key: 'quotation_prefix', label: 'Quotation prefix', component: 'text', help: 'Prefix used for quotation numbering.' },
-    { key: 'start_number', label: 'Start number', component: 'number', help: 'Starting sequence number.' },
-    { key: 'show_tax', label: 'Show tax', component: 'checkbox', help: 'Display tax rows on documents.' },
-    { key: 'show_logo', label: 'Show logo', component: 'checkbox', help: 'Display business logo on documents.' },
-    { key: 'footer_note', label: 'Footer note', component: 'textarea', help: 'Footer text shown on invoice printouts.' },
+    { key: 'prefix', label: t('foundation.settingsPage.dynamicFields.invoicePrefix.label'), component: 'text', help: t('foundation.settingsPage.dynamicFields.invoicePrefix.help') },
+    { key: 'quotation_prefix', label: t('foundation.settingsPage.dynamicFields.quotationPrefix.label'), component: 'text', help: t('foundation.settingsPage.dynamicFields.quotationPrefix.help') },
+    { key: 'start_number', label: t('foundation.settingsPage.dynamicFields.startNumber.label'), component: 'number', help: t('foundation.settingsPage.dynamicFields.startNumber.help') },
+    { key: 'show_tax', label: t('foundation.settingsPage.dynamicFields.showTax.label'), component: 'checkbox', help: t('foundation.settingsPage.dynamicFields.showTax.help') },
+    { key: 'show_logo', label: t('foundation.settingsPage.dynamicFields.showLogo.label'), component: 'checkbox', help: t('foundation.settingsPage.dynamicFields.showLogo.help') },
+    { key: 'footer_note', label: t('foundation.settingsPage.dynamicFields.footerNote.label'), component: 'textarea', help: t('foundation.settingsPage.dynamicFields.footerNote.help') },
   ],
   pos: [
-    { key: 'allow_discount', label: 'Allow discount', component: 'checkbox', help: 'Allow discount controls in POS.' },
-    { key: 'max_discount_pct', label: 'Max discount %', component: 'number', help: 'Maximum allowed POS discount percentage.' },
-    { key: 'receipt_printer', label: 'Receipt printer', component: 'select', help: 'Receipt output mode.', options: [
-      { value: 'browser', label: 'Browser' },
-      { value: 'network', label: 'Network printer' },
+    { key: 'allow_discount', label: t('foundation.settingsPage.dynamicFields.allowDiscount.label'), component: 'checkbox', help: t('foundation.settingsPage.dynamicFields.allowDiscount.help') },
+    { key: 'max_discount_pct', label: t('foundation.settingsPage.dynamicFields.maxDiscountPct.label'), component: 'number', help: t('foundation.settingsPage.dynamicFields.maxDiscountPct.help') },
+    { key: 'receipt_printer', label: t('foundation.settingsPage.dynamicFields.receiptPrinter.label'), component: 'select', help: t('foundation.settingsPage.dynamicFields.receiptPrinter.help'), options: [
+      { value: 'browser', label: t('foundation.settingsPage.options.receiptPrinter.browser') },
+      { value: 'network', label: t('foundation.settingsPage.options.receiptPrinter.network') },
     ] },
-    { key: 'require_cash_register_session', label: 'Require cash register session', component: 'checkbox', help: 'Force an active register session before sales.' },
-    { key: 'show_customer_display', label: 'Show customer display', component: 'checkbox', help: 'Enable secondary customer display UI.' },
+    { key: 'require_cash_register_session', label: t('foundation.settingsPage.dynamicFields.requireCashRegisterSession.label'), component: 'checkbox', help: t('foundation.settingsPage.dynamicFields.requireCashRegisterSession.help') },
+    { key: 'show_customer_display', label: t('foundation.settingsPage.dynamicFields.showCustomerDisplay.label'), component: 'checkbox', help: t('foundation.settingsPage.dynamicFields.showCustomerDisplay.help') },
   ],
   stock: [
-    { key: 'enable_lot_tracking', label: 'Enable lot tracking', component: 'checkbox', help: 'Enable batch/lot tracking in inventory.' },
-    { key: 'enable_serial_tracking', label: 'Enable serial tracking', component: 'checkbox', help: 'Enable serial-number tracking in inventory.' },
-    { key: 'lot_expiry_alert_days', label: 'Lot expiry alert days', component: 'number', help: 'Alert before expiry by this many days.' },
-    { key: 'default_lot_selection', label: 'Default lot selection', component: 'select', help: 'Default lot allocation strategy.', options: [
-      { value: 'fefo', label: 'FEFO' },
-      { value: 'fifo', label: 'FIFO' },
+    { key: 'enable_lot_tracking', label: t('foundation.settingsPage.dynamicFields.enableLotTracking.label'), component: 'checkbox', help: t('foundation.settingsPage.dynamicFields.enableLotTracking.help') },
+    { key: 'enable_serial_tracking', label: t('foundation.settingsPage.dynamicFields.enableSerialTracking.label'), component: 'checkbox', help: t('foundation.settingsPage.dynamicFields.enableSerialTracking.help') },
+    { key: 'lot_expiry_alert_days', label: t('foundation.settingsPage.dynamicFields.lotExpiryAlertDays.label'), component: 'number', help: t('foundation.settingsPage.dynamicFields.lotExpiryAlertDays.help') },
+    { key: 'default_lot_selection', label: t('foundation.settingsPage.dynamicFields.defaultLotSelection.label'), component: 'select', help: t('foundation.settingsPage.dynamicFields.defaultLotSelection.help'), options: [
+      { value: 'fefo', label: t('foundation.settingsPage.options.lotSelection.fefo') },
+      { value: 'fifo', label: t('foundation.settingsPage.options.lotSelection.fifo') },
     ] },
-    { key: 'enable_rack_location', label: 'Enable rack location', component: 'checkbox', help: 'Enable rack location support in stock UI.' },
+    { key: 'enable_rack_location', label: t('foundation.settingsPage.dynamicFields.enableRackLocation.label'), component: 'checkbox', help: t('foundation.settingsPage.dynamicFields.enableRackLocation.help') },
   ],
-}
+}))
 
 const businessSchema = yup.object({
   name: yup.string().required().max(255),
@@ -498,7 +500,7 @@ const businessSchema = yup.object({
   }),
 })
 
-const alert = reactive({ show: false, type: 'success', title: 'Success', message: '' })
+const alert = reactive({ show: false, type: 'success', title: '', message: '' })
 
 const canViewBusiness = computed(() => auth.can('businesses.index'))
 const canEditBusiness = computed(() => auth.can('businesses.edit'))
@@ -506,26 +508,26 @@ const canViewSettings = computed(() => auth.can('settings.index'))
 const canEditSettings = computed(() => auth.can('settings.edit'))
 
 const availableGroups = computed(() =>
-  groups.filter(
+  groups.value.filter(
     (group) =>
       (!group.permission || auth.can(group.permission)) &&
       (!group.permissionAny || auth.canAny(group.permissionAny))
   )
 )
 
-const activeFields = computed(() => fieldsByGroup[activeGroup.value] || [])
-const activeGroupMeta = computed(() => availableGroups.value.find((group) => group.key === activeGroup.value) || availableGroups.value[0] || groups[0])
+const activeFields = computed(() => fieldsByGroup.value[activeGroup.value] || [])
+const activeGroupMeta = computed(() => availableGroups.value.find((group) => group.key === activeGroup.value) || availableGroups.value[0] || groups.value[0])
 const isBusinessGroup = computed(() => activeGroup.value === 'business')
 const activeGroupAccessLabel = computed(() => {
   if (!isBusinessGroup.value) {
-    return canEditSettings.value ? 'Editable' : 'Read only'
+    return canEditSettings.value ? t('foundation.settingsPage.access.editable') : t('foundation.settingsPage.access.readOnly')
   }
 
   if ((canEditBusiness.value && canViewBusiness.value) || (canEditSettings.value && canViewSettings.value)) {
-    return 'Editable'
+    return t('foundation.settingsPage.access.editable')
   }
 
-  return 'Read only'
+  return t('foundation.settingsPage.access.readOnly')
 })
 
 const currentLoading = computed(() => {
@@ -664,8 +666,8 @@ const selectGroup = async (group, options = {}) => {
   } catch (error) {
     showToast(
       'danger',
-      'Unable to load',
-      error.response?.data?.message || `Unable to load the ${activeGroupMeta.value.label.toLowerCase()} section.`
+      t('foundation.settingsPage.toast.loadFailedTitle'),
+      error.response?.data?.message || t('foundation.settingsPage.toast.loadFailedMessage', { section: activeGroupMeta.value.label.toLowerCase() })
     )
   }
 }
@@ -679,12 +681,12 @@ const submitBusiness = async (values) => {
     const response = await businessStore.updateBusiness(values)
     syncAuthBusiness(response.data)
     businessFormKey.value += 1
-    showToast('success', 'Business updated', 'Business profile was saved successfully.')
+    showToast('success', t('foundation.settingsPage.toast.businessUpdatedTitle'), t('foundation.settingsPage.toast.businessUpdatedMessage'))
   } catch (error) {
     showToast(
       'danger',
-      'Update failed',
-      error.response?.data?.message || 'Unable to save the business profile right now.'
+      t('foundation.settingsPage.toast.businessUpdateFailedTitle'),
+      error.response?.data?.message || t('foundation.settingsPage.toast.businessUpdateFailedMessage')
     )
   }
 }
@@ -697,12 +699,12 @@ const submitGeneralSettings = async (values) => {
   try {
     await settingsStore.updateGroup('general', values)
     generalFormKey.value += 1
-    showToast('success', 'General defaults saved', 'General settings were updated successfully.')
+    showToast('success', t('foundation.settingsPage.toast.generalSavedTitle'), t('foundation.settingsPage.toast.generalSavedMessage'))
   } catch (error) {
     showToast(
       'danger',
-      'Save failed',
-      error.response?.data?.message || 'Unable to save the general settings right now.'
+      t('foundation.settingsPage.toast.generalSaveFailedTitle'),
+      error.response?.data?.message || t('foundation.settingsPage.toast.generalSaveFailedMessage')
     )
   }
 }
@@ -711,9 +713,17 @@ const submitSettingsGroup = async (values) => {
   try {
     await settingsStore.updateGroup(activeGroup.value, values)
     settingsFormKey.value += 1
-    showToast('success', 'Settings saved', `${activeGroupMeta.value.label} settings were updated successfully.`)
+    showToast(
+      'success',
+      t('foundation.settingsPage.toast.settingsSavedTitle'),
+      t('foundation.settingsPage.toast.settingsSavedMessage', { section: activeGroupMeta.value.label })
+    )
   } catch (error) {
-    showToast('danger', 'Save failed', error.response?.data?.message || 'Unable to save settings.')
+    showToast(
+      'danger',
+      t('foundation.settingsPage.toast.settingsSaveFailedTitle'),
+      error.response?.data?.message || t('foundation.settingsPage.toast.settingsSaveFailedMessage')
+    )
   }
 }
 

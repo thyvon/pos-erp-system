@@ -1,17 +1,17 @@
 <template>
   <AppLayout
-    title="Branches"
-    subtitle="Manage selling locations, branch defaults, and manager assignments."
+    :title="t('foundation.branchesPage.title')"
+    :subtitle="t('foundation.branchesPage.subtitle')"
     :breadcrumbs="[
-      { label: 'Dashboard', to: '/dashboard' },
-      { label: 'Branches' },
+      { label: t('dashboard.breadcrumb'), to: '/dashboard' },
+      { label: t('foundation.branchesPage.breadcrumb') },
     ]"
   >
     <div class="space-y-6">
       <AppAlert v-model:show="alert.show" :type="alert.type" :title="alert.title" :message="alert.message" />
 
       <DataTable
-        title="Branches"
+        :title="t('foundation.branchesPage.tableTitle')"
         :columns="columns"
         :rows="store.items"
         :loading="store.loading"
@@ -27,20 +27,20 @@
         <template #toolbar>
           <button v-if="canCreateBranch" type="button" class="erp-button-primary" @click="openCreateModal">
             <i class="fa-solid fa-plus"></i>
-            New branch
+            {{ t('foundation.branchesPage.newBranch') }}
           </button>
         </template>
 
         <template #name="{ row }">
           <div>
             <div class="font-semibold text-slate-950 dark:text-white">{{ row.name }}</div>
-            <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ row.code || 'Auto code' }}</div>
+            <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ row.code || t('foundation.branchesPage.noCode') }}</div>
           </div>
         </template>
 
         <template #manager="{ row }">
           <div class="text-sm text-slate-600 dark:text-slate-300">
-            {{ row.manager ? `${row.manager.first_name} ${row.manager.last_name || ''}`.trim() : 'Unassigned' }}
+            {{ row.manager ? `${row.manager.first_name} ${row.manager.last_name || ''}`.trim() : t('foundation.branchesPage.unassigned') }}
           </div>
         </template>
 
@@ -48,7 +48,7 @@
           <div class="flex flex-wrap items-center gap-2">
             <StatusBadge :status="row.is_active ? 'active' : 'inactive'" />
               <span v-if="row.is_default" class="erp-badge erp-badge-info px-3 uppercase tracking-[0.16em]">
-                Default
+                {{ t('foundation.branchesPage.defaultBadge') }}
               </span>
           </div>
         </template>
@@ -67,7 +67,7 @@
 
       <AppModal
         :show="modal.show"
-        :title="modal.mode === 'create' ? 'Create branch' : 'Edit branch'"
+        :title="modal.mode === 'create' ? t('foundation.branchesPage.createTitle') : t('foundation.branchesPage.editTitle')"
         icon="location setup"
         size="lg"
         @close="closeModal"
@@ -81,12 +81,12 @@
         >
           <div class="grid gap-4 md:grid-cols-2">
             <div>
-              <label class="erp-label" for="name">Branch name</label>
+              <label class="erp-label" for="name">{{ t('foundation.branchesPage.fields.name') }}</label>
               <Field id="name" name="name" class="erp-input" />
               <ErrorMessage name="name" class="erp-helper text-rose-500 dark:text-rose-400" />
             </div>
             <div>
-              <label class="erp-label" for="code">Code</label>
+              <label class="erp-label" for="code">{{ t('foundation.branchesPage.fields.code') }}</label>
               <Field id="code" name="code" class="erp-input" />
               <ErrorMessage name="code" class="erp-helper text-rose-500 dark:text-rose-400" />
             </div>
@@ -94,26 +94,26 @@
 
           <div class="grid gap-4 md:grid-cols-2">
             <div>
-              <label class="erp-label" for="type">Type</label>
+              <label class="erp-label" for="type">{{ t('foundation.branchesPage.fields.type') }}</label>
               <AppSelect
                 :model-value="values.type || null"
                 :options="branchTypeOptions"
                 clearable
-                placeholder="Select type"
+                :placeholder="t('foundation.branchesPage.placeholders.selectType')"
                 @update:model-value="setFieldValue('type', $event || '')"
               />
               <ErrorMessage name="type" class="erp-helper text-rose-500 dark:text-rose-400" />
             </div>
             <div>
-              <label class="erp-label" for="manager_id">Manager</label>
+              <label class="erp-label" for="manager_id">{{ t('foundation.branchesPage.fields.manager') }}</label>
               <AppSelect
                 :model-value="values.manager_id || null"
                 :options="managerSelectOptions"
                 clearable
                 searchable
-                placeholder="No manager"
-                search-placeholder="Search managers"
-                empty-text="No managers found."
+                :placeholder="t('foundation.branchesPage.placeholders.noManager')"
+                :search-placeholder="t('foundation.branchesPage.placeholders.searchManagers')"
+                :empty-text="t('foundation.branchesPage.placeholders.noManagersFound')"
                 @update:model-value="setFieldValue('manager_id', $event || '')"
               />
               <ErrorMessage name="manager_id" class="erp-helper text-rose-500 dark:text-rose-400" />
@@ -122,12 +122,12 @@
 
           <div class="grid gap-4 md:grid-cols-2">
             <div>
-              <label class="erp-label" for="email">Email</label>
+              <label class="erp-label" for="email">{{ t('foundation.branchesPage.fields.email') }}</label>
               <Field id="email" name="email" type="email" class="erp-input" />
               <ErrorMessage name="email" class="erp-helper text-rose-500 dark:text-rose-400" />
             </div>
             <div>
-              <label class="erp-label" for="phone">Phone</label>
+              <label class="erp-label" for="phone">{{ t('foundation.branchesPage.fields.phone') }}</label>
               <Field id="phone" name="phone" class="erp-input" />
               <ErrorMessage name="phone" class="erp-helper text-rose-500 dark:text-rose-400" />
             </div>
@@ -135,12 +135,12 @@
 
           <div class="grid gap-4 md:grid-cols-2">
             <div>
-              <label class="erp-label" for="address_line1">Address line 1</label>
+              <label class="erp-label" for="address_line1">{{ t('foundation.branchesPage.fields.addressLine1') }}</label>
               <Field id="address_line1" name="address.line1" class="erp-input" />
               <ErrorMessage name="address.line1" class="erp-helper text-rose-500 dark:text-rose-400" />
             </div>
             <div>
-              <label class="erp-label" for="address_city">City</label>
+              <label class="erp-label" for="address_city">{{ t('foundation.branchesPage.fields.city') }}</label>
               <Field id="address_city" name="address.city" class="erp-input" />
               <ErrorMessage name="address.city" class="erp-helper text-rose-500 dark:text-rose-400" />
             </div>
@@ -154,7 +154,7 @@
                 :checked="Boolean(values.is_default)"
                 @change="setFieldValue('is_default', $event.target.checked)"
               />
-              <span>Set as default branch</span>
+              <span>{{ t('foundation.branchesPage.toggles.defaultBranch') }}</span>
             </label>
             <label class="flex items-center gap-3 rounded-[5px] border border-slate-200 px-4 py-3 text-sm text-slate-600 dark:border-slate-800 dark:text-slate-300">
               <input
@@ -163,18 +163,18 @@
                 :checked="Boolean(values.is_active)"
                 @change="setFieldValue('is_active', $event.target.checked)"
               />
-              <span>Branch is active</span>
+              <span>{{ t('foundation.branchesPage.toggles.activeBranch') }}</span>
             </label>
           </div>
 
           <div class="erp-form-actions mt-6">
-            <button type="button" class="erp-button-secondary" :disabled="store.saving" @click="closeModal">Cancel</button>
+            <button type="button" class="erp-button-secondary" :disabled="store.saving" @click="closeModal">{{ t('confirmDelete.cancel') }}</button>
             <button type="submit" class="erp-button-primary" :disabled="store.saving">
               <span
                 v-if="store.saving"
                 class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white dark:border-slate-950/25 dark:border-t-slate-950"
               ></span>
-              {{ modal.mode === 'create' ? 'Create branch' : 'Save branch' }}
+              {{ modal.mode === 'create' ? t('foundation.branchesPage.createTitle') : t('foundation.branchesPage.saveButton') }}
             </button>
           </div>
         </Form>
@@ -205,15 +205,17 @@ import AppLayout from '@layouts/AppLayout.vue'
 import { getUsers } from '@api/users'
 import { useAuthStore } from '@stores/auth'
 import { useBranchesStore } from '@stores/branches'
+import { useI18n } from 'vue-i18n'
 
+const { t } = useI18n()
 const auth = useAuthStore()
 const store = useBranchesStore()
-const branchTypeOptions = [
-  { value: 'retail', label: 'Retail' },
-  { value: 'warehouse', label: 'Warehouse' },
-  { value: 'office', label: 'Office' },
-  { value: 'online', label: 'Online' },
-]
+const branchTypeOptions = computed(() => [
+  { value: 'retail', label: t('foundation.branchesPage.types.retail') },
+  { value: 'warehouse', label: t('foundation.branchesPage.types.warehouse') },
+  { value: 'office', label: t('foundation.branchesPage.types.office') },
+  { value: 'online', label: t('foundation.branchesPage.types.online') },
+])
 
 const canCreateBranch = computed(() => auth.can('branches.create'))
 const canEditBranch = computed(() => auth.can('branches.edit'))
@@ -222,20 +224,20 @@ const showActionsColumn = computed(() => canEditBranch.value || canDeleteBranch.
 
 const columns = computed(() => {
   const base = [
-    { key: 'name', label: 'Branch' },
-    { key: 'type', label: 'Type' },
-    { key: 'manager', label: 'Manager' },
-    { key: 'status', label: 'Status' },
+    { key: 'name', label: t('foundation.branchesPage.columns.branch') },
+    { key: 'type', label: t('foundation.branchesPage.columns.type') },
+    { key: 'manager', label: t('foundation.branchesPage.columns.manager') },
+    { key: 'status', label: t('foundation.branchesPage.columns.status') },
   ]
 
   if (showActionsColumn.value) {
-    base.push({ key: 'actions', label: 'Actions' })
+    base.push({ key: 'actions', label: t('foundation.branchesPage.columns.actions') })
   }
 
   return base
 })
 
-const alert = reactive({ show: false, type: 'success', title: 'Success', message: '' })
+const alert = reactive({ show: false, type: 'success', title: '', message: '' })
 const modal = reactive({ show: false, mode: 'create', branch: null })
 const deleteDialog = reactive({ show: false, branch: null, itemName: '' })
 const managerOptions = ref([])
@@ -279,7 +281,7 @@ const schema = yup.object({
 
 const showToast = (type, message) => {
   alert.type = type
-  alert.title = type === 'danger' ? 'Error' : 'Success'
+  alert.title = type === 'danger' ? t('common.error') : t('common.success')
   alert.message = message
   alert.show = false
   requestAnimationFrame(() => { alert.show = true })
@@ -358,15 +360,15 @@ const submitForm = async (values) => {
 
     if (modal.mode === 'create') {
       await store.createBranch(payload)
-      showToast('success', 'Branch created successfully.')
+      showToast('success', t('foundation.branchesPage.toast.created'))
     } else {
       await store.updateBranch(modal.branch.id, payload)
-      showToast('success', 'Branch updated successfully.')
+      showToast('success', t('foundation.branchesPage.toast.updated'))
     }
 
     closeModal()
   } catch (error) {
-    showToast('danger', error.response?.data?.message || 'Unable to save the branch.')
+    showToast('danger', error.response?.data?.message || t('foundation.branchesPage.toast.saveFailed'))
   }
 }
 
@@ -375,10 +377,10 @@ const confirmDelete = async () => {
 
   try {
     await store.deleteBranch(deleteDialog.branch.id)
-    showToast('success', 'Branch deleted successfully.')
+    showToast('success', t('foundation.branchesPage.toast.deleted'))
     closeDeleteModal()
   } catch (error) {
-    showToast('danger', error.response?.data?.message || 'Unable to delete the branch.')
+    showToast('danger', error.response?.data?.message || t('foundation.branchesPage.toast.deleteFailed'))
   }
 }
 

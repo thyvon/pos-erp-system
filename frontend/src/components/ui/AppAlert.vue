@@ -6,7 +6,7 @@
         class="erp-toast-shell pointer-events-none fixed left-3 right-3 top-[calc(env(safe-area-inset-top,0px)+0.75rem)] z-[90] w-auto max-w-none sm:left-auto sm:right-4 sm:top-4 sm:w-full sm:max-w-[26rem]"
       >
         <div
-          class="pointer-events-auto relative overflow-hidden rounded-[24px] border ring-1 shadow-[0_26px_60px_rgba(15,23,42,0.16)]"
+          class="erp-alert-card pointer-events-auto relative overflow-hidden rounded-[24px] border ring-1 shadow-[0_26px_60px_rgba(15,23,42,0.16)]"
           :class="toastClass"
           role="alert"
           aria-live="assertive"
@@ -26,7 +26,7 @@
                 </div>
                 <button
                   type="button"
-                  class="inline-flex h-8 w-8 items-center justify-center rounded-[14px] border text-lg leading-none transition"
+                  class="erp-alert-close inline-flex h-8 w-8 items-center justify-center rounded-[14px] border text-lg leading-none transition"
                   :class="closeButtonClass"
                   :aria-label="t('alert.dismiss')"
                   @click="dismiss"

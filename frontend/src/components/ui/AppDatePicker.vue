@@ -47,7 +47,7 @@
         <div
           v-if="open"
           ref="panel"
-          class="fixed z-[170] w-[20.5rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-[15px] border border-slate-200/80 bg-white/95 shadow-[0_22px_50px_rgba(44,62,99,0.16)] dark:border-slate-700/70 dark:bg-slate-900/95 dark:shadow-[0_22px_50px_rgba(0,0,0,0.36)]"
+          class="erp-date-picker-panel fixed z-[170] w-[20.5rem] max-w-[calc(100vw-2rem)] overflow-hidden rounded-[15px] border border-slate-200/80 bg-white/95 shadow-[0_22px_50px_rgba(44,62,99,0.16)] dark:border-slate-700/70 dark:bg-slate-900/95 dark:shadow-[0_22px_50px_rgba(0,0,0,0.36)]"
           :style="panelStyle"
         >
           <div class="flex items-center justify-between border-b border-slate-200/70 px-3 py-3 dark:border-slate-800/70">

@@ -60,9 +60,79 @@
               <i class="fa-solid fa-language"></i>
               <span>{{ currentLocaleLabel }}</span>
             </button>
-            <button type="button" class="erp-topbar-button" @click="toggleTheme">
-              <i class="fa-solid" :class="isDark ? 'fa-sun' : 'fa-moon'"></i>
-            </button>
+            <div ref="themeMenuRef" class="relative flex items-center gap-2">
+              <button
+                v-if="isGlassTheme"
+                type="button"
+                class="erp-topbar-button"
+                :title="glassMode === 'dark' ? 'Switch glass to light mode' : 'Switch glass to dark mode'"
+                @click="toggleGlassMode"
+              >
+                <i class="fa-solid" :class="glassMode === 'dark' ? 'fa-sun' : 'fa-moon'"></i>
+                <span class="hidden xl:inline">{{ currentGlassModeLabel }}</span>
+              </button>
+              <button
+                type="button"
+                class="erp-topbar-button"
+                :aria-expanded="themeMenuOpen ? 'true' : 'false'"
+                aria-haspopup="menu"
+                title="Theme"
+                @click="toggleThemeMenu"
+              >
+                <i class="fa-solid fa-palette"></i>
+                <span>{{ currentThemeLabel }}</span>
+              </button>
+
+              <div
+                v-if="themeMenuOpen"
+                class="erp-topbar-user-menu w-80"
+                role="menu"
+              >
+                <div class="border-b border-slate-200/70 px-3 py-2.5 dark:border-slate-800/80">
+                  <div class="text-sm font-semibold text-slate-900 dark:text-white">Theme</div>
+                  <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                    Glass keeps the frosted layout. Light and Dark switch to solid surfaces.
+                  </div>
+                </div>
+                <div class="p-2">
+                  <button
+                    v-for="option in themeOptions"
+                    :key="option.value"
+                    type="button"
+                    class="mb-1 flex w-full items-start gap-3 rounded-[16px] px-3 py-2.5 text-left transition last:mb-0"
+                    :class="
+                      activeTheme === option.value
+                        ? 'bg-sky-100/80 text-sky-900 shadow-[0_14px_28px_rgba(56,189,248,0.12)] dark:bg-sky-500/12 dark:text-sky-100'
+                        : 'text-slate-700 hover:bg-slate-100/80 dark:text-slate-200 dark:hover:bg-slate-800/70'
+                    "
+                    role="menuitem"
+                    @click="selectTheme(option.value)"
+                  >
+                    <div class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-[14px] bg-white/70 text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.78)] dark:bg-slate-900/70 dark:text-slate-100">
+                      <i class="fa-solid" :class="option.icon"></i>
+                    </div>
+                    <div class="min-w-0 flex-1">
+                      <div class="flex items-center gap-2">
+                        <span class="font-medium">{{ option.label }}</span>
+                        <span
+                          v-if="option.value === 'glass'"
+                          class="rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:bg-slate-900/70 dark:text-slate-300"
+                        >
+                          {{ currentGlassModeLabel }}
+                        </span>
+                      </div>
+                      <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                        {{ option.description }}
+                      </div>
+                    </div>
+                    <i
+                      v-if="activeTheme === option.value"
+                      class="fa-solid fa-check mt-1 text-xs text-sky-600 dark:text-sky-300"
+                    ></i>
+                  </button>
+                </div>
+              </div>
+            </div>
             <div ref="userMenuRef" class="relative">
               <button
                 type="button"
@@ -156,9 +226,79 @@
                 <i class="fa-solid fa-language"></i>
                 <span>{{ currentLocaleLabel }}</span>
               </button>
-              <button type="button" class="erp-topbar-button" @click="toggleTheme">
-                <i class="fa-solid" :class="isDark ? 'fa-sun' : 'fa-moon'"></i>
-              </button>
+              <div ref="themeMenuRef" class="relative flex items-center gap-2">
+                <button
+                  v-if="isGlassTheme"
+                  type="button"
+                  class="erp-topbar-button"
+                  :title="glassMode === 'dark' ? 'Switch glass to light mode' : 'Switch glass to dark mode'"
+                  @click="toggleGlassMode"
+                >
+                  <i class="fa-solid" :class="glassMode === 'dark' ? 'fa-sun' : 'fa-moon'"></i>
+                  <span class="hidden xl:inline">{{ currentGlassModeLabel }}</span>
+                </button>
+                <button
+                  type="button"
+                  class="erp-topbar-button"
+                  :aria-expanded="themeMenuOpen ? 'true' : 'false'"
+                  aria-haspopup="menu"
+                  title="Theme"
+                  @click="toggleThemeMenu"
+                >
+                  <i class="fa-solid fa-palette"></i>
+                  <span>{{ currentThemeLabel }}</span>
+                </button>
+
+                <div
+                  v-if="themeMenuOpen"
+                  class="erp-topbar-user-menu w-80"
+                  role="menu"
+                >
+                  <div class="border-b border-slate-200/70 px-3 py-2.5 dark:border-slate-800/80">
+                    <div class="text-sm font-semibold text-slate-900 dark:text-white">Theme</div>
+                    <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                      Glass keeps the frosted layout. Light and Dark switch to solid surfaces.
+                    </div>
+                  </div>
+                  <div class="p-2">
+                    <button
+                      v-for="option in themeOptions"
+                      :key="option.value"
+                      type="button"
+                      class="mb-1 flex w-full items-start gap-3 rounded-[16px] px-3 py-2.5 text-left transition last:mb-0"
+                      :class="
+                        activeTheme === option.value
+                          ? 'bg-sky-100/80 text-sky-900 shadow-[0_14px_28px_rgba(56,189,248,0.12)] dark:bg-sky-500/12 dark:text-sky-100'
+                          : 'text-slate-700 hover:bg-slate-100/80 dark:text-slate-200 dark:hover:bg-slate-800/70'
+                      "
+                      role="menuitem"
+                      @click="selectTheme(option.value)"
+                    >
+                      <div class="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-[14px] bg-white/70 text-slate-700 shadow-[inset_0_1px_0_rgba(255,255,255,0.78)] dark:bg-slate-900/70 dark:text-slate-100">
+                        <i class="fa-solid" :class="option.icon"></i>
+                      </div>
+                      <div class="min-w-0 flex-1">
+                        <div class="flex items-center gap-2">
+                          <span class="font-medium">{{ option.label }}</span>
+                          <span
+                            v-if="option.value === 'glass'"
+                            class="rounded-full bg-white/70 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.14em] text-slate-500 dark:bg-slate-900/70 dark:text-slate-300"
+                          >
+                            {{ currentGlassModeLabel }}
+                          </span>
+                        </div>
+                        <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+                          {{ option.description }}
+                        </div>
+                      </div>
+                      <i
+                        v-if="activeTheme === option.value"
+                        class="fa-solid fa-check mt-1 text-xs text-sky-600 dark:text-sky-300"
+                      ></i>
+                    </button>
+                  </div>
+                </div>
+              </div>
               <div ref="userMenuRef" class="relative">
                 <button
                   type="button"
@@ -232,6 +372,7 @@ import { applyLocale } from '@/i18n'
 import AppSidebar from '@components/layout/AppSidebar.vue'
 import NotificationBell from '@components/ui/NotificationBell.vue'
 import { formatHumanLongDate } from '@/utils/date'
+import { resolveThemePreference, setThemePreference } from '@/utils/theme'
 
 defineProps({
   title: {
@@ -252,21 +393,56 @@ const auth = useAuthStore()
 const route = useRoute()
 const router = useRouter()
 const { t, locale } = useI18n()
+const initialThemePreference = resolveThemePreference()
 
 const sidebarOpen = ref(false)
 const sidebarCollapsed = ref(localStorage.getItem('erp_sidebar_collapsed') === 'true')
 const viewportWidth = ref(typeof window !== 'undefined' ? window.innerWidth : 1440)
-const isDark = ref(document.documentElement.classList.contains('dark'))
+const activeTheme = ref(initialThemePreference.theme)
+const glassMode = ref(initialThemePreference.glassMode)
+const isDark = computed(
+  () => activeTheme.value === 'dark' || (activeTheme.value === 'glass' && glassMode.value === 'dark')
+)
+const isGlassTheme = computed(() => activeTheme.value === 'glass')
 const userMenuOpen = ref(false)
 const userMenuRef = ref(null)
-
-const themeKey = 'erp_theme'
+const themeMenuOpen = ref(false)
+const themeMenuRef = ref(null)
 const expandedSidebarWidth = '15rem'
 const collapsedSidebarWidth = '4.75rem'
 const currentYear = new Date().getFullYear()
 
 const isDesktop = computed(() => viewportWidth.value >= 1024)
 const currentLocaleLabel = computed(() => (locale.value === 'km' ? 'KM' : 'EN'))
+const currentThemeLabel = computed(() => {
+  if (activeTheme.value === 'glass') {
+    return 'Glass'
+  }
+
+  return activeTheme.value === 'light' ? 'Light' : 'Dark'
+})
+const currentGlassModeLabel = computed(() => (glassMode.value === 'dark' ? 'Dark' : 'Light'))
+
+const themeOptions = [
+  {
+    value: 'glass',
+    icon: 'fa-gem',
+    label: 'Glass Theme',
+    description: 'Current frosted layout with its own light and dark mode.',
+  },
+  {
+    value: 'light',
+    icon: 'fa-sun',
+    label: '100% Light',
+    description: 'Solid light surfaces without glass blur or moving background.',
+  },
+  {
+    value: 'dark',
+    icon: 'fa-moon',
+    label: '100% Dark',
+    description: 'Solid dark surfaces for a flatter night workspace.',
+  },
+]
 
 const today = computed(() => formatHumanLongDate(new Date()))
 
@@ -330,13 +506,36 @@ const footerDesktopStyle = computed(() => ({
   left: isDesktop.value ? (sidebarCollapsed.value ? collapsedSidebarWidth : expandedSidebarWidth) : '0',
 }))
 
-const toggleTheme = () => {
-  const root = document.documentElement
-  const nextDark = !isDark.value
+const applyThemeState = (theme, nextGlassMode = glassMode.value) => {
+  const resolved = setThemePreference({
+    theme,
+    glassMode: nextGlassMode,
+  })
 
-  root.classList.toggle('dark', nextDark)
-  isDark.value = nextDark
-  localStorage.setItem(themeKey, nextDark ? 'dark' : 'light')
+  activeTheme.value = resolved.theme
+  glassMode.value = resolved.glassMode
+}
+
+const selectTheme = (theme) => {
+  applyThemeState(theme, glassMode.value)
+  closeThemeMenu()
+}
+
+const toggleGlassMode = () => {
+  if (!isGlassTheme.value) {
+    return
+  }
+
+  applyThemeState('glass', glassMode.value === 'dark' ? 'light' : 'dark')
+}
+
+const closeThemeMenu = () => {
+  themeMenuOpen.value = false
+}
+
+const toggleThemeMenu = () => {
+  closeUserMenu()
+  themeMenuOpen.value = !themeMenuOpen.value
 }
 
 const toggleLocale = async () => {
@@ -364,6 +563,7 @@ const closeUserMenu = () => {
 }
 
 const toggleUserMenu = () => {
+  closeThemeMenu()
   userMenuOpen.value = !userMenuOpen.value
 }
 
@@ -379,19 +579,31 @@ const handleResize = () => {
 
 const handleDocumentPointerDown = (event) => {
   if (!userMenuOpen.value) {
+    if (
+      themeMenuOpen.value &&
+      !themeMenuRef.value?.contains(event.target)
+    ) {
+      closeThemeMenu()
+    }
+
     return
   }
 
-  if (userMenuRef.value?.contains(event.target)) {
+  if (userMenuRef.value?.contains(event.target) || themeMenuRef.value?.contains(event.target)) {
     return
   }
 
   closeUserMenu()
+
+  if (themeMenuOpen.value) {
+    closeThemeMenu()
+  }
 }
 
 const handleDocumentKeyDown = (event) => {
   if (event.key === 'Escape') {
     closeUserMenu()
+    closeThemeMenu()
   }
 }
 
@@ -400,11 +612,11 @@ watch(
   () => {
     sidebarOpen.value = false
     closeUserMenu()
+    closeThemeMenu()
   }
 )
 
 onMounted(() => {
-  isDark.value = document.documentElement.classList.contains('dark')
   window.addEventListener('resize', handleResize)
   document.addEventListener('pointerdown', handleDocumentPointerDown)
   document.addEventListener('keydown', handleDocumentKeyDown)
