@@ -15,6 +15,7 @@ use App\Models\Product;
 use App\Models\ProductVariation;
 use App\Models\Sale;
 use App\Models\SubUnit;
+use App\Models\TaxRate;
 use App\Models\User;
 use App\Models\Warehouse;
 use App\Repositories\Sales\SaleRepository;
@@ -25,6 +26,7 @@ use App\Services\Inventory\StockMovementService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
+use Throwable;
 
 class SaleService
 {
@@ -51,6 +53,7 @@ class SaleService
             $priceGroup = $this->resolvePriceGroup($businessId, $data['price_group_id'] ?? null);
             $parentSale = $this->resolveParentSale($businessId, $data['parent_sale_id'] ?? null);
             $type = (string) ($data['type'] ?? 'draft');
+            $taxScope = (string) ($data['tax_scope'] ?? 'line');
             $cashRegisterSession = $this->resolveCashRegisterSession(
                 $data['cash_register_session_id'] ?? null,
                 $branch,
@@ -58,12 +61,15 @@ class SaleService
                 $actor
             );
             $status = $this->initialStatus($type);
-            $linePayloads = $this->buildLinePayloads($businessId, $warehouse, collect($data['items']));
+            $saleTaxContext = $this->resolveSaleTaxContext($businessId, $data);
+            $linePayloads = $this->buildLinePayloads($businessId, $warehouse, collect($data['items']), $taxScope);
             $totals = $this->calculateSaleTotals(
                 $linePayloads,
                 $data['discount_type'] ?? null,
                 (float) ($data['discount_amount'] ?? 0),
-                (float) ($data['shipping_charges'] ?? 0)
+                (float) ($data['shipping_charges'] ?? 0),
+                $taxScope,
+                $saleTaxContext,
             );
 
             /** @var Sale $sale */
@@ -87,6 +93,11 @@ class SaleService
                 'subtotal' => $totals['subtotal'],
                 'discount_type' => $data['discount_type'] ?? null,
                 'discount_amount' => $totals['sale_discount_amount'],
+                'tax_scope' => $taxScope,
+                'tax_rate_id' => $saleTaxContext['tax_rate_id'],
+                'tax_rate_type' => $saleTaxContext['tax_rate_type'],
+                'tax_rate' => $saleTaxContext['tax_rate'],
+                'tax_type' => $saleTaxContext['tax_type'],
                 'tax_amount' => $totals['tax_amount'],
                 'shipping_charges' => $totals['shipping_charges'],
                 'total_amount' => $totals['total_amount'],
@@ -133,6 +144,132 @@ class SaleService
         });
     }
 
+    public function update(string $businessId, Sale $sale, array $data, ?User $actor = null): Sale
+    {
+        return DB::transaction(function () use ($businessId, $sale, $data, $actor): Sale {
+            /** @var Sale $lockedSale */
+            $lockedSale = Sale::withoutGlobalScopes()
+                ->with(['items.lots', 'items.serials'])
+                ->where('business_id', $businessId)
+                ->whereKey($sale->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $this->assertSaleIsEditable($lockedSale);
+
+            $previousSnapshot = [
+                'type' => $lockedSale->type,
+                'status' => $lockedSale->status,
+                'branch_id' => $lockedSale->branch_id,
+                'warehouse_id' => $lockedSale->warehouse_id,
+                'customer_id' => $lockedSale->customer_id,
+                'total_amount' => (string) $lockedSale->total_amount,
+            ];
+
+            if ($lockedSale->status === 'confirmed') {
+                $this->releaseReservedInventory($businessId, $lockedSale);
+            }
+
+            $branch = $this->resolveBranch($businessId, $data['branch_id']);
+            $warehouse = $this->resolveWarehouse($businessId, $data['warehouse_id'], $branch);
+            $customer = $this->resolveCustomer($businessId, $data['customer_id'] ?? null);
+            $priceGroup = $this->resolvePriceGroup($businessId, $data['price_group_id'] ?? null);
+            $parentSale = $this->resolveParentSale($businessId, $data['parent_sale_id'] ?? $lockedSale->parent_sale_id);
+            $type = (string) ($data['type'] ?? $lockedSale->type);
+            $taxScope = (string) ($data['tax_scope'] ?? 'line');
+            $cashRegisterSession = $this->resolveCashRegisterSession(
+                $data['cash_register_session_id'] ?? null,
+                $branch,
+                $type,
+                $actor
+            );
+            $status = $this->initialStatus($type);
+            $saleTaxContext = $this->resolveSaleTaxContext($businessId, $data);
+            $linePayloads = $this->buildLinePayloads($businessId, $warehouse, collect($data['items']), $taxScope);
+            $totals = $this->calculateSaleTotals(
+                $linePayloads,
+                $data['discount_type'] ?? null,
+                (float) ($data['discount_amount'] ?? 0),
+                (float) ($data['shipping_charges'] ?? 0),
+                $taxScope,
+                $saleTaxContext,
+            );
+
+            $quotationStateChanged = ($lockedSale->type === 'quotation') !== ($type === 'quotation');
+
+            $lockedSale->fill([
+                'branch_id' => $branch->id,
+                'warehouse_id' => $warehouse->id,
+                'customer_id' => $customer?->id,
+                'cash_register_session_id' => $cashRegisterSession?->id,
+                'commission_agent_id' => $this->resolveCommissionAgentId($businessId, $data['commission_agent_id'] ?? null),
+                'parent_sale_id' => $parentSale?->id,
+                'sale_number' => $quotationStateChanged ? $this->generateSaleNumber($businessId, $type) : $lockedSale->sale_number,
+                'type' => $type,
+                'status' => $status,
+                'sale_date' => $data['sale_date'],
+                'due_date' => $data['due_date'] ?? null,
+                'subtotal' => $totals['subtotal'],
+                'discount_type' => $data['discount_type'] ?? null,
+                'discount_amount' => $totals['sale_discount_amount'],
+                'tax_scope' => $taxScope,
+                'tax_rate_id' => $saleTaxContext['tax_rate_id'],
+                'tax_rate_type' => $saleTaxContext['tax_rate_type'],
+                'tax_rate' => $saleTaxContext['tax_rate'],
+                'tax_type' => $saleTaxContext['tax_type'],
+                'tax_amount' => $totals['tax_amount'],
+                'shipping_charges' => $totals['shipping_charges'],
+                'total_amount' => $totals['total_amount'],
+                'price_group_id' => $priceGroup?->id,
+                'notes' => $data['notes'] ?? null,
+                'staff_note' => $data['staff_note'] ?? null,
+            ]);
+            $lockedSale->save();
+
+            foreach ($lockedSale->items as $existingItem) {
+                $existingItem->lots()->delete();
+                $existingItem->serials()->delete();
+                $existingItem->delete();
+            }
+
+            foreach ($linePayloads as $linePayload) {
+                $item = $lockedSale->items()->create($linePayload['item']);
+
+                foreach ($linePayload['lots'] as $lotPayload) {
+                    $item->lots()->create($lotPayload);
+                }
+
+                foreach ($linePayload['serials'] as $serialId) {
+                    $item->serials()->create([
+                        'serial_id' => $serialId,
+                    ]);
+                }
+            }
+
+            $lockedSale = $this->loadSale($lockedSale->fresh());
+
+            $this->auditService->log(
+                'updated',
+                Sale::class,
+                $lockedSale->id,
+                $actor,
+                $businessId,
+                $previousSnapshot,
+                [
+                    'sale_number' => $lockedSale->sale_number,
+                    'type' => $lockedSale->type,
+                    'status' => $lockedSale->status,
+                    'branch_id' => $lockedSale->branch_id,
+                    'warehouse_id' => $lockedSale->warehouse_id,
+                    'customer_id' => $lockedSale->customer_id,
+                    'total_amount' => (string) $lockedSale->total_amount,
+                ]
+            );
+
+            return $lockedSale;
+        });
+    }
+
     public function confirm(string $businessId, Sale $sale, ?User $actor = null): Sale
     {
         return DB::transaction(function () use ($businessId, $sale, $actor): Sale {
@@ -173,8 +310,13 @@ class SaleService
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            if ($lockedSale->status !== 'confirmed') {
-                throw new InvalidStateTransitionException('Only confirmed sales can be completed.');
+            if (! in_array($lockedSale->status, ['draft', 'suspended', 'confirmed'], true)) {
+                throw new InvalidStateTransitionException('Only draft, suspended, or confirmed sales can be completed.');
+            }
+
+            if (in_array($lockedSale->status, ['draft', 'suspended'], true)) {
+                $this->validateSaleBusinessRules($lockedSale, $actor);
+                $this->reserveTrackedInventory($businessId, $lockedSale);
             }
 
             $this->consumeReservedInventory($businessId, $lockedSale, $actor);
@@ -222,9 +364,50 @@ class SaleService
         });
     }
 
-    protected function buildLinePayloads(string $businessId, Warehouse $warehouse, Collection $items): Collection
+    public function delete(string $businessId, Sale $sale, ?User $actor = null): void
     {
-        return $items->map(function (array $item) use ($businessId, $warehouse): array {
+        DB::transaction(function () use ($businessId, $sale, $actor): void {
+            /** @var Sale $lockedSale */
+            $lockedSale = Sale::withoutGlobalScopes()
+                ->with(['items.lots', 'items.serials'])
+                ->where('business_id', $businessId)
+                ->whereKey($sale->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $this->assertSaleIsEditable($lockedSale);
+
+            if ($lockedSale->status === 'confirmed') {
+                $this->releaseReservedInventory($businessId, $lockedSale);
+            }
+
+            $oldValues = [
+                'sale_number' => $lockedSale->sale_number,
+                'type' => $lockedSale->type,
+                'status' => $lockedSale->status,
+                'branch_id' => $lockedSale->branch_id,
+                'warehouse_id' => $lockedSale->warehouse_id,
+                'customer_id' => $lockedSale->customer_id,
+                'total_amount' => (string) $lockedSale->total_amount,
+            ];
+
+            $lockedSale->delete();
+
+            $this->auditService->log(
+                'deleted',
+                Sale::class,
+                $lockedSale->id,
+                $actor,
+                $businessId,
+                $oldValues,
+                null
+            );
+        });
+    }
+
+    protected function buildLinePayloads(string $businessId, Warehouse $warehouse, Collection $items, string $taxScope = 'line'): Collection
+    {
+        return $items->map(function (array $item) use ($businessId, $warehouse, $taxScope): array {
             $product = $this->resolveProduct($businessId, $item['product_id']);
             $variation = $this->resolveVariation($businessId, $product, $item['variation_id'] ?? null);
             $subUnit = $this->resolveSubUnit($item['sub_unit_id'] ?? null);
@@ -232,16 +415,26 @@ class SaleService
             $unitPrice = round((float) $item['unit_price'], 4);
             $discountType = $item['discount_type'] ?? null;
             $discountAmount = round((float) ($item['discount_amount'] ?? 0), 2);
-            $taxType = $item['tax_type'] ?? $product->tax_type;
-            $taxRate = round((float) ($item['tax_rate'] ?? $product->taxRate?->rate ?? 0), 2);
+            $taxType = $taxScope === 'line' ? ($item['tax_type'] ?? $product->tax_type) : null;
+            $taxRateId = $taxScope === 'line' ? ($item['tax_rate_id'] ?? $product->tax_rate_id) : null;
+            $taxRateType = $taxScope === 'line' ? ($item['tax_rate_type'] ?? $product->taxRate?->type ?? 'percentage') : null;
+            $taxRate = $taxScope === 'line'
+                ? round((float) ($item['tax_rate'] ?? $product->taxRate?->rate ?? 0), 2)
+                : 0;
             $unitCost = round((float) ($item['unit_cost'] ?? $variation?->purchase_price ?? $product->purchase_price ?? 0), 4);
             $gross = round($quantity * $unitPrice, 2);
             $lineDiscount = $this->resolveDiscountAmount($discountType, $discountAmount, $gross);
-            $taxable = max(0, $gross - $lineDiscount);
-            $lineTax = $this->calculateTaxAmount($taxable, $taxRate, $taxType);
-            $lineTotal = $taxType === 'inclusive'
-                ? $taxable
-                : round($taxable + $lineTax, 2);
+            $grossAfterDiscount = max(0, round($gross - $lineDiscount, 2));
+            $taxBreakdown = $taxScope === 'line'
+                ? $this->calculateTaxBreakdown($grossAfterDiscount, $taxRate, $taxType, $taxRateType)
+                : [
+                    'base_amount' => round($grossAfterDiscount, 2),
+                    'tax_amount' => 0,
+                    'line_total' => round($grossAfterDiscount, 2),
+                ];
+            $taxableBase = $taxBreakdown['base_amount'];
+            $lineTax = $taxBreakdown['tax_amount'];
+            $lineTotal = $taxBreakdown['line_total'];
 
             $lots = collect($item['lot_allocations'] ?? [])
                 ->map(function (array $lotAllocation) use ($businessId, $warehouse, $product, $variation): array {
@@ -272,6 +465,8 @@ class SaleService
                     'unit_price' => $unitPrice,
                     'discount_type' => $discountType,
                     'discount_amount' => $lineDiscount,
+                    'tax_rate_id' => $taxRateId,
+                    'tax_rate_type' => $taxRateType,
                     'tax_rate' => $taxRate,
                     'tax_type' => $taxType,
                     'tax_amount' => $lineTax,
@@ -285,6 +480,7 @@ class SaleService
                     'product' => $product,
                     'variation' => $variation,
                     'gross' => $gross,
+                    'base_amount' => $taxableBase,
                     'discount_amount' => $lineDiscount,
                     'line_total' => $lineTotal,
                     'tax_amount' => $lineTax,
@@ -293,12 +489,27 @@ class SaleService
         });
     }
 
-    protected function calculateSaleTotals(Collection $linePayloads, ?string $discountType, float $discountAmount, float $shippingCharges): array
+    protected function calculateSaleTotals(
+        Collection $linePayloads,
+        ?string $discountType,
+        float $discountAmount,
+        float $shippingCharges,
+        string $taxScope = 'line',
+        array $saleTaxContext = [],
+    ): array
     {
-        $subtotal = round((float) $linePayloads->sum(fn (array $line) => $line['meta']['gross'] - $line['meta']['discount_amount']), 2);
-        $taxAmount = round((float) $linePayloads->sum(fn (array $line) => $line['meta']['tax_amount']), 2);
+        $subtotal = round((float) $linePayloads->sum(fn (array $line) => $line['meta']['base_amount']), 2);
         $resolvedSaleDiscount = $this->resolveDiscountAmount($discountType, $discountAmount, $subtotal);
-        $totalAmount = round(max(0, $subtotal - $resolvedSaleDiscount) + $taxAmount + round($shippingCharges, 2), 2);
+        $taxableAfterSaleDiscount = max(0, round($subtotal - $resolvedSaleDiscount, 2));
+        $taxAmount = $taxScope === 'sale'
+            ? $this->calculateTaxBreakdown(
+                $taxableAfterSaleDiscount,
+                (float) ($saleTaxContext['tax_rate'] ?? 0),
+                $saleTaxContext['tax_type'] ?? null,
+                $saleTaxContext['tax_rate_type'] ?? null,
+            )['tax_amount']
+            : round((float) $linePayloads->sum(fn (array $line) => $line['meta']['tax_amount']), 2);
+        $totalAmount = round($taxableAfterSaleDiscount + $taxAmount + round($shippingCharges, 2), 2);
 
         return [
             'subtotal' => $subtotal,
@@ -865,22 +1076,116 @@ class SaleService
         return round(($discountAmount / $baseAmount) * 100, 2);
     }
 
-    protected function calculateTaxAmount(float $taxableAmount, float $taxRate, ?string $taxType): float
+    protected function resolveSaleTaxContext(string $businessId, array $data): array
     {
-        if ($taxRate <= 0 || $taxableAmount <= 0) {
-            return 0;
+        $taxRateId = $data['tax_rate_id'] ?? null;
+        $taxRateRecord = null;
+
+        if (filled($taxRateId)) {
+          $taxRateRecord = TaxRate::withoutGlobalScopes()
+              ->where('business_id', $businessId)
+              ->find($taxRateId);
+
+          if (! $taxRateRecord) {
+              $this->failValidation('Selected sale tax rate is invalid for this business.');
+          }
+        }
+
+        return [
+            'tax_rate_id' => $taxRateId,
+            'tax_rate_type' => $data['tax_rate_type'] ?? $taxRateRecord?->type,
+            'tax_rate' => round((float) ($data['tax_rate'] ?? $taxRateRecord?->rate ?? 0), 2),
+            'tax_type' => $data['tax_type'] ?? null,
+        ];
+    }
+
+    protected function calculateTaxBreakdown(
+        float $grossAfterDiscount,
+        float $taxRate,
+        ?string $taxType,
+        ?string $taxRateType,
+    ): array
+    {
+        if ($taxRate <= 0 || $grossAfterDiscount <= 0) {
+            return [
+                'base_amount' => round($grossAfterDiscount, 2),
+                'tax_amount' => 0,
+                'line_total' => round($grossAfterDiscount, 2),
+            ];
+        }
+
+        if ($taxRateType === 'fixed') {
+            $fixedTax = round(min($grossAfterDiscount, $taxRate), 2);
+
+            if ($taxType === 'inclusive') {
+                return [
+                    'base_amount' => round(max(0, $grossAfterDiscount - $fixedTax), 2),
+                    'tax_amount' => $fixedTax,
+                    'line_total' => round($grossAfterDiscount, 2),
+                ];
+            }
+
+            return [
+                'base_amount' => round($grossAfterDiscount, 2),
+                'tax_amount' => $fixedTax,
+                'line_total' => round($grossAfterDiscount + $fixedTax, 2),
+            ];
         }
 
         if ($taxType === 'inclusive') {
-            return round($taxableAmount - ($taxableAmount / (1 + ($taxRate / 100))), 2);
+            $taxAmount = round($grossAfterDiscount - ($grossAfterDiscount / (1 + ($taxRate / 100))), 2);
+
+            return [
+                'base_amount' => round(max(0, $grossAfterDiscount - $taxAmount), 2),
+                'tax_amount' => $taxAmount,
+                'line_total' => round($grossAfterDiscount, 2),
+            ];
         }
 
-        return round($taxableAmount * ($taxRate / 100), 2);
+        $taxAmount = round($grossAfterDiscount * ($taxRate / 100), 2);
+
+        return [
+            'base_amount' => round($grossAfterDiscount, 2),
+            'tax_amount' => $taxAmount,
+            'line_total' => round($grossAfterDiscount + $taxAmount, 2),
+        ];
     }
 
     protected function requiresCashRegisterSession(): bool
     {
         return (bool) $this->settings->get('pos', 'require_cash_register_session');
+    }
+
+    protected function assertSaleIsEditable(Sale $sale): void
+    {
+        if (! in_array($sale->status, ['draft', 'quotation', 'suspended', 'confirmed'], true)) {
+            throw new InvalidStateTransitionException('This sale can no longer be edited.');
+        }
+
+        $lifetimeDays = $this->saleEditLifetimeDays();
+
+        if ($lifetimeDays <= 0) {
+            return;
+        }
+
+        $referenceDate = $sale->sale_date ?? $sale->created_at;
+
+        if (! $referenceDate) {
+            return;
+        }
+
+        if (now()->startOfDay()->diffInDays($referenceDate->copy()->startOfDay()) > $lifetimeDays) {
+            throw new InvalidStateTransitionException('This sale is outside the allowed edit lifetime.');
+        }
+    }
+
+    protected function saleEditLifetimeDays(): int
+    {
+        try {
+            return max(0, (int) $this->settings->get('sales', 'edit_lifetime_days'));
+        } catch (Throwable) {
+            return 30;
+        }
     }
 
     protected function failValidation(string $message): never
@@ -899,9 +1204,11 @@ class SaleService
             'parentSale',
             'creator',
             'priceGroup',
+            'taxRate',
             'items.product',
             'items.variation',
             'items.subUnit',
+            'items.taxRate',
             'items.lots.lot',
             'items.serials.serial',
             'payments.paymentAccount',

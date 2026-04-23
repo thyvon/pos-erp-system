@@ -34,6 +34,7 @@ export const useSalesStore = defineStore('sales-documents', {
     items: [],
     loading: false,
     saving: false,
+    deletingId: '',
     filters: defaultSalesFilters(),
     pagination: defaultPagination(),
   }),
@@ -72,6 +73,28 @@ export const useSalesStore = defineStore('sales-documents', {
         return response.data
       } finally {
         this.saving = false
+      }
+    },
+    async updateItem(id, payload) {
+      this.saving = true
+
+      try {
+        const response = await salesApi.updateSale(id, payload)
+        await this.fetchItems()
+        return response.data
+      } finally {
+        this.saving = false
+      }
+    },
+    async deleteItem(id) {
+      this.deletingId = id
+
+      try {
+        const response = await salesApi.deleteSale(id)
+        await this.fetchItems()
+        return response.data
+      } finally {
+        this.deletingId = ''
       }
     },
     async confirmItem(id) {

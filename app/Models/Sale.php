@@ -36,6 +36,11 @@ class Sale extends BaseModel
         'subtotal',
         'discount_type',
         'discount_amount',
+        'tax_scope',
+        'tax_rate_id',
+        'tax_rate_type',
+        'tax_rate',
+        'tax_type',
         'tax_amount',
         'shipping_charges',
         'total_amount',
@@ -55,6 +60,7 @@ class Sale extends BaseModel
             'due_date' => 'date',
             'subtotal' => 'decimal:2',
             'discount_amount' => 'decimal:2',
+            'tax_rate' => 'decimal:2',
             'tax_amount' => 'decimal:2',
             'shipping_charges' => 'decimal:2',
             'total_amount' => 'decimal:2',
@@ -101,6 +107,11 @@ class Sale extends BaseModel
     public function priceGroup(): BelongsTo
     {
         return $this->belongsTo(PriceGroup::class);
+    }
+
+    public function taxRate(): BelongsTo
+    {
+        return $this->belongsTo(TaxRate::class, 'tax_rate_id');
     }
 
     public function items(): HasMany

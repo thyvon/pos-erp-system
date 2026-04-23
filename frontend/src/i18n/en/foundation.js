@@ -168,6 +168,11 @@ export default {
           "label": "Stock",
           "heading": "Inventory defaults",
           "description": "Lot, serial, and rack-related behavior used by stock workflows."
+        },
+        "sales": {
+          "label": "Sales",
+          "heading": "Sales workflow defaults",
+          "description": "Edit lifetime and sales-specific controls for operational documents."
         }
       },
       "business": {
@@ -282,6 +287,22 @@ export default {
         "enableRackLocation": {
           "label": "Enable rack location",
           "help": "Enable rack location support in stock UI."
+        },
+        "enableCommission": {
+          "label": "Enable commission",
+          "help": "Turn sales commission behavior on or off."
+        },
+        "minimumSellPriceEnabled": {
+          "label": "Enforce minimum sell price",
+          "help": "Block sale lines that go below the configured minimum selling price."
+        },
+        "deliveryTrackingEnabled": {
+          "label": "Enable delivery tracking",
+          "help": "Allow delivery status tracking on sales documents."
+        },
+        "saleEditLifetimeDays": {
+          "label": "Sale edit lifetime (days)",
+          "help": "How many days a sale stays editable before it becomes locked. Use 0 for no limit."
         }
       },
       "options": {

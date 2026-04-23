@@ -444,6 +444,13 @@ const groups = computed(() => [
     description: t('foundation.settingsPage.groups.stock.description'),
     permission: 'settings.index',
   },
+  {
+    key: 'sales',
+    label: t('foundation.settingsPage.groups.sales.label'),
+    heading: t('foundation.settingsPage.groups.sales.heading'),
+    description: t('foundation.settingsPage.groups.sales.description'),
+    permission: 'settings.index',
+  },
 ])
 
 const fieldsByGroup = computed(() => ({
@@ -474,6 +481,12 @@ const fieldsByGroup = computed(() => ({
       { value: 'fifo', label: t('foundation.settingsPage.options.lotSelection.fifo') },
     ] },
     { key: 'enable_rack_location', label: t('foundation.settingsPage.dynamicFields.enableRackLocation.label'), component: 'checkbox', help: t('foundation.settingsPage.dynamicFields.enableRackLocation.help') },
+  ],
+  sales: [
+    { key: 'enable_commission', label: t('foundation.settingsPage.dynamicFields.enableCommission.label'), component: 'checkbox', help: t('foundation.settingsPage.dynamicFields.enableCommission.help') },
+    { key: 'minimum_sell_price_enabled', label: t('foundation.settingsPage.dynamicFields.minimumSellPriceEnabled.label'), component: 'checkbox', help: t('foundation.settingsPage.dynamicFields.minimumSellPriceEnabled.help') },
+    { key: 'delivery_tracking_enabled', label: t('foundation.settingsPage.dynamicFields.deliveryTrackingEnabled.label'), component: 'checkbox', help: t('foundation.settingsPage.dynamicFields.deliveryTrackingEnabled.help') },
+    { key: 'edit_lifetime_days', label: t('foundation.settingsPage.dynamicFields.saleEditLifetimeDays.label'), component: 'number', help: t('foundation.settingsPage.dynamicFields.saleEditLifetimeDays.help') },
   ],
 }))
 

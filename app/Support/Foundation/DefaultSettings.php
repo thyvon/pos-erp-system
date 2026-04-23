@@ -65,6 +65,7 @@ class DefaultSettings
             ['group' => 'sales', 'key' => 'commission_type', 'value' => 'invoice_value', 'type' => 'string', 'is_encrypted' => false],
             ['group' => 'sales', 'key' => 'minimum_sell_price_enabled', 'value' => '0', 'type' => 'boolean', 'is_encrypted' => false],
             ['group' => 'sales', 'key' => 'delivery_tracking_enabled', 'value' => '0', 'type' => 'boolean', 'is_encrypted' => false],
+            ['group' => 'sales', 'key' => 'edit_lifetime_days', 'value' => '30', 'type' => 'integer', 'is_encrypted' => false],
 
             ['group' => 'system', 'key' => 'audit_log_retention_months', 'value' => '24', 'type' => 'integer', 'is_encrypted' => false],
             ['group' => 'system', 'key' => 'default_page_entries', 'value' => '25', 'type' => 'integer', 'is_encrypted' => false],

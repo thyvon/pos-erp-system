@@ -8,6 +8,7 @@ use App\Http\Requests\Sales\CompleteSaleRequest;
 use App\Http\Requests\Sales\ConfirmSaleRequest;
 use App\Http\Requests\Sales\StoreSalePaymentRequest;
 use App\Http\Requests\Sales\StoreSaleRequest;
+use App\Http\Requests\Sales\UpdateSaleRequest;
 use App\Http\Resources\Accounting\JournalResource;
 use App\Http\Resources\Sales\SalePaymentResource;
 use App\Http\Resources\Sales\SaleResource;
@@ -60,6 +61,33 @@ class SaleController extends BaseApiController
         $this->authorize('view', $sale);
 
         return $this->success(new SaleResource($sale));
+    }
+
+    public function update(UpdateSaleRequest $request, Sale $sale): JsonResponse
+    {
+        $this->authorize('update', $sale);
+
+        $sale = $this->sales->update(
+            $request->user()->business_id,
+            $sale,
+            $request->validated(),
+            $request->user()
+        );
+
+        return $this->success(new SaleResource($sale), 'Sale updated successfully.');
+    }
+
+    public function destroy(Sale $sale): JsonResponse
+    {
+        $this->authorize('delete', $sale);
+
+        $this->sales->delete(
+            request()->user()->business_id,
+            $sale,
+            request()->user()
+        );
+
+        return $this->success(null, 'Sale deleted successfully.');
     }
 
     public function confirm(ConfirmSaleRequest $request, Sale $sale): JsonResponse

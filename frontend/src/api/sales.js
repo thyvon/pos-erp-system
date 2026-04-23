@@ -3,6 +3,8 @@ import api from './axios'
 export const getSales = (params = {}) => api.get('/sales', { params })
 export const getSale = (id) => api.get(`/sales/${id}`)
 export const createSale = (payload) => api.post('/sales', payload)
+export const updateSale = (id, payload) => api.put(`/sales/${id}`, payload)
+export const deleteSale = (id) => api.delete(`/sales/${id}`)
 export const confirmSale = (id) => api.post(`/sales/${id}/confirm`)
 export const completeSale = (id) => api.post(`/sales/${id}/complete`)
 export const cancelSale = (id, payload = {}) => api.post(`/sales/${id}/cancel`, payload)

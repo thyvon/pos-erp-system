@@ -168,6 +168,11 @@ export default {
           "label": "ស្តុក",
           "heading": "ការកំណត់សារពើភ័ណ្ឌ",
           "description": "ឥរិយាបថ lot, serial និង rack ដែលប្រើដោយដំណើរការស្តុក។"
+        },
+        "sales": {
+          "label": "ការលក់",
+          "heading": "ការកំណត់លំនាំដើមសម្រាប់ការលក់",
+          "description": "កំណត់អាយុកាលការកែប្រែ និងការគ្រប់គ្រងដែលពាក់ព័ន្ធនឹងឯកសារលក់ប្រតិបត្តិការ។"
         }
       },
       "business": {
@@ -282,6 +287,22 @@ export default {
         "enableRackLocation": {
           "label": "បើក rack location",
           "help": "បើកការគាំទ្រ rack location ក្នុង UI ស្តុក។"
+        },
+        "enableCommission": {
+          "label": "បើក commission",
+          "help": "បើកឬបិទឥរិយាបថ commission សម្រាប់ការលក់។"
+        },
+        "minimumSellPriceEnabled": {
+          "label": "អនុវត្តតម្លៃលក់អប្បបរមា",
+          "help": "រារាំងបន្ទាត់លក់ដែលទាបជាងតម្លៃលក់អប្បបរមាដែលបានកំណត់។"
+        },
+        "deliveryTrackingEnabled": {
+          "label": "បើកដានដឹកជញ្ជូន",
+          "help": "អនុញ្ញាតឱ្យតាមដានស្ថានភាពដឹកជញ្ជូនលើឯកសារលក់។"
+        },
+        "saleEditLifetimeDays": {
+          "label": "អាយុកាលកែប្រែការលក់ (ថ្ងៃ)",
+          "help": "កំណត់ចំនួនថ្ងៃដែលការលក់នៅតែអាចកែប្រែបាន មុនពេលចាក់សោ។ ប្រើ 0 សម្រាប់គ្មានកំណត់។"
         }
       },
       "options": {

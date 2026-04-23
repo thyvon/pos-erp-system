@@ -39,6 +39,7 @@ const UnitsView = () => import('@views/UnitsView.vue')
 const UsersView = () => import('@views/UsersView.vue')
 const VariationTemplatesView = () => import('@views/VariationTemplatesView.vue')
 const RackLocationsView = () => import('@views/RackLocationsView.vue')
+const SaleFormView = () => import('@views/SaleFormView.vue')
 const SalesView = () => import('@views/SalesView.vue')
 const QuotationsView = () => import('@views/QuotationsView.vue')
 const CashRegistersView = () => import('@views/CashRegistersView.vue')
@@ -176,6 +177,18 @@ const router = createRouter({
       name: 'inventory-serials',
       component: InventorySerialsView,
       meta: { requiresAuth: true, requiredPermission: 'inventory.index' },
+    },
+    {
+      path: '/sales/create',
+      name: 'sales-create',
+      component: SaleFormView,
+      meta: { requiresAuth: true, requiredPermission: 'sales.create' },
+    },
+    {
+      path: '/sales/:id/edit',
+      name: 'sales-edit',
+      component: SaleFormView,
+      meta: { requiresAuth: true, requiredPermission: 'sales.edit' },
     },
     {
       path: '/accounting',

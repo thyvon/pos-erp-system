@@ -22,6 +22,8 @@ class SaleItem extends Model
         'unit_price',
         'discount_type',
         'discount_amount',
+        'tax_rate_id',
+        'tax_rate_type',
         'tax_rate',
         'tax_type',
         'tax_amount',
@@ -61,6 +63,11 @@ class SaleItem extends Model
     public function subUnit(): BelongsTo
     {
         return $this->belongsTo(SubUnit::class, 'sub_unit_id');
+    }
+
+    public function taxRate(): BelongsTo
+    {
+        return $this->belongsTo(TaxRate::class, 'tax_rate_id');
     }
 
     public function lots(): HasMany

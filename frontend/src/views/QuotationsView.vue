@@ -132,6 +132,7 @@
         :customers="customers"
         :products="products"
         :register-sessions="registerSessionOptions"
+        :tax-rates="taxRates"
         @close="createModal = false"
         @submit="submitCreate"
       />
@@ -225,6 +226,7 @@ import * as branchesApi from '@api/branches'
 import * as customersApi from '@api/customers'
 import * as productsApi from '@api/products'
 import * as salesApi from '@api/sales'
+import * as taxRatesApi from '@api/taxRates'
 import * as warehousesApi from '@api/warehouses'
 import SaleDocumentModal from '@components/sales/SaleDocumentModal.vue'
 import AppAlert from '@components/ui/AppAlert.vue'
@@ -242,6 +244,7 @@ import { formatHumanDate, formatHumanDateTime } from '@/utils/date'
 const { t } = useI18n()
 const auth = useAuthStore()
 const store = useQuotationsStore()
+const QUOTATIONS_FLASH_KEY = 'quotations_flash'
 
 const filtersExpanded = ref(false)
 const createModal = ref(false)
@@ -250,6 +253,7 @@ const warehouses = ref([])
 const customers = ref([])
 const products = ref([])
 const registerSessionOptions = ref([])
+const taxRates = ref([])
 
 const alert = reactive({ show: false, type: 'success', title: '', message: '' })
 const convertDialog = reactive({
@@ -377,6 +381,15 @@ const loadRegisterSessions = async () => {
   }
 }
 
+const loadTaxRates = async () => {
+  try {
+    const response = await taxRatesApi.getTaxRates({ per_page: 250, is_active: true })
+    taxRates.value = response.data.data
+  } catch {
+    taxRates.value = []
+  }
+}
+
 const sessionOptionsForBranch = (branchId) =>
   registerSessionOptions.value
     .filter((session) => !branchId || session.branch_id === branchId)
@@ -488,6 +501,21 @@ const submitCancel = async () => {
 }
 
 onMounted(async () => {
+  const flash = sessionStorage.getItem(QUOTATIONS_FLASH_KEY)
+
+  if (flash) {
+    try {
+      const parsed = JSON.parse(flash)
+      if (parsed?.message) {
+        showToast(parsed.type || 'success', parsed.message)
+      }
+    } catch {
+      // Ignore malformed flash payloads.
+    } finally {
+      sessionStorage.removeItem(QUOTATIONS_FLASH_KEY)
+    }
+  }
+
   await Promise.all([
     store.fetchItems(),
     loadBranches(),
@@ -495,6 +523,7 @@ onMounted(async () => {
     loadCustomers(),
     loadProducts(),
     loadRegisterSessions(),
+    loadTaxRates(),
   ])
 })
 </script>

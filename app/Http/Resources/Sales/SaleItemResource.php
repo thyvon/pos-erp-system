@@ -9,7 +9,7 @@ class SaleItemResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $this->loadMissing(['product', 'variation', 'subUnit', 'lots.lot', 'serials.serial']);
+        $this->loadMissing(['product', 'variation', 'subUnit', 'taxRate', 'lots.lot', 'serials.serial']);
 
         return [
             'id' => $this->id,
@@ -20,6 +20,8 @@ class SaleItemResource extends JsonResource
             'unit_price' => $this->unit_price !== null ? (string) $this->unit_price : null,
             'discount_type' => $this->discount_type,
             'discount_amount' => $this->discount_amount !== null ? (string) $this->discount_amount : null,
+            'tax_rate_id' => $this->tax_rate_id,
+            'tax_rate_type' => $this->tax_rate_type,
             'tax_rate' => $this->tax_rate !== null ? (string) $this->tax_rate : null,
             'tax_type' => $this->tax_type,
             'tax_amount' => $this->tax_amount !== null ? (string) $this->tax_amount : null,
@@ -42,6 +44,12 @@ class SaleItemResource extends JsonResource
                 'id' => $this->subUnit->id,
                 'name' => $this->subUnit->name,
                 'short_name' => $this->subUnit->short_name,
+            ] : null,
+            'tax_rate_record' => $this->taxRate ? [
+                'id' => $this->taxRate->id,
+                'name' => $this->taxRate->name,
+                'type' => $this->taxRate->type,
+                'rate' => (float) $this->taxRate->rate,
             ] : null,
             'lots' => SaleItemLotResource::collection($this->whenLoaded('lots')),
             'serials' => SaleItemSerialResource::collection($this->whenLoaded('serials')),

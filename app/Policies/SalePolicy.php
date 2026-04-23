@@ -5,6 +5,9 @@ namespace App\Policies;
 use App\Models\Sale;
 use App\Models\User;
 use App\Policies\Concerns\HandlesTenantPolicy;
+use App\Services\Foundation\SettingsService;
+use Carbon\CarbonInterface;
+use Throwable;
 
 class SalePolicy
 {
@@ -32,7 +35,7 @@ class SalePolicy
         return $user->can('sales.edit')
             && $this->belongsToSameBusiness($user, $sale)
             && $user->hasBranchAccess($sale->branch_id)
-            && in_array($sale->status, ['draft', 'quotation', 'suspended'], true);
+            && $this->isEditableSale($sale);
     }
 
     public function delete(User $user, Sale $sale): bool
@@ -40,7 +43,7 @@ class SalePolicy
         return $user->can('sales.delete')
             && $this->belongsToSameBusiness($user, $sale)
             && $user->hasBranchAccess($sale->branch_id)
-            && in_array($sale->status, ['draft', 'quotation', 'suspended'], true);
+            && $this->isEditableSale($sale);
     }
 
     public function confirm(User $user, Sale $sale): bool
@@ -56,7 +59,7 @@ class SalePolicy
         return $user->can('sales.complete')
             && $this->belongsToSameBusiness($user, $sale)
             && $user->hasBranchAccess($sale->branch_id)
-            && $sale->status === 'confirmed';
+            && in_array($sale->status, ['draft', 'suspended', 'confirmed'], true);
     }
 
     public function cancel(User $user, Sale $sale): bool
@@ -82,5 +85,37 @@ class SalePolicy
             && $this->belongsToSameBusiness($user, $sale)
             && $user->hasBranchAccess($sale->branch_id)
             && in_array($sale->status, ['completed', 'returned'], true);
+    }
+
+    protected function isEditableSale(Sale $sale): bool
+    {
+        if (! in_array($sale->status, ['draft', 'quotation', 'suspended', 'confirmed'], true)) {
+            return false;
+        }
+
+        $lifetimeDays = $this->saleEditLifetimeDays();
+
+        if ($lifetimeDays <= 0) {
+            return true;
+        }
+
+        $referenceDate = $sale->sale_date instanceof CarbonInterface
+            ? $sale->sale_date->copy()->startOfDay()
+            : $sale->created_at?->copy()->startOfDay();
+
+        if (! $referenceDate) {
+            return true;
+        }
+
+        return now()->startOfDay()->diffInDays($referenceDate) <= $lifetimeDays;
+    }
+
+    protected function saleEditLifetimeDays(): int
+    {
+        try {
+            return max(0, (int) app(SettingsService::class)->get('sales', 'edit_lifetime_days'));
+        } catch (Throwable) {
+            return 30;
+        }
     }
 }

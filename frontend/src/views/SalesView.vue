@@ -72,7 +72,7 @@
         @per-page-change="handlePerPageChange"
       >
         <template #toolbar>
-          <button v-if="canCreate" type="button" class="erp-button-primary" @click="createModal = true">
+          <button v-if="canCreate" type="button" class="erp-button-primary" @click="openCreatePage">
             <i class="fa-solid fa-plus"></i>
             {{ t('sales.salesPage.newSale') }}
           </button>
@@ -91,17 +91,17 @@
         <template #customer="{ row }">
           <div class="text-sm text-slate-700 dark:text-slate-200">
             <div>{{ row.customer?.name || t('sales.shared.noCustomer') }}</div>
-            <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              {{ row.creator?.name || t('sales.shared.notRecorded') }}
+            <div v-if="customerMeta(row)" class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              {{ customerMeta(row) }}
             </div>
           </div>
         </template>
 
         <template #location="{ row }">
           <div class="text-sm text-slate-700 dark:text-slate-200">
-            <div>{{ row.branch?.name || t('sales.shared.notRecorded') }}</div>
+            <div class="font-medium text-slate-950 dark:text-white">{{ row.warehouse?.name || t('sales.shared.notRecorded') }}</div>
             <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-              {{ row.warehouse?.name || t('sales.shared.notRecorded') }}
+              {{ row.branch?.name || t('sales.shared.notRecorded') }}
             </div>
           </div>
         </template>
@@ -119,7 +119,9 @@
           <div class="text-sm text-slate-700 dark:text-slate-200">
             <span class="erp-badge" :class="badgeClass(row.payment_status)">{{ paymentStatusLabel(row.payment_status) }}</span>
             <div class="mt-2 text-xs text-slate-500 dark:text-slate-400">
-              {{ t('sales.shared.labels.paid') }}: {{ formatAccountingMoney(row.paid_amount) }}
+              {{
+                paymentSummary(row)
+              }}
             </div>
           </div>
         </template>
@@ -127,82 +129,114 @@
         <template #date="{ row }">
           <div class="text-sm text-slate-700 dark:text-slate-200">
             <div>{{ formatHumanDate(row.sale_date) }}</div>
-            <div class="mt-1 text-xs text-slate-500 dark:text-slate-400">{{ formatHumanDateTime(row.created_at) }}</div>
+            <div v-if="row.due_date" class="mt-1 text-xs text-slate-500 dark:text-slate-400">
+              {{ t('sales.salesPage.labels.dueDate') }}: {{ formatHumanDate(row.due_date) }}
+            </div>
           </div>
         </template>
 
         <template #actions="{ row }">
-          <div class="flex flex-wrap items-center gap-2">
+          <div class="relative inline-flex">
             <button
-              v-if="canConfirmRow(row)"
               type="button"
-              class="erp-button-secondary"
-              :disabled="store.saving"
-              @click="confirmSale(row)"
+              class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 dark:border-slate-800 dark:text-slate-300 dark:hover:border-slate-700 dark:hover:bg-slate-900 dark:hover:text-white"
+              :title="t('sales.shared.actions.more')"
+              :aria-label="t('sales.shared.actions.more')"
+              @click.stop="toggleActionMenu(row.id)"
             >
-              {{ t('sales.shared.actions.confirm') }}
+              <i class="fa-solid fa-ellipsis-vertical"></i>
             </button>
-            <button
-              v-if="canCompleteRow(row)"
-              type="button"
-              class="erp-button-secondary"
-              :disabled="store.saving"
-              @click="completeSale(row)"
+
+            <div
+              v-if="openActionMenuId === row.id"
+              class="absolute right-0 top-[calc(100%+0.45rem)] z-20 min-w-[12rem] overflow-hidden rounded-[18px] border border-slate-200 bg-white/95 p-2 shadow-xl backdrop-blur dark:border-slate-800 dark:bg-slate-950/95"
             >
-              {{ t('sales.shared.actions.complete') }}
-            </button>
-            <button
-              v-if="canRecordPaymentRow(row)"
-              type="button"
-              class="erp-button-secondary"
-              :disabled="store.saving"
-              @click="openPaymentModal(row)"
-            >
-              {{ t('sales.shared.actions.recordPayment') }}
-            </button>
-            <button
-              v-if="canReturnRow(row)"
-              type="button"
-              class="erp-button-secondary"
-              :disabled="store.saving"
-              @click="openReturnModal(row)"
-            >
-              {{ t('sales.shared.actions.recordReturn') }}
-            </button>
-            <button
-              v-if="canCancelRow(row)"
-              type="button"
-              class="erp-button-secondary text-rose-600 hover:text-rose-700 dark:text-rose-300 dark:hover:text-rose-200"
-              :disabled="store.saving"
-              @click="openCancelModal(row)"
-            >
-              {{ t('sales.shared.actions.cancelDocument') }}
-            </button>
+              <button
+                v-if="canEditRow(row)"
+                type="button"
+                class="flex w-full items-center gap-3 rounded-[12px] px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-cyan-50 hover:text-cyan-700 dark:text-slate-200 dark:hover:bg-cyan-950/40 dark:hover:text-cyan-200"
+                @click="runFromMenu(() => openEditPage(row))"
+              >
+                <i class="fa-solid fa-pen-to-square w-4"></i>
+                <span>{{ t('sales.shared.actions.edit') }}</span>
+              </button>
+
+              <button
+                v-if="canCompleteRow(row)"
+                type="button"
+                class="flex w-full items-center gap-3 rounded-[12px] px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-700 dark:text-slate-200 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-200"
+                :disabled="store.saving"
+                @click="runFromMenu(() => openFinalizeModal(row))"
+              >
+                <i class="fa-solid fa-circle-check w-4"></i>
+                <span>{{ t('sales.shared.actions.finalizeSale') }}</span>
+              </button>
+
+              <button
+                v-if="canRecordPaymentRow(row)"
+                type="button"
+                class="flex w-full items-center gap-3 rounded-[12px] px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-sky-50 hover:text-sky-700 dark:text-slate-200 dark:hover:bg-sky-950/40 dark:hover:text-sky-200"
+                :disabled="store.saving"
+                @click="runFromMenu(() => openPaymentModal(row))"
+              >
+                <i class="fa-solid fa-money-bill-wave w-4"></i>
+                <span>{{ t('sales.shared.actions.recordPayment') }}</span>
+              </button>
+
+              <button
+                v-if="canReturnRow(row)"
+                type="button"
+                class="flex w-full items-center gap-3 rounded-[12px] px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-amber-50 hover:text-amber-700 dark:text-slate-200 dark:hover:bg-amber-950/40 dark:hover:text-amber-200"
+                :disabled="store.saving"
+                @click="runFromMenu(() => openReturnModal(row))"
+              >
+                <i class="fa-solid fa-rotate-left w-4"></i>
+                <span>{{ t('sales.shared.actions.recordReturn') }}</span>
+              </button>
+
+              <button
+                v-if="canCancelRow(row)"
+                type="button"
+                class="flex w-full items-center gap-3 rounded-[12px] px-3 py-2 text-left text-sm text-rose-600 transition hover:bg-rose-50 hover:text-rose-700 dark:text-rose-300 dark:hover:bg-rose-950/40 dark:hover:text-rose-200"
+                :disabled="store.saving"
+                @click="runFromMenu(() => openCancelModal(row))"
+              >
+                <i class="fa-solid fa-ban w-4"></i>
+                <span>{{ t('sales.shared.actions.cancelDocument') }}</span>
+              </button>
+
+              <button
+                v-if="canDeleteRow(row)"
+                type="button"
+                class="flex w-full items-center gap-3 rounded-[12px] px-3 py-2 text-left text-sm text-rose-600 transition hover:bg-rose-50 hover:text-rose-700 dark:text-rose-300 dark:hover:bg-rose-950/40 dark:hover:text-rose-200"
+                :disabled="store.deletingId === row.id"
+                @click="runFromMenu(() => openDeleteDialog(row))"
+              >
+                <i class="fa-solid fa-trash w-4"></i>
+                <span>{{ t('sales.shared.actions.delete') }}</span>
+              </button>
+            </div>
           </div>
         </template>
       </DataTable>
 
-      <SaleDocumentModal
-        :show="createModal"
-        mode="sale"
-        :saving="store.saving"
-        default-type="invoice"
-        :document-type-options="createTypeOptions"
-        :branches="branches"
-        :warehouses="warehouses"
-        :customers="customers"
-        :products="products"
-        :register-sessions="registerSessionOptions"
-        @close="createModal = false"
-        @submit="submitCreate"
+      <ConfirmDelete
+        :show="deleteDialog.show"
+        :item-name="deleteDialog.sale?.sale_number || ''"
+        :loading="store.deletingId === deleteDialog.sale?.id"
+        @close="closeDeleteDialog"
+        @confirm="submitDelete"
       />
 
-      <AppModal :show="paymentDialog.show" :title="t('sales.salesPage.paymentTitle')" :icon="t('sales.salesPage.paymentIcon')" size="lg" @close="closePaymentModal">
+      <AppModal :show="paymentDialog.show" :title="paymentDialogTitle" :icon="paymentDialogIcon" size="lg" @close="closePaymentModal">
         <div class="space-y-4">
           <div>
             <div class="text-sm font-semibold text-slate-950 dark:text-white">{{ paymentDialog.sale?.sale_number }}</div>
             <div class="mt-1 text-sm text-slate-500 dark:text-slate-400">
               {{ t('sales.salesPage.outstandingBalance') }}: {{ formatAccountingMoney(paymentDialog.outstanding) }}
+            </div>
+            <div v-if="paymentDialog.mode === 'finalize'" class="mt-2 text-xs text-slate-500 dark:text-slate-400">
+              {{ t('sales.formPage.finalizePaymentHint') }}
             </div>
           </div>
 
@@ -260,7 +294,7 @@
               {{ t('sales.shared.actions.cancel') }}
             </button>
             <button type="button" class="erp-button-primary" :disabled="store.saving" @click="submitPayment">
-              {{ t('sales.shared.actions.recordPayment') }}
+              {{ paymentDialog.mode === 'finalize' ? t('sales.shared.actions.finalizeSale') : t('sales.shared.actions.recordPayment') }}
             </button>
           </div>
         </div>
@@ -387,44 +421,44 @@
 </template>
 
 <script setup>
-import { computed, onMounted, reactive, ref } from 'vue'
+import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
 import * as accountingApi from '@api/accounting'
 import * as branchesApi from '@api/branches'
-import * as customersApi from '@api/customers'
-import * as productsApi from '@api/products'
-import * as salesApi from '@api/sales'
 import * as warehousesApi from '@api/warehouses'
-import SaleDocumentModal from '@components/sales/SaleDocumentModal.vue'
 import AppAlert from '@components/ui/AppAlert.vue'
 import AppDatePicker from '@components/ui/AppDatePicker.vue'
 import AppModal from '@components/ui/AppModal.vue'
 import AppSelect from '@components/ui/AppSelect.vue'
+import ConfirmDelete from '@components/ui/ConfirmDelete.vue'
 import DataTable from '@components/ui/DataTable.vue'
 import FilterPanel from '@components/ui/FilterPanel.vue'
 import AppLayout from '@layouts/AppLayout.vue'
 import { useAuthStore } from '@stores/auth'
 import { useSalesStore } from '@stores/sales'
 import { formatAccountingMoney, startCase } from '@/utils/accounting'
-import { formatHumanDate, formatHumanDateTime } from '@/utils/date'
+import { formatHumanDate } from '@/utils/date'
+
+const SALES_FLASH_KEY = 'sales_flash'
 
 const { t } = useI18n()
 const auth = useAuthStore()
+const router = useRouter()
 const store = useSalesStore()
 
 const filtersExpanded = ref(false)
-const createModal = ref(false)
+const openActionMenuId = ref('')
 const branches = ref([])
 const warehouses = ref([])
-const customers = ref([])
-const products = ref([])
 const paymentAccounts = ref([])
-const registerSessionOptions = ref([])
 
 const alert = reactive({ show: false, type: 'success', title: '', message: '' })
+const deleteDialog = reactive({ show: false, sale: null })
 const paymentDialog = reactive({
   show: false,
   sale: null,
+  mode: 'payment',
   outstanding: 0,
   form: { payment_account_id: '', amount: '', method: 'cash', payment_date: new Date().toISOString().slice(0, 10), reference: '', note: '' },
 })
@@ -432,30 +466,29 @@ const cancelDialog = reactive({ show: false, sale: null, reason: '' })
 const returnDialog = reactive({ show: false, sale: null, form: { return_date: new Date().toISOString().slice(0, 10), refund_method: 'credit_note', notes: '' }, items: [] })
 
 const canCreate = computed(() => auth.can('sales.create'))
-const canConfirm = computed(() => auth.can('sales.confirm'))
+const canEdit = computed(() => auth.can('sales.edit'))
+const canDelete = computed(() => auth.can('sales.delete'))
 const canComplete = computed(() => auth.can('sales.complete'))
 const canCancel = computed(() => auth.can('sales.cancel'))
 const canRecordPayment = computed(() => auth.can('payments.create'))
 const canRecordReturn = computed(() => auth.can('sales.return'))
 
-const columns = [
-  { key: 'document', label: 'Document' },
-  { key: 'customer', label: 'Customer' },
-  { key: 'location', label: 'Location' },
-  { key: 'total', label: 'Total' },
-  { key: 'payment', label: 'Payment' },
-  { key: 'date', label: 'Date' },
-  { key: 'actions', label: 'Actions' },
-]
+const columns = computed(() => [
+  { key: 'document', label: t('sales.salesPage.columns.document') },
+  { key: 'customer', label: t('sales.salesPage.columns.customer') },
+  { key: 'location', label: t('sales.salesPage.columns.location') },
+  { key: 'total', label: t('sales.salesPage.columns.total') },
+  { key: 'payment', label: t('sales.salesPage.columns.payment') },
+  { key: 'date', label: t('sales.salesPage.columns.date') },
+  { key: 'actions', label: t('sales.salesPage.columns.actions') },
+])
 
-const createTypeOptions = computed(() => [
+const typeOptions = computed(() => [
   { value: 'invoice', label: t('sales.shared.types.invoice') },
   { value: 'pos_sale', label: t('sales.shared.types.pos_sale') },
   { value: 'draft', label: t('sales.shared.types.draft') },
   { value: 'suspended', label: t('sales.shared.types.suspended') },
 ])
-
-const typeOptions = createTypeOptions
 
 const statusOptions = computed(() => [
   { value: 'draft', label: t('sales.shared.statuses.draft') },
@@ -496,6 +529,16 @@ const refundMethodOptions = computed(() => [
   { value: 'bank_transfer', label: t('sales.shared.methods.bank_transfer') },
   { value: 'reward_points', label: t('sales.shared.methods.reward_points') },
 ])
+const paymentDialogTitle = computed(() => (
+  paymentDialog.mode === 'finalize'
+    ? t('sales.formPage.finalizePaymentTitle')
+    : t('sales.salesPage.paymentTitle')
+))
+const paymentDialogIcon = computed(() => (
+  paymentDialog.mode === 'finalize'
+    ? t('sales.formPage.finalizePaymentIcon')
+    : t('sales.salesPage.paymentIcon')
+))
 
 const activeFilterCount = computed(() =>
   [store.filters.branch_id, store.filters.status, store.filters.type].filter(Boolean).length
@@ -518,6 +561,13 @@ const translateKey = (path, fallback) => {
 const statusLabel = (status) => translateKey(`sales.shared.statuses.${status}`, startCase(status))
 const typeLabel = (type) => translateKey(`sales.shared.types.${type}`, startCase(type))
 const paymentStatusLabel = (status) => translateKey(`sales.shared.paymentStatuses.${status}`, startCase(status))
+const saleOutstandingAmount = (row) => Math.max(Number(row.total_amount || 0) - Number(row.paid_amount || 0), 0)
+const paymentSummary = (row) => (
+  saleOutstandingAmount(row) > 0
+    ? `${t('sales.salesPage.labels.due')}: ${formatAccountingMoney(saleOutstandingAmount(row))}`
+    : `${t('sales.shared.labels.paid')}: ${formatAccountingMoney(row.paid_amount)}`
+)
+const customerMeta = (row) => row.customer?.mobile || row.customer?.phone || row.customer?.contact_id || ''
 
 const showToast = (type, message) => {
   alert.type = type
@@ -553,24 +603,6 @@ const loadWarehouses = async () => {
   }
 }
 
-const loadCustomers = async () => {
-  try {
-    const response = await customersApi.getCustomers({ per_page: 250, status: 'active' })
-    customers.value = response.data.data
-  } catch {
-    customers.value = []
-  }
-}
-
-const loadProducts = async () => {
-  try {
-    const response = await productsApi.getProducts({ per_page: 250 })
-    products.value = response.data.data.filter((product) => product.is_active)
-  } catch {
-    products.value = []
-  }
-}
-
 const loadPaymentAccounts = async () => {
   try {
     const response = await accountingApi.getPaymentAccounts({ per_page: 250, status: 'active' })
@@ -580,35 +612,17 @@ const loadPaymentAccounts = async () => {
   }
 }
 
-const loadRegisterSessions = async () => {
-  try {
-    const response = await salesApi.getCashRegisters({ per_page: 250, status: 'active' })
-    registerSessionOptions.value = response.data.data
-      .filter((register) => register.current_open_session)
-      .map((register) => ({
-        id: register.current_open_session.id,
-        branch_id: register.branch_id,
-        label: `${register.name} • ${register.branch?.name || t('sales.shared.notRecorded')}`,
-        description: formatHumanDateTime(register.current_open_session.opened_at),
-      }))
-  } catch {
-    registerSessionOptions.value = []
-  }
+const openCreatePage = () => router.push({ name: 'sales-create' })
+const openEditPage = (sale) => router.push({ name: 'sales-edit', params: { id: sale.id } })
+const toggleActionMenu = (saleId) => {
+  openActionMenuId.value = openActionMenuId.value === saleId ? '' : saleId
 }
-
-const submitCreate = async (payload) => {
-  if (payload?.error) {
-    showToast('danger', payload.error)
-    return
-  }
-
-  try {
-    await store.createItem(payload)
-    createModal.value = false
-    showToast('success', t('sales.salesPage.toast.created'))
-  } catch (error) {
-    showToast('danger', error.response?.data?.message || t('sales.salesPage.toast.createFailed'))
-  }
+const closeActionMenu = () => {
+  openActionMenuId.value = ''
+}
+const runFromMenu = (callback) => {
+  closeActionMenu()
+  callback()
 }
 
 const handleSearch = (value) => store.fetchItems({ search: value, page: 1 })
@@ -622,35 +636,37 @@ const resetFilters = () => {
   store.fetchItems({ branch_id: '', status: '', type: '', page: 1 })
 }
 
-const canConfirmRow = (row) => canConfirm.value && ['draft', 'suspended'].includes(row.status)
-const canCompleteRow = (row) => canComplete.value && row.status === 'confirmed'
+const canEditRow = (row) => canEdit.value && ['draft', 'quotation', 'suspended', 'confirmed'].includes(row.status)
+const canDeleteRow = (row) => canDelete.value && ['draft', 'quotation', 'suspended', 'confirmed'].includes(row.status)
+const canCompleteRow = (row) => canComplete.value && ['draft', 'suspended', 'confirmed'].includes(row.status)
 const canCancelRow = (row) => canCancel.value && ['draft', 'suspended', 'confirmed'].includes(row.status)
 const canRecordPaymentRow = (row) => canRecordPayment.value && row.status === 'completed' && ['unpaid', 'partial'].includes(row.payment_status)
 const canReturnRow = (row) => canRecordReturn.value && ['completed', 'returned'].includes(row.status)
 
-const confirmSale = async (row) => {
-  try {
-    await store.confirmItem(row.id)
-    showToast('success', t('sales.salesPage.toast.confirmed', { number: row.sale_number }))
-  } catch (error) {
-    showToast('danger', error.response?.data?.message || t('sales.salesPage.toast.confirmFailed'))
-  }
-}
-
-const completeSale = async (row) => {
-  try {
-    await store.completeItem(row.id)
-    showToast('success', t('sales.salesPage.toast.completed', { number: row.sale_number }))
-  } catch (error) {
-    showToast('danger', error.response?.data?.message || t('sales.salesPage.toast.completeFailed'))
-  }
-}
-
-const openPaymentModal = (sale) => {
+const openFinalizeModal = (sale) => {
+  closeActionMenu()
   const total = Number(sale.total_amount || 0)
   const paid = Number(sale.paid_amount || 0)
 
   paymentDialog.show = true
+  paymentDialog.mode = 'finalize'
+  paymentDialog.sale = sale
+  paymentDialog.outstanding = Math.max(total - paid, 0)
+  paymentDialog.form.payment_account_id = ''
+  paymentDialog.form.amount = paymentDialog.outstanding || ''
+  paymentDialog.form.method = 'cash'
+  paymentDialog.form.payment_date = new Date().toISOString().slice(0, 10)
+  paymentDialog.form.reference = ''
+  paymentDialog.form.note = ''
+}
+
+const openPaymentModal = (sale) => {
+  closeActionMenu()
+  const total = Number(sale.total_amount || 0)
+  const paid = Number(sale.paid_amount || 0)
+
+  paymentDialog.show = true
+  paymentDialog.mode = 'payment'
   paymentDialog.sale = sale
   paymentDialog.outstanding = Math.max(total - paid, 0)
   paymentDialog.form.payment_account_id = ''
@@ -661,21 +677,78 @@ const openPaymentModal = (sale) => {
   paymentDialog.form.note = ''
 }
 
+const openDeleteDialog = (sale) => {
+  closeActionMenu()
+  deleteDialog.show = true
+  deleteDialog.sale = sale
+}
+
+const closeDeleteDialog = () => {
+  deleteDialog.show = false
+  deleteDialog.sale = null
+}
+
+const submitDelete = async () => {
+  if (!deleteDialog.sale) {
+    return
+  }
+
+  try {
+    await store.deleteItem(deleteDialog.sale.id)
+    showToast('success', t('sales.salesPage.toast.deleted'))
+    closeDeleteDialog()
+  } catch (error) {
+    showToast('danger', error.response?.data?.message || t('sales.salesPage.toast.deleteFailed'))
+  }
+}
+
 const closePaymentModal = () => {
   paymentDialog.show = false
+  paymentDialog.mode = 'payment'
   paymentDialog.sale = null
 }
 
 const submitPayment = async () => {
-  if (!paymentDialog.sale || !paymentDialog.form.payment_account_id || Number(paymentDialog.form.amount || 0) <= 0) {
+  if (!paymentDialog.sale) {
+    return
+  }
+
+  const amount = Number(paymentDialog.form.amount || 0)
+  const hasPayment = amount > 0
+
+  if (hasPayment && !paymentDialog.form.payment_account_id) {
     showToast('danger', t('sales.salesPage.toast.invalidPayment'))
     return
   }
 
   try {
+    if (paymentDialog.mode === 'finalize') {
+      await store.completeItem(paymentDialog.sale.id)
+
+      if (hasPayment) {
+        await store.recordPayment(paymentDialog.sale.id, {
+          payment_account_id: paymentDialog.form.payment_account_id,
+          amount,
+          method: paymentDialog.form.method,
+          payment_date: paymentDialog.form.payment_date,
+          reference: paymentDialog.form.reference || null,
+          note: paymentDialog.form.note || null,
+        })
+      }
+
+      closePaymentModal()
+      showToast('success', t('sales.salesPage.toast.finalized'))
+      return
+    }
+
+    if (!hasPayment) {
+      showToast('danger', t('sales.salesPage.toast.invalidPayment'))
+      return
+    }
+
     await store.recordPayment(paymentDialog.sale.id, {
       payment_account_id: paymentDialog.form.payment_account_id,
-      amount: Number(paymentDialog.form.amount),
+      amount,
       method: paymentDialog.form.method,
       payment_date: paymentDialog.form.payment_date,
       reference: paymentDialog.form.reference || null,
@@ -684,11 +757,19 @@ const submitPayment = async () => {
     closePaymentModal()
     showToast('success', t('sales.salesPage.toast.paymentRecorded'))
   } catch (error) {
-    showToast('danger', error.response?.data?.message || t('sales.salesPage.toast.paymentFailed'))
+    showToast(
+      'danger',
+      error.response?.data?.message || (
+        paymentDialog.mode === 'finalize'
+          ? t('sales.salesPage.toast.completeFailed')
+          : t('sales.salesPage.toast.paymentFailed')
+      ),
+    )
   }
 }
 
 const openCancelModal = (sale) => {
+  closeActionMenu()
   cancelDialog.show = true
   cancelDialog.sale = sale
   cancelDialog.reason = ''
@@ -717,6 +798,7 @@ const submitCancel = async () => {
 }
 
 const openReturnModal = (sale) => {
+  closeActionMenu()
   returnDialog.show = true
   returnDialog.sale = sale
   returnDialog.form.return_date = new Date().toISOString().slice(0, 10)
@@ -786,14 +868,31 @@ const submitReturn = async () => {
 }
 
 onMounted(async () => {
+  document.addEventListener('click', closeActionMenu)
+
+  const flash = sessionStorage.getItem(SALES_FLASH_KEY)
+
+  if (flash) {
+    try {
+      const parsed = JSON.parse(flash)
+      if (parsed?.message) {
+        showToast(parsed.type === 'danger' ? 'danger' : 'success', parsed.message)
+      }
+    } catch {
+      // Ignore malformed dev-only flash state.
+    }
+    sessionStorage.removeItem(SALES_FLASH_KEY)
+  }
+
   await Promise.all([
     store.fetchItems(),
     loadBranches(),
     loadWarehouses(),
-    loadCustomers(),
-    loadProducts(),
     loadPaymentAccounts(),
-    loadRegisterSessions(),
   ])
+})
+
+onBeforeUnmount(() => {
+  document.removeEventListener('click', closeActionMenu)
 })
 </script>
