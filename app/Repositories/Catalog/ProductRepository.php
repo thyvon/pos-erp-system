@@ -25,7 +25,9 @@ class ProductRepository extends BaseRepository
             ->with([
                 'category:id,name',
                 'brand:id,name',
+                'unit:id,name,short_name',
                 'subUnit:id,name,short_name',
+                'taxRate:id,name,rate,type',
                 'primaryImage',
             ])
             ->withCount(['variations', 'comboItems'])

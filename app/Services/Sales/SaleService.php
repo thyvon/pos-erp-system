@@ -410,8 +410,9 @@ class SaleService
         return $items->map(function (array $item) use ($businessId, $warehouse, $taxScope): array {
             $product = $this->resolveProduct($businessId, $item['product_id']);
             $variation = $this->resolveVariation($businessId, $product, $item['variation_id'] ?? null);
-            $subUnit = $this->resolveSubUnit($item['sub_unit_id'] ?? null);
+            $subUnit = $this->resolveSubUnit($businessId, $product, $variation, $item['sub_unit_id'] ?? null);
             $quantity = round((float) $item['quantity'], 4);
+            $inventoryQuantity = $this->inventoryQuantityFromSaleQuantity($quantity, $subUnit);
             $unitPrice = round((float) $item['unit_price'], 4);
             $discountType = $item['discount_type'] ?? null;
             $discountAmount = round((float) ($item['discount_amount'] ?? 0), 2);
@@ -454,6 +455,7 @@ class SaleService
                 ->values()
                 ->all();
 
+            $this->validateSubUnitEligibility($product, $subUnit);
             $this->validateTrackedItemShape($product, $quantity, $lots, $serials);
 
             return [
@@ -479,6 +481,7 @@ class SaleService
                 'meta' => [
                     'product' => $product,
                     'variation' => $variation,
+                    'inventory_quantity' => $inventoryQuantity,
                     'gross' => $gross,
                     'base_amount' => $taxableBase,
                     'discount_amount' => $lineDiscount,
@@ -528,12 +531,19 @@ class SaleService
             $variation = $item->variation_id
                 ? ProductVariation::withoutGlobalScopes()->find($item->variation_id)
                 : null;
+            $subUnit = $item->sub_unit_id
+                ? SubUnit::query()->find($item->sub_unit_id)
+                : null;
 
             $minimumSellingPrice = (float) ($variation?->minimum_selling_price ?? $product->minimum_selling_price ?? 0);
             $gross = round((float) $item->quantity * (float) $item->unit_price, 2);
-            $effectiveUnitPrice = $gross <= 0
+            $effectiveSelectedUnitPrice = $gross <= 0
                 ? 0
                 : round(($gross - (float) $item->discount_amount) / max((float) $item->quantity, 1), 4);
+            $effectiveUnitPrice = round(
+                $effectiveSelectedUnitPrice / $this->conversionFactorFromSubUnit($subUnit),
+                4
+            );
 
             if ($minimumSellingPrice > 0 && $effectiveUnitPrice < $minimumSellingPrice) {
                 throw new MinimumSellingPriceException(
@@ -587,7 +597,7 @@ class SaleService
             $this->stockMovementService->reserve($businessId, [
                 'product_id' => $item->product_id,
                 'variation_id' => $item->variation_id,
-                'quantity' => $item->quantity,
+                'quantity' => $this->inventoryQuantityFromSaleItem($item),
                 'warehouse_id' => $sale->warehouse_id,
             ]);
         }
@@ -627,7 +637,7 @@ class SaleService
             $this->stockMovementService->release($businessId, [
                 'product_id' => $item->product_id,
                 'variation_id' => $item->variation_id,
-                'quantity' => $item->quantity,
+                'quantity' => $this->inventoryQuantityFromSaleItem($item),
                 'warehouse_id' => $sale->warehouse_id,
             ]);
         }
@@ -677,7 +687,7 @@ class SaleService
             $this->stockMovementService->consumeReserved($businessId, [
                 'product_id' => $item->product_id,
                 'variation_id' => $item->variation_id,
-                'quantity' => $item->quantity,
+                'quantity' => $this->inventoryQuantityFromSaleItem($item),
                 'unit_cost' => $item->unit_cost,
                 'reference_type' => Sale::class,
                 'reference_id' => $sale->id,
@@ -694,7 +704,9 @@ class SaleService
         $receivableAccount = $this->resolveAccountByCode($businessId, '1200');
         $inventoryAccount = $this->resolveAccountByCode($businessId, '1300');
         $cogsAccount = $this->resolveAccountByCode($businessId, '5100');
-        $cogsAmount = round((float) $sale->items->sum(fn ($item) => (float) $item->quantity * (float) $item->unit_cost), 2);
+        $cogsAmount = round((float) $sale->items->sum(
+            fn ($item) => $this->inventoryQuantityFromSaleItem($item) * (float) $item->unit_cost
+        ), 2);
 
         $this->accountingService->postJournal($businessId, [
             'type' => 'sale',
@@ -935,7 +947,7 @@ class SaleService
     {
         /** @var Product|null $product */
         $product = Product::withoutGlobalScopes()
-            ->with('taxRate')
+            ->with(['taxRate', 'unit', 'subUnit'])
             ->where('business_id', $businessId)
             ->find($productId);
 
@@ -954,6 +966,7 @@ class SaleService
 
         /** @var ProductVariation|null $variation */
         $variation = ProductVariation::withoutGlobalScopes()
+            ->with('subUnit')
             ->where('business_id', $businessId)
             ->where('product_id', $product->id)
             ->find($variationId);
@@ -965,13 +978,33 @@ class SaleService
         return $variation;
     }
 
-    protected function resolveSubUnit(?string $subUnitId): ?SubUnit
+    protected function resolveSubUnit(
+        string $businessId,
+        Product $product,
+        ?ProductVariation $variation,
+        ?string $subUnitId
+    ): ?SubUnit
     {
         if (! filled($subUnitId)) {
             return null;
         }
 
-        return SubUnit::query()->findOrFail($subUnitId);
+        /** @var SubUnit|null $subUnit */
+        $subUnit = SubUnit::query()
+            ->where('business_id', $businessId)
+            ->find($subUnitId);
+
+        if (! $subUnit) {
+            $this->failValidation('Selected sub unit is invalid for this sale line.');
+        }
+
+        $expectedSubUnitId = $variation?->sub_unit_id ?: $product->sub_unit_id;
+
+        if (! $expectedSubUnitId || (string) $expectedSubUnitId !== (string) $subUnit->id) {
+            $this->failValidation('Selected sub unit is not configured for this product line.');
+        }
+
+        return $subUnit;
     }
 
     protected function resolveLot(string $businessId, Warehouse $warehouse, Product $product, ?ProductVariation $variation, string $lotId)
@@ -1050,6 +1083,38 @@ class SaleService
                 $this->failValidation("Serial allocation count must match the sale quantity for {$product->name}.");
             }
         }
+    }
+
+    protected function validateSubUnitEligibility(Product $product, ?SubUnit $subUnit): void
+    {
+        if ($subUnit === null) {
+            return;
+        }
+
+        if (in_array($product->stock_tracking, ['lot', 'serial'], true)) {
+            $this->failValidation("Tracked product {$product->name} must be sold in the base unit.");
+        }
+    }
+
+    protected function conversionFactorFromSubUnit(?SubUnit $subUnit): float
+    {
+        $factor = (float) ($subUnit?->conversion_factor ?? 1);
+
+        return $factor > 0 ? $factor : 1.0;
+    }
+
+    protected function inventoryQuantityFromSaleQuantity(float $quantity, ?SubUnit $subUnit): float
+    {
+        return round($quantity * $this->conversionFactorFromSubUnit($subUnit), 4);
+    }
+
+    protected function inventoryQuantityFromSaleItem($item): float
+    {
+        $subUnit = $item->relationLoaded('subUnit')
+            ? $item->subUnit
+            : ($item->sub_unit_id ? SubUnit::query()->find($item->sub_unit_id) : null);
+
+        return $this->inventoryQuantityFromSaleQuantity((float) $item->quantity, $subUnit);
     }
 
     protected function resolveDiscountAmount(?string $discountType, float $discountAmount, float $baseAmount): float
@@ -1205,8 +1270,9 @@ class SaleService
             'creator',
             'priceGroup',
             'taxRate',
-            'items.product',
-            'items.variation',
+            'items.product.unit',
+            'items.product.subUnit',
+            'items.variation.subUnit',
             'items.subUnit',
             'items.taxRate',
             'items.lots.lot',

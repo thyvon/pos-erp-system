@@ -9,7 +9,15 @@ class SaleItemResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $this->loadMissing(['product', 'variation', 'subUnit', 'taxRate', 'lots.lot', 'serials.serial']);
+        $this->loadMissing([
+            'product.unit',
+            'product.subUnit',
+            'variation.subUnit',
+            'subUnit',
+            'taxRate',
+            'lots.lot',
+            'serials.serial',
+        ]);
 
         return [
             'id' => $this->id,
@@ -34,11 +42,34 @@ class SaleItemResource extends JsonResource
                 'sku' => $this->product->sku,
                 'stock_tracking' => $this->product->stock_tracking,
                 'track_inventory' => (bool) $this->product->track_inventory,
+                'selling_price' => $this->product->selling_price !== null ? (string) $this->product->selling_price : null,
+                'sub_unit_selling_price' => $this->product->sub_unit_selling_price !== null ? (string) $this->product->sub_unit_selling_price : null,
+                'minimum_selling_price' => $this->product->minimum_selling_price !== null ? (string) $this->product->minimum_selling_price : null,
+                'unit' => $this->product->unit ? [
+                    'id' => $this->product->unit->id,
+                    'name' => $this->product->unit->name,
+                    'short_name' => $this->product->unit->short_name,
+                ] : null,
+                'sub_unit' => $this->product->subUnit ? [
+                    'id' => $this->product->subUnit->id,
+                    'name' => $this->product->subUnit->name,
+                    'short_name' => $this->product->subUnit->short_name,
+                    'conversion_factor' => $this->product->subUnit->conversion_factor !== null ? (string) $this->product->subUnit->conversion_factor : null,
+                ] : null,
             ] : null,
             'variation' => $this->variation ? [
                 'id' => $this->variation->id,
                 'name' => $this->variation->name,
                 'sku' => $this->variation->sku,
+                'selling_price' => $this->variation->selling_price !== null ? (string) $this->variation->selling_price : null,
+                'sub_unit_selling_price' => $this->variation->sub_unit_selling_price !== null ? (string) $this->variation->sub_unit_selling_price : null,
+                'minimum_selling_price' => $this->variation->minimum_selling_price !== null ? (string) $this->variation->minimum_selling_price : null,
+                'sub_unit' => $this->variation->subUnit ? [
+                    'id' => $this->variation->subUnit->id,
+                    'name' => $this->variation->subUnit->name,
+                    'short_name' => $this->variation->subUnit->short_name,
+                    'conversion_factor' => $this->variation->subUnit->conversion_factor !== null ? (string) $this->variation->subUnit->conversion_factor : null,
+                ] : null,
             ] : null,
             'sub_unit' => $this->subUnit ? [
                 'id' => $this->subUnit->id,

@@ -136,87 +136,10 @@
         </template>
 
         <template #actions="{ row }">
-          <div class="relative inline-flex">
-            <button
-              type="button"
-              class="inline-flex h-9 w-9 items-center justify-center rounded-full border border-slate-200 text-slate-600 transition hover:border-slate-300 hover:bg-slate-50 hover:text-slate-900 dark:border-slate-800 dark:text-slate-300 dark:hover:border-slate-700 dark:hover:bg-slate-900 dark:hover:text-white"
-              :title="t('sales.shared.actions.more')"
-              :aria-label="t('sales.shared.actions.more')"
-              @click.stop="toggleActionMenu(row.id)"
-            >
-              <i class="fa-solid fa-ellipsis-vertical"></i>
-            </button>
-
-            <div
-              v-if="openActionMenuId === row.id"
-              class="absolute right-0 top-[calc(100%+0.45rem)] z-20 min-w-[12rem] overflow-hidden rounded-[18px] border border-slate-200 bg-white/95 p-2 shadow-xl backdrop-blur dark:border-slate-800 dark:bg-slate-950/95"
-            >
-              <button
-                v-if="canEditRow(row)"
-                type="button"
-                class="flex w-full items-center gap-3 rounded-[12px] px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-cyan-50 hover:text-cyan-700 dark:text-slate-200 dark:hover:bg-cyan-950/40 dark:hover:text-cyan-200"
-                @click="runFromMenu(() => openEditPage(row))"
-              >
-                <i class="fa-solid fa-pen-to-square w-4"></i>
-                <span>{{ t('sales.shared.actions.edit') }}</span>
-              </button>
-
-              <button
-                v-if="canCompleteRow(row)"
-                type="button"
-                class="flex w-full items-center gap-3 rounded-[12px] px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-emerald-50 hover:text-emerald-700 dark:text-slate-200 dark:hover:bg-emerald-950/40 dark:hover:text-emerald-200"
-                :disabled="store.saving"
-                @click="runFromMenu(() => openFinalizeModal(row))"
-              >
-                <i class="fa-solid fa-circle-check w-4"></i>
-                <span>{{ t('sales.shared.actions.finalizeSale') }}</span>
-              </button>
-
-              <button
-                v-if="canRecordPaymentRow(row)"
-                type="button"
-                class="flex w-full items-center gap-3 rounded-[12px] px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-sky-50 hover:text-sky-700 dark:text-slate-200 dark:hover:bg-sky-950/40 dark:hover:text-sky-200"
-                :disabled="store.saving"
-                @click="runFromMenu(() => openPaymentModal(row))"
-              >
-                <i class="fa-solid fa-money-bill-wave w-4"></i>
-                <span>{{ t('sales.shared.actions.recordPayment') }}</span>
-              </button>
-
-              <button
-                v-if="canReturnRow(row)"
-                type="button"
-                class="flex w-full items-center gap-3 rounded-[12px] px-3 py-2 text-left text-sm text-slate-700 transition hover:bg-amber-50 hover:text-amber-700 dark:text-slate-200 dark:hover:bg-amber-950/40 dark:hover:text-amber-200"
-                :disabled="store.saving"
-                @click="runFromMenu(() => openReturnModal(row))"
-              >
-                <i class="fa-solid fa-rotate-left w-4"></i>
-                <span>{{ t('sales.shared.actions.recordReturn') }}</span>
-              </button>
-
-              <button
-                v-if="canCancelRow(row)"
-                type="button"
-                class="flex w-full items-center gap-3 rounded-[12px] px-3 py-2 text-left text-sm text-rose-600 transition hover:bg-rose-50 hover:text-rose-700 dark:text-rose-300 dark:hover:bg-rose-950/40 dark:hover:text-rose-200"
-                :disabled="store.saving"
-                @click="runFromMenu(() => openCancelModal(row))"
-              >
-                <i class="fa-solid fa-ban w-4"></i>
-                <span>{{ t('sales.shared.actions.cancelDocument') }}</span>
-              </button>
-
-              <button
-                v-if="canDeleteRow(row)"
-                type="button"
-                class="flex w-full items-center gap-3 rounded-[12px] px-3 py-2 text-left text-sm text-rose-600 transition hover:bg-rose-50 hover:text-rose-700 dark:text-rose-300 dark:hover:bg-rose-950/40 dark:hover:text-rose-200"
-                :disabled="store.deletingId === row.id"
-                @click="runFromMenu(() => openDeleteDialog(row))"
-              >
-                <i class="fa-solid fa-trash w-4"></i>
-                <span>{{ t('sales.shared.actions.delete') }}</span>
-              </button>
-            </div>
-          </div>
+          <DataTableActionDropdown
+            :title="t('sales.shared.actions.more')"
+            :items="rowActionItems(row)"
+          />
         </template>
       </DataTable>
 
@@ -421,7 +344,7 @@
 </template>
 
 <script setup>
-import { computed, onBeforeUnmount, onMounted, reactive, ref } from 'vue'
+import { computed, onMounted, reactive, ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import * as accountingApi from '@api/accounting'
@@ -432,6 +355,7 @@ import AppDatePicker from '@components/ui/AppDatePicker.vue'
 import AppModal from '@components/ui/AppModal.vue'
 import AppSelect from '@components/ui/AppSelect.vue'
 import ConfirmDelete from '@components/ui/ConfirmDelete.vue'
+import DataTableActionDropdown from '@components/ui/DataTableActionDropdown.vue'
 import DataTable from '@components/ui/DataTable.vue'
 import FilterPanel from '@components/ui/FilterPanel.vue'
 import AppLayout from '@layouts/AppLayout.vue'
@@ -448,7 +372,6 @@ const router = useRouter()
 const store = useSalesStore()
 
 const filtersExpanded = ref(false)
-const openActionMenuId = ref('')
 const branches = ref([])
 const warehouses = ref([])
 const paymentAccounts = ref([])
@@ -614,16 +537,6 @@ const loadPaymentAccounts = async () => {
 
 const openCreatePage = () => router.push({ name: 'sales-create' })
 const openEditPage = (sale) => router.push({ name: 'sales-edit', params: { id: sale.id } })
-const toggleActionMenu = (saleId) => {
-  openActionMenuId.value = openActionMenuId.value === saleId ? '' : saleId
-}
-const closeActionMenu = () => {
-  openActionMenuId.value = ''
-}
-const runFromMenu = (callback) => {
-  closeActionMenu()
-  callback()
-}
 
 const handleSearch = (value) => store.fetchItems({ search: value, page: 1 })
 const handlePageChange = (page) => store.fetchItems({ page })
@@ -642,9 +555,64 @@ const canCompleteRow = (row) => canComplete.value && ['draft', 'suspended', 'con
 const canCancelRow = (row) => canCancel.value && ['draft', 'suspended', 'confirmed'].includes(row.status)
 const canRecordPaymentRow = (row) => canRecordPayment.value && row.status === 'completed' && ['unpaid', 'partial'].includes(row.payment_status)
 const canReturnRow = (row) => canRecordReturn.value && ['completed', 'returned'].includes(row.status)
+const rowActionItems = (row) => ([
+  {
+    key: 'edit',
+    label: t('sales.shared.actions.edit'),
+    icon: 'fa-pen-to-square',
+    tone: 'info',
+    hidden: !canEditRow(row),
+    onClick: () => openEditPage(row),
+  },
+  {
+    key: 'finalize',
+    label: t('sales.shared.actions.finalizeSale'),
+    icon: 'fa-circle-check',
+    tone: 'success',
+    hidden: !canCompleteRow(row),
+    disabled: store.saving,
+    onClick: () => openFinalizeModal(row),
+  },
+  {
+    key: 'payment',
+    label: t('sales.shared.actions.recordPayment'),
+    icon: 'fa-money-bill-wave',
+    tone: 'default',
+    hidden: !canRecordPaymentRow(row),
+    disabled: store.saving,
+    onClick: () => openPaymentModal(row),
+  },
+  {
+    key: 'return',
+    label: t('sales.shared.actions.recordReturn'),
+    icon: 'fa-rotate-left',
+    tone: 'warning',
+    hidden: !canReturnRow(row),
+    disabled: store.saving,
+    onClick: () => openReturnModal(row),
+  },
+  {
+    key: 'cancel',
+    label: t('sales.shared.actions.cancelDocument'),
+    icon: 'fa-ban',
+    tone: 'danger',
+    hidden: !canCancelRow(row),
+    disabled: store.saving,
+    onClick: () => openCancelModal(row),
+  },
+  {
+    key: 'delete',
+    label: t('sales.shared.actions.delete'),
+    icon: 'fa-trash',
+    tone: 'danger',
+    hidden: !canDeleteRow(row),
+    disabled: store.deletingId === row.id,
+    loading: store.deletingId === row.id,
+    onClick: () => openDeleteDialog(row),
+  },
+])
 
 const openFinalizeModal = (sale) => {
-  closeActionMenu()
   const total = Number(sale.total_amount || 0)
   const paid = Number(sale.paid_amount || 0)
 
@@ -661,7 +629,6 @@ const openFinalizeModal = (sale) => {
 }
 
 const openPaymentModal = (sale) => {
-  closeActionMenu()
   const total = Number(sale.total_amount || 0)
   const paid = Number(sale.paid_amount || 0)
 
@@ -678,7 +645,6 @@ const openPaymentModal = (sale) => {
 }
 
 const openDeleteDialog = (sale) => {
-  closeActionMenu()
   deleteDialog.show = true
   deleteDialog.sale = sale
 }
@@ -769,7 +735,6 @@ const submitPayment = async () => {
 }
 
 const openCancelModal = (sale) => {
-  closeActionMenu()
   cancelDialog.show = true
   cancelDialog.sale = sale
   cancelDialog.reason = ''
@@ -798,7 +763,6 @@ const submitCancel = async () => {
 }
 
 const openReturnModal = (sale) => {
-  closeActionMenu()
   returnDialog.show = true
   returnDialog.sale = sale
   returnDialog.form.return_date = new Date().toISOString().slice(0, 10)
@@ -868,8 +832,6 @@ const submitReturn = async () => {
 }
 
 onMounted(async () => {
-  document.addEventListener('click', closeActionMenu)
-
   const flash = sessionStorage.getItem(SALES_FLASH_KEY)
 
   if (flash) {
@@ -890,9 +852,5 @@ onMounted(async () => {
     loadWarehouses(),
     loadPaymentAccounts(),
   ])
-})
-
-onBeforeUnmount(() => {
-  document.removeEventListener('click', closeActionMenu)
 })
 </script>

@@ -130,15 +130,16 @@
         </div>
 
         <div v-else class="overflow-x-auto">
-          <table class="erp-table min-w-[1120px]">
+          <table class="erp-table min-w-[1280px]">
             <thead>
               <tr>
-                <th class="w-[23%]">{{ t('sales.documentModal.fields.product') }}</th>
-                <th class="w-[8%]">{{ t('sales.documentModal.fields.quantity') }}</th>
+                <th class="w-[22%]">{{ t('sales.documentModal.fields.product') }}</th>
+                <th class="w-[14%]">{{ t('sales.documentModal.fields.quantity') }}</th>
                 <th class="w-[11%]">{{ t('sales.documentModal.fields.unitPrice') }}</th>
-                <th class="w-[16%]">{{ t('sales.documentModal.fields.lineDiscount') }}</th>
-                <th class="w-[16%]">{{ t('sales.documentModal.fields.tax') }}</th>
-                <th class="w-[18%]">{{ t('sales.documentModal.fields.lineNote') }}</th>
+                <th class="w-[11%]">{{ t('sales.documentModal.fields.subtotal') }}</th>
+                <th class="w-[15%]">{{ t('sales.documentModal.fields.lineDiscount') }}</th>
+                <th class="w-[14%]">{{ t('sales.documentModal.fields.tax') }}</th>
+                <th class="w-[13%]">{{ t('sales.documentModal.fields.lineNote') }}</th>
                 <th class="w-[8%]">{{ t('sales.documentModal.lineTotal') }}</th>
                 <th class="w-[6%]">{{ t('sales.documentModal.fields.action') }}</th>
               </tr>
@@ -171,40 +172,87 @@
                     >
                       Serial: {{ serialNumber }}
                     </span>
+                    <span v-if="selectedUnitOption(item)?.label" class="erp-badge erp-badge-neutral px-2 text-[11px]">
+                      {{ selectedUnitOption(item)?.label }}
+                    </span>
+                  </div>
+                </td>
+                <td>
+                  <div class="space-y-2">
+                    <div class="sale-line-quantity">
+                      <div class="sale-line-quantity__value">
+                        <input
+                          v-model.number="item.quantity"
+                          type="number"
+                          min="0.01"
+                          step="0.01"
+                          class="erp-input sale-line-quantity__input"
+                          :disabled="serialIdsFor(item).length > 0"
+                          @input="syncTrackedQuantity(item)"
+                        />
+                      </div>
+                      <div class="sale-line-quantity__unit">
+                        <AppSelect
+                          v-if="unitOptionsFor(item).length"
+                          :model-value="selectedUnitValue(item)"
+                          :options="unitOptionsFor(item)"
+                          :placeholder="t('sales.documentModal.fields.unit')"
+                          @update:model-value="handleLineUnitChange(item, $event)"
+                        />
+                        <div
+                          v-else
+                          class="sale-line-quantity__fallback"
+                        >
+                          {{ selectedUnitOption(item)?.label || t('sales.documentModal.baseUnit') }}
+                        </div>
+                      </div>
+                    </div>
+                    <p v-if="selectedUnitDescription(item)" class="text-xs text-slate-500 dark:text-slate-400">
+                      {{ selectedUnitDescription(item) }}
+                    </p>
+                    <p v-if="lineExceedsAvailable(item)" class="text-xs font-medium text-rose-600 dark:text-rose-300">
+                      {{ t('sales.documentModal.stockExceededHint', {
+                        requested: formatStockQuantity(lineRequestedQuantity(item)),
+                        available: formatStockQuantity(lineAvailableQuantity(item)),
+                      }) }}
+                    </p>
                   </div>
                 </td>
                 <td>
                   <input
-                    v-model.number="item.quantity"
+                    v-model.number="item.unit_price"
                     type="number"
-                    min="0.01"
+                    min="0"
                     step="0.01"
-                    class="erp-input"
-                    :disabled="item.serial_ids.length > 0"
-                    @input="syncTrackedQuantity(item)"
+                    class="erp-input sale-line-compact-input"
                   />
                 </td>
                 <td>
-                  <input v-model.number="item.unit_price" type="number" min="0" step="0.01" class="erp-input" />
+                  <div class="font-semibold text-slate-950 dark:text-white">
+                    {{ formatAccountingMoney(lineGross(item)) }}
+                  </div>
                 </td>
                 <td>
-                  <div class="flex items-center gap-2">
-                    <AppSelect
-                      :model-value="item.discount_type || null"
-                      :options="discountTypeOptions"
-                      :placeholder="t('sales.documentModal.placeholders.selectDiscountType')"
-                      class="w-[8.5rem]"
-                      clearable
-                      @update:model-value="item.discount_type = $event || ''"
-                    />
-                    <input
-                      v-model.number="item.discount_amount"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      class="erp-input"
-                      :placeholder="t('sales.documentModal.placeholders.enterDiscount')"
-                    />
+                  <div class="sale-line-discount">
+                    <div class="sale-line-discount__type">
+                      <AppSelect
+                        :model-value="item.discount_type || null"
+                        :options="discountTypeOptions"
+                        :placeholder="t('sales.documentModal.placeholders.selectDiscountType')"
+                        clearable
+                        @update:model-value="item.discount_type = $event || ''"
+                      />
+                    </div>
+                    <div class="sale-line-discount__value">
+                      <input
+                        v-model.number="item.discount_amount"
+                        type="number"
+                        min="0"
+                        step="0.01"
+                        class="erp-input sale-line-discount__input"
+                        :placeholder="t('sales.documentModal.placeholders.enterDiscount')"
+                      />
+                    </div>
                   </div>
                 </td>
                 <td>
@@ -241,7 +289,7 @@
                   </div>
                 </td>
                 <td>
-                  <textarea v-model="item.notes" rows="2" class="erp-input min-h-[5rem]"></textarea>
+                  <textarea v-model="item.notes" rows="1" class="erp-input sale-line-note"></textarea>
                 </td>
                 <td>
                   <div class="font-semibold text-slate-950 dark:text-white">
@@ -384,7 +432,7 @@
             </div>
             <div class="flex items-center justify-between gap-3">
               <span>{{ t('sales.documentModal.summary.subtotal') }}</span>
-              <span class="font-semibold text-slate-950 dark:text-white">{{ formatAccountingMoney(subtotal) }}</span>
+              <span class="font-semibold text-slate-950 dark:text-white">{{ formatAccountingMoney(summarySubtotal) }}</span>
             </div>
             <div class="flex items-center justify-between gap-3">
               <span>{{ t('sales.documentModal.summary.lineDiscounts') }}</span>
@@ -513,6 +561,7 @@ const props = defineProps({
 
 const emit = defineEmits(['cancel', 'submit'])
 const { t } = useI18n()
+const BASE_UNIT_OPTION_VALUE = '__base_unit__'
 
 const attemptedSubmit = ref(false)
 const pendingAction = ref('save')
@@ -521,10 +570,12 @@ const makeItem = () => ({
   key: crypto.randomUUID(),
   product_id: '',
   variation_id: '',
+  sub_unit_id: '',
   lot_allocations: [],
   serial_ids: [],
   quantity: 1,
   unit_price: 0,
+  available_quantity: null,
   discount_type: '',
   discount_amount: 0,
   tax_rate_id: '',
@@ -533,6 +584,11 @@ const makeItem = () => ({
   tax_type: '',
   tax_rate: 0,
   unit_cost: 0,
+  base_unit_price: 0,
+  sub_unit_price: 0,
+  minimum_selling_price: 0,
+  stock_tracking: 'none',
+  unit_options: [],
   product_name: '',
   variation_name: '',
   sku: '',
@@ -626,6 +682,20 @@ const requiresRegisterSessionForAction = computed(() =>
   props.mode === 'sale' && resolvedTypeForAction() === 'pos_sale'
 )
 
+const toFiniteNumber = (value, fallback = 0) => {
+  const numeric = Number(value)
+  return Number.isFinite(numeric) ? numeric : fallback
+}
+
+const toNullableFiniteNumber = (value) => {
+  if (value === null || value === undefined || value === '') {
+    return null
+  }
+
+  const numeric = Number(value)
+  return Number.isFinite(numeric) ? numeric : null
+}
+
 const productMap = computed(() =>
   new Map(props.products.map((product) => [product.id, product]))
 )
@@ -644,6 +714,10 @@ const taxTypeOptions = computed(() => [
   { value: 'exclusive', label: t('sales.documentModal.taxTypes.exclusive') },
   { value: 'inclusive', label: t('sales.documentModal.taxTypes.inclusive') },
 ])
+
+const summarySubtotal = computed(() =>
+  form.items.reduce((carry, item) => carry + lineGross(item), 0)
+)
 
 const subtotal = computed(() =>
   form.items.reduce((carry, item) => carry + lineBaseAmount(item), 0)
@@ -825,6 +899,52 @@ const finalizeActionLabel = computed(() => {
   return t('sales.shared.actions.finalizeSale')
 })
 
+const formatStockQuantity = (value) => {
+  const numeric = Number(value)
+
+  if (!Number.isFinite(numeric)) {
+    return '0'
+  }
+
+  return numeric.toFixed(4).replace(/\.?0+$/, '')
+}
+
+const selectedUnitFactor = (item) => {
+  const factor = Number(selectedUnitOption(item)?.factor || 1)
+  return Number.isFinite(factor) && factor > 0 ? factor : 1
+}
+
+const lineAvailableBaseQuantity = (item) => toNullableFiniteNumber(item.available_quantity)
+
+const lineAvailableQuantity = (item) => {
+  const availableBase = lineAvailableBaseQuantity(item)
+
+  if (availableBase === null) {
+    return null
+  }
+
+  return availableBase / selectedUnitFactor(item)
+}
+
+const lineRequestedBaseQuantity = (item) =>
+  Math.max(0, Number(item.quantity || 0)) * selectedUnitFactor(item)
+
+const lineRequestedQuantity = (item) => Math.max(0, Number(item.quantity || 0))
+
+const lineExceedsAvailable = (item) => {
+  const availableBase = lineAvailableBaseQuantity(item)
+
+  if (availableBase === null) {
+    return false
+  }
+
+  return lineRequestedBaseQuantity(item) > availableBase
+}
+
+const firstExceededItem = computed(() =>
+  form.items.find((item) => lineExceedsAvailable(item)) || null
+)
+
 const validationMessage = computed(() => {
   if (props.externalError) {
     return props.externalError
@@ -846,6 +966,13 @@ const validationMessage = computed(() => {
 
   if (!normalizedItems.length || normalizedItems.some((item) => item.unit_price < 0 || item.unit_cost < 0)) {
     return t('sales.documentModal.validation.invalidItems')
+  }
+
+  if (firstExceededItem.value) {
+    return t('sales.documentModal.validation.quantityExceedsAvailable', {
+      item: firstExceededItem.value.product_name || firstExceededItem.value.variation_name || t('sales.shared.notRecorded'),
+      available: formatStockQuantity(lineAvailableQuantity(firstExceededItem.value)),
+    })
   }
 
   return ''
@@ -885,6 +1012,7 @@ const resetForm = () => {
       key: crypto.randomUUID(),
       product_id: item.product_id || '',
       variation_id: item.variation_id || '',
+      ...buildInitialUnitState(item),
       lot_allocations: Array.isArray(item.lot_allocations)
         ? item.lot_allocations.map((allocation) => ({
           lot_id: allocation.lot_id || '',
@@ -894,6 +1022,7 @@ const resetForm = () => {
       serial_ids: Array.isArray(item.serial_ids) ? [...item.serial_ids] : [],
       quantity: Number(item.quantity || 1),
       unit_price: Number(item.unit_price || 0),
+      available_quantity: toNullableFiniteNumber(item.available_quantity),
       discount_type: item.discount_type || '',
       discount_amount: Number(item.discount_amount || 0),
       tax_rate_id: item.tax_rate_id || '',
@@ -933,16 +1062,6 @@ const resetForm = () => {
   attemptedSubmit.value = false
   pendingAction.value = 'save'
 }
-
-watch(
-  () => [props.show, props.defaultType, props.mode, props.initialValues, primaryDocumentType.value],
-  ([show]) => {
-    if (show) {
-      resetForm()
-    }
-  },
-  { immediate: true }
-)
 
 const lineTotal = (item) => lineNetTotal(item)
 
@@ -1003,6 +1122,156 @@ const removeItemByKey = (key) => {
 }
 
 const productMeta = (productId) => productMap.value.get(productId) || null
+
+const buildUnitOptionLabel = (unit) => {
+  if (!unit) {
+    return t('sales.documentModal.baseUnit')
+  }
+
+  return unit.short_name
+    ? `${unit.name} (${unit.short_name})`
+    : unit.name
+}
+
+const resolveSubUnitPrice = (explicitSubUnitPrice, baseUnitPrice, subUnit) => {
+  const directPrice = toFiniteNumber(explicitSubUnitPrice, Number.NaN)
+
+  if (Number.isFinite(directPrice) && directPrice > 0) {
+    return directPrice
+  }
+
+  const factor = toFiniteNumber(subUnit?.conversion_factor, 1)
+
+  if (factor > 0 && baseUnitPrice > 0) {
+    return baseUnitPrice * factor
+  }
+
+  return 0
+}
+
+const buildUnitOptions = ({
+  baseUnit = null,
+  subUnit = null,
+  baseUnitPrice = 0,
+  subUnitPrice = 0,
+  stockTracking = 'none',
+}) => {
+  const options = [
+    {
+      value: BASE_UNIT_OPTION_VALUE,
+      label: buildUnitOptionLabel(baseUnit),
+      description: formatAccountingMoney(baseUnitPrice),
+      sub_unit_id: '',
+      price: toFiniteNumber(baseUnitPrice, 0),
+      factor: 1,
+    },
+  ]
+
+  if (subUnit && !['lot', 'serial'].includes(stockTracking)) {
+    options.push({
+      value: subUnit.id,
+      label: buildUnitOptionLabel(subUnit),
+      description: `${formatAccountingMoney(subUnitPrice)} • x${toFiniteNumber(subUnit.conversion_factor, 1).toFixed(4)}`,
+      sub_unit_id: subUnit.id,
+      price: toFiniteNumber(subUnitPrice, 0),
+      factor: toFiniteNumber(subUnit.conversion_factor, 1),
+    })
+  }
+
+  return options
+}
+
+const buildLookupUnitState = (match) => {
+  const product = productMap.value.get(match.product_id)
+  const baseUnit = match.unit || product?.unit || null
+  const subUnit = match.sub_unit || product?.sub_unit || null
+  const stockTracking = match.stock_tracking || product?.stock_tracking || 'none'
+  const baseUnitPrice = toFiniteNumber(
+    match.selling_price ?? product?.selling_price ?? product?.variable_selling_price_min,
+    0
+  )
+  const subUnitPrice = resolveSubUnitPrice(
+    match.sub_unit_selling_price ?? product?.sub_unit_selling_price,
+    baseUnitPrice,
+    subUnit
+  )
+
+  return {
+    base_unit_price: baseUnitPrice,
+    sub_unit_price: subUnitPrice,
+    available_quantity: toNullableFiniteNumber(match.available_quantity),
+    minimum_selling_price: toFiniteNumber(match.minimum_selling_price ?? product?.minimum_selling_price, 0),
+    stock_tracking: stockTracking,
+    unit_options: buildUnitOptions({
+      baseUnit,
+      subUnit,
+      baseUnitPrice,
+      subUnitPrice,
+      stockTracking,
+    }),
+  }
+}
+
+const buildInitialUnitState = (item) => {
+  const baseUnit = item.product_unit || null
+  const subUnit = item.variation_sub_unit || item.product_sub_unit || null
+  const stockTracking = item.stock_tracking || 'none'
+  const baseUnitPrice = toFiniteNumber(item.base_unit_price, 0)
+  const subUnitPrice = resolveSubUnitPrice(item.sub_unit_price, baseUnitPrice, subUnit)
+  const unitOptions = buildUnitOptions({
+    baseUnit,
+    subUnit,
+    baseUnitPrice,
+    subUnitPrice,
+    stockTracking,
+  })
+  const selectedSubUnitId = item.sub_unit_id || ''
+  const hasSelectedSubUnit = selectedSubUnitId && unitOptions.some((option) => option.sub_unit_id === selectedSubUnitId)
+
+  return {
+    sub_unit_id: hasSelectedSubUnit ? selectedSubUnitId : '',
+    base_unit_price: baseUnitPrice,
+    sub_unit_price: subUnitPrice,
+    minimum_selling_price: toFiniteNumber(item.minimum_selling_price, 0),
+    stock_tracking: stockTracking,
+    unit_options: unitOptions,
+  }
+}
+
+const unitOptionsFor = (item) => Array.isArray(item?.unit_options) ? item.unit_options : []
+const serialIdsFor = (item) => Array.isArray(item?.serial_ids) ? item.serial_ids : []
+const lotAllocationsFor = (item) => Array.isArray(item?.lot_allocations) ? item.lot_allocations : []
+
+watch(
+  () => [props.show, props.defaultType, props.mode, props.initialValues, primaryDocumentType.value],
+  ([show]) => {
+    if (show) {
+      resetForm()
+    }
+  },
+  { immediate: true }
+)
+
+const selectedUnitValue = (item) => item.sub_unit_id || BASE_UNIT_OPTION_VALUE
+
+const selectedUnitOption = (item) =>
+  unitOptionsFor(item).find((option) => option.value === selectedUnitValue(item))
+  || unitOptionsFor(item)[0]
+  || null
+
+const selectedUnitDescription = (item) => selectedUnitOption(item)?.description || ''
+
+const handleLineUnitChange = (item, value) => {
+  const selected = unitOptionsFor(item).find((option) => option.value === value)
+
+  if (!selected) {
+    item.sub_unit_id = ''
+    return
+  }
+
+  item.sub_unit_id = selected.sub_unit_id || ''
+  item.unit_price = toFiniteNumber(selected.price, item.unit_price)
+}
 
 const deriveSellingPrice = (productId) => {
   const product = productMap.value.get(productId)
@@ -1067,12 +1336,12 @@ const lineTaxTypeLabel = (item) =>
     : t('sales.documentModal.taxTypes.exclusive')
 
 const syncTrackedQuantity = (item) => {
-  if (item.serial_ids.length > 0) {
-    item.quantity = item.serial_ids.length
+  if (serialIdsFor(item).length > 0) {
+    item.quantity = serialIdsFor(item).length
     return
   }
 
-  if (item.lot_allocations.length === 1) {
+  if (lotAllocationsFor(item).length === 1) {
     item.lot_allocations[0].quantity = Number(item.quantity || 0)
   }
 }
@@ -1080,25 +1349,26 @@ const syncTrackedQuantity = (item) => {
 const isSameLookupItem = (item, match) =>
   item.product_id === match.product_id &&
   (item.variation_id || '') === (match.variation_id || '') &&
-  (item.lot_allocations[0]?.lot_id || '') === (match.lot_id || '') &&
-  (match.serial_id ? item.serial_ids.length > 0 : item.serial_ids.length === 0)
+  (lotAllocationsFor(item)[0]?.lot_id || '') === (match.lot_id || '') &&
+  (match.serial_id ? serialIdsFor(item).length > 0 : serialIdsFor(item).length === 0)
 
 const handleLookupSelect = (match) => {
+  const lookupUnitState = buildLookupUnitState(match)
   const existing = form.items.find((item) => isSameLookupItem(item, match))
 
   if (existing) {
     if (match.serial_id) {
-      if (!existing.serial_ids.includes(match.serial_id)) {
+      if (!serialIdsFor(existing).includes(match.serial_id)) {
         existing.serial_ids.push(match.serial_id)
         if (match.serial_number && !existing.serial_numbers.includes(match.serial_number)) {
           existing.serial_numbers.push(match.serial_number)
         }
-        existing.quantity = existing.serial_ids.length
+        existing.quantity = serialIdsFor(existing).length
       }
     } else {
       existing.quantity = Number(existing.quantity || 0) + 1
 
-      if (match.lot_id && existing.lot_allocations.length === 1) {
+      if (match.lot_id && lotAllocationsFor(existing).length === 1) {
         existing.lot_allocations[0].quantity = Number(existing.quantity || 0)
       }
     }
@@ -1115,17 +1385,30 @@ const handleLookupSelect = (match) => {
       existing.tax_rate = deriveTaxRate(match.product_id)
     }
 
+    if (!unitOptionsFor(existing).length) {
+      existing.unit_options = lookupUnitState.unit_options
+      existing.base_unit_price = lookupUnitState.base_unit_price
+      existing.sub_unit_price = lookupUnitState.sub_unit_price
+      existing.minimum_selling_price = lookupUnitState.minimum_selling_price
+      existing.stock_tracking = lookupUnitState.stock_tracking
+    }
+
+    existing.available_quantity = lookupUnitState.available_quantity
+
     return
   }
 
   form.items.push({
     ...makeItem(),
+    ...lookupUnitState,
     product_id: match.product_id,
     variation_id: match.variation_id || '',
+    sub_unit_id: '',
     lot_allocations: match.lot_id ? [{ lot_id: match.lot_id, quantity: 1 }] : [],
     serial_ids: match.serial_id ? [match.serial_id] : [],
     quantity: 1,
-    unit_price: deriveSellingPrice(match.product_id),
+    unit_price: toFiniteNumber(lookupUnitState.base_unit_price, deriveSellingPrice(match.product_id)),
+    available_quantity: lookupUnitState.available_quantity,
     discount_type: '',
     discount_amount: 0,
     tax_rate_id: deriveTaxRateId(match.product_id),
@@ -1146,6 +1429,7 @@ const getNormalizedItems = () => form.items
   .map((item) => ({
     product_id: item.product_id,
     variation_id: item.variation_id || null,
+    sub_unit_id: item.sub_unit_id || null,
     quantity: Number(item.quantity || 0),
     unit_price: Number(item.unit_price || 0),
     discount_type: item.discount_type || null,
@@ -1220,3 +1504,127 @@ const submitWithAction = (action) => {
   emit('submit', payload)
 }
 </script>
+
+<style scoped>
+.sale-line-quantity,
+.sale-line-discount {
+  display: grid;
+  align-items: stretch;
+  overflow: hidden;
+  border: 1px solid rgba(148, 163, 184, 0.24);
+  border-radius: 18px;
+  background:
+    linear-gradient(135deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.92));
+  box-shadow:
+    0 10px 24px rgba(148, 163, 184, 0.08),
+    inset 0 1px 0 rgba(255, 255, 255, 0.88);
+}
+
+.sale-line-quantity {
+  grid-template-columns: minmax(4.75rem, 5.5rem) minmax(0, 1fr);
+}
+
+.sale-line-discount {
+  grid-template-columns: minmax(6.5rem, 7.5rem) minmax(0, 1fr);
+}
+
+.sale-line-quantity__value,
+.sale-line-discount__type {
+  position: relative;
+  min-width: 0;
+}
+
+.sale-line-quantity__value::after,
+.sale-line-discount__type::after {
+  content: "";
+  position: absolute;
+  top: 0.55rem;
+  right: 0;
+  bottom: 0.55rem;
+  width: 1px;
+  background: rgba(148, 163, 184, 0.22);
+}
+
+.sale-line-quantity__unit,
+.sale-line-discount__value {
+  min-width: 0;
+}
+
+.sale-line-quantity :deep(.erp-input),
+.sale-line-discount :deep(.erp-input) {
+  align-items: stretch;
+  min-height: var(--erp-control-height);
+  border: 0;
+  box-shadow: none;
+}
+
+.sale-line-quantity :deep(.erp-input),
+.sale-line-discount :deep(.erp-input) {
+  border-radius: 0;
+  background: transparent;
+}
+
+.sale-line-quantity :deep(.erp-input:hover),
+.sale-line-discount :deep(.erp-input:hover) {
+  border: 0;
+  box-shadow: none;
+}
+
+.sale-line-quantity :deep(.erp-input:focus),
+.sale-line-discount :deep(.erp-input:focus) {
+  border: 0;
+  box-shadow: inset 0 0 0 1px rgba(34, 211, 238, 0.22);
+}
+
+.sale-line-quantity__input,
+.sale-line-discount__input {
+  padding-left: 0.95rem;
+  padding-right: 0.95rem;
+  font-weight: 600;
+}
+
+.sale-line-quantity__fallback {
+  display: flex;
+  min-height: var(--erp-control-height);
+  align-items: center;
+  padding: 0 0.95rem;
+  color: rgb(15 23 42);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.sale-line-compact-input,
+.sale-line-note {
+  min-height: var(--erp-control-height);
+  padding-top: 0.45rem;
+  padding-bottom: 0.45rem;
+}
+
+.sale-line-note {
+  resize: vertical;
+}
+
+.dark .sale-line-quantity,
+.dark .sale-line-discount {
+  border-color: rgba(51, 65, 85, 0.72);
+  background:
+    linear-gradient(135deg, rgba(15, 23, 42, 0.92), rgba(15, 23, 42, 0.82));
+  box-shadow:
+    0 12px 26px rgba(2, 6, 23, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
+.dark .sale-line-quantity__value::after,
+.dark .sale-line-discount__type::after {
+  background: rgba(71, 85, 105, 0.72);
+}
+
+.dark .sale-line-quantity :deep(.erp-input:focus),
+.dark .sale-line-discount :deep(.erp-input:focus) {
+  box-shadow: inset 0 0 0 1px rgba(34, 211, 238, 0.28);
+}
+
+.dark .sale-line-quantity__fallback {
+  color: rgb(241 245 249);
+}
+</style>

@@ -116,42 +116,10 @@
         </template>
 
         <template #actions="{ row }">
-          <div class="flex items-center gap-2">
-            <button
-              type="button"
-              class="erp-button-secondary inline-flex h-10 w-10 items-center justify-center p-0"
-              title="Preview transfer"
-              aria-label="Preview transfer"
-              @click="openDetail(row.id)"
-            >
-              <i class="fa-solid fa-eye"></i>
-            </button>
-            <button
-              v-if="canEditFromList(row)"
-              type="button"
-              class="erp-button-secondary inline-flex h-10 w-10 items-center justify-center p-0"
-              title="Edit transfer"
-              aria-label="Edit transfer"
-              @click="openEdit(row.id)"
-            >
-              <i class="fa-solid fa-pen-to-square"></i>
-            </button>
-            <button
-              v-if="canDeleteFromList(row)"
-              type="button"
-              class="erp-button-secondary inline-flex h-10 w-10 items-center justify-center p-0 text-rose-600 hover:text-rose-700 dark:text-rose-300 dark:hover:text-rose-200"
-              :disabled="store.deletingId === row.id"
-              title="Delete transfer"
-              aria-label="Delete transfer"
-              @click="openDeleteModal(row)"
-            >
-              <span
-                v-if="store.deletingId === row.id"
-                class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-rose-300/30 border-t-rose-600 dark:border-rose-400/30 dark:border-t-rose-200"
-              ></span>
-              <i v-else class="fa-solid fa-trash"></i>
-            </button>
-          </div>
+          <DataTableActionDropdown
+            title="Transfer actions"
+            :items="rowActionItems(row)"
+          />
         </template>
       </DataTable>
 
@@ -172,6 +140,7 @@ import { useRouter } from 'vue-router'
 import AppAlert from '@components/ui/AppAlert.vue'
 import AppSelect from '@components/ui/AppSelect.vue'
 import ConfirmDelete from '@components/ui/ConfirmDelete.vue'
+import DataTableActionDropdown from '@components/ui/DataTableActionDropdown.vue'
 import DataTable from '@components/ui/DataTable.vue'
 import FilterPanel from '@components/ui/FilterPanel.vue'
 import AppLayout from '@layouts/AppLayout.vue'
@@ -333,6 +302,33 @@ const canEditFromList = (row) => {
 }
 
 const canDeleteFromList = (row) => canEditFromList(row) && isStockTransferPending(row?.status)
+const rowActionItems = (row) => ([
+  {
+    key: 'preview',
+    label: 'Preview transfer',
+    icon: 'fa-eye',
+    tone: 'default',
+    onClick: () => openDetail(row.id),
+  },
+  {
+    key: 'edit',
+    label: 'Edit transfer',
+    icon: 'fa-pen-to-square',
+    tone: 'info',
+    hidden: !canEditFromList(row),
+    onClick: () => openEdit(row.id),
+  },
+  {
+    key: 'delete',
+    label: 'Delete transfer',
+    icon: 'fa-trash',
+    tone: 'danger',
+    hidden: !canDeleteFromList(row),
+    disabled: store.deletingId === row.id,
+    loading: store.deletingId === row.id,
+    onClick: () => openDeleteModal(row),
+  },
+])
 
 const handleSearch = (value) => store.fetchItems({ search: value, page: 1 })
 const handlePageChange = (page) => store.fetchItems({ page })

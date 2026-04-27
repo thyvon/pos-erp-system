@@ -57,7 +57,19 @@ class InventoryProductLookupService
     protected function searchProducts(string $businessId, string $term, ?string $warehouseId): Collection
     {
         $products = Product::withoutGlobalScopes()
-            ->select(['id', 'name', 'sku', 'description', 'purchase_price'])
+            ->select([
+                'id',
+                'name',
+                'sku',
+                'description',
+                'purchase_price',
+                'selling_price',
+                'sub_unit_selling_price',
+                'minimum_selling_price',
+                'unit_id',
+                'sub_unit_id',
+                'stock_tracking',
+            ])
             ->where('business_id', $businessId)
             ->where('track_inventory', true)
             ->where('is_active', true)
@@ -70,6 +82,10 @@ class InventoryProductLookupService
             })
             ->orderBy('name')
             ->limit(8)
+            ->with([
+                'unit:id,name,short_name',
+                'subUnit:id,name,short_name,conversion_factor',
+            ])
             ->get();
 
         return $products->map(function (Product $product) use ($term, $businessId, $warehouseId): array {
@@ -93,6 +109,21 @@ class InventoryProductLookupService
                 'lot_number' => null,
                 'serial_number' => null,
                 'unit_cost' => $product->purchase_price !== null ? (string) $product->purchase_price : null,
+                'selling_price' => $product->selling_price !== null ? (string) $product->selling_price : null,
+                'sub_unit_selling_price' => $product->sub_unit_selling_price !== null ? (string) $product->sub_unit_selling_price : null,
+                'minimum_selling_price' => $product->minimum_selling_price !== null ? (string) $product->minimum_selling_price : null,
+                'stock_tracking' => $product->stock_tracking,
+                'unit' => $product->unit ? [
+                    'id' => $product->unit->id,
+                    'name' => $product->unit->name,
+                    'short_name' => $product->unit->short_name,
+                ] : null,
+                'sub_unit' => $product->subUnit ? [
+                    'id' => $product->subUnit->id,
+                    'name' => $product->subUnit->name,
+                    'short_name' => $product->subUnit->short_name,
+                    'conversion_factor' => $product->subUnit->conversion_factor !== null ? (string) $product->subUnit->conversion_factor : null,
+                ] : null,
                 'ending_quantity' => $stockSnapshot['ending_quantity'],
                 'on_hand_quantity' => $stockSnapshot['on_hand_quantity'],
                 'reserved_quantity' => $stockSnapshot['reserved_quantity'],
@@ -108,7 +139,17 @@ class InventoryProductLookupService
     protected function searchVariations(string $businessId, string $term, ?string $warehouseId): Collection
     {
         $variations = ProductVariation::withoutGlobalScopes()
-            ->select(['id', 'product_id', 'name', 'sku', 'purchase_price'])
+            ->select([
+                'id',
+                'product_id',
+                'name',
+                'sku',
+                'purchase_price',
+                'selling_price',
+                'sub_unit_id',
+                'sub_unit_selling_price',
+                'minimum_selling_price',
+            ])
             ->where('business_id', $businessId)
             ->whereHas('product', function ($query) use ($businessId, $term): void {
                 $query
@@ -136,7 +177,11 @@ class InventoryProductLookupService
                             ->where('is_active', true);
                     });
             })
-            ->with(['product:id,name,sku,description'])
+            ->with([
+                'product:id,name,sku,description,unit_id,stock_tracking',
+                'product.unit:id,name,short_name',
+                'subUnit:id,name,short_name,conversion_factor',
+            ])
             ->orderBy('name')
             ->limit(8)
             ->get();
@@ -164,6 +209,21 @@ class InventoryProductLookupService
                 'lot_number' => null,
                 'serial_number' => null,
                 'unit_cost' => $variation->purchase_price !== null ? (string) $variation->purchase_price : null,
+                'selling_price' => $variation->selling_price !== null ? (string) $variation->selling_price : null,
+                'sub_unit_selling_price' => $variation->sub_unit_selling_price !== null ? (string) $variation->sub_unit_selling_price : null,
+                'minimum_selling_price' => $variation->minimum_selling_price !== null ? (string) $variation->minimum_selling_price : null,
+                'stock_tracking' => $product?->stock_tracking,
+                'unit' => $product?->unit ? [
+                    'id' => $product->unit->id,
+                    'name' => $product->unit->name,
+                    'short_name' => $product->unit->short_name,
+                ] : null,
+                'sub_unit' => $variation->subUnit ? [
+                    'id' => $variation->subUnit->id,
+                    'name' => $variation->subUnit->name,
+                    'short_name' => $variation->subUnit->short_name,
+                    'conversion_factor' => $variation->subUnit->conversion_factor !== null ? (string) $variation->subUnit->conversion_factor : null,
+                ] : null,
                 'ending_quantity' => $stockSnapshot['ending_quantity'],
                 'on_hand_quantity' => $stockSnapshot['on_hand_quantity'],
                 'reserved_quantity' => $stockSnapshot['reserved_quantity'],
@@ -189,8 +249,11 @@ class InventoryProductLookupService
             ->where('qty_on_hand', '>', 0)
             ->where('lot_number', 'like', '%'.$term.'%')
             ->with([
-                'product:id,name,sku',
-                'variation:id,product_id,name,sku',
+                'product:id,name,sku,unit_id,sub_unit_id,selling_price,sub_unit_selling_price,minimum_selling_price,stock_tracking',
+                'product.unit:id,name,short_name',
+                'product.subUnit:id,name,short_name,conversion_factor',
+                'variation:id,product_id,name,sku,selling_price,sub_unit_id,sub_unit_selling_price,minimum_selling_price',
+                'variation.subUnit:id,name,short_name,conversion_factor',
             ])
             ->orderBy('lot_number')
             ->limit(6)
@@ -217,6 +280,34 @@ class InventoryProductLookupService
                 'lot_number' => $lot->lot_number,
                 'serial_number' => null,
                 'unit_cost' => $lot->unit_cost !== null ? (string) $lot->unit_cost : null,
+                'selling_price' => $variation?->selling_price !== null
+                    ? (string) $variation->selling_price
+                    : ($product?->selling_price !== null ? (string) $product->selling_price : null),
+                'sub_unit_selling_price' => $variation?->sub_unit_selling_price !== null
+                    ? (string) $variation->sub_unit_selling_price
+                    : ($product?->sub_unit_selling_price !== null ? (string) $product->sub_unit_selling_price : null),
+                'minimum_selling_price' => $variation?->minimum_selling_price !== null
+                    ? (string) $variation->minimum_selling_price
+                    : ($product?->minimum_selling_price !== null ? (string) $product->minimum_selling_price : null),
+                'stock_tracking' => $product?->stock_tracking,
+                'unit' => $product?->unit ? [
+                    'id' => $product->unit->id,
+                    'name' => $product->unit->name,
+                    'short_name' => $product->unit->short_name,
+                ] : null,
+                'sub_unit' => $variation?->subUnit
+                    ? [
+                        'id' => $variation->subUnit->id,
+                        'name' => $variation->subUnit->name,
+                        'short_name' => $variation->subUnit->short_name,
+                        'conversion_factor' => $variation->subUnit->conversion_factor !== null ? (string) $variation->subUnit->conversion_factor : null,
+                    ]
+                    : ($product?->subUnit ? [
+                        'id' => $product->subUnit->id,
+                        'name' => $product->subUnit->name,
+                        'short_name' => $product->subUnit->short_name,
+                        'conversion_factor' => $product->subUnit->conversion_factor !== null ? (string) $product->subUnit->conversion_factor : null,
+                    ] : null),
                 'ending_quantity' => $stockSnapshot['ending_quantity'],
                 'on_hand_quantity' => $stockSnapshot['on_hand_quantity'],
                 'reserved_quantity' => $stockSnapshot['reserved_quantity'],
@@ -242,8 +333,11 @@ class InventoryProductLookupService
             ->whereNotIn('status', ['sold', 'written_off'])
             ->where('serial_number', 'like', '%'.$term.'%')
             ->with([
-                'product:id,name,sku',
-                'variation:id,product_id,name,sku',
+                'product:id,name,sku,unit_id,sub_unit_id,selling_price,sub_unit_selling_price,minimum_selling_price,stock_tracking',
+                'product.unit:id,name,short_name',
+                'product.subUnit:id,name,short_name,conversion_factor',
+                'variation:id,product_id,name,sku,selling_price,sub_unit_id,sub_unit_selling_price,minimum_selling_price',
+                'variation.subUnit:id,name,short_name,conversion_factor',
             ])
             ->orderBy('serial_number')
             ->limit(6)
@@ -270,6 +364,34 @@ class InventoryProductLookupService
                 'lot_number' => null,
                 'serial_number' => $serial->serial_number,
                 'unit_cost' => $serial->unit_cost !== null ? (string) $serial->unit_cost : null,
+                'selling_price' => $variation?->selling_price !== null
+                    ? (string) $variation->selling_price
+                    : ($product?->selling_price !== null ? (string) $product->selling_price : null),
+                'sub_unit_selling_price' => $variation?->sub_unit_selling_price !== null
+                    ? (string) $variation->sub_unit_selling_price
+                    : ($product?->sub_unit_selling_price !== null ? (string) $product->sub_unit_selling_price : null),
+                'minimum_selling_price' => $variation?->minimum_selling_price !== null
+                    ? (string) $variation->minimum_selling_price
+                    : ($product?->minimum_selling_price !== null ? (string) $product->minimum_selling_price : null),
+                'stock_tracking' => $product?->stock_tracking,
+                'unit' => $product?->unit ? [
+                    'id' => $product->unit->id,
+                    'name' => $product->unit->name,
+                    'short_name' => $product->unit->short_name,
+                ] : null,
+                'sub_unit' => $variation?->subUnit
+                    ? [
+                        'id' => $variation->subUnit->id,
+                        'name' => $variation->subUnit->name,
+                        'short_name' => $variation->subUnit->short_name,
+                        'conversion_factor' => $variation->subUnit->conversion_factor !== null ? (string) $variation->subUnit->conversion_factor : null,
+                    ]
+                    : ($product?->subUnit ? [
+                        'id' => $product->subUnit->id,
+                        'name' => $product->subUnit->name,
+                        'short_name' => $product->subUnit->short_name,
+                        'conversion_factor' => $product->subUnit->conversion_factor !== null ? (string) $product->subUnit->conversion_factor : null,
+                    ] : null),
                 'ending_quantity' => $stockSnapshot['ending_quantity'],
                 'on_hand_quantity' => $stockSnapshot['on_hand_quantity'],
                 'reserved_quantity' => $stockSnapshot['reserved_quantity'],

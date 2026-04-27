@@ -9,15 +9,16 @@
 
       <div
         v-if="loadError"
+        key="sale-form-error"
         class="rounded-[5px] border border-rose-200/70 bg-rose-50/80 px-5 py-4 text-sm text-rose-700 dark:border-rose-900/70 dark:bg-rose-950/30 dark:text-rose-200"
       >
         <div class="font-semibold">{{ t('sales.formPage.loadErrorTitle') }}</div>
         <div class="mt-1">{{ loadError }}</div>
       </div>
 
-      <PageBlurSkeleton v-else-if="loading" variant="form" />
+      <PageBlurSkeleton v-else-if="loading" key="sale-form-loading" variant="form" />
 
-      <div v-else class="space-y-6">
+      <div v-else key="sale-form-loaded" class="space-y-6">
         <section class="erp-form-page">
           <div class="flex flex-col gap-3 lg:flex-row lg:items-start lg:justify-between">
             <div>
@@ -39,6 +40,7 @@
         </section>
 
         <SaleDocumentForm
+          :key="formRenderKey"
           :show="true"
           mode="sale"
           :is-editing="isEditMode"
@@ -259,6 +261,18 @@ const paymentMethodOptions = computed(() => [
   { value: 'other', label: t('sales.shared.methods.other') },
 ])
 
+const formRenderKey = computed(() => {
+  if (!isEditMode.value) {
+    return 'sale-form-create'
+  }
+
+  return [
+    'sale-form-edit',
+    route.params.id || 'unknown',
+    existingSale.value?.updated_at || 'pending',
+  ].join(':')
+})
+
 const formInitialValues = computed(() => normalizeSaleForForm(existingSale.value))
 
 const resolveDiscountAmount = (discountType, discountAmount, baseAmount) => {
@@ -377,6 +391,7 @@ const normalizeSaleForForm = (sale) => {
       ? sale.items.map((item) => ({
         product_id: item.product_id || '',
         variation_id: item.variation_id || '',
+        sub_unit_id: item.sub_unit_id || '',
         quantity: Number(item.quantity || 0),
         unit_price: Number(item.unit_price || 0),
         discount_type: item.discount_type || '',
@@ -387,6 +402,13 @@ const normalizeSaleForForm = (sale) => {
         tax_type: item.tax_type || '',
         tax_rate: Number(item.tax_rate || item.tax_rate_record?.rate || 0),
         unit_cost: Number(item.unit_cost || 0),
+        base_unit_price: Number((item.variation?.selling_price ?? item.product?.selling_price ?? item.unit_price) || 0),
+        sub_unit_price: Number((item.variation?.sub_unit_selling_price ?? item.product?.sub_unit_selling_price) || 0),
+        minimum_selling_price: Number((item.variation?.minimum_selling_price ?? item.product?.minimum_selling_price) || 0),
+        product_unit: item.product?.unit || null,
+        product_sub_unit: item.product?.sub_unit || null,
+        variation_sub_unit: item.variation?.sub_unit || null,
+        stock_tracking: item.product?.stock_tracking || 'none',
         product_name: item.product?.name || '',
         variation_name: item.variation?.name || '',
         sku: item.variation?.sku || item.product?.sku || '',
@@ -444,7 +466,7 @@ const loadCustomers = async () => {
 
 const loadProducts = async () => {
   const response = await productsApi.getProducts({ per_page: 250 })
-  products.value = response.data.data.filter((product) => product.is_active)
+  products.value = response.data.data.filter((product) => product.is_active && product.is_for_selling !== false)
 }
 
 const loadRegisterSessions = async () => {
