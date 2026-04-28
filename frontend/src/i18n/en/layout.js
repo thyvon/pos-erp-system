@@ -154,6 +154,10 @@ export default {
         "label": "Sales & POS",
         "description": "Order flow"
       },
+      "pos": {
+        "label": "POS",
+        "description": "Fast checkout screen"
+      },
       "salesDocuments": {
         "label": "Sales",
         "description": "Invoices, drafts, and POS sales"

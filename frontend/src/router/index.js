@@ -40,6 +40,7 @@ const UsersView = () => import('@views/UsersView.vue')
 const VariationTemplatesView = () => import('@views/VariationTemplatesView.vue')
 const RackLocationsView = () => import('@views/RackLocationsView.vue')
 const SaleFormView = () => import('@views/SaleFormView.vue')
+const PosView = () => import('@views/PosView.vue')
 const SalesView = () => import('@views/SalesView.vue')
 const QuotationsView = () => import('@views/QuotationsView.vue')
 const CashRegistersView = () => import('@views/CashRegistersView.vue')
@@ -319,6 +320,12 @@ const router = createRouter({
       name: 'sales',
       component: SalesView,
       meta: { requiresAuth: true, requiredPermission: 'sales.index' },
+    },
+    {
+      path: '/sales/pos',
+      name: 'sales-pos',
+      component: PosView,
+      meta: { requiresAuth: true, requiredPermission: 'sales.create' },
     },
     {
       path: '/sales/quotations',

@@ -154,6 +154,10 @@ export default {
         "label": "លក់ និង POS",
         "description": "លំហូរការបញ្ជាទិញ"
       },
+      "pos": {
+        "label": "POS",
+        "description": "អេក្រង់គិតប្រាក់លឿន"
+      },
       "salesDocuments": {
         "label": "ការលក់",
         "description": "វិក្កយបត្រ សេចក្តីព្រាង និង POS"

@@ -498,7 +498,7 @@ export const createSidebarGroups = ({ t, auth, isSuperAdmin }) => {
     })
   }
 
-  if (auth.isSuperAdmin || auth.canAny(['sales.index', 'sales.return'])) {
+  if (auth.isSuperAdmin || auth.canAny(['sales.index', 'sales.create', 'sales.return'])) {
     groups.push({
       label: t('layout.nav.sales.label'),
       items: [
@@ -511,6 +511,17 @@ export const createSidebarGroups = ({ t, auth, isSuperAdmin }) => {
           statusClass: readyClass,
           icon: 'fa-solid fa-cash-register',
           children: [
+            {
+              key: 'sales-pos',
+              label: t('layout.nav.pos.label'),
+              description: t('layout.nav.pos.description'),
+              short: 'PS',
+              to: '/sales/pos',
+              permission: 'sales.create',
+              status: statuses.ready,
+              statusClass: readyClass,
+              icon: 'fa-solid fa-table-cells-large',
+            },
             {
               key: 'sales-documents',
               label: t('layout.nav.salesDocuments.label'),
