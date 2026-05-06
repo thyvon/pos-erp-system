@@ -135,16 +135,13 @@
               <div
                 v-else
                 class="pos-cart-table"
-                :class="showLineDiscountControls ? 'pos-cart-table--with-discount' : ''"
               >
                 <div class="pos-cart-header hidden lg:block">
-                  <div class="pos-cart-line-grid" :class="{ 'pos-cart-line-grid--with-discount': showLineDiscountControls }">
+                  <div class="pos-cart-line-grid">
                     <span>{{ t('sales.documentModal.fields.product') }}</span>
                     <span>{{ t('sales.documentModal.fields.unit') }}</span>
-                    <span>Tracking</span>
                     <span class="text-center">{{ t('sales.documentModal.fields.quantity') }}</span>
                     <span class="text-right">{{ t('sales.documentModal.fields.unitPrice') }}</span>
-                    <span v-if="showLineDiscountControls">{{ t('sales.documentModal.fields.lineDiscount') }}</span>
                     <span class="text-right">{{ t('sales.documentModal.fields.subtotal') }}</span>
                     <span></span>
                   </div>
@@ -156,20 +153,21 @@
                     :key="item.key"
                     class="pos-cart-row"
                   >
-                    <div class="pos-cart-line-grid" :class="{ 'pos-cart-line-grid--with-discount': showLineDiscountControls }">
+                    <div class="pos-cart-line-grid">
                       <div class="pos-line-product-cell">
-                        <div class="pos-line-product-name">
+                        <button type="button" class="pos-line-product-name" @click="openLineModal(item)">
                           {{ item.product_name || t('sales.shared.notRecorded') }}
                           <span v-if="item.variation_name" class="text-slate-500 dark:text-slate-400">/ {{ item.variation_name }}</span>
-                        </div>
+                        </button>
                         <div class="pos-line-product-meta">
-                          <span v-if="item.sku" class="erp-badge erp-badge-neutral">SKU: {{ item.sku }}</span>
+                          <span v-if="item.sku" class="erp-badge erp-badge-neutral pos-line-sku-badge">SKU: {{ item.sku }}</span>
                           <span v-for="lot in item.lot_numbers" :key="`${item.key}-${lot}`" class="erp-badge erp-badge-warning">Lot: {{ lot }}</span>
                           <span v-for="serial in item.serial_numbers" :key="`${item.key}-${serial}`" class="erp-badge erp-badge-info">Serial: {{ serial }}</span>
                           <span v-if="item.tracked_expiry_date" class="erp-badge erp-badge-neutral">Exp: {{ item.tracked_expiry_date }}</span>
                           <span v-if="lineDiscountAmount(item) > 0" class="erp-badge erp-badge-danger">
                             -{{ formatAccountingMoney(lineDiscountAmount(item)) }}
                           </span>
+                          <span v-if="item.notes" class="erp-badge erp-badge-neutral">Note</span>
                         </div>
                       </div>
 
@@ -190,71 +188,38 @@
                         </div>
                       </div>
 
-                      <div class="pos-line-tracking-cell">
-                        <template v-if="item.stock_tracking === 'lot' || item.stock_tracking === 'serial'">
-                          <AppSelect
-                            v-if="item.stock_tracking === 'lot'"
-                            :model-value="selectedLotId(item) || null"
-                            :options="trackingOptionsFor(item)"
-                            :placeholder="t('sales.posPage.tracking.lotPlaceholder')"
-                            :empty-text="trackingEmptyText(item)"
-                            class="pos-line-tracking-select"
-                            searchable
-                            clearable
-                            @update:model-value="handleLotSelection(item, $event)"
-                          />
-                          <AppSelect
-                            v-else
-                            :model-value="selectedSerialIds(item)"
-                            :options="trackingOptionsFor(item)"
-                            :placeholder="t('sales.posPage.tracking.serialPlaceholder')"
-                            :empty-text="trackingEmptyText(item)"
-                            class="pos-line-tracking-select"
-                            multiple
-                            searchable
-                            clearable
-                            @update:model-value="handleSerialSelection(item, $event)"
-                          />
-                        </template>
-                        <span v-else class="pos-line-empty-value">-</span>
-                      </div>
-
                       <div class="pos-line-quantity-cell">
-                        <input
-                          v-model.number="item.quantity"
-                          type="number"
-                          :min="item.stock_tracking === 'serial' ? 1 : 0.01"
-                          :step="item.stock_tracking === 'serial' ? 1 : 0.01"
-                          class="erp-input sale-line-compact-input text-center font-semibold"
-                          :disabled="item.stock_tracking === 'serial'"
-                          @input="syncTrackedQuantity(item)"
-                        />
+                        <div class="pos-quantity-stepper">
+                          <button
+                            type="button"
+                            class="pos-quantity-stepper-button"
+                            :disabled="saving || item.stock_tracking === 'serial'"
+                            @click="decrementItem(item)"
+                          >
+                            <i class="fa-solid fa-minus"></i>
+                          </button>
+                          <input
+                            v-model.number="item.quantity"
+                            type="number"
+                            :min="item.stock_tracking === 'serial' ? 1 : 0.01"
+                            :step="item.stock_tracking === 'serial' ? 1 : 0.01"
+                            class="erp-input sale-line-compact-input pos-quantity-stepper-input text-center font-semibold"
+                            :disabled="item.stock_tracking === 'serial'"
+                            @input="syncTrackedQuantity(item)"
+                          />
+                          <button
+                            type="button"
+                            class="pos-quantity-stepper-button"
+                            :disabled="saving || item.stock_tracking === 'serial'"
+                            @click="incrementItem(item)"
+                          >
+                            <i class="fa-solid fa-plus"></i>
+                          </button>
+                        </div>
                       </div>
 
                       <div class="pos-line-price-cell">
                         <input v-model.number="item.unit_price" type="number" min="0" step="0.01" class="erp-input sale-line-compact-input pos-cart-price-input text-right font-semibold" />
-                      </div>
-
-                      <div v-if="showLineDiscountControls" class="sale-line-discount pos-sale-line-discount">
-                        <div class="sale-line-discount__type">
-                          <AppSelect
-                            :model-value="item.discount_type || null"
-                            :options="discountTypeOptions"
-                            :placeholder="t('sales.documentModal.placeholders.selectDiscountType')"
-                            clearable
-                            @update:model-value="item.discount_type = $event || ''"
-                          />
-                        </div>
-                        <div class="sale-line-discount__value">
-                          <input
-                            v-model.number="item.discount_amount"
-                            type="number"
-                            min="0"
-                            step="0.01"
-                            class="erp-input sale-line-discount__input text-right"
-                            :placeholder="t('sales.documentModal.placeholders.enterDiscount')"
-                          />
-                        </div>
                       </div>
 
                       <div class="pos-line-total-cell">
@@ -286,70 +251,92 @@
             </div>
 
             <div class="pos-pricing-footer">
-              <div class="pos-pricing-control">
-                <label class="erp-label">Discount mode</label>
-                <AppSelect
-                  :model-value="form.discount_scope"
-                  :options="discountScopeOptions"
-                  @update:model-value="handleDiscountScopeChange"
-                />
-              </div>
+              <article class="pos-pricing-card pos-pricing-card-discount">
+                <div class="pos-pricing-card-heading">
+                  <span class="pos-pricing-card-icon">
+                    <i class="fa-solid fa-tag"></i>
+                  </span>
+                  <span>Discount</span>
+                </div>
 
-              <div v-if="!showLineDiscountControls" class="pos-pricing-control">
-                <label class="erp-label">{{ t('sales.documentModal.fields.orderDiscountType') }}</label>
-                <AppSelect
-                  :model-value="form.discount_type || null"
-                  :options="discountTypeOptions"
-                  :placeholder="t('sales.documentModal.placeholders.selectDiscountType')"
-                  clearable
-                  @update:model-value="form.discount_type = $event || ''"
-                />
-              </div>
+                <div class="pos-pricing-card-body">
+                  <div class="pos-pricing-control">
+                    <label class="erp-label">Discount mode</label>
+                    <AppSelect
+                      :model-value="form.discount_scope"
+                      :options="discountScopeOptions"
+                      @update:model-value="handleDiscountScopeChange"
+                    />
+                  </div>
 
-              <div v-if="!showLineDiscountControls" class="pos-pricing-control">
-                <label class="erp-label">{{ t('sales.documentModal.fields.orderDiscountAmount') }}</label>
-                <input
-                  v-model.number="form.discount_amount"
-                  type="number"
-                  min="0"
-                  step="0.01"
-                  class="erp-input pos-pricing-input"
-                  :placeholder="t('sales.documentModal.placeholders.enterDiscount')"
-                />
-              </div>
+                  <div v-if="!showLineDiscountControls" class="pos-pricing-control">
+                    <label class="erp-label">{{ t('sales.documentModal.fields.orderDiscountType') }}</label>
+                    <AppSelect
+                      :model-value="form.discount_type || null"
+                      :options="discountTypeOptions"
+                      :placeholder="t('sales.documentModal.placeholders.selectDiscountType')"
+                      clearable
+                      @update:model-value="form.discount_type = $event || ''"
+                    />
+                  </div>
 
-              <div class="pos-pricing-control">
-                <label class="erp-label">{{ t('sales.documentModal.fields.taxMode') }}</label>
-                <AppSelect
-                  :model-value="form.tax_scope || 'line'"
-                  :options="taxScopeOptions"
-                  @update:model-value="handleTaxScopeChange"
-                />
-              </div>
+                  <div v-if="!showLineDiscountControls" class="pos-pricing-control">
+                    <label class="erp-label">{{ t('sales.documentModal.fields.orderDiscountAmount') }}</label>
+                    <input
+                      v-model.number="form.discount_amount"
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      class="erp-input pos-pricing-input"
+                      :placeholder="t('sales.documentModal.placeholders.enterDiscount')"
+                    />
+                  </div>
+                </div>
+              </article>
 
-              <div v-if="form.tax_scope === 'sale'" class="pos-pricing-control">
-                <label class="erp-label">{{ t('sales.documentModal.fields.saleTax') }}</label>
-                <AppSelect
-                  :model-value="form.tax_rate_id || null"
-                  :options="saleTaxRateOptions"
-                  :placeholder="t('sales.documentModal.placeholders.selectSaleTax')"
-                  :search-placeholder="t('sales.documentModal.placeholders.searchTaxes')"
-                  :empty-text="t('sales.documentModal.placeholders.noTaxes')"
-                  searchable
-                  clearable
-                  @update:model-value="handleSaleTaxRateChange"
-                />
-              </div>
+              <article class="pos-pricing-card pos-pricing-card-tax">
+                <div class="pos-pricing-card-heading">
+                  <span class="pos-pricing-card-icon">
+                    <i class="fa-solid fa-percent"></i>
+                  </span>
+                  <span>Tax</span>
+                </div>
 
-              <div v-if="form.tax_scope === 'sale'" class="pos-pricing-control">
-                <label class="erp-label">{{ t('sales.documentModal.fields.saleTaxType') }}</label>
-                <AppSelect
-                  :model-value="form.tax_type || null"
-                  :options="taxTypeOptions"
-                  :placeholder="t('sales.documentModal.placeholders.selectSaleTaxType')"
-                  @update:model-value="form.tax_type = $event || 'exclusive'"
-                />
-              </div>
+                <div class="pos-pricing-card-body">
+                  <div class="pos-pricing-control">
+                    <label class="erp-label">{{ t('sales.documentModal.fields.taxMode') }}</label>
+                    <AppSelect
+                      :model-value="form.tax_scope || 'line'"
+                      :options="taxScopeOptions"
+                      @update:model-value="handleTaxScopeChange"
+                    />
+                  </div>
+
+                  <div v-if="form.tax_scope === 'sale'" class="pos-pricing-control">
+                    <label class="erp-label">{{ t('sales.documentModal.fields.saleTax') }}</label>
+                    <AppSelect
+                      :model-value="form.tax_rate_id || null"
+                      :options="saleTaxRateOptions"
+                      :placeholder="t('sales.documentModal.placeholders.selectSaleTax')"
+                      :search-placeholder="t('sales.documentModal.placeholders.searchTaxes')"
+                      :empty-text="t('sales.documentModal.placeholders.noTaxes')"
+                      searchable
+                      clearable
+                      @update:model-value="handleSaleTaxRateChange"
+                    />
+                  </div>
+
+                  <div v-if="form.tax_scope === 'sale'" class="pos-pricing-control">
+                    <label class="erp-label">{{ t('sales.documentModal.fields.saleTaxType') }}</label>
+                    <AppSelect
+                      :model-value="form.tax_type || null"
+                      :options="taxTypeOptions"
+                      :placeholder="t('sales.documentModal.placeholders.selectSaleTaxType')"
+                      @update:model-value="form.tax_type = $event || 'exclusive'"
+                    />
+                  </div>
+                </div>
+              </article>
             </div>
 
             <div class="pos-totals-bar">
@@ -500,7 +487,7 @@
                     <i class="fa-solid fa-box-open"></i>
                   </span>
                   <span class="pos-product-name">{{ product.name }}</span>
-                  <span class="pos-product-meta">
+                  <span class="pos-product-meta" :class="product.sku ? 'pos-product-meta-sku' : ''" :title="product.sku || product.category?.name || t('sales.shared.notRecorded')">
                     {{ product.sku || product.category?.name || t('sales.shared.notRecorded') }}
                   </span>
                   <span class="pos-product-meta-secondary">
@@ -577,6 +564,142 @@
       </template>
     </SalePaymentModal>
 
+    <AppModal
+      :show="lineModal.show"
+      title="Line details"
+      icon="POS line"
+      size="lg"
+      mobile-full-screen
+      @close="closeLineModal"
+    >
+      <div v-if="lineModal.item" class="space-y-4">
+        <div class="rounded-[8px] border border-slate-200 bg-white/70 px-4 py-3 dark:border-slate-800 dark:bg-slate-950/35">
+          <div class="font-semibold text-slate-950 dark:text-white">
+            {{ lineModal.item.product_name || t('sales.shared.notRecorded') }}
+            <span v-if="lineModal.item.variation_name" class="text-slate-500 dark:text-slate-400">/ {{ lineModal.item.variation_name }}</span>
+          </div>
+          <div class="mt-2 flex flex-wrap gap-1.5">
+            <span v-if="lineModal.item.sku" class="erp-badge erp-badge-neutral px-2 text-[11px]">SKU: {{ lineModal.item.sku }}</span>
+            <span v-if="selectedUnitOption(lineModal.item)?.label" class="erp-badge erp-badge-info px-2 text-[11px]">
+              {{ selectedUnitOption(lineModal.item)?.label }}
+            </span>
+            <span class="erp-badge erp-badge-neutral px-2 text-[11px]">
+              {{ formatAccountingMoney(lineTotal(lineModal.item)) }}
+            </span>
+          </div>
+        </div>
+
+        <section class="pos-line-modal-card">
+          <div class="pos-line-modal-heading">
+            <span class="pos-line-modal-icon"><i class="fa-solid fa-barcode"></i></span>
+            <span>Tracking</span>
+          </div>
+
+          <div v-if="lineModal.item.stock_tracking === 'lot' || lineModal.item.stock_tracking === 'serial'" class="grid gap-3 md:grid-cols-2">
+            <div class="md:col-span-2">
+              <label class="erp-label">
+                {{ lineModal.item.stock_tracking === 'lot' ? t('sales.posPage.tracking.lot') : t('sales.posPage.tracking.serial') }}
+              </label>
+              <AppSelect
+                v-if="lineModal.item.stock_tracking === 'lot'"
+                :model-value="selectedLotId(lineModal.item) || null"
+                :options="trackingOptionsFor(lineModal.item)"
+                :placeholder="t('sales.posPage.tracking.lotPlaceholder')"
+                :empty-text="trackingEmptyText(lineModal.item)"
+                searchable
+                clearable
+                @update:model-value="handleLotSelection(lineModal.item, $event)"
+              />
+              <AppSelect
+                v-else
+                :model-value="selectedSerialIds(lineModal.item)"
+                :options="trackingOptionsFor(lineModal.item)"
+                :placeholder="t('sales.posPage.tracking.serialPlaceholder')"
+                :empty-text="trackingEmptyText(lineModal.item)"
+                multiple
+                searchable
+                clearable
+                @update:model-value="handleSerialSelection(lineModal.item, $event)"
+              />
+            </div>
+
+            <div v-if="lineModal.item.stock_tracking === 'lot'">
+              <label class="erp-label">{{ t('sales.posPage.tracking.expiry') }}</label>
+              <input
+                :value="lineModal.item.tracked_expiry_date || ''"
+                type="text"
+                class="erp-input"
+                :placeholder="t('sales.posPage.tracking.expiryPlaceholder')"
+                readonly
+              />
+            </div>
+          </div>
+
+          <div v-else class="rounded-[8px] border border-dashed border-slate-200 bg-slate-50/80 px-3 py-3 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900/40 dark:text-slate-400">
+            No lot or serial tracking is required for this line.
+          </div>
+
+          <p v-if="lineModal.item.tracked_error" class="mt-2 text-xs font-semibold text-rose-600 dark:text-rose-300">
+            {{ lineModal.item.tracked_error }}
+          </p>
+        </section>
+
+        <section class="pos-line-modal-card">
+          <div class="pos-line-modal-heading">
+            <span class="pos-line-modal-icon pos-line-modal-icon-discount"><i class="fa-solid fa-tag"></i></span>
+            <span>Line discount</span>
+          </div>
+
+          <div v-if="showLineDiscountControls" class="grid gap-3 md:grid-cols-2">
+            <div>
+              <label class="erp-label">{{ t('sales.documentModal.fields.lineDiscount') }}</label>
+              <AppSelect
+                :model-value="lineModal.item.discount_type || null"
+                :options="discountTypeOptions"
+                :placeholder="t('sales.documentModal.placeholders.selectDiscountType')"
+                clearable
+                @update:model-value="lineModal.item.discount_type = $event || ''"
+              />
+            </div>
+            <div>
+              <label class="erp-label">{{ t('sales.documentModal.fields.orderDiscountAmount') }}</label>
+              <input
+                v-model.number="lineModal.item.discount_amount"
+                type="number"
+                min="0"
+                step="0.01"
+                class="erp-input text-right"
+                :placeholder="t('sales.documentModal.placeholders.enterDiscount')"
+              />
+            </div>
+          </div>
+
+          <div v-else class="rounded-[8px] border border-dashed border-slate-200 bg-slate-50/80 px-3 py-3 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900/40 dark:text-slate-400">
+            Discount mode is set to whole invoice, so line discount is not applied.
+          </div>
+        </section>
+
+        <section class="pos-line-modal-card">
+          <div class="pos-line-modal-heading">
+            <span class="pos-line-modal-icon pos-line-modal-icon-note"><i class="fa-solid fa-align-left"></i></span>
+            <span>Line note / description</span>
+          </div>
+          <textarea
+            v-model="lineModal.item.notes"
+            rows="4"
+            class="erp-input min-h-[7rem]"
+            :placeholder="t('sales.documentModal.fields.lineNote')"
+          ></textarea>
+        </section>
+      </div>
+
+      <template #footer>
+        <div class="flex justify-end">
+          <button type="button" class="erp-button-primary" @click="closeLineModal">Done</button>
+        </div>
+      </template>
+    </AppModal>
+
     <div class="pos-action-bar">
       <div class="pos-action-inner">
         <button type="button" class="pos-action-cancel" :disabled="saving || !cart.length" @click="clearCart">
@@ -623,6 +746,7 @@ import * as warehousesApi from '@api/warehouses'
 import InventoryProductLookup from '@components/inventory/InventoryProductLookup.vue'
 import SalePaymentModal from '@components/sales/SalePaymentModal.vue'
 import AppAlert from '@components/ui/AppAlert.vue'
+import AppModal from '@components/ui/AppModal.vue'
 import AppSelect from '@components/ui/AppSelect.vue'
 import PageBlurSkeleton from '@components/ui/PageBlurSkeleton.vue'
 import { useAuthStore } from '@stores/auth'
@@ -633,6 +757,8 @@ const { t } = useI18n()
 const auth = useAuthStore()
 const router = useRouter()
 const BASE_UNIT_OPTION_VALUE = '__base_unit__'
+const DEFAULT_DISCOUNT_SCOPE = 'sale'
+const DEFAULT_TAX_SCOPE = 'sale'
 
 const loading = ref(true)
 const saving = ref(false)
@@ -651,16 +777,17 @@ const activeFilterId = ref('')
 const productSearch = ref('')
 
 const alert = reactive({ show: false, type: 'success', title: '', message: '' })
+const lineModal = reactive({ show: false, item: null })
 const form = reactive({
   branch_id: '',
   warehouse_id: '',
   customer_id: '',
   cash_register_session_id: '',
   sale_date: new Date().toISOString().slice(0, 10),
-  discount_scope: 'line',
+  discount_scope: DEFAULT_DISCOUNT_SCOPE,
   discount_type: '',
   discount_amount: 0,
-  tax_scope: 'line',
+  tax_scope: DEFAULT_TAX_SCOPE,
   tax_rate_id: '',
   tax_rate_type: '',
   tax_rate: 0,
@@ -1017,7 +1144,7 @@ const normalizedItems = computed(() =>
         }))
         : undefined,
       serial_ids: item.serial_ids.length ? item.serial_ids : undefined,
-      notes: null,
+      notes: item.notes?.trim() || null,
     }))
     .filter((item) => item.product_id && item.quantity > 0)
 )
@@ -1095,6 +1222,16 @@ const exitPos = () => {
 
 const clearProductFilter = () => {
   activeFilterId.value = ''
+}
+
+const openLineModal = (item) => {
+  lineModal.item = item
+  lineModal.show = true
+}
+
+const closeLineModal = () => {
+  lineModal.show = false
+  lineModal.item = null
 }
 
 const handleDiscountScopeChange = (value) => {
@@ -1494,6 +1631,7 @@ const addLookupItem = (match) => {
     manual_serial_input: match.serial_number || '',
     tracked_expiry_date: match.expiry_date || '',
     tracked_error: '',
+    notes: '',
     tracking_options: [],
     tracking_records: [],
     tracking_loading: false,
@@ -1553,17 +1691,22 @@ const decrementItem = (item) => {
 
 const removeItem = (key) => {
   cart.value = cart.value.filter((item) => item.key !== key)
+
+  if (lineModal.item?.key === key) {
+    closeLineModal()
+  }
 }
 
 const clearCart = () => {
   cart.value = []
+  closeLineModal()
   paymentRows.value = [createPaymentRow({
     payment_date: form.sale_date,
   })]
-  form.discount_scope = 'line'
+  form.discount_scope = DEFAULT_DISCOUNT_SCOPE
   form.discount_type = ''
   form.discount_amount = 0
-  form.tax_scope = 'line'
+  form.tax_scope = DEFAULT_TAX_SCOPE
   form.tax_rate_id = ''
   form.tax_rate_type = ''
   form.tax_rate = 0
@@ -1924,7 +2067,7 @@ onMounted(async () => {
   min-height: 22rem;
   flex: 1;
   flex-direction: column;
-  overflow: hidden;
+  overflow: visible;
   padding: 0;
 }
 
@@ -1936,7 +2079,7 @@ onMounted(async () => {
 .pos-cart-header {
   border-bottom: 1px solid rgba(226, 232, 240, 0.9);
   background: rgba(248, 250, 252, 0.98);
-  min-width: 42rem;
+  min-width: 44rem;
   padding: 0.3rem 0.45rem;
   color: rgb(100 116 139);
   font-size: 0.62rem;
@@ -1953,53 +2096,38 @@ onMounted(async () => {
 }
 
 .pos-cart-table {
+  width: 100%;
+  max-width: 100%;
   flex: 1;
   min-height: 0;
   overflow-x: auto;
-}
-
-.pos-cart-table--with-discount .pos-cart-header,
-.pos-cart-table--with-discount .pos-cart-list,
-.pos-cart-table--with-discount .pos-cart-line-grid {
-  min-width: 50rem;
+  overflow-y: visible;
+  scrollbar-gutter: stable;
 }
 
 .pos-cart-list {
   display: flex;
-  max-height: calc(100vh - 24rem);
-  min-height: 18rem;
-  min-width: 42rem;
+  max-height: none;
+  min-height: 0;
+  min-width: 44rem;
   flex-direction: column;
   gap: 0.22rem;
-  overflow-y: auto;
+  overflow: visible;
   padding: 0.35rem;
 }
 
 .pos-cart-line-grid {
   display: grid;
   grid-template-columns:
-    minmax(9rem, 1.5fr)
-    minmax(5.6rem, 0.6fr)
-    minmax(7rem, 0.76fr)
-    4rem
-    5.2rem
-    5.4rem
-    1.8rem;
+    minmax(15rem, 1.8fr)
+    minmax(6.5rem, 0.65fr)
+    6.5rem
+    6.2rem
+    6.6rem
+    2rem;
   align-items: center;
   gap: 0.35rem;
-  min-width: 42rem;
-}
-
-.pos-cart-line-grid--with-discount {
-  grid-template-columns:
-    minmax(9rem, 1.35fr)
-    minmax(5.6rem, 0.56fr)
-    minmax(7rem, 0.72fr)
-    4rem
-    5.2rem
-    minmax(7.8rem, 0.8fr)
-    5.4rem
-    1.8rem;
+  min-width: 44rem;
 }
 
 .pos-cart-row {
@@ -2013,7 +2141,6 @@ onMounted(async () => {
 
 .pos-line-product-cell,
 .pos-line-unit-cell,
-.pos-line-tracking-cell,
 .pos-line-quantity-cell,
 .pos-line-price-cell,
 .pos-line-total-cell {
@@ -2021,33 +2148,48 @@ onMounted(async () => {
 }
 
 .pos-line-product-name {
-  overflow: hidden;
+  display: block;
+  width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 0;
   color: rgb(15 23 42);
+  cursor: pointer;
   font-size: 0.78rem;
   font-weight: 800;
-  line-height: 1.12;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.2;
+  text-align: left;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  transition: color 150ms ease;
+}
+
+.pos-line-product-name:hover {
+  color: rgb(3 105 161);
 }
 
 .pos-line-product-meta {
   display: flex;
+  flex-wrap: wrap;
   gap: 0.22rem;
-  overflow: hidden;
+  overflow: visible;
   margin-top: 0.16rem;
-  white-space: nowrap;
 }
 
 .pos-line-product-meta .erp-badge {
   min-height: 1rem;
-  max-width: 5.6rem;
-  flex: 0 1 auto;
-  overflow: hidden;
+  max-width: none;
+  flex: 0 0 auto;
+  overflow: visible;
   padding: 0 0.32rem;
   font-size: 0.58rem;
   font-weight: 800;
-  text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.pos-line-product-meta .pos-line-sku-badge {
+  max-width: none;
+  flex: 0 0 auto;
 }
 
 .pos-line-empty-value {
@@ -2065,25 +2207,21 @@ onMounted(async () => {
 }
 
 .pos-line-total-primary {
-  overflow: hidden;
   color: rgb(15 23 42);
   font-size: 0.78rem;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
   line-height: 1.1;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
 .pos-line-total-secondary {
-  overflow: hidden;
   margin-top: 0.05rem;
   color: rgb(148 163 184);
   font-size: 0.62rem;
   font-weight: 700;
   font-variant-numeric: tabular-nums;
   line-height: 1.05;
-  text-overflow: ellipsis;
   white-space: nowrap;
 }
 
@@ -2092,6 +2230,59 @@ onMounted(async () => {
   color: rgb(225 29 72);
   font-size: 0.68rem;
   font-weight: 700;
+}
+
+.pos-quantity-stepper {
+  display: grid;
+  grid-template-columns: 1.55rem minmax(0, 1fr) 1.55rem;
+  overflow: hidden;
+  min-width: 0;
+  border: 1px solid rgba(226, 232, 240, 0.88);
+  border-radius: 6px;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.pos-quantity-stepper-button {
+  display: inline-flex;
+  min-height: 1.75rem;
+  align-items: center;
+  justify-content: center;
+  color: rgb(71 85 105);
+  font-size: 0.62rem;
+  transition: background-color 150ms ease, color 150ms ease, opacity 150ms ease;
+}
+
+.pos-quantity-stepper-button:hover:not(:disabled) {
+  background: rgb(224 242 254);
+  color: rgb(3 105 161);
+}
+
+.pos-quantity-stepper-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.pos-quantity-stepper-input {
+  min-width: 0;
+  border: 0;
+  border-right: 1px solid rgba(226, 232, 240, 0.88);
+  border-left: 1px solid rgba(226, 232, 240, 0.88);
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+  appearance: textfield;
+  -moz-appearance: textfield;
+}
+
+.pos-quantity-stepper-input::-webkit-inner-spin-button,
+.pos-quantity-stepper-input::-webkit-outer-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+.pos-quantity-stepper-input:focus {
+  border-color: rgba(226, 232, 240, 0.88);
+  box-shadow: inset 0 0 0 1px rgba(34, 211, 238, 0.24);
 }
 
 .pos-cart-price-input {
@@ -2126,11 +2317,66 @@ onMounted(async () => {
 .pos-pricing-footer {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.5rem;
+  gap: 0.65rem;
+}
+
+.pos-pricing-card {
+  position: relative;
+  overflow: hidden;
   border: 1px solid rgba(203, 213, 225, 0.78);
   border-radius: 8px;
-  background: rgba(248, 250, 252, 0.86);
-  padding: 0.6rem;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 252, 0.88));
+  padding: 0.65rem;
+}
+
+.pos-pricing-card::before {
+  content: "";
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 3px;
+  background: rgb(14 165 233);
+}
+
+.pos-pricing-card-discount::before {
+  background: rgb(244 63 94);
+}
+
+.pos-pricing-card-tax::before {
+  background: rgb(14 165 233);
+}
+
+.pos-pricing-card-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.42rem;
+  margin-bottom: 0.55rem;
+  color: rgb(15 23 42);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.pos-pricing-card-icon {
+  display: inline-flex;
+  height: 1.35rem;
+  width: 1.35rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: rgba(14, 165, 233, 0.12);
+  color: rgb(3 105 161);
+  font-size: 0.65rem;
+}
+
+.pos-pricing-card-discount .pos-pricing-card-icon {
+  background: rgba(244, 63, 94, 0.1);
+  color: rgb(225 29 72);
+}
+
+.pos-pricing-card-body {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(7rem, 1fr));
+  gap: 0.5rem;
 }
 
 .pos-pricing-control {
@@ -2147,6 +2393,46 @@ onMounted(async () => {
   min-height: 1.9rem;
   padding: 0.25rem 0.48rem;
   font-size: 0.76rem;
+}
+
+.pos-line-modal-card {
+  border: 1px solid rgba(203, 213, 225, 0.78);
+  border-radius: 8px;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 252, 0.88));
+  padding: 0.9rem;
+}
+
+.pos-line-modal-heading {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.8rem;
+  color: rgb(15 23 42);
+  font-size: 0.85rem;
+  font-weight: 900;
+}
+
+.pos-line-modal-icon {
+  display: inline-flex;
+  height: 1.55rem;
+  width: 1.55rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  background: rgba(14, 165, 233, 0.12);
+  color: rgb(3 105 161);
+  font-size: 0.7rem;
+}
+
+.pos-line-modal-icon-discount {
+  background: rgba(244, 63, 94, 0.1);
+  color: rgb(225 29 72);
+}
+
+.pos-line-modal-icon-note {
+  background: rgba(16, 185, 129, 0.12);
+  color: rgb(4 120 87);
 }
 
 .pos-totals-bar {
@@ -2258,21 +2544,21 @@ onMounted(async () => {
   display: grid;
   max-height: calc(100vh - 18rem);
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 0.65rem;
+  gap: 0.5rem;
   overflow-y: auto;
   padding-right: 0.2rem;
 }
 
 .pos-product-tile {
   display: grid;
-  min-height: 8.8rem;
-  grid-template-rows: 3.35rem auto auto auto;
-  gap: 0.28rem;
+  min-height: 7.3rem;
+  grid-template-rows: 2.75rem auto auto auto;
+  gap: 0.2rem;
   border: 1px solid rgba(203, 213, 225, 0.86);
   border-radius: 10px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.88));
-  padding: 0.55rem;
+  padding: 0.42rem;
   text-align: left;
   transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease, opacity 150ms ease;
 }
@@ -2310,7 +2596,7 @@ onMounted(async () => {
   display: -webkit-box;
   overflow: hidden;
   color: rgb(15 23 42);
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   font-weight: 800;
   line-height: 1.2;
   -webkit-box-orient: vertical;
@@ -2320,16 +2606,23 @@ onMounted(async () => {
 .pos-product-meta {
   overflow: hidden;
   color: rgb(100 116 139);
-  font-size: 0.68rem;
+  font-size: 0.6rem;
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 
+.pos-product-meta-sku {
+  display: block;
+  line-height: 1.1;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
 .pos-product-meta-secondary {
   overflow: hidden;
   color: rgb(148 163 184);
-  font-size: 0.64rem;
+  font-size: 0.58rem;
   font-weight: 700;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -2339,12 +2632,12 @@ onMounted(async () => {
   display: inline-flex;
   align-items: center;
   justify-self: start;
-  min-height: 1.2rem;
+  min-height: 1.05rem;
   border-radius: 999px;
   background: rgba(220, 252, 231, 0.92);
-  padding: 0 0.45rem;
+  padding: 0 0.34rem;
   color: rgb(21 128 61);
-  font-size: 0.64rem;
+  font-size: 0.56rem;
   font-weight: 800;
 }
 
@@ -2355,7 +2648,7 @@ onMounted(async () => {
 
 .pos-product-price {
   color: rgb(4 120 87);
-  font-size: 0.82rem;
+  font-size: 0.72rem;
   font-weight: 900;
   font-variant-numeric: tabular-nums;
 }
@@ -2652,7 +2945,8 @@ onMounted(async () => {
 }
 
 .dark .pos-cart-row,
-.dark .pos-pricing-footer,
+.dark .pos-pricing-card,
+.dark .pos-line-modal-card,
 .dark .pos-chip,
 .dark .pos-product-tile,
 .dark .pos-action-lite,
@@ -2664,6 +2958,8 @@ onMounted(async () => {
 .dark .pos-total-cell strong,
 .dark .pos-line-product-name,
 .dark .pos-line-total-primary,
+.dark .pos-pricing-card-heading,
+.dark .pos-line-modal-heading,
 .dark .pos-product-name,
 .dark .pos-action-lite {
   color: rgb(241 245 249);
@@ -2672,6 +2968,24 @@ onMounted(async () => {
 .dark .pos-line-total-secondary,
 .dark .pos-line-empty-value {
   color: rgb(148 163 184);
+}
+
+.dark .pos-quantity-stepper {
+  border-color: rgba(51, 65, 85, 0.82);
+  background: rgba(15, 23, 42, 0.76);
+}
+
+.dark .pos-quantity-stepper-button {
+  color: rgb(203 213 225);
+}
+
+.dark .pos-quantity-stepper-button:hover:not(:disabled) {
+  background: rgba(8, 47, 73, 0.72);
+  color: rgb(165 243 252);
+}
+
+.dark .pos-quantity-stepper-input {
+  border-color: rgba(51, 65, 85, 0.82);
 }
 
 .dark .pos-total-discount strong {
@@ -2713,12 +3027,6 @@ onMounted(async () => {
   }
 }
 
-@media (max-width: 1279px) {
-  .pos-cart-list {
-    max-height: none;
-  }
-}
-
 @media (max-width: 767px) {
   .pos-terminal-header {
     position: relative;
@@ -2737,11 +3045,19 @@ onMounted(async () => {
   .pos-pricing-footer {
     grid-template-columns: 1fr;
   }
+
+  .pos-pricing-card-body {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (min-width: 1024px) {
   .pos-workspace {
     grid-template-columns: minmax(0, 60fr) minmax(24rem, 40fr);
+  }
+
+  .pos-product-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
   .pos-totals-bar {
@@ -2757,11 +3073,15 @@ onMounted(async () => {
   .pos-product-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
+
+  .pos-pricing-card-body {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
 }
 
 @media (min-width: 1536px) {
   .pos-product-grid {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 }
 </style>
