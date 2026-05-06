@@ -243,7 +243,7 @@ class InventoryProductLookupService
         }
 
         $lots = StockLot::withoutGlobalScopes()
-            ->select(['id', 'product_id', 'variation_id', 'warehouse_id', 'lot_number', 'unit_cost'])
+            ->select(['id', 'product_id', 'variation_id', 'warehouse_id', 'lot_number', 'unit_cost', 'expiry_date'])
             ->where('business_id', $businessId)
             ->where('warehouse_id', $warehouseId)
             ->where('qty_on_hand', '>', 0)
@@ -278,6 +278,7 @@ class InventoryProductLookupService
                 'label' => trim(($product?->name ?? 'Product').($variation ? ' / '.$variation->name : '')),
                 'sku' => $variation?->sku ?: $product?->sku,
                 'lot_number' => $lot->lot_number,
+                'expiry_date' => optional($lot->expiry_date)->toDateString(),
                 'serial_number' => null,
                 'unit_cost' => $lot->unit_cost !== null ? (string) $lot->unit_cost : null,
                 'selling_price' => $variation?->selling_price !== null
@@ -362,6 +363,7 @@ class InventoryProductLookupService
                 'label' => trim(($product?->name ?? 'Product').($variation ? ' / '.$variation->name : '')),
                 'sku' => $variation?->sku ?: $product?->sku,
                 'lot_number' => null,
+                'expiry_date' => null,
                 'serial_number' => $serial->serial_number,
                 'unit_cost' => $serial->unit_cost !== null ? (string) $serial->unit_cost : null,
                 'selling_price' => $variation?->selling_price !== null

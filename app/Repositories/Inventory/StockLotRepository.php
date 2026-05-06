@@ -35,6 +35,7 @@ class StockLotRepository extends BaseRepository
             )
             ->when(filled($filters['warehouse_id'] ?? null), fn ($query) => $query->where('warehouse_id', $filters['warehouse_id']))
             ->when(filled($filters['product_id'] ?? null), fn ($query) => $query->where('product_id', $filters['product_id']))
+            ->when(filled($filters['variation_id'] ?? null), fn ($query) => $query->where('variation_id', $filters['variation_id']))
             ->when(filled($filters['status'] ?? null), fn ($query) => $query->where('status', $filters['status']))
             ->whereHas('warehouse', function ($warehouseQuery) use ($user): void {
                 BranchAccess::scopeBranchQuery($warehouseQuery, $user, 'branch_id');

@@ -151,77 +151,37 @@
         @confirm="submitDelete"
       />
 
-      <AppModal :show="paymentDialog.show" :title="paymentDialogTitle" :icon="paymentDialogIcon" size="lg" @close="closePaymentModal">
-        <div class="space-y-4">
-          <div>
-            <div class="text-sm font-semibold text-slate-950 dark:text-white">{{ paymentDialog.sale?.sale_number }}</div>
-            <div class="mt-1 text-sm text-slate-500 dark:text-slate-400">
-              {{ t('sales.salesPage.outstandingBalance') }}: {{ formatAccountingMoney(paymentDialog.outstanding) }}
-            </div>
-            <div v-if="paymentDialog.mode === 'finalize'" class="mt-2 text-xs text-slate-500 dark:text-slate-400">
-              {{ t('sales.formPage.finalizePaymentHint') }}
-            </div>
-          </div>
-
-          <div class="grid gap-4 md:grid-cols-2">
-            <div>
-              <label class="erp-label">{{ t('sales.salesPage.fields.paymentAccount') }}</label>
-              <AppSelect
-                :model-value="paymentDialog.form.payment_account_id || null"
-                :options="paymentAccountOptions"
-                :placeholder="t('sales.salesPage.placeholders.selectPaymentAccount')"
-                :search-placeholder="t('sales.salesPage.placeholders.searchPaymentAccounts')"
-                searchable
-                @update:model-value="paymentDialog.form.payment_account_id = $event || ''"
-              />
-            </div>
-
-            <div>
-              <label class="erp-label">{{ t('sales.salesPage.fields.paymentMethod') }}</label>
-              <AppSelect
-                :model-value="paymentDialog.form.method || null"
-                :options="paymentMethodOptions"
-                :placeholder="t('sales.salesPage.placeholders.selectPaymentMethod')"
-                @update:model-value="paymentDialog.form.method = $event || 'cash'"
-              />
-            </div>
-          </div>
-
-          <div class="grid gap-4 md:grid-cols-3">
-            <div>
-              <label class="erp-label">{{ t('sales.salesPage.fields.amount') }}</label>
-              <input v-model.number="paymentDialog.form.amount" type="number" min="0.01" step="0.01" class="erp-input" />
-            </div>
-
-            <div>
-              <label class="erp-label">{{ t('sales.salesPage.fields.paymentDate') }}</label>
-              <AppDatePicker
-                :model-value="paymentDialog.form.payment_date"
-                @update:model-value="paymentDialog.form.payment_date = $event || ''"
-              />
-            </div>
-
-            <div>
-              <label class="erp-label">{{ t('sales.salesPage.fields.reference') }}</label>
-              <input v-model="paymentDialog.form.reference" type="text" class="erp-input" />
-            </div>
-          </div>
-
-          <div>
-            <label class="erp-label">{{ t('sales.salesPage.fields.note') }}</label>
-            <textarea v-model="paymentDialog.form.note" rows="3" class="erp-input min-h-[6rem]"></textarea>
-          </div>
-
-          <div class="erp-form-actions">
-            <button type="button" class="erp-button-secondary" :disabled="store.saving" @click="closePaymentModal">
-              {{ t('sales.shared.actions.cancel') }}
-            </button>
-            <button type="button" class="erp-button-primary" :disabled="store.saving" @click="submitPayment">
-              {{ paymentDialog.mode === 'finalize' ? t('sales.shared.actions.finalizeSale') : t('sales.shared.actions.recordPayment') }}
-            </button>
-          </div>
-        </div>
-      </AppModal>
+      <SalePaymentModal
+        :show="paymentDialog.show"
+        :title="paymentDialogTitle"
+        :icon="paymentDialogIcon"
+        :intro-title="paymentDialog.sale?.sale_number || ''"
+        :intro-text="paymentDialog.mode === 'finalize' ? t('sales.formPage.finalizePaymentHint') : ''"
+        :summary-label="t('sales.salesPage.outstandingBalance')"
+        :summary-value="paymentDialog.outstanding"
+        :form="paymentDialog.payments[0]"
+        :payments="paymentDialog.payments"
+        :payment-account-options="paymentAccountOptions"
+        :payment-method-options="paymentMethodOptions"
+        :account-label="t('sales.salesPage.fields.paymentAccount')"
+        :method-label="t('sales.salesPage.fields.paymentMethod')"
+        :amount-label="t('sales.salesPage.fields.amount')"
+        :payment-date-label="t('sales.salesPage.fields.paymentDate')"
+        :reference-label="t('sales.salesPage.fields.reference')"
+        :note-label="t('sales.salesPage.fields.note')"
+        :account-placeholder="t('sales.salesPage.placeholders.selectPaymentAccount')"
+        :account-search-placeholder="t('sales.salesPage.placeholders.searchPaymentAccounts')"
+        :method-placeholder="t('sales.salesPage.placeholders.selectPaymentMethod')"
+        :saving="store.saving"
+        allow-multiple-rows
+        :cancel-label="t('sales.shared.actions.cancel')"
+        :confirm-label="paymentDialog.mode === 'finalize' ? t('sales.shared.actions.finalizeSale') : t('sales.shared.actions.recordPayment')"
+        :amount-min="0.01"
+        @close="closePaymentModal"
+        @add-row="addPaymentRow"
+        @remove-row="removePaymentRow"
+        @confirm="submitPayment"
+      />
 
       <AppModal :show="cancelDialog.show" :title="t('sales.shared.actions.cancelDocument')" :icon="t('sales.salesPage.cancelIcon')" size="lg" @close="closeCancelModal">
         <div class="space-y-4">
@@ -350,10 +310,9 @@ import { useRouter } from 'vue-router'
 import * as accountingApi from '@api/accounting'
 import * as branchesApi from '@api/branches'
 import * as warehousesApi from '@api/warehouses'
+import SalePaymentModal from '@components/sales/SalePaymentModal.vue'
 import AppAlert from '@components/ui/AppAlert.vue'
-import AppDatePicker from '@components/ui/AppDatePicker.vue'
 import AppModal from '@components/ui/AppModal.vue'
-import AppSelect from '@components/ui/AppSelect.vue'
 import ConfirmDelete from '@components/ui/ConfirmDelete.vue'
 import DataTableActionDropdown from '@components/ui/DataTableActionDropdown.vue'
 import DataTable from '@components/ui/DataTable.vue'
@@ -378,12 +337,21 @@ const paymentAccounts = ref([])
 
 const alert = reactive({ show: false, type: 'success', title: '', message: '' })
 const deleteDialog = reactive({ show: false, sale: null })
+const createPaymentRow = (overrides = {}) => ({
+  payment_account_id: '',
+  amount: '',
+  method: 'cash',
+  payment_date: new Date().toISOString().slice(0, 10),
+  reference: '',
+  note: '',
+  ...overrides,
+})
 const paymentDialog = reactive({
   show: false,
   sale: null,
   mode: 'payment',
   outstanding: 0,
-  form: { payment_account_id: '', amount: '', method: 'cash', payment_date: new Date().toISOString().slice(0, 10), reference: '', note: '' },
+  payments: [createPaymentRow()],
 })
 const cancelDialog = reactive({ show: false, sale: null, reason: '' })
 const returnDialog = reactive({ show: false, sale: null, form: { return_date: new Date().toISOString().slice(0, 10), refund_method: 'credit_note', notes: '' }, items: [] })
@@ -620,12 +588,9 @@ const openFinalizeModal = (sale) => {
   paymentDialog.mode = 'finalize'
   paymentDialog.sale = sale
   paymentDialog.outstanding = Math.max(total - paid, 0)
-  paymentDialog.form.payment_account_id = ''
-  paymentDialog.form.amount = paymentDialog.outstanding || ''
-  paymentDialog.form.method = 'cash'
-  paymentDialog.form.payment_date = new Date().toISOString().slice(0, 10)
-  paymentDialog.form.reference = ''
-  paymentDialog.form.note = ''
+  paymentDialog.payments = [createPaymentRow({
+    amount: paymentDialog.outstanding || '',
+  })]
 }
 
 const openPaymentModal = (sale) => {
@@ -636,12 +601,9 @@ const openPaymentModal = (sale) => {
   paymentDialog.mode = 'payment'
   paymentDialog.sale = sale
   paymentDialog.outstanding = Math.max(total - paid, 0)
-  paymentDialog.form.payment_account_id = ''
-  paymentDialog.form.amount = paymentDialog.outstanding
-  paymentDialog.form.method = 'cash'
-  paymentDialog.form.payment_date = new Date().toISOString().slice(0, 10)
-  paymentDialog.form.reference = ''
-  paymentDialog.form.note = ''
+  paymentDialog.payments = [createPaymentRow({
+    amount: paymentDialog.outstanding,
+  })]
 }
 
 const openDeleteDialog = (sale) => {
@@ -672,6 +634,24 @@ const closePaymentModal = () => {
   paymentDialog.show = false
   paymentDialog.mode = 'payment'
   paymentDialog.sale = null
+  paymentDialog.payments = [createPaymentRow()]
+}
+
+const addPaymentRow = () => {
+  const lastRow = paymentDialog.payments[paymentDialog.payments.length - 1] || {}
+  paymentDialog.payments.push(createPaymentRow({
+    payment_account_id: lastRow.payment_account_id || '',
+    method: lastRow.method || 'cash',
+    payment_date: lastRow.payment_date || new Date().toISOString().slice(0, 10),
+  }))
+}
+
+const removePaymentRow = (index) => {
+  if (paymentDialog.payments.length === 1) {
+    return
+  }
+
+  paymentDialog.payments.splice(index, 1)
 }
 
 const submitPayment = async () => {
@@ -679,26 +659,39 @@ const submitPayment = async () => {
     return
   }
 
-  const amount = Number(paymentDialog.form.amount || 0)
-  const hasPayment = amount > 0
+  const payments = paymentDialog.payments
+    .map((row) => ({
+      payment_account_id: row.payment_account_id || '',
+      amount: Number(row.amount || 0),
+      method: row.method || 'cash',
+      payment_date: row.payment_date || '',
+      reference: row.reference?.trim() || '',
+      note: row.note?.trim() || '',
+    }))
+    .filter((row) => row.payment_account_id || row.amount > 0 || row.reference || row.note)
 
-  if (hasPayment && !paymentDialog.form.payment_account_id) {
+  const invalidPayment = payments.find((row) => !row.payment_account_id || row.amount <= 0 || !row.payment_date)
+
+  if (invalidPayment) {
     showToast('danger', t('sales.salesPage.toast.invalidPayment'))
     return
   }
+
+  const totalAmount = payments.reduce((sum, row) => sum + row.amount, 0)
+  const hasPayment = totalAmount > 0
 
   try {
     if (paymentDialog.mode === 'finalize') {
       await store.completeItem(paymentDialog.sale.id)
 
-      if (hasPayment) {
+      for (const payment of payments) {
         await store.recordPayment(paymentDialog.sale.id, {
-          payment_account_id: paymentDialog.form.payment_account_id,
-          amount,
-          method: paymentDialog.form.method,
-          payment_date: paymentDialog.form.payment_date,
-          reference: paymentDialog.form.reference || null,
-          note: paymentDialog.form.note || null,
+          payment_account_id: payment.payment_account_id,
+          amount: payment.amount,
+          method: payment.method,
+          payment_date: payment.payment_date,
+          reference: payment.reference || null,
+          note: payment.note || null,
         })
       }
 
@@ -712,14 +705,16 @@ const submitPayment = async () => {
       return
     }
 
-    await store.recordPayment(paymentDialog.sale.id, {
-      payment_account_id: paymentDialog.form.payment_account_id,
-      amount,
-      method: paymentDialog.form.method,
-      payment_date: paymentDialog.form.payment_date,
-      reference: paymentDialog.form.reference || null,
-      note: paymentDialog.form.note || null,
-    })
+    for (const payment of payments) {
+      await store.recordPayment(paymentDialog.sale.id, {
+        payment_account_id: payment.payment_account_id,
+        amount: payment.amount,
+        method: payment.method,
+        payment_date: payment.payment_date,
+        reference: payment.reference || null,
+        note: payment.note || null,
+      })
+    }
     closePaymentModal()
     showToast('success', t('sales.salesPage.toast.paymentRecorded'))
   } catch (error) {

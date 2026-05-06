@@ -20,6 +20,7 @@ class ProductRepository extends BaseRepository
         $perPage = (int) ($filters['per_page'] ?? 15);
         $perPage = max(1, min($perPage, 100));
         $isActive = $filters['is_active'] ?? null;
+        $warehouseId = $filters['warehouse_id'] ?? null;
 
         $query = $this->query()
             ->with([
@@ -29,6 +30,48 @@ class ProductRepository extends BaseRepository
                 'subUnit:id,name,short_name',
                 'taxRate:id,name,rate,type',
                 'primaryImage',
+                'variations' => function ($builder) use ($warehouseId): void {
+                    $builder
+                        ->select([
+                            'id',
+                            'business_id',
+                            'product_id',
+                            'sub_unit_id',
+                            'name',
+                            'sku',
+                            'selling_price',
+                            'purchase_price',
+                            'sub_unit_selling_price',
+                            'sub_unit_purchase_price',
+                            'minimum_selling_price',
+                            'is_active',
+                        ])
+                        ->where('is_active', true)
+                        ->with([
+                            'primaryImage',
+                            'subUnit:id,parent_unit_id,name,short_name,conversion_factor',
+                        ])
+                        ->when(
+                            filled($warehouseId),
+                            fn ($variationBuilder) => $variationBuilder->addSelect([
+                                'on_hand_quantity' => DB::table('stock_levels')
+                                    ->selectRaw('coalesce(sum(quantity), 0)')
+                                    ->whereColumn('stock_levels.product_id', 'product_variations.product_id')
+                                    ->whereColumn('stock_levels.variation_id', 'product_variations.id')
+                                    ->where('stock_levels.warehouse_id', $warehouseId),
+                                'reserved_quantity' => DB::table('stock_levels')
+                                    ->selectRaw('coalesce(sum(reserved_quantity), 0)')
+                                    ->whereColumn('stock_levels.product_id', 'product_variations.product_id')
+                                    ->whereColumn('stock_levels.variation_id', 'product_variations.id')
+                                    ->where('stock_levels.warehouse_id', $warehouseId),
+                                'available_quantity' => DB::table('stock_levels')
+                                    ->selectRaw('coalesce(sum(quantity - reserved_quantity), 0)')
+                                    ->whereColumn('stock_levels.product_id', 'product_variations.product_id')
+                                    ->whereColumn('stock_levels.variation_id', 'product_variations.id')
+                                    ->where('stock_levels.warehouse_id', $warehouseId),
+                            ])
+                        );
+                },
             ])
             ->withCount(['variations', 'comboItems'])
             ->addSelect([
@@ -49,6 +92,23 @@ class ProductRepository extends BaseRepository
                     ->whereColumn('product_variations.product_id', 'products.id')
                     ->whereNull('product_variations.deleted_at'),
             ])
+            ->when(
+                filled($warehouseId),
+                fn (Builder $builder) => $builder->addSelect([
+                    'on_hand_quantity' => DB::table('stock_levels')
+                        ->selectRaw('coalesce(sum(quantity), 0)')
+                        ->whereColumn('stock_levels.product_id', 'products.id')
+                        ->where('stock_levels.warehouse_id', $warehouseId),
+                    'reserved_quantity' => DB::table('stock_levels')
+                        ->selectRaw('coalesce(sum(reserved_quantity), 0)')
+                        ->whereColumn('stock_levels.product_id', 'products.id')
+                        ->where('stock_levels.warehouse_id', $warehouseId),
+                    'available_quantity' => DB::table('stock_levels')
+                        ->selectRaw('coalesce(sum(quantity - reserved_quantity), 0)')
+                        ->whereColumn('stock_levels.product_id', 'products.id')
+                        ->where('stock_levels.warehouse_id', $warehouseId),
+                ])
+            )
             ->when(
                 filled($filters['type'] ?? null),
                 fn (Builder $builder) => $builder->where('type', $filters['type'])

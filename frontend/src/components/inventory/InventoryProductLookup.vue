@@ -42,7 +42,7 @@
     >
       <div
         v-if="showDropdown"
-        class="erp-lookup-panel absolute left-0 right-0 top-[calc(100%+0.5rem)] z-[120] overflow-hidden rounded-[15px] border border-slate-200/80 bg-white/95 shadow-[0_22px_50px_rgba(44,62,99,0.16)] dark:border-slate-700/70 dark:bg-slate-900/95 dark:shadow-[0_22px_50px_rgba(0,0,0,0.36)]"
+        class="erp-lookup-panel absolute left-0 right-0 top-[calc(100%+0.5rem)] z-[260] overflow-hidden rounded-[15px] border border-slate-200/80 bg-white/95 shadow-[0_22px_50px_rgba(44,62,99,0.16)] dark:border-slate-700/70 dark:bg-slate-900/95 dark:shadow-[0_22px_50px_rgba(0,0,0,0.36)]"
       >
         <div v-if="loading" class="px-4 py-4 text-sm text-slate-500 dark:text-slate-400">
           Searching inventory...

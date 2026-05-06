@@ -12,12 +12,12 @@ class PaymentAccountPolicy
 
     public function viewAny(User $user): bool
     {
-        return $user->can('accounting.index');
+        return $user->can('accounting.index') || $user->can('payments.create');
     }
 
     public function view(User $user, PaymentAccount $paymentAccount): bool
     {
-        return $user->can('accounting.index')
+        return ($user->can('accounting.index') || $user->can('payments.create'))
             && $this->belongsToSameBusiness($user, $paymentAccount);
     }
 

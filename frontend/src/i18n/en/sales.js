@@ -52,6 +52,12 @@ export default {
         successTitle: 'Success',
         errorTitle: 'Error',
       },
+      paymentModal: {
+        rowShort: '#',
+        rowLabel: 'Payment {number}',
+        addRow: 'Add payment row',
+        removeRow: 'Remove row',
+      },
       types: {
         invoice: 'Invoice',
         pos_sale: 'POS Sale',
@@ -339,7 +345,20 @@ export default {
         brands: 'Brands',
         all: 'All',
         searchProducts: 'Search product tiles',
+        lookupRequired: 'Choose variant',
         noProducts: 'No products match the current filter.',
+      },
+      tracking: {
+        lot: 'Lot',
+        serial: 'Serial',
+        expiry: 'Expiry',
+        lotPlaceholder: 'Enter lot number',
+        serialPlaceholder: 'Enter serial number(s)',
+        expiryPlaceholder: 'Auto from lot',
+        lotNotFound: 'Lot number was not found for this product in the selected warehouse.',
+        serialNotFound: 'One or more serial numbers were not found for this product in the selected warehouse.',
+        lotRequired: 'Enter and resolve a lot number before saving this line.',
+        serialRequired: 'Enter and resolve serial number(s) before saving this line.',
       },
       summary: {
         items: 'Items',
@@ -352,6 +371,7 @@ export default {
       toast: {
         finalized: 'POS sale finalized successfully.',
         suspended: 'POS sale suspended successfully.',
+        lookupRequired: 'This product has variants. Use scan/search to choose the exact variant before adding it.',
         failed: 'Unable to save the POS sale.',
       },
     },

@@ -128,117 +128,227 @@
                 </div>
               </div>
 
-              <div class="pos-cart-header hidden xl:block">
-                <div class="grid grid-cols-[minmax(0,1fr),5.5rem,6.4rem,6.6rem,11rem,6.8rem,2.25rem] items-center gap-2">
-                  <span>{{ t('sales.documentModal.fields.product') }}</span>
-                  <span class="text-center">{{ t('sales.documentModal.fields.quantity') }}</span>
-                  <span>{{ t('sales.documentModal.fields.unit') }}</span>
-                  <span class="text-right">{{ t('sales.documentModal.fields.unitPrice') }}</span>
-                  <span>{{ t('sales.documentModal.fields.lineDiscount') }}</span>
-                  <span class="text-right">{{ t('sales.documentModal.fields.subtotal') }}</span>
-                  <span></span>
-                </div>
-              </div>
-
               <div v-if="!cart.length" class="erp-empty-state pos-cart-empty text-sm text-slate-500 dark:text-slate-400">
                 {{ t('sales.posPage.emptyCart') }}
               </div>
 
-              <div v-else class="pos-cart-list">
-                <article
-                  v-for="item in cart"
-                  :key="item.key"
-                  class="pos-cart-row"
-                >
-                  <div class="grid gap-2 md:grid-cols-[minmax(0,1fr),minmax(0,1fr)] xl:grid-cols-[minmax(0,1fr),5.5rem,6.4rem,6.6rem,11rem,6.8rem,2.25rem] xl:items-center">
-                    <div class="min-w-0 md:col-span-2 xl:col-span-1">
-                      <div class="truncate text-sm font-semibold text-slate-950 dark:text-white">
-                        {{ item.product_name || t('sales.shared.notRecorded') }}
-                        <span v-if="item.variation_name" class="text-slate-500 dark:text-slate-400">/ {{ item.variation_name }}</span>
-                      </div>
-                      <div class="mt-1 flex flex-wrap gap-1 text-[11px] text-slate-500 dark:text-slate-400">
-                        <span v-if="item.sku" class="erp-badge erp-badge-neutral px-1.5 py-0 text-[10px]">SKU: {{ item.sku }}</span>
-                        <span v-for="lot in item.lot_numbers" :key="`${item.key}-${lot}`" class="erp-badge erp-badge-warning px-1.5 py-0 text-[10px]">Lot: {{ lot }}</span>
-                        <span v-for="serial in item.serial_numbers" :key="`${item.key}-${serial}`" class="erp-badge erp-badge-info px-1.5 py-0 text-[10px]">Serial: {{ serial }}</span>
-                        <span v-if="lineDiscountAmount(item) > 0" class="erp-badge erp-badge-danger px-1.5 py-0 text-[10px]">
-                          -{{ formatAccountingMoney(lineDiscountAmount(item)) }}
-                        </span>
-                      </div>
-                    </div>
+              <div
+                v-else
+                class="pos-cart-table"
+                :class="showLineDiscountControls ? 'pos-cart-table--with-discount' : ''"
+              >
+                <div class="pos-cart-header hidden lg:block">
+                  <div class="pos-cart-line-grid" :class="{ 'pos-cart-line-grid--with-discount': showLineDiscountControls }">
+                    <span>{{ t('sales.documentModal.fields.product') }}</span>
+                    <span>{{ t('sales.documentModal.fields.unit') }}</span>
+                    <span>Tracking</span>
+                    <span class="text-center">{{ t('sales.documentModal.fields.quantity') }}</span>
+                    <span class="text-right">{{ t('sales.documentModal.fields.unitPrice') }}</span>
+                    <span v-if="showLineDiscountControls">{{ t('sales.documentModal.fields.lineDiscount') }}</span>
+                    <span class="text-right">{{ t('sales.documentModal.fields.subtotal') }}</span>
+                    <span></span>
+                  </div>
+                </div>
 
-                    <div>
-                      <input
-                        v-model.number="item.quantity"
-                        type="number"
-                        min="0.01"
-                        step="0.01"
-                        class="erp-input sale-line-compact-input text-center font-semibold"
-                        :disabled="item.serial_ids.length > 0"
-                        @input="syncTrackedQuantity(item)"
-                      />
-                    </div>
-
-                    <div class="sale-line-quantity pos-sale-line-uom">
-                      <div class="sale-line-quantity__unit !col-span-2">
-                        <AppSelect
-                          v-if="unitOptionsFor(item).length"
-                          :model-value="selectedUnitValue(item)"
-                          :options="unitOptionsFor(item)"
-                          :placeholder="t('sales.documentModal.fields.unit')"
-                          @update:model-value="handleLineUnitChange(item, $event)"
-                        />
-                        <div v-else class="sale-line-quantity__fallback">
-                          {{ selectedUnitOption(item)?.label || t('sales.documentModal.baseUnit') }}
+                <div class="pos-cart-list">
+                  <article
+                    v-for="item in cart"
+                    :key="item.key"
+                    class="pos-cart-row"
+                  >
+                    <div class="pos-cart-line-grid" :class="{ 'pos-cart-line-grid--with-discount': showLineDiscountControls }">
+                      <div class="pos-line-product-cell">
+                        <div class="pos-line-product-name">
+                          {{ item.product_name || t('sales.shared.notRecorded') }}
+                          <span v-if="item.variation_name" class="text-slate-500 dark:text-slate-400">/ {{ item.variation_name }}</span>
+                        </div>
+                        <div class="pos-line-product-meta">
+                          <span v-if="item.sku" class="erp-badge erp-badge-neutral">SKU: {{ item.sku }}</span>
+                          <span v-for="lot in item.lot_numbers" :key="`${item.key}-${lot}`" class="erp-badge erp-badge-warning">Lot: {{ lot }}</span>
+                          <span v-for="serial in item.serial_numbers" :key="`${item.key}-${serial}`" class="erp-badge erp-badge-info">Serial: {{ serial }}</span>
+                          <span v-if="item.tracked_expiry_date" class="erp-badge erp-badge-neutral">Exp: {{ item.tracked_expiry_date }}</span>
+                          <span v-if="lineDiscountAmount(item) > 0" class="erp-badge erp-badge-danger">
+                            -{{ formatAccountingMoney(lineDiscountAmount(item)) }}
+                          </span>
                         </div>
                       </div>
-                    </div>
 
-                    <div>
-                      <input v-model.number="item.unit_price" type="number" min="0" step="0.01" class="erp-input sale-line-compact-input pos-cart-price-input text-right font-semibold" />
-                    </div>
-
-                    <div class="sale-line-discount pos-sale-line-discount md:col-span-2 xl:col-span-1">
-                      <div class="sale-line-discount__type">
-                        <AppSelect
-                          :model-value="item.discount_type || null"
-                          :options="discountTypeOptions"
-                          :placeholder="t('sales.documentModal.placeholders.selectDiscountType')"
-                          clearable
-                          @update:model-value="item.discount_type = $event || ''"
-                        />
+                      <div class="pos-line-unit-cell">
+                        <div class="sale-line-quantity pos-line-unit-select">
+                          <div class="sale-line-quantity__unit !col-span-2">
+                            <AppSelect
+                              v-if="unitOptionsFor(item).length"
+                              :model-value="selectedUnitValue(item)"
+                              :options="unitOptionsFor(item)"
+                              :placeholder="t('sales.documentModal.fields.unit')"
+                              @update:model-value="handleLineUnitChange(item, $event)"
+                            />
+                            <div v-else class="sale-line-quantity__fallback">
+                              {{ selectedUnitOption(item)?.label || t('sales.documentModal.baseUnit') }}
+                            </div>
+                          </div>
+                        </div>
                       </div>
-                      <div class="sale-line-discount__value">
+
+                      <div class="pos-line-tracking-cell">
+                        <template v-if="item.stock_tracking === 'lot' || item.stock_tracking === 'serial'">
+                          <AppSelect
+                            v-if="item.stock_tracking === 'lot'"
+                            :model-value="selectedLotId(item) || null"
+                            :options="trackingOptionsFor(item)"
+                            :placeholder="t('sales.posPage.tracking.lotPlaceholder')"
+                            :empty-text="trackingEmptyText(item)"
+                            class="pos-line-tracking-select"
+                            searchable
+                            clearable
+                            @update:model-value="handleLotSelection(item, $event)"
+                          />
+                          <AppSelect
+                            v-else
+                            :model-value="selectedSerialIds(item)"
+                            :options="trackingOptionsFor(item)"
+                            :placeholder="t('sales.posPage.tracking.serialPlaceholder')"
+                            :empty-text="trackingEmptyText(item)"
+                            class="pos-line-tracking-select"
+                            multiple
+                            searchable
+                            clearable
+                            @update:model-value="handleSerialSelection(item, $event)"
+                          />
+                        </template>
+                        <span v-else class="pos-line-empty-value">-</span>
+                      </div>
+
+                      <div class="pos-line-quantity-cell">
                         <input
-                          v-model.number="item.discount_amount"
+                          v-model.number="item.quantity"
                           type="number"
-                          min="0"
-                          step="0.01"
-                          class="erp-input sale-line-discount__input text-right"
-                          :placeholder="t('sales.documentModal.placeholders.enterDiscount')"
+                          :min="item.stock_tracking === 'serial' ? 1 : 0.01"
+                          :step="item.stock_tracking === 'serial' ? 1 : 0.01"
+                          class="erp-input sale-line-compact-input text-center font-semibold"
+                          :disabled="item.stock_tracking === 'serial'"
+                          @input="syncTrackedQuantity(item)"
                         />
                       </div>
+
+                      <div class="pos-line-price-cell">
+                        <input v-model.number="item.unit_price" type="number" min="0" step="0.01" class="erp-input sale-line-compact-input pos-cart-price-input text-right font-semibold" />
+                      </div>
+
+                      <div v-if="showLineDiscountControls" class="sale-line-discount pos-sale-line-discount">
+                        <div class="sale-line-discount__type">
+                          <AppSelect
+                            :model-value="item.discount_type || null"
+                            :options="discountTypeOptions"
+                            :placeholder="t('sales.documentModal.placeholders.selectDiscountType')"
+                            clearable
+                            @update:model-value="item.discount_type = $event || ''"
+                          />
+                        </div>
+                        <div class="sale-line-discount__value">
+                          <input
+                            v-model.number="item.discount_amount"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            class="erp-input sale-line-discount__input text-right"
+                            :placeholder="t('sales.documentModal.placeholders.enterDiscount')"
+                          />
+                        </div>
+                      </div>
+
+                      <div class="pos-line-total-cell">
+                        <div class="pos-line-total-primary">
+                          {{ formatAccountingMoney(lineTotal(item)) }}
+                        </div>
+                        <div class="pos-line-total-secondary">
+                          {{ formatAccountingMoney(lineGross(item)) }}
+                        </div>
+                      </div>
+
+                      <button
+                        type="button"
+                        class="pos-cart-delete"
+                        :disabled="saving"
+                        :title="t('sales.documentModal.removeLine')"
+                        @click="removeItem(item.key)"
+                      >
+                        <i class="fa-solid fa-trash"></i>
+                      </button>
                     </div>
 
-                    <div class="text-right">
-                      <div class="text-sm font-semibold text-slate-950 dark:text-white">
-                        {{ formatAccountingMoney(lineTotal(item)) }}
-                      </div>
-                      <div class="mt-0.5 text-[10px] font-medium text-slate-400 dark:text-slate-500">
-                        {{ formatAccountingMoney(lineGross(item)) }}
-                      </div>
-                    </div>
+                    <p v-if="item.tracked_error" class="pos-line-row-error">
+                      {{ item.tracked_error }}
+                    </p>
+                  </article>
+                </div>
+              </div>
+            </div>
 
-                    <button
-                      type="button"
-                      class="pos-cart-delete"
-                      :disabled="saving"
-                      :title="t('sales.documentModal.removeLine')"
-                      @click="removeItem(item.key)"
-                    >
-                      <i class="fa-solid fa-trash"></i>
-                    </button>
-                  </div>
-                </article>
+            <div class="pos-pricing-footer">
+              <div class="pos-pricing-control">
+                <label class="erp-label">Discount mode</label>
+                <AppSelect
+                  :model-value="form.discount_scope"
+                  :options="discountScopeOptions"
+                  @update:model-value="handleDiscountScopeChange"
+                />
+              </div>
+
+              <div v-if="!showLineDiscountControls" class="pos-pricing-control">
+                <label class="erp-label">{{ t('sales.documentModal.fields.orderDiscountType') }}</label>
+                <AppSelect
+                  :model-value="form.discount_type || null"
+                  :options="discountTypeOptions"
+                  :placeholder="t('sales.documentModal.placeholders.selectDiscountType')"
+                  clearable
+                  @update:model-value="form.discount_type = $event || ''"
+                />
+              </div>
+
+              <div v-if="!showLineDiscountControls" class="pos-pricing-control">
+                <label class="erp-label">{{ t('sales.documentModal.fields.orderDiscountAmount') }}</label>
+                <input
+                  v-model.number="form.discount_amount"
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  class="erp-input pos-pricing-input"
+                  :placeholder="t('sales.documentModal.placeholders.enterDiscount')"
+                />
+              </div>
+
+              <div class="pos-pricing-control">
+                <label class="erp-label">{{ t('sales.documentModal.fields.taxMode') }}</label>
+                <AppSelect
+                  :model-value="form.tax_scope || 'line'"
+                  :options="taxScopeOptions"
+                  @update:model-value="handleTaxScopeChange"
+                />
+              </div>
+
+              <div v-if="form.tax_scope === 'sale'" class="pos-pricing-control">
+                <label class="erp-label">{{ t('sales.documentModal.fields.saleTax') }}</label>
+                <AppSelect
+                  :model-value="form.tax_rate_id || null"
+                  :options="saleTaxRateOptions"
+                  :placeholder="t('sales.documentModal.placeholders.selectSaleTax')"
+                  :search-placeholder="t('sales.documentModal.placeholders.searchTaxes')"
+                  :empty-text="t('sales.documentModal.placeholders.noTaxes')"
+                  searchable
+                  clearable
+                  @update:model-value="handleSaleTaxRateChange"
+                />
+              </div>
+
+              <div v-if="form.tax_scope === 'sale'" class="pos-pricing-control">
+                <label class="erp-label">{{ t('sales.documentModal.fields.saleTaxType') }}</label>
+                <AppSelect
+                  :model-value="form.tax_type || null"
+                  :options="taxTypeOptions"
+                  :placeholder="t('sales.documentModal.placeholders.selectSaleTaxType')"
+                  @update:model-value="form.tax_type = $event || 'exclusive'"
+                />
               </div>
             </div>
 
@@ -253,7 +363,11 @@
               </div>
               <div class="pos-total-cell">
                 <span>{{ t('sales.posPage.summary.subtotal') }}</span>
-                <strong>{{ formatAccountingMoney(subtotal) }}</strong>
+                <strong>{{ formatAccountingMoney(summarySubtotal) }}</strong>
+              </div>
+              <div class="pos-total-cell pos-total-discount">
+                <span>Discount</span>
+                <strong>-{{ formatAccountingMoney(totalDiscountAmount) }}</strong>
               </div>
               <div class="pos-total-cell">
                 <span>{{ t('sales.posPage.summary.tax') }}</span>
@@ -277,26 +391,26 @@
                 <div>
                   <label class="erp-label">{{ t('sales.posPage.fields.paymentMethod') }}</label>
                   <AppSelect
-                    :model-value="payment.method || null"
+                    :model-value="paymentRows[0]?.method || null"
                     :options="paymentMethodOptions"
-                    @update:model-value="payment.method = $event || 'cash'"
+                    @update:model-value="paymentRows[0].method = $event || 'cash'"
                   />
                 </div>
 
                 <div>
                   <label class="erp-label">{{ t('sales.posPage.fields.paymentAccount') }}</label>
                   <AppSelect
-                    :model-value="payment.payment_account_id || null"
+                    :model-value="paymentRows[0]?.payment_account_id || null"
                     :options="paymentAccountOptions"
                     :placeholder="t('sales.salesPage.placeholders.selectPaymentAccount')"
                     searchable
-                    @update:model-value="payment.payment_account_id = $event || ''"
+                    @update:model-value="paymentRows[0].payment_account_id = $event || ''"
                   />
                 </div>
 
                 <div>
                   <label class="erp-label">{{ t('sales.posPage.fields.paidAmount') }}</label>
-                  <input v-model.number="payment.amount" type="number" min="0" step="0.01" class="erp-input text-right font-semibold" />
+                  <input v-model.number="paymentRows[0].amount" type="number" min="0" step="0.01" class="erp-input text-right font-semibold" />
                 </div>
 
                 <div class="rounded-[8px] border border-emerald-200 bg-emerald-50/70 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/25 dark:text-emerald-200">
@@ -308,7 +422,7 @@
               </div>
 
               <div class="mt-3 grid gap-3 md:grid-cols-2">
-                <input v-model="payment.reference" type="text" class="erp-input" :placeholder="t('sales.posPage.fields.reference')" />
+                <input v-model="paymentRows[0].reference" type="text" class="erp-input" :placeholder="t('sales.posPage.fields.reference')" />
                 <input v-model="form.notes" type="text" class="erp-input" :placeholder="t('sales.posPage.fields.note')" />
               </div>
             </div>
@@ -373,7 +487,7 @@
               <div v-else class="pos-product-grid">
                 <button
                   v-for="product in filteredProducts"
-                  :key="product.id"
+                  :key="product.menu_key || product.id"
                   type="button"
                   class="pos-product-tile"
                   :disabled="!form.warehouse_id"
@@ -393,7 +507,13 @@
                     {{ product.brand?.name || product.unit?.short_name || t('sales.documentModal.fields.unit') }}
                   </span>
                   <span
-                    v-if="product.available_quantity !== null && product.available_quantity !== undefined && form.warehouse_id"
+                    v-if="productRequiresLookup(product)"
+                    class="pos-product-stock pos-product-stock-warning"
+                  >
+                    {{ t('sales.posPage.productBrowser.lookupRequired') }}
+                  </span>
+                  <span
+                    v-else-if="product.available_quantity !== null && product.available_quantity !== undefined && form.warehouse_id"
                     class="pos-product-stock"
                   >
                     Avail: {{ product.available_quantity }}
@@ -406,6 +526,56 @@
         </section>
       </template>
     </main>
+
+    <SalePaymentModal
+      :show="paymentModalOpen"
+      :title="t('sales.posPage.actions.multiplePay')"
+      icon="payment"
+      size="xl"
+      :intro-text="'Finalize the payment method, account, and tendered amount before saving this POS sale.'"
+      :summary-label="t('sales.posPage.summary.total')"
+      :summary-value="grandTotal"
+      :form="paymentRows[0]"
+      :payments="paymentRows"
+      :payment-account-options="paymentAccountOptions"
+      :payment-method-options="paymentMethodOptions"
+      :account-label="t('sales.posPage.fields.paymentAccount')"
+      :method-label="t('sales.posPage.fields.paymentMethod')"
+      :amount-label="t('sales.posPage.fields.paidAmount')"
+      :payment-date-label="t('sales.salesPage.fields.paymentDate')"
+      :reference-label="t('sales.posPage.fields.reference')"
+      :note-label="t('sales.posPage.fields.note')"
+      :account-placeholder="t('sales.salesPage.placeholders.selectPaymentAccount')"
+      :method-placeholder="t('sales.salesPage.placeholders.selectPaymentMethod')"
+      :reference-placeholder="t('sales.posPage.fields.reference')"
+      :note-placeholder="t('sales.posPage.fields.note')"
+      :show-note="false"
+      :error="paymentValidationMessage"
+      :saving="saving"
+      allow-multiple-rows
+      :cancel-label="t('sales.shared.actions.cancel')"
+      :confirm-label="t('sales.shared.actions.finalizePosSale')"
+      @close="paymentModalOpen = false"
+      @add-row="addPaymentRow"
+      @remove-row="removePaymentRow"
+      @confirm="submitFinalized"
+    >
+      <template #extra>
+        <div class="space-y-3">
+          <div>
+            <label class="erp-label">{{ t('sales.posPage.fields.note') }}</label>
+            <input v-model="form.notes" type="text" class="erp-input" :placeholder="t('sales.posPage.fields.note')" />
+          </div>
+
+          <div class="rounded-[18px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/25 dark:text-emerald-200">
+            <div class="flex items-center justify-between gap-3">
+              <span>{{ t('sales.posPage.summary.change') }}</span>
+              <span class="font-semibold">{{ formatAccountingMoney(changeDue) }}</span>
+            </div>
+          </div>
+        </div>
+      </template>
+    </SalePaymentModal>
 
     <div class="pos-action-bar">
       <div class="pos-action-inner">
@@ -421,7 +591,7 @@
           <i class="fa-solid fa-credit-card"></i>
           {{ t('sales.posPage.actions.card') }}
         </button>
-        <button type="button" class="pos-action-primary" :disabled="saving || !cart.length" @click="submitFinalized">
+        <button type="button" class="pos-action-primary" :disabled="saving || !cart.length" @click="openMultiplePay">
           <i class="fa-solid fa-money-check-dollar"></i>
           {{ t('sales.posPage.actions.multiplePay') }}
         </button>
@@ -445,10 +615,13 @@ import { useRouter } from 'vue-router'
 import * as accountingApi from '@api/accounting'
 import * as branchesApi from '@api/branches'
 import * as customersApi from '@api/customers'
+import * as inventoryApi from '@api/inventory'
 import * as productsApi from '@api/products'
 import * as salesApi from '@api/sales'
+import * as taxRatesApi from '@api/taxRates'
 import * as warehousesApi from '@api/warehouses'
 import InventoryProductLookup from '@components/inventory/InventoryProductLookup.vue'
+import SalePaymentModal from '@components/sales/SalePaymentModal.vue'
 import AppAlert from '@components/ui/AppAlert.vue'
 import AppSelect from '@components/ui/AppSelect.vue'
 import PageBlurSkeleton from '@components/ui/PageBlurSkeleton.vue'
@@ -464,12 +637,14 @@ const BASE_UNIT_OPTION_VALUE = '__base_unit__'
 const loading = ref(true)
 const saving = ref(false)
 const attemptedSubmit = ref(false)
+const paymentModalOpen = ref(false)
 const branches = ref([])
 const warehouses = ref([])
 const customers = ref([])
 const products = ref([])
 const registers = ref([])
 const paymentAccounts = ref([])
+const taxRates = ref([])
 const cart = ref([])
 const filterMode = ref('category')
 const activeFilterId = ref('')
@@ -482,14 +657,26 @@ const form = reactive({
   customer_id: '',
   cash_register_session_id: '',
   sale_date: new Date().toISOString().slice(0, 10),
+  discount_scope: 'line',
+  discount_type: '',
+  discount_amount: 0,
+  tax_scope: 'line',
+  tax_rate_id: '',
+  tax_rate_type: '',
+  tax_rate: 0,
+  tax_type: 'exclusive',
   notes: '',
 })
-const payment = reactive({
+const createPaymentRow = (overrides = {}) => ({
   payment_account_id: '',
   amount: 0,
   method: 'cash',
   reference: '',
+  payment_date: new Date().toISOString().slice(0, 10),
+  note: '',
+  ...overrides,
 })
+const paymentRows = ref([createPaymentRow()])
 
 const productMap = computed(() => new Map(products.value.map((product) => [product.id, product])))
 
@@ -514,10 +701,63 @@ const activeFilters = computed(() => filterMode.value === 'brand' ? brandFilters
 const productPrice = (product) =>
   toFiniteNumber(product.selling_price ?? product.variable_selling_price_min ?? product.sub_unit_selling_price, 0)
 
+const normalizeTrackingText = (value) => String(value || '').trim().toLowerCase()
+const formatStockQuantity = (value) => {
+  const numeric = Number(value)
+
+  if (!Number.isFinite(numeric)) {
+    return '0'
+  }
+
+  return numeric.toFixed(4).replace(/\.?0+$/, '')
+}
+
+const productMenuItems = computed(() =>
+  products.value.flatMap((product) => {
+    const variations = Array.isArray(product.variations)
+      ? product.variations.filter((variation) => variation.is_active !== false)
+      : []
+
+    if (product.type === 'variable' && variations.length) {
+      return variations.map((variation) => ({
+        ...product,
+        menu_key: `variation:${variation.id}`,
+        product_id: product.id,
+        variation_id: variation.id,
+        product_name: product.name,
+        variation_name: variation.name,
+        name: `${product.name} / ${variation.name}`,
+        sku: variation.sku || product.sku || '',
+        image_url: variation.image_url || product.image_url || '',
+        selling_price: variation.selling_price ?? product.variable_selling_price_min ?? product.selling_price,
+        purchase_price: variation.purchase_price ?? product.variable_purchase_price_min ?? product.purchase_price,
+        sub_unit_id: variation.sub_unit_id || '',
+        sub_unit: variation.sub_unit || null,
+        sub_unit_selling_price: variation.sub_unit_selling_price ?? null,
+        minimum_selling_price: variation.minimum_selling_price ?? product.minimum_selling_price ?? 0,
+        on_hand_quantity: variation.on_hand_quantity ?? null,
+        reserved_quantity: variation.reserved_quantity ?? null,
+        available_quantity: variation.available_quantity ?? null,
+        is_variation_tile: true,
+      }))
+    }
+
+    return [{
+      ...product,
+      menu_key: `product:${product.id}`,
+      product_id: product.id,
+      variation_id: '',
+      product_name: product.name,
+      variation_name: '',
+      is_variation_tile: false,
+    }]
+  })
+)
+
 const filteredProducts = computed(() => {
   const term = productSearch.value.trim().toLowerCase()
 
-  return products.value
+  return productMenuItems.value
     .filter((product) => {
       if (!activeFilterId.value) {
         return true
@@ -534,6 +774,8 @@ const filteredProducts = computed(() => {
 
       return [
         product.name,
+        product.product_name,
+        product.variation_name,
         product.sku,
         product.category?.name,
         product.brand?.name,
@@ -599,6 +841,23 @@ const discountTypeOptions = computed(() => [
   { value: 'percentage', label: t('sales.documentModal.discountTypes.percentage') },
 ])
 
+const discountScopeOptions = computed(() => [
+  { value: 'line', label: t('sales.documentModal.taxScopes.line') },
+  { value: 'sale', label: 'Whole invoice' },
+])
+
+const taxScopeOptions = computed(() => [
+  { value: 'line', label: t('sales.documentModal.taxScopes.line') },
+  { value: 'sale', label: t('sales.documentModal.taxScopes.sale') },
+])
+
+const taxTypeOptions = computed(() => [
+  { value: 'exclusive', label: t('sales.documentModal.taxTypes.exclusive') },
+  { value: 'inclusive', label: t('sales.documentModal.taxTypes.inclusive') },
+])
+
+const showLineDiscountControls = computed(() => form.discount_scope === 'line')
+
 const toFiniteNumber = (value, fallback = 0) => {
   const numeric = Number(value)
   return Number.isFinite(numeric) ? numeric : fallback
@@ -631,8 +890,34 @@ const resolveDiscountAmount = (discountType, discountAmount, baseAmount) => {
 }
 
 const lineGross = (item) => Number(item.quantity || 0) * Number(item.unit_price || 0)
-const lineDiscountAmount = (item) => resolveDiscountAmount(item.discount_type, item.discount_amount, lineGross(item))
+const lineDiscountAmount = (item) =>
+  showLineDiscountControls.value
+    ? resolveDiscountAmount(item.discount_type, item.discount_amount, lineGross(item))
+    : 0
+
 const lineTaxable = (item) => Math.max(0, lineGross(item) - lineDiscountAmount(item))
+
+const lineBaseAmount = (item) => {
+  const grossAfterDiscount = lineTaxable(item)
+  const rate = Number(item.tax_rate || 0)
+
+  if (grossAfterDiscount <= 0 || rate <= 0) {
+    return grossAfterDiscount
+  }
+
+  if (item.tax_rate_type === 'fixed') {
+    return item.tax_type === 'inclusive'
+      ? Math.max(0, grossAfterDiscount - Math.min(grossAfterDiscount, rate))
+      : grossAfterDiscount
+  }
+
+  if (item.tax_type === 'inclusive') {
+    const taxAmount = grossAfterDiscount - (grossAfterDiscount / (1 + rate / 100))
+    return Math.max(0, grossAfterDiscount - taxAmount)
+  }
+
+  return grossAfterDiscount
+}
 
 const lineTaxAmount = (item) => {
   const gross = lineTaxable(item)
@@ -653,16 +938,62 @@ const lineTaxAmount = (item) => {
   return gross * (rate / 100)
 }
 
-const lineTotal = (item) => {
+const lineNetTotal = (item) => {
   const gross = lineTaxable(item)
   return item.tax_type === 'inclusive' ? gross : gross + lineTaxAmount(item)
 }
 
-const subtotal = computed(() => cart.value.reduce((carry, item) => carry + lineTaxable(item), 0))
-const taxTotal = computed(() => cart.value.reduce((carry, item) => carry + lineTaxAmount(item), 0))
-const grandTotal = computed(() => cart.value.reduce((carry, item) => carry + lineTotal(item), 0))
+const lineTotal = (item) =>
+  form.tax_scope === 'sale'
+    ? lineBaseAmount(item)
+    : lineNetTotal(item)
+
+const summarySubtotal = computed(() => cart.value.reduce((carry, item) => carry + lineGross(item), 0))
+const subtotal = computed(() => cart.value.reduce((carry, item) => carry + lineBaseAmount(item), 0))
+const lineDiscountTotal = computed(() => cart.value.reduce((carry, item) => carry + lineDiscountAmount(item), 0))
+const orderDiscountAmount = computed(() =>
+  form.discount_scope === 'sale'
+    ? resolveDiscountAmount(form.discount_type, form.discount_amount, subtotal.value)
+    : 0
+)
+const totalDiscountAmount = computed(() => lineDiscountTotal.value + orderDiscountAmount.value)
+const documentTaxAmount = computed(() => {
+  const grossAfterOrderDiscount = Math.max(0, subtotal.value - orderDiscountAmount.value)
+  const rate = Number(form.tax_rate || 0)
+
+  if (grossAfterOrderDiscount <= 0 || rate <= 0 || form.tax_scope !== 'sale') {
+    return 0
+  }
+
+  if (form.tax_rate_type === 'fixed') {
+    return Math.min(grossAfterOrderDiscount, rate)
+  }
+
+  if (form.tax_type === 'inclusive') {
+    return grossAfterOrderDiscount - (grossAfterOrderDiscount / (1 + rate / 100))
+  }
+
+  return grossAfterOrderDiscount * (rate / 100)
+})
+const taxTotal = computed(() =>
+  form.tax_scope === 'sale'
+    ? documentTaxAmount.value
+    : cart.value.reduce((carry, item) => carry + lineTaxAmount(item), 0)
+)
+const grandTotal = computed(() => Math.max(0, subtotal.value - orderDiscountAmount.value) + taxTotal.value)
 const totalQuantity = computed(() => cart.value.reduce((carry, item) => carry + Number(item.quantity || 0), 0))
-const changeDue = computed(() => Math.max(0, Number(payment.amount || 0) - grandTotal.value))
+const totalPaid = computed(() => paymentRows.value.reduce((sum, row) => sum + Number(row.amount || 0), 0))
+const changeDue = computed(() => Math.max(0, totalPaid.value - grandTotal.value))
+
+const saleTaxRateOptions = computed(() =>
+  taxRates.value.map((taxRate) => ({
+    value: taxRate.id,
+    label: taxRate.name,
+    description: taxRate.type === 'fixed'
+      ? `${t('sales.documentModal.taxRateTypes.fixed')} • ${formatAccountingMoney(Number(taxRate.rate || 0))}`
+      : `${t('sales.documentModal.taxRateTypes.percentage')} • ${Number(taxRate.rate || 0).toFixed(2)}%`,
+  }))
+)
 
 const normalizedItems = computed(() =>
   cart.value
@@ -672,8 +1003,8 @@ const normalizedItems = computed(() =>
       sub_unit_id: item.sub_unit_id || null,
       quantity: Number(item.quantity || 0),
       unit_price: Number(item.unit_price || 0),
-      discount_type: item.discount_type || null,
-      discount_amount: Number(item.discount_amount || 0),
+      discount_type: showLineDiscountControls.value ? (item.discount_type || null) : null,
+      discount_amount: showLineDiscountControls.value ? Number(item.discount_amount || 0) : 0,
       tax_rate_id: item.tax_rate_id || null,
       tax_rate_type: item.tax_rate_type || null,
       tax_type: item.tax_type || null,
@@ -704,6 +1035,26 @@ const validationMessage = computed(() => {
     return t('sales.documentModal.validation.invalidItems')
   }
 
+  const trackedItem = cart.value.find((item) =>
+    item.stock_tracking === 'lot'
+      ? item.lot_allocations.length === 0
+      : item.stock_tracking === 'serial'
+        ? item.serial_ids.length === 0
+        : false
+  )
+
+  if (trackedItem) {
+    return trackedItem.stock_tracking === 'lot'
+      ? t('sales.posPage.tracking.lotRequired')
+      : t('sales.posPage.tracking.serialRequired')
+  }
+
+  const trackedError = cart.value.find((item) => item.tracked_error)
+
+  if (trackedError?.tracked_error) {
+    return trackedError.tracked_error
+  }
+
   return ''
 })
 
@@ -716,7 +1067,12 @@ const paymentValidationMessage = computed(() => {
     return t('sales.documentModal.validation.missingRegisterSession')
   }
 
-  if (Number(payment.amount || 0) > 0 && !payment.payment_account_id) {
+  const invalidRow = paymentRows.value.find((row) =>
+    (Number(row.amount || 0) > 0 || row.payment_account_id || row.reference?.trim() || row.note?.trim())
+    && (!row.payment_account_id || Number(row.amount || 0) <= 0 || !row.payment_date)
+  )
+
+  if (invalidRow) {
     return t('sales.posPage.paymentRequired')
   }
 
@@ -739,6 +1095,73 @@ const exitPos = () => {
 
 const clearProductFilter = () => {
   activeFilterId.value = ''
+}
+
+const handleDiscountScopeChange = (value) => {
+  form.discount_scope = value || 'line'
+}
+
+const handleTaxScopeChange = (value) => {
+  form.tax_scope = value || 'line'
+
+  if (form.tax_scope !== 'sale') {
+    form.tax_rate_id = ''
+    form.tax_rate_type = ''
+    form.tax_rate = 0
+    form.tax_type = 'exclusive'
+  }
+}
+
+const handleSaleTaxRateChange = (value) => {
+  form.tax_rate_id = value || ''
+
+  const selected = taxRates.value.find((taxRate) => taxRate.id === form.tax_rate_id)
+
+  if (!selected) {
+    form.tax_rate_type = ''
+    form.tax_rate = 0
+    return
+  }
+
+  form.tax_rate_type = selected.type || 'percentage'
+  form.tax_rate = Number(selected.rate || 0)
+}
+
+const openMultiplePay = () => {
+  attemptedSubmit.value = true
+
+  if (validationMessage.value) {
+    showToast('danger', validationMessage.value)
+    return
+  }
+
+  if (!form.cash_register_session_id) {
+    showToast('danger', t('sales.documentModal.validation.missingRegisterSession'))
+    return
+  }
+
+  if (!paymentRows.value[0].amount || totalPaid.value < Number(grandTotal.value)) {
+    paymentRows.value[0].amount = Number((Number(paymentRows.value[0].amount || 0) + (grandTotal.value - totalPaid.value)).toFixed(2))
+  }
+
+  paymentModalOpen.value = true
+}
+
+const addPaymentRow = () => {
+  const lastRow = paymentRows.value[paymentRows.value.length - 1] || {}
+  paymentRows.value.push(createPaymentRow({
+    payment_account_id: lastRow.payment_account_id || '',
+    method: lastRow.method || 'cash',
+    payment_date: lastRow.payment_date || form.sale_date,
+  }))
+}
+
+const removePaymentRow = (index) => {
+  if (paymentRows.value.length === 1) {
+    return
+  }
+
+  paymentRows.value.splice(index, 1)
 }
 
 const handleBranchChange = (value) => {
@@ -862,6 +1285,158 @@ const handleLineUnitChange = (item, value) => {
   item.unit_price = toFiniteNumber(selected.price, item.unit_price)
 }
 
+const trackingOptionsFor = (item) => Array.isArray(item?.tracking_options) ? item.tracking_options : []
+const trackingRecordsFor = (item) => Array.isArray(item?.tracking_records) ? item.tracking_records : []
+const selectedLotId = (item) => item?.lot_allocations?.[0]?.lot_id || ''
+const selectedSerialIds = (item) => Array.isArray(item?.serial_ids) ? item.serial_ids : []
+
+const trackingEmptyText = (item) => {
+  if (item?.tracking_loading) {
+    return 'Loading inventory...'
+  }
+
+  return item?.stock_tracking === 'lot'
+    ? 'No available lots found.'
+    : 'No available serials found.'
+}
+
+const clearTrackedSelection = (item) => {
+  item.lot_allocations = []
+  item.serial_ids = []
+  item.lot_numbers = []
+  item.serial_numbers = []
+  item.tracked_expiry_date = ''
+  item.tracked_error = ''
+}
+
+const lotOptionDescription = (lot) => {
+  const parts = [`Avail: ${formatStockQuantity(lot.qty_available ?? lot.qty_on_hand ?? 0)}`]
+
+  if (lot.expiry_date) {
+    parts.push(`Expiry: ${lot.expiry_date}`)
+  }
+
+  return parts.join(' • ')
+}
+
+const serialOptionDescription = (serial) => {
+  const parts = [serial.status || 'in_stock']
+
+  if (serial.unit_cost !== null && serial.unit_cost !== undefined) {
+    parts.push(formatAccountingMoney(Number(serial.unit_cost || 0)))
+  }
+
+  return parts.join(' • ')
+}
+
+const loadTrackingOptionsForItem = async (item) => {
+  if (!['lot', 'serial'].includes(item?.stock_tracking) || !form.warehouse_id || !item.product_id) {
+    item.tracking_options = []
+    item.tracking_records = []
+    return
+  }
+
+  item.tracking_loading = true
+  item.tracked_error = ''
+
+  const params = {
+    warehouse_id: form.warehouse_id,
+    product_id: item.product_id,
+    variation_id: item.variation_id || undefined,
+    per_page: 100,
+  }
+
+  try {
+    if (item.stock_tracking === 'lot') {
+      const response = await inventoryApi.getStockLots({
+        ...params,
+        status: 'active',
+      })
+      const lots = (Array.isArray(response.data?.data) ? response.data.data : [])
+        .filter((lot) => Number(lot.qty_available ?? lot.qty_on_hand ?? 0) > 0)
+
+      item.tracking_records = lots
+      item.tracking_options = lots.map((lot) => ({
+        value: lot.id,
+        label: lot.lot_number,
+        description: lotOptionDescription(lot),
+        keywords: [
+          lot.lot_number,
+          lot.product?.name,
+          lot.variation?.name,
+        ].filter(Boolean).join(' '),
+      }))
+      return
+    }
+
+    const response = await inventoryApi.getStockSerials(params)
+    const serials = (Array.isArray(response.data?.data) ? response.data.data : [])
+      .filter((serial) => ['in_stock', 'returned'].includes(serial.status))
+
+    item.tracking_records = serials
+    item.tracking_options = serials.map((serial) => ({
+      value: serial.id,
+      label: serial.serial_number,
+      description: serialOptionDescription(serial),
+      keywords: [
+        serial.serial_number,
+        serial.product?.name,
+        serial.variation?.name,
+        serial.status,
+      ].filter(Boolean).join(' '),
+    }))
+  } catch (error) {
+    item.tracking_records = []
+    item.tracking_options = []
+    item.tracked_error = error.response?.data?.message || t('sales.posPage.toast.failed')
+  } finally {
+    item.tracking_loading = false
+  }
+}
+
+const handleLotSelection = (item, lotId) => {
+  clearTrackedSelection(item)
+
+  if (!lotId) {
+    return
+  }
+
+  const lot = trackingRecordsFor(item).find((candidate) => candidate.id === lotId)
+
+  if (!lot) {
+    item.tracked_error = t('sales.posPage.tracking.lotNotFound')
+    return
+  }
+
+  item.lot_allocations = [{ lot_id: lot.id, quantity: Number(item.quantity || 0) }]
+  item.lot_numbers = [lot.lot_number].filter(Boolean)
+  item.tracked_expiry_date = lot.expiry_date || ''
+
+  if (!Number(item.unit_cost || 0) && lot.unit_cost) {
+    item.unit_cost = Number(lot.unit_cost)
+  }
+}
+
+const handleSerialSelection = (item, serialIds) => {
+  clearTrackedSelection(item)
+
+  const ids = Array.isArray(serialIds) ? serialIds : []
+  const serials = ids
+    .map((serialId) => trackingRecordsFor(item).find((candidate) => candidate.id === serialId))
+    .filter(Boolean)
+
+  item.serial_ids = serials.map((serial) => serial.id)
+  item.serial_numbers = serials.map((serial) => serial.serial_number).filter(Boolean)
+
+  if (item.serial_ids.length) {
+    item.quantity = item.serial_ids.length
+  }
+
+  if (!Number(item.unit_cost || 0) && serials[0]?.unit_cost) {
+    item.unit_cost = Number(serials[0].unit_cost)
+  }
+}
+
 const isSameLookupItem = (item, match) =>
   item.product_id === match.product_id &&
   (item.variation_id || '') === (match.variation_id || '') &&
@@ -879,12 +1454,19 @@ const addLookupItem = (match) => {
           existing.serial_numbers.push(match.serial_number)
         }
       }
+      existing.manual_serial_input = existing.serial_numbers.join(', ')
       existing.quantity = existing.serial_ids.length
     } else {
       existing.quantity = Number(existing.quantity || 0) + 1
+      if (match.lot_id && existing.lot_allocations.length === 1) {
+        existing.manual_lot_input = match.lot_number || existing.manual_lot_input
+        existing.lot_numbers = match.lot_number ? [match.lot_number] : existing.lot_numbers
+        existing.tracked_expiry_date = match.expiry_date || existing.tracked_expiry_date
+      }
     }
 
     syncTrackedQuantity(existing)
+    loadTrackingOptionsForItem(existing)
     return
   }
 
@@ -892,7 +1474,7 @@ const addLookupItem = (match) => {
   const product = productMap.value.get(match.product_id)
   const lookupUnitState = buildLookupUnitState(match)
 
-  cart.value.push({
+  const line = {
     key: crypto.randomUUID(),
     product_id: match.product_id,
     variation_id: match.variation_id || '',
@@ -908,17 +1490,32 @@ const addLookupItem = (match) => {
     sku: match.sku || product?.sku || '',
     lot_numbers: match.lot_number ? [match.lot_number] : [],
     serial_numbers: match.serial_number ? [match.serial_number] : [],
+    manual_lot_input: match.lot_number || '',
+    manual_serial_input: match.serial_number || '',
+    tracked_expiry_date: match.expiry_date || '',
+    tracked_error: '',
+    tracking_options: [],
+    tracking_records: [],
+    tracking_loading: false,
     ...lookupUnitState,
     ...tax,
-  })
+  }
+
+  cart.value.push(line)
+  loadTrackingOptionsForItem(line)
 }
 
 const addProductTile = (product) => {
+  if (productRequiresLookup(product)) {
+    showToast('danger', t('sales.posPage.toast.lookupRequired'))
+    return
+  }
+
   addLookupItem({
-    product_id: product.id,
-    variation_id: '',
-    product_name: product.name,
-    variation_name: '',
+    product_id: product.product_id || product.id,
+    variation_id: product.variation_id || '',
+    product_name: product.product_name || product.name,
+    variation_name: product.variation_name || '',
     sku: product.sku || '',
     selling_price: productPrice(product),
     unit_cost: product.purchase_price || 0,
@@ -929,6 +1526,9 @@ const addProductTile = (product) => {
     minimum_selling_price: product.minimum_selling_price ?? 0,
   })
 }
+
+const productRequiresLookup = (product) =>
+  !product?.variation_id && product?.type === 'variable' && Number(product?.variations_count || 0) > 0
 
 const syncTrackedQuantity = (item) => {
   if (item.serial_ids.length) {
@@ -957,10 +1557,20 @@ const removeItem = (key) => {
 
 const clearCart = () => {
   cart.value = []
-  payment.amount = 0
-  payment.reference = ''
+  paymentRows.value = [createPaymentRow({
+    payment_date: form.sale_date,
+  })]
+  form.discount_scope = 'line'
+  form.discount_type = ''
+  form.discount_amount = 0
+  form.tax_scope = 'line'
+  form.tax_rate_id = ''
+  form.tax_rate_type = ''
+  form.tax_rate = 0
+  form.tax_type = 'exclusive'
   form.notes = ''
   attemptedSubmit.value = false
+  paymentModalOpen.value = false
 }
 
 const buildPayload = (type) => ({
@@ -971,13 +1581,13 @@ const buildPayload = (type) => ({
   sale_date: form.sale_date,
   due_date: null,
   cash_register_session_id: type === 'pos_sale' ? form.cash_register_session_id || null : null,
-  discount_type: null,
-  discount_amount: 0,
-  tax_scope: 'line',
-  tax_rate_id: null,
-  tax_rate_type: null,
-  tax_rate: 0,
-  tax_type: null,
+  discount_type: form.discount_scope === 'sale' ? (form.discount_type || null) : null,
+  discount_amount: form.discount_scope === 'sale' ? Number(form.discount_amount || 0) : 0,
+  tax_scope: form.tax_scope || 'line',
+  tax_rate_id: form.tax_scope === 'sale' ? (form.tax_rate_id || null) : null,
+  tax_rate_type: form.tax_scope === 'sale' ? (form.tax_rate_type || null) : null,
+  tax_rate: form.tax_scope === 'sale' ? Number(form.tax_rate || 0) : 0,
+  tax_type: form.tax_scope === 'sale' ? (form.tax_type || null) : null,
   shipping_charges: 0,
   notes: form.notes?.trim() || null,
   staff_note: null,
@@ -1019,17 +1629,29 @@ const submitFinalized = async () => {
     const sale = created.data.data
     await salesApi.completeSale(sale.id)
 
-    if (Number(payment.amount || 0) > 0) {
+    const payments = paymentRows.value
+      .map((row) => ({
+        payment_account_id: row.payment_account_id || '',
+        amount: Number(row.amount || 0),
+        method: row.method || 'cash',
+        payment_date: row.payment_date || form.sale_date,
+        reference: row.reference?.trim() || '',
+        note: row.note?.trim() || '',
+      }))
+      .filter((row) => row.payment_account_id && row.amount > 0)
+
+    for (const payment of payments) {
       await salesApi.recordSalePayment(sale.id, {
         payment_account_id: payment.payment_account_id,
-        amount: Number(payment.amount || 0),
-        method: payment.method || 'cash',
-        payment_date: form.sale_date,
-        reference: payment.reference?.trim() || null,
-        note: null,
+        amount: payment.amount,
+        method: payment.method,
+        payment_date: payment.payment_date,
+        reference: payment.reference || null,
+        note: payment.note || null,
       })
     }
 
+    paymentModalOpen.value = false
     showToast('success', t('sales.posPage.toast.finalized'))
     clearCart()
   } catch (error) {
@@ -1040,14 +1662,22 @@ const submitFinalized = async () => {
 }
 
 const submitCash = () => {
-  payment.method = 'cash'
-  payment.amount = Number(grandTotal.value.toFixed(2))
+  paymentRows.value = [createPaymentRow({
+    method: 'cash',
+    amount: Number(grandTotal.value.toFixed(2)),
+    payment_date: form.sale_date,
+    note: form.notes,
+  })]
   submitFinalized()
 }
 
 const submitCard = () => {
-  payment.method = 'card'
-  payment.amount = Number(grandTotal.value.toFixed(2))
+  paymentRows.value = [createPaymentRow({
+    method: 'card',
+    amount: Number(grandTotal.value.toFixed(2)),
+    payment_date: form.sale_date,
+    note: form.notes,
+  })]
   submitFinalized()
 }
 
@@ -1092,9 +1722,14 @@ const loadPaymentAccounts = async () => {
   paymentAccounts.value = response.data.data
 }
 
+const loadTaxRates = async () => {
+  const response = await taxRatesApi.getTaxRates({ per_page: 250, is_active: true })
+  taxRates.value = response.data.data
+}
+
 watch(grandTotal, (value) => {
-  if (!payment.amount || Number(payment.amount) < Number(value)) {
-    payment.amount = Number(value.toFixed(2))
+  if (!paymentRows.value[0]?.amount || totalPaid.value < Number(value)) {
+    paymentRows.value[0].amount = Number((Number(paymentRows.value[0].amount || 0) + (value - totalPaid.value)).toFixed(2))
   }
 })
 
@@ -1121,6 +1756,7 @@ onMounted(async () => {
       loadProducts(),
       loadRegisters(),
       loadPaymentAccounts(),
+      loadTaxRates(),
     ])
 
     if (branches.value.length === 1) {
@@ -1275,7 +1911,15 @@ onMounted(async () => {
   padding: 0.9rem;
 }
 
+.pos-sale-panel {
+  position: relative;
+  z-index: 20;
+  overflow: visible;
+}
+
 .pos-cart-panel {
+  position: relative;
+  z-index: 10;
   display: flex;
   min-height: 22rem;
   flex: 1;
@@ -1284,12 +1928,18 @@ onMounted(async () => {
   padding: 0;
 }
 
+.pos-cart-panel .pos-panel-topline {
+  margin-bottom: 0;
+  padding: 0.85rem 0.9rem 0.55rem;
+}
+
 .pos-cart-header {
   border-bottom: 1px solid rgba(226, 232, 240, 0.9);
   background: rgba(248, 250, 252, 0.98);
-  padding: 0.42rem 0.6rem;
+  min-width: 42rem;
+  padding: 0.3rem 0.45rem;
   color: rgb(100 116 139);
-  font-size: 0.66rem;
+  font-size: 0.62rem;
   font-weight: 800;
   letter-spacing: 0.04em;
   text-transform: uppercase;
@@ -1302,40 +1952,164 @@ onMounted(async () => {
   justify-content: center;
 }
 
+.pos-cart-table {
+  flex: 1;
+  min-height: 0;
+  overflow-x: auto;
+}
+
+.pos-cart-table--with-discount .pos-cart-header,
+.pos-cart-table--with-discount .pos-cart-list,
+.pos-cart-table--with-discount .pos-cart-line-grid {
+  min-width: 50rem;
+}
+
 .pos-cart-list {
   display: flex;
   max-height: calc(100vh - 24rem);
   min-height: 18rem;
+  min-width: 42rem;
   flex-direction: column;
-  gap: 0.35rem;
+  gap: 0.22rem;
   overflow-y: auto;
-  padding: 0.5rem;
+  padding: 0.35rem;
+}
+
+.pos-cart-line-grid {
+  display: grid;
+  grid-template-columns:
+    minmax(9rem, 1.5fr)
+    minmax(5.6rem, 0.6fr)
+    minmax(7rem, 0.76fr)
+    4rem
+    5.2rem
+    5.4rem
+    1.8rem;
+  align-items: center;
+  gap: 0.35rem;
+  min-width: 42rem;
+}
+
+.pos-cart-line-grid--with-discount {
+  grid-template-columns:
+    minmax(9rem, 1.35fr)
+    minmax(5.6rem, 0.56fr)
+    minmax(7rem, 0.72fr)
+    4rem
+    5.2rem
+    minmax(7.8rem, 0.8fr)
+    5.4rem
+    1.8rem;
 }
 
 .pos-cart-row {
   border: 1px solid rgba(226, 232, 240, 0.92);
-  border-radius: 10px;
+  border-radius: 8px;
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.88));
-  padding: 0.58rem 0.62rem;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+  padding: 0.3rem 0.4rem;
+  box-shadow: none;
+}
+
+.pos-line-product-cell,
+.pos-line-unit-cell,
+.pos-line-tracking-cell,
+.pos-line-quantity-cell,
+.pos-line-price-cell,
+.pos-line-total-cell {
+  min-width: 0;
+}
+
+.pos-line-product-name {
+  overflow: hidden;
+  color: rgb(15 23 42);
+  font-size: 0.78rem;
+  font-weight: 800;
+  line-height: 1.12;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pos-line-product-meta {
+  display: flex;
+  gap: 0.22rem;
+  overflow: hidden;
+  margin-top: 0.16rem;
+  white-space: nowrap;
+}
+
+.pos-line-product-meta .erp-badge {
+  min-height: 1rem;
+  max-width: 5.6rem;
+  flex: 0 1 auto;
+  overflow: hidden;
+  padding: 0 0.32rem;
+  font-size: 0.58rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pos-line-empty-value {
+  display: flex;
+  min-height: 1.75rem;
+  align-items: center;
+  justify-content: center;
+  color: rgb(148 163 184);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.pos-line-total-cell {
+  text-align: right;
+}
+
+.pos-line-total-primary {
+  overflow: hidden;
+  color: rgb(15 23 42);
+  font-size: 0.78rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pos-line-total-secondary {
+  overflow: hidden;
+  margin-top: 0.05rem;
+  color: rgb(148 163 184);
+  font-size: 0.62rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.pos-line-row-error {
+  margin: 0.22rem 0 0;
+  color: rgb(225 29 72);
+  font-size: 0.68rem;
+  font-weight: 700;
 }
 
 .pos-cart-price-input {
-  min-height: 2rem;
-  padding: 0.35rem 0.55rem;
-  font-size: 0.85rem;
+  min-height: 1.75rem;
+  padding: 0.22rem 0.42rem;
+  font-size: 0.75rem;
 }
 
 .pos-cart-delete {
   display: inline-flex;
-  height: 2rem;
-  width: 2rem;
+  height: 1.75rem;
+  width: 1.75rem;
   align-items: center;
   justify-content: center;
   border: 1px solid rgba(254, 205, 211, 1);
-  border-radius: 8px;
+  border-radius: 6px;
   color: rgb(225 29 72);
+  font-size: 0.72rem;
   transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease, opacity 150ms ease;
 }
 
@@ -1347,6 +2121,32 @@ onMounted(async () => {
 .pos-cart-delete:disabled {
   cursor: not-allowed;
   opacity: 0.5;
+}
+
+.pos-pricing-footer {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+  border: 1px solid rgba(203, 213, 225, 0.78);
+  border-radius: 8px;
+  background: rgba(248, 250, 252, 0.86);
+  padding: 0.6rem;
+}
+
+.pos-pricing-control {
+  min-width: 0;
+}
+
+.pos-pricing-control .erp-label {
+  margin-bottom: 0.25rem;
+  font-size: 0.64rem;
+}
+
+.pos-pricing-control :deep(.erp-input),
+.pos-pricing-input {
+  min-height: 1.9rem;
+  padding: 0.25rem 0.48rem;
+  font-size: 0.76rem;
 }
 
 .pos-totals-bar {
@@ -1383,6 +2183,10 @@ onMounted(async () => {
   color: rgb(15 23 42);
   font-size: 0.9rem;
   font-variant-numeric: tabular-nums;
+}
+
+.pos-total-discount strong {
+  color: rgb(225 29 72);
 }
 
 .pos-total-payable {
@@ -1544,6 +2348,11 @@ onMounted(async () => {
   font-weight: 800;
 }
 
+.pos-product-stock-warning {
+  background: rgba(254, 243, 199, 0.92);
+  color: rgb(180 83 9);
+}
+
 .pos-product-price {
   color: rgb(4 120 87);
   font-size: 0.82rem;
@@ -1629,15 +2438,13 @@ onMounted(async () => {
 .sale-line-quantity,
 .sale-line-discount {
   display: grid;
-  grid-template-columns: minmax(6.2rem, 7rem) minmax(0, 1fr);
+  grid-template-columns: minmax(4.7rem, 5.2rem) minmax(0, 1fr);
   overflow: hidden;
   border: 1px solid rgba(226, 232, 240, 0.88);
-  border-radius: 8px;
+  border-radius: 6px;
   background:
     linear-gradient(135deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 252, 0.86));
-  box-shadow:
-    0 12px 24px rgba(15, 23, 42, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
+  box-shadow: none;
 }
 
 .sale-line-quantity__value,
@@ -1650,9 +2457,9 @@ onMounted(async () => {
 .sale-line-discount__type::after {
   content: "";
   position: absolute;
-  top: 0.55rem;
+  top: 0.42rem;
   right: 0;
-  bottom: 0.55rem;
+  bottom: 0.42rem;
   width: 1px;
   background: rgba(148, 163, 184, 0.22);
 }
@@ -1665,11 +2472,12 @@ onMounted(async () => {
 .sale-line-quantity :deep(.erp-input),
 .sale-line-discount :deep(.erp-input) {
   align-items: stretch;
-  min-height: 2rem;
+  min-height: 1.75rem;
   border: 0;
   border-radius: 0;
   background: transparent;
   box-shadow: none;
+  font-size: 0.72rem;
 }
 
 .sale-line-quantity :deep(.erp-input:hover),
@@ -1686,38 +2494,68 @@ onMounted(async () => {
 
 .sale-line-quantity__input,
 .sale-line-discount__input {
-  padding-left: 0.75rem;
-  padding-right: 0.75rem;
+  min-height: 1.75rem;
+  padding: 0.2rem 0.42rem;
+  font-size: 0.72rem;
   font-weight: 600;
 }
 
 .sale-line-quantity__fallback {
   display: flex;
-  min-height: 2rem;
+  min-height: 1.75rem;
   align-items: center;
-  padding: 0 0.75rem;
+  overflow: hidden;
+  padding: 0 0.42rem;
   color: rgb(15 23 42);
-  font-size: 0.8rem;
+  font-size: 0.72rem;
   font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sale-line-compact-input {
-  min-height: 2rem;
-  padding-top: 0.35rem;
-  padding-bottom: 0.35rem;
+  min-height: 1.75rem;
+  padding: 0.2rem 0.42rem;
+  font-size: 0.75rem;
 }
 
 .pos-sale-line-quantity,
 .pos-sale-line-discount {
+  grid-template-columns: minmax(4.6rem, 5rem) minmax(0, 1fr);
   box-shadow: none;
 }
 
-.pos-sale-line-uom {
+.pos-line-unit-select {
+  width: 100%;
   grid-template-columns: 1fr;
 }
 
-.pos-sale-line-uom .sale-line-quantity__unit {
+.pos-line-unit-select .sale-line-quantity__unit {
   min-width: 0;
+}
+
+.pos-line-tracking-select {
+  min-width: 0;
+  width: 100%;
+}
+
+.pos-line-unit-select :deep(.erp-input),
+.pos-line-tracking-select :deep(.erp-input) {
+  min-height: 1.75rem;
+  padding: 0.2rem 0.34rem;
+  gap: 0.25rem;
+  font-size: 0.72rem;
+}
+
+.pos-line-tracking-select :deep(.flex.flex-wrap) {
+  flex-wrap: nowrap;
+  overflow: hidden;
+}
+
+.pos-line-tracking-select :deep(.erp-badge) {
+  max-width: 4.2rem;
+  padding: 0 0.28rem;
+  font-size: 0.58rem;
 }
 
 .dark .sale-line-quantity,
@@ -1794,6 +2632,11 @@ onMounted(async () => {
   color: rgb(134 239 172);
 }
 
+.dark .pos-product-stock-warning {
+  background: rgba(120, 53, 15, 0.38);
+  color: rgb(253 224 71);
+}
+
 .dark .pos-section-title {
   color: rgb(241 245 249);
 }
@@ -1809,6 +2652,7 @@ onMounted(async () => {
 }
 
 .dark .pos-cart-row,
+.dark .pos-pricing-footer,
 .dark .pos-chip,
 .dark .pos-product-tile,
 .dark .pos-action-lite,
@@ -1818,9 +2662,20 @@ onMounted(async () => {
 }
 
 .dark .pos-total-cell strong,
+.dark .pos-line-product-name,
+.dark .pos-line-total-primary,
 .dark .pos-product-name,
 .dark .pos-action-lite {
   color: rgb(241 245 249);
+}
+
+.dark .pos-line-total-secondary,
+.dark .pos-line-empty-value {
+  color: rgb(148 163 184);
+}
+
+.dark .pos-total-discount strong {
+  color: rgb(253 164 175);
 }
 
 .dark .pos-totals-bar {
@@ -1878,6 +2733,10 @@ onMounted(async () => {
   .pos-product-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .pos-pricing-footer {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (min-width: 1024px) {
@@ -1886,7 +2745,7 @@ onMounted(async () => {
   }
 
   .pos-totals-bar {
-    grid-template-columns: repeat(4, minmax(0, 1fr)) minmax(12rem, 1.25fr);
+    grid-template-columns: repeat(5, minmax(0, 1fr)) minmax(12rem, 1.25fr);
   }
 
   .pos-total-payable {

@@ -1,5 +1,5 @@
 <template>
-  <div ref="root" class="relative" :class="open ? 'z-[160]' : 'z-0'">
+  <div ref="root" class="relative" :class="open ? 'z-[260]' : 'z-0'">
     <button
       type="button"
       class="erp-input flex items-center justify-between gap-3 text-left"
@@ -61,7 +61,7 @@
         <div
           v-if="open"
           ref="panel"
-          class="erp-select-panel fixed z-[170] overflow-hidden rounded-[24px] border border-white/50 bg-white/72 shadow-[0_24px_56px_rgba(44,62,99,0.16)] backdrop-blur-[26px] dark:border-white/10 dark:bg-slate-950/76 dark:shadow-[0_24px_56px_rgba(0,0,0,0.34)]"
+          class="erp-select-panel fixed z-[270] overflow-hidden rounded-[24px] border border-white/50 bg-white/72 shadow-[0_24px_56px_rgba(44,62,99,0.16)] backdrop-blur-[26px] dark:border-white/10 dark:bg-slate-950/76 dark:shadow-[0_24px_56px_rgba(0,0,0,0.34)]"
           :style="panelStyle"
         >
           <div v-if="searchable" class="erp-select-search border-b border-white/40 p-3 dark:border-white/10">

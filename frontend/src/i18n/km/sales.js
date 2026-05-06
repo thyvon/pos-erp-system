@@ -52,6 +52,12 @@ export default {
         successTitle: 'ជោគជ័យ',
         errorTitle: 'កំហុស',
       },
+      paymentModal: {
+        rowShort: '#',
+        rowLabel: 'ការទូទាត់ {number}',
+        addRow: 'បន្ថែមជួរទូទាត់',
+        removeRow: 'ដកជួរចេញ',
+      },
       types: {
         invoice: 'វិក្កយបត្រ',
         pos_sale: 'លក់ POS',
@@ -339,7 +345,20 @@ export default {
         brands: 'ម៉ាក',
         all: 'ទាំងអស់',
         searchProducts: 'ស្វែងរកទំនិញ',
+        lookupRequired: 'ជ្រើស Variant',
         noProducts: 'មិនមានទំនិញត្រូវនឹងតម្រងបច្ចុប្បន្នទេ។',
+      },
+      tracking: {
+        lot: 'Lot',
+        serial: 'Serial',
+        expiry: 'Expiry',
+        lotPlaceholder: 'បញ្ចូលលេខ lot',
+        serialPlaceholder: 'បញ្ចូលលេខ serial',
+        expiryPlaceholder: 'បានមកពី lot',
+        lotNotFound: 'មិនរកឃើញលេខ lot សម្រាប់ទំនិញនេះនៅក្នុងឃ្លាំងដែលបានជ្រើសទេ។',
+        serialNotFound: 'មិនរកឃើញលេខ serial មួយ ឬច្រើន សម្រាប់ទំនិញនេះនៅក្នុងឃ្លាំងដែលបានជ្រើសទេ។',
+        lotRequired: 'សូមបញ្ចូល និងផ្ទៀងផ្ទាត់លេខ lot មុនរក្សាទុកបន្ទាត់នេះ។',
+        serialRequired: 'សូមបញ្ចូល និងផ្ទៀងផ្ទាត់លេខ serial មុនរក្សាទុកបន្ទាត់នេះ។',
       },
       summary: {
         items: 'ទំនិញ',
@@ -352,6 +371,7 @@ export default {
       toast: {
         finalized: 'បញ្ចប់ការលក់ POS បានជោគជ័យ។',
         suspended: 'ផ្អាកការលក់ POS បានជោគជ័យ។',
+        lookupRequired: 'ទំនិញនេះមាន variant។ សូមប្រើស្កេន/ស្វែងរក ដើម្បីជ្រើស variant ឱ្យត្រឹមត្រូវមុនបន្ថែម។',
         failed: 'មិនអាចរក្សាទុកការលក់ POS បានទេ។',
       },
     },

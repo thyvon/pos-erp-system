@@ -59,94 +59,39 @@
         />
       </div>
 
-      <AppModal
+      <SalePaymentModal
         :show="paymentDialog.show"
         :title="t('sales.formPage.finalizePaymentTitle')"
         :icon="t('sales.formPage.finalizePaymentIcon')"
-        size="lg"
+        :summary-label="t('sales.documentModal.summary.grandTotal')"
+        :summary-value="paymentDialog.grandTotal"
+        :form="paymentDialog.payments[0]"
+        :payments="paymentDialog.payments"
+        :payment-account-options="paymentAccountOptions"
+        :payment-method-options="paymentMethodOptions"
+        :account-label="t('sales.salesPage.fields.paymentAccount')"
+        :method-label="t('sales.salesPage.fields.paymentMethod')"
+        :amount-label="t('sales.salesPage.fields.amount')"
+        :payment-date-label="t('sales.salesPage.fields.paymentDate')"
+        :reference-label="t('sales.salesPage.fields.reference')"
+        :note-label="t('sales.salesPage.fields.note')"
+        :account-placeholder="t('sales.salesPage.placeholders.selectPaymentAccount')"
+        :account-search-placeholder="t('sales.salesPage.placeholders.searchPaymentAccounts')"
+        :account-empty-text="t('sales.documentModal.placeholders.noPaymentAccounts')"
+        :method-placeholder="t('sales.salesPage.placeholders.selectPaymentMethod')"
+        :account-hint="t('sales.formPage.finalizePaymentHint')"
+        show-account-hint
+        :error="paymentDialog.error"
+        :saving="store.saving"
+        allow-multiple-rows
+        :cancel-label="t('sales.shared.actions.cancel')"
+        :confirm-label="t('sales.shared.actions.finalizeSale')"
         @close="closePaymentDialog"
+        @add-row="addPaymentRow"
+        @remove-row="removePaymentRow"
+        @confirm="confirmFinalize"
       >
-        <div class="space-y-5">
-          <div class="rounded-[18px] border border-slate-200 bg-slate-50/80 px-4 py-4 text-sm dark:border-slate-800 dark:bg-slate-900/70">
-            <div class="flex items-center justify-between gap-3">
-              <span class="text-slate-500 dark:text-slate-400">{{ t('sales.documentModal.summary.grandTotal') }}</span>
-              <span class="text-lg font-semibold text-slate-950 dark:text-white">
-                {{ formatAccountingMoney(paymentDialog.grandTotal) }}
-              </span>
-            </div>
-          </div>
-
-          <div class="grid gap-4 md:grid-cols-2">
-            <div class="md:col-span-2">
-              <label class="erp-label">{{ t('sales.salesPage.fields.paymentAccount') }}</label>
-              <AppSelect
-                :model-value="paymentDialog.form.payment_account_id || null"
-                :options="paymentAccountOptions"
-                :placeholder="t('sales.salesPage.placeholders.selectPaymentAccount')"
-                :search-placeholder="t('sales.salesPage.placeholders.searchPaymentAccounts')"
-                :empty-text="t('sales.documentModal.placeholders.noPaymentAccounts')"
-                searchable
-                @update:model-value="paymentDialog.form.payment_account_id = $event || ''"
-              />
-              <p class="mt-1 text-xs text-slate-500 dark:text-slate-400">
-                {{ t('sales.formPage.finalizePaymentHint') }}
-              </p>
-            </div>
-
-            <div>
-              <label class="erp-label">{{ t('sales.salesPage.fields.paymentMethod') }}</label>
-              <AppSelect
-                :model-value="paymentDialog.form.method || null"
-                :options="paymentMethodOptions"
-                :placeholder="t('sales.salesPage.placeholders.selectPaymentMethod')"
-                @update:model-value="paymentDialog.form.method = $event || 'cash'"
-              />
-            </div>
-
-            <div>
-              <label class="erp-label">{{ t('sales.salesPage.fields.amount') }}</label>
-              <input
-                v-model.number="paymentDialog.form.amount"
-                type="number"
-                min="0"
-                step="0.01"
-                class="erp-input"
-              />
-            </div>
-
-            <div>
-              <label class="erp-label">{{ t('sales.salesPage.fields.paymentDate') }}</label>
-              <AppDatePicker
-                :model-value="paymentDialog.form.payment_date"
-                @update:model-value="paymentDialog.form.payment_date = $event || ''"
-              />
-            </div>
-
-            <div>
-              <label class="erp-label">{{ t('sales.salesPage.fields.reference') }}</label>
-              <input v-model="paymentDialog.form.reference" type="text" class="erp-input" />
-            </div>
-
-            <div class="md:col-span-2">
-              <label class="erp-label">{{ t('sales.salesPage.fields.note') }}</label>
-              <textarea v-model="paymentDialog.form.note" rows="3" class="erp-input min-h-[6rem]"></textarea>
-            </div>
-          </div>
-
-          <div v-if="paymentDialog.error" class="rounded-[18px] border border-rose-200 bg-rose-50 px-4 py-3 text-sm text-rose-700 dark:border-rose-900/40 dark:bg-rose-950/30 dark:text-rose-200">
-            {{ paymentDialog.error }}
-          </div>
-
-          <div class="erp-form-actions">
-            <button type="button" class="erp-button-secondary" :disabled="store.saving" @click="closePaymentDialog">
-              {{ t('sales.shared.actions.cancel') }}
-            </button>
-            <button type="button" class="erp-button-primary" :disabled="store.saving" @click="confirmFinalize">
-              {{ t('sales.shared.actions.finalizeSale') }}
-            </button>
-          </div>
-        </div>
-      </AppModal>
+      </SalePaymentModal>
     </div>
   </AppLayout>
 </template>
@@ -163,15 +108,12 @@ import * as salesApi from '@api/sales'
 import * as taxRatesApi from '@api/taxRates'
 import * as warehousesApi from '@api/warehouses'
 import SaleDocumentForm from '@components/sales/SaleDocumentForm.vue'
+import SalePaymentModal from '@components/sales/SalePaymentModal.vue'
 import AppAlert from '@components/ui/AppAlert.vue'
-import AppDatePicker from '@components/ui/AppDatePicker.vue'
-import AppModal from '@components/ui/AppModal.vue'
-import AppSelect from '@components/ui/AppSelect.vue'
 import PageBlurSkeleton from '@components/ui/PageBlurSkeleton.vue'
 import AppLayout from '@layouts/AppLayout.vue'
 import { useAuthStore } from '@stores/auth'
 import { useSalesStore } from '@stores/sales'
-import { formatAccountingMoney } from '@/utils/accounting'
 import { formatHumanDateTime } from '@/utils/date'
 
 const SALES_FLASH_KEY = 'sales_flash'
@@ -195,19 +137,21 @@ const paymentAccounts = ref([])
 const taxRates = ref([])
 
 const alert = reactive({ show: false, type: 'success', title: '', message: '' })
+const createPaymentRow = (overrides = {}) => ({
+  payment_account_id: '',
+  amount: '',
+  method: 'cash',
+  payment_date: new Date().toISOString().slice(0, 10),
+  reference: '',
+  note: '',
+  ...overrides,
+})
 const paymentDialog = reactive({
   show: false,
   grandTotal: 0,
   payload: null,
   error: '',
-  form: {
-    payment_account_id: '',
-    amount: '',
-    method: 'cash',
-    payment_date: new Date().toISOString().slice(0, 10),
-    reference: '',
-    note: '',
-  },
+  payments: [createPaymentRow()],
 })
 
 const isEditMode = computed(() => Boolean(route.params.id))
@@ -510,51 +454,81 @@ const openPaymentDialog = (payload) => {
   paymentDialog.payload = payload
   paymentDialog.grandTotal = calculateFinalizeGrandTotal(payload)
   paymentDialog.error = ''
-  paymentDialog.form.payment_account_id = ''
-  paymentDialog.form.amount = ''
-  paymentDialog.form.method = 'cash'
-  paymentDialog.form.payment_date = payload.sale_date || new Date().toISOString().slice(0, 10)
-  paymentDialog.form.reference = ''
-  paymentDialog.form.note = ''
+  paymentDialog.payments = [createPaymentRow({
+    payment_date: payload.sale_date || new Date().toISOString().slice(0, 10),
+  })]
 }
 
 const closePaymentDialog = () => {
   paymentDialog.show = false
   paymentDialog.payload = null
   paymentDialog.error = ''
+  paymentDialog.payments = [createPaymentRow()]
+}
+
+const addPaymentRow = () => {
+  const lastRow = paymentDialog.payments[paymentDialog.payments.length - 1] || {}
+  paymentDialog.payments.push(createPaymentRow({
+    payment_account_id: lastRow.payment_account_id || '',
+    method: lastRow.method || 'cash',
+    payment_date: lastRow.payment_date || paymentDialog.payments[0]?.payment_date || new Date().toISOString().slice(0, 10),
+  }))
+}
+
+const removePaymentRow = (index) => {
+  if (paymentDialog.payments.length === 1) {
+    return
+  }
+
+  paymentDialog.payments.splice(index, 1)
 }
 
 const buildFinalizePaymentPayload = () => {
-  const amount = Number(paymentDialog.form.amount || 0)
-  const hasPaymentIntent = Boolean(
-    paymentDialog.form.payment_account_id ||
-    amount > 0 ||
-    paymentDialog.form.reference?.trim() ||
-    paymentDialog.form.note?.trim()
+  const paymentRows = paymentDialog.payments
+    .map((row) => ({
+      payment_account_id: row.payment_account_id || '',
+      amount: Number(row.amount || 0),
+      method: row.method || 'cash',
+      payment_date: row.payment_date || '',
+      reference: row.reference?.trim() || '',
+      note: row.note?.trim() || '',
+    }))
+
+  const hasPaymentIntent = paymentRows.some((row) =>
+    row.payment_account_id || row.amount > 0 || row.reference || row.note
   )
 
   if (!hasPaymentIntent) {
     return null
   }
 
-  if (!paymentDialog.form.payment_account_id || amount <= 0 || !paymentDialog.form.payment_date) {
+  const invalidRow = paymentRows.find((row) =>
+    (row.payment_account_id || row.amount > 0 || row.reference || row.note)
+    && (!row.payment_account_id || row.amount <= 0 || !row.payment_date)
+  )
+
+  if (invalidRow) {
     paymentDialog.error = t('sales.documentModal.validation.invalidPayment')
     return false
   }
 
-  if (amount > paymentDialog.grandTotal) {
+  const totalAmount = paymentRows.reduce((sum, row) => sum + row.amount, 0)
+
+  if (totalAmount > paymentDialog.grandTotal) {
     paymentDialog.error = t('sales.documentModal.validation.paymentExceedsTotal')
     return false
   }
 
-  return {
-    payment_account_id: paymentDialog.form.payment_account_id,
-    amount,
-    method: paymentDialog.form.method || 'cash',
-    payment_date: paymentDialog.form.payment_date,
-    reference: paymentDialog.form.reference?.trim() || null,
-    note: paymentDialog.form.note?.trim() || null,
-  }
+  return paymentRows
+    .filter((row) => row.payment_account_id && row.amount > 0)
+    .map((row) => ({
+      payment_account_id: row.payment_account_id,
+      amount: row.amount,
+      method: row.method,
+      payment_date: row.payment_date,
+      reference: row.reference || null,
+      note: row.note || null,
+    }))
 }
 
 const submitCreate = async (payload) => {
@@ -570,8 +544,8 @@ const submitCreate = async (payload) => {
     if (action === 'finalize' && createdSaleId) {
       await store.completeItem(createdSaleId)
 
-      if (payload.payment?.payment_account_id && Number(payload.payment?.amount || 0) > 0) {
-        await store.recordPayment(createdSaleId, payload.payment)
+      for (const payment of payload.payments || []) {
+        await store.recordPayment(createdSaleId, payment)
       }
     }
 
@@ -621,8 +595,8 @@ const submitUpdate = async (payload) => {
     if (action === 'finalize') {
       await store.completeItem(updatedSaleId)
 
-      if (payload.payment?.payment_account_id && Number(payload.payment?.amount || 0) > 0) {
-        await store.recordPayment(updatedSaleId, payload.payment)
+      for (const payment of payload.payments || []) {
+        await store.recordPayment(updatedSaleId, payment)
       }
     }
 
@@ -660,15 +634,15 @@ const confirmFinalize = async () => {
     return
   }
 
-  const payment = buildFinalizePaymentPayload()
+  const payments = buildFinalizePaymentPayload()
 
-  if (payment === false) {
+  if (payments === false) {
     return
   }
 
   const payload = {
     ...paymentDialog.payload,
-    payment,
+    payments,
   }
 
   try {

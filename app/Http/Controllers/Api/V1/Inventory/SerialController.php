@@ -24,6 +24,7 @@ class SerialController extends BaseApiController
             'search',
             'warehouse_id',
             'product_id',
+            'variation_id',
             'status',
             'per_page',
         ]), $request->user());

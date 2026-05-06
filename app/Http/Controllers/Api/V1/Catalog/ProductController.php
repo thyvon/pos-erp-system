@@ -36,6 +36,7 @@ class ProductController extends BaseCatalogController
             'is_active',
             'category_id',
             'brand_id',
+            'warehouse_id',
             'per_page',
         ]));
 
