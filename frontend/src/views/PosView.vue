@@ -568,7 +568,7 @@
       :show="lineModal.show"
       title="Line details"
       icon="POS line"
-      size="lg"
+      size="md"
       mobile-full-screen
       @close="closeLineModal"
     >
@@ -681,13 +681,50 @@
 
         <section class="pos-line-modal-card">
           <div class="pos-line-modal-heading">
+            <span class="pos-line-modal-icon" style="background:linear-gradient(135deg,#0ea5e9,#6366f1)"><i class="fa-solid fa-percent"></i></span>
+            <span>Line tax</span>
+          </div>
+
+          <div class="grid gap-3 grid-cols-2">
+            <div class="col-span-2">
+              <label class="erp-label">{{ t('sales.documentModal.fields.saleTax') }}</label>
+              <AppSelect
+                :model-value="lineModal.item.tax_rate_id || null"
+                :options="saleTaxRateOptions"
+                :placeholder="t('sales.documentModal.placeholders.selectSaleTax')"
+                :empty-text="t('sales.documentModal.placeholders.noTaxes')"
+                searchable
+                clearable
+                @update:model-value="handleLineTaxRateChange(lineModal.item, $event)"
+              />
+            </div>
+            <div v-if="lineModal.item.tax_rate_id">
+              <label class="erp-label">{{ t('sales.documentModal.fields.saleTaxType') }}</label>
+              <AppSelect
+                :model-value="lineModal.item.tax_type || 'exclusive'"
+                :options="taxTypeOptions"
+                :placeholder="t('sales.documentModal.placeholders.selectSaleTaxType')"
+                @update:model-value="lineModal.item.tax_type = $event || 'exclusive'"
+              />
+            </div>
+            <div v-if="lineModal.item.tax_rate_id" class="flex items-end">
+              <div class="w-full rounded-[8px] border border-cyan-200 bg-cyan-50/70 px-3 py-2 text-xs text-cyan-700 dark:border-cyan-900/50 dark:bg-cyan-950/25 dark:text-cyan-200">
+                <div class="font-semibold">{{ lineModal.item.tax_rate_name || 'Tax' }}</div>
+                <div class="mt-0.5 opacity-75">{{ lineModal.item.tax_rate_type === 'fixed' ? formatAccountingMoney(lineModal.item.tax_rate) : `${Number(lineModal.item.tax_rate || 0).toFixed(2)}%` }} · {{ lineModal.item.tax_type === 'inclusive' ? t('sales.documentModal.taxTypes.inclusive') : t('sales.documentModal.taxTypes.exclusive') }}</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section class="pos-line-modal-card">
+          <div class="pos-line-modal-heading">
             <span class="pos-line-modal-icon pos-line-modal-icon-note"><i class="fa-solid fa-align-left"></i></span>
             <span>Line note / description</span>
           </div>
           <textarea
             v-model="lineModal.item.notes"
-            rows="4"
-            class="erp-input min-h-[7rem]"
+            rows="3"
+            class="erp-input min-h-[5rem]"
             :placeholder="t('sales.documentModal.fields.lineNote')"
           ></textarea>
         </section>
@@ -736,6 +773,8 @@ import { computed, onMounted, reactive, ref, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import * as accountingApi from '@api/accounting'
+import * as brandsApi from '@api/brands'
+import * as categoriesApi from '@api/categories'
 import * as branchesApi from '@api/branches'
 import * as customersApi from '@api/customers'
 import * as inventoryApi from '@api/inventory'
@@ -749,7 +788,9 @@ import AppAlert from '@components/ui/AppAlert.vue'
 import AppModal from '@components/ui/AppModal.vue'
 import AppSelect from '@components/ui/AppSelect.vue'
 import PageBlurSkeleton from '@components/ui/PageBlurSkeleton.vue'
+import { storeToRefs } from 'pinia'
 import { useAuthStore } from '@stores/auth'
+import { usePosStore, toFiniteNumber } from '@stores/pos'
 import { formatAccountingMoney } from '@/utils/accounting'
 import { formatHumanDateTime } from '@/utils/date'
 
@@ -757,8 +798,6 @@ const { t } = useI18n()
 const auth = useAuthStore()
 const router = useRouter()
 const BASE_UNIT_OPTION_VALUE = '__base_unit__'
-const DEFAULT_DISCOUNT_SCOPE = 'sale'
-const DEFAULT_TAX_SCOPE = 'sale'
 
 const loading = ref(true)
 const saving = ref(false)
@@ -768,61 +807,29 @@ const branches = ref([])
 const warehouses = ref([])
 const customers = ref([])
 const products = ref([])
+const categories = ref([])
+const brands = ref([])
 const registers = ref([])
 const paymentAccounts = ref([])
 const taxRates = ref([])
-const cart = ref([])
+const posStore = usePosStore()
+// `form` is a reactive() object — access it directly so property mutations stay reactive.
+// Other state (cart, paymentRows) and all computeds come from storeToRefs.
+const form = posStore.form
+const { cart, paymentRows, showLineDiscountControls, summarySubtotal, subtotal, lineDiscountTotal, orderDiscountAmount, totalDiscountAmount, documentTaxAmount, taxTotal, grandTotal, totalQuantity, totalPaid, changeDue } = storeToRefs(posStore)
+const { createPaymentRow, lineGross, lineDiscountAmount, lineTaxable, lineBaseAmount, lineTaxAmount, lineNetTotal, lineTotal, clearCart: storeClearCart, deriveProductTax } = posStore
+
 const filterMode = ref('category')
 const activeFilterId = ref('')
 const productSearch = ref('')
 
 const alert = reactive({ show: false, type: 'success', title: '', message: '' })
 const lineModal = reactive({ show: false, item: null })
-const form = reactive({
-  branch_id: '',
-  warehouse_id: '',
-  customer_id: '',
-  cash_register_session_id: '',
-  sale_date: new Date().toISOString().slice(0, 10),
-  discount_scope: DEFAULT_DISCOUNT_SCOPE,
-  discount_type: '',
-  discount_amount: 0,
-  tax_scope: DEFAULT_TAX_SCOPE,
-  tax_rate_id: '',
-  tax_rate_type: '',
-  tax_rate: 0,
-  tax_type: 'exclusive',
-  notes: '',
-})
-const createPaymentRow = (overrides = {}) => ({
-  payment_account_id: '',
-  amount: 0,
-  method: 'cash',
-  reference: '',
-  payment_date: new Date().toISOString().slice(0, 10),
-  note: '',
-  ...overrides,
-})
-const paymentRows = ref([createPaymentRow()])
 
 const productMap = computed(() => new Map(products.value.map((product) => [product.id, product])))
 
-const uniqueFilters = (items, getter) => {
-  const map = new Map()
-
-  items.forEach((item) => {
-    const value = getter(item)
-
-    if (value?.id && value?.name && !map.has(value.id)) {
-      map.set(value.id, { id: value.id, name: value.name })
-    }
-  })
-
-  return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name))
-}
-
-const categoryFilters = computed(() => uniqueFilters(products.value, (product) => product.category))
-const brandFilters = computed(() => uniqueFilters(products.value, (product) => product.brand))
+const categoryFilters = computed(() => categories.value.map(c => ({ id: c.id, name: c.name })))
+const brandFilters = computed(() => brands.value.map(b => ({ id: b.id, name: b.name })))
 const activeFilters = computed(() => filterMode.value === 'brand' ? brandFilters.value : categoryFilters.value)
 
 const productPrice = (product) =>
@@ -881,35 +888,7 @@ const productMenuItems = computed(() =>
   })
 )
 
-const filteredProducts = computed(() => {
-  const term = productSearch.value.trim().toLowerCase()
-
-  return productMenuItems.value
-    .filter((product) => {
-      if (!activeFilterId.value) {
-        return true
-      }
-
-      return filterMode.value === 'brand'
-        ? product.brand?.id === activeFilterId.value
-        : product.category?.id === activeFilterId.value
-    })
-    .filter((product) => {
-      if (!term) {
-        return true
-      }
-
-      return [
-        product.name,
-        product.product_name,
-        product.variation_name,
-        product.sku,
-        product.category?.name,
-        product.brand?.name,
-      ].filter(Boolean).join(' ').toLowerCase().includes(term)
-    })
-    .slice(0, 60)
-})
+const filteredProducts = computed(() => productMenuItems.value)
 
 const branchOptions = computed(() =>
   branches.value.map((branch) => ({
@@ -983,134 +962,6 @@ const taxTypeOptions = computed(() => [
   { value: 'inclusive', label: t('sales.documentModal.taxTypes.inclusive') },
 ])
 
-const showLineDiscountControls = computed(() => form.discount_scope === 'line')
-
-const toFiniteNumber = (value, fallback = 0) => {
-  const numeric = Number(value)
-  return Number.isFinite(numeric) ? numeric : fallback
-}
-
-const deriveProductTax = (productId) => {
-  const product = productMap.value.get(productId)
-
-  return {
-    tax_rate_id: product?.tax_rate?.id || product?.tax_rate_id || null,
-    tax_rate_type: product?.tax_rate?.type || null,
-    tax_type: product?.tax_type || 'exclusive',
-    tax_rate: toFiniteNumber(product?.tax_rate?.rate ?? product?.tax_rate, 0),
-  }
-}
-
-const resolveDiscountAmount = (discountType, discountAmount, baseAmount) => {
-  const base = Number(baseAmount || 0)
-  const amount = Number(discountAmount || 0)
-
-  if (base <= 0 || amount <= 0) {
-    return 0
-  }
-
-  if (discountType === 'percentage') {
-    return Math.min(base, (base * amount) / 100)
-  }
-
-  return Math.min(base, amount)
-}
-
-const lineGross = (item) => Number(item.quantity || 0) * Number(item.unit_price || 0)
-const lineDiscountAmount = (item) =>
-  showLineDiscountControls.value
-    ? resolveDiscountAmount(item.discount_type, item.discount_amount, lineGross(item))
-    : 0
-
-const lineTaxable = (item) => Math.max(0, lineGross(item) - lineDiscountAmount(item))
-
-const lineBaseAmount = (item) => {
-  const grossAfterDiscount = lineTaxable(item)
-  const rate = Number(item.tax_rate || 0)
-
-  if (grossAfterDiscount <= 0 || rate <= 0) {
-    return grossAfterDiscount
-  }
-
-  if (item.tax_rate_type === 'fixed') {
-    return item.tax_type === 'inclusive'
-      ? Math.max(0, grossAfterDiscount - Math.min(grossAfterDiscount, rate))
-      : grossAfterDiscount
-  }
-
-  if (item.tax_type === 'inclusive') {
-    const taxAmount = grossAfterDiscount - (grossAfterDiscount / (1 + rate / 100))
-    return Math.max(0, grossAfterDiscount - taxAmount)
-  }
-
-  return grossAfterDiscount
-}
-
-const lineTaxAmount = (item) => {
-  const gross = lineTaxable(item)
-  const rate = Number(item.tax_rate || 0)
-
-  if (gross <= 0 || rate <= 0) {
-    return 0
-  }
-
-  if (item.tax_rate_type === 'fixed') {
-    return Math.min(gross, rate)
-  }
-
-  if (item.tax_type === 'inclusive') {
-    return gross - (gross / (1 + rate / 100))
-  }
-
-  return gross * (rate / 100)
-}
-
-const lineNetTotal = (item) => {
-  const gross = lineTaxable(item)
-  return item.tax_type === 'inclusive' ? gross : gross + lineTaxAmount(item)
-}
-
-const lineTotal = (item) =>
-  form.tax_scope === 'sale'
-    ? lineBaseAmount(item)
-    : lineNetTotal(item)
-
-const summarySubtotal = computed(() => cart.value.reduce((carry, item) => carry + lineGross(item), 0))
-const subtotal = computed(() => cart.value.reduce((carry, item) => carry + lineBaseAmount(item), 0))
-const lineDiscountTotal = computed(() => cart.value.reduce((carry, item) => carry + lineDiscountAmount(item), 0))
-const orderDiscountAmount = computed(() =>
-  form.discount_scope === 'sale'
-    ? resolveDiscountAmount(form.discount_type, form.discount_amount, subtotal.value)
-    : 0
-)
-const totalDiscountAmount = computed(() => lineDiscountTotal.value + orderDiscountAmount.value)
-const documentTaxAmount = computed(() => {
-  const grossAfterOrderDiscount = Math.max(0, subtotal.value - orderDiscountAmount.value)
-  const rate = Number(form.tax_rate || 0)
-
-  if (grossAfterOrderDiscount <= 0 || rate <= 0 || form.tax_scope !== 'sale') {
-    return 0
-  }
-
-  if (form.tax_rate_type === 'fixed') {
-    return Math.min(grossAfterOrderDiscount, rate)
-  }
-
-  if (form.tax_type === 'inclusive') {
-    return grossAfterOrderDiscount - (grossAfterOrderDiscount / (1 + rate / 100))
-  }
-
-  return grossAfterOrderDiscount * (rate / 100)
-})
-const taxTotal = computed(() =>
-  form.tax_scope === 'sale'
-    ? documentTaxAmount.value
-    : cart.value.reduce((carry, item) => carry + lineTaxAmount(item), 0)
-)
-const grandTotal = computed(() => Math.max(0, subtotal.value - orderDiscountAmount.value) + taxTotal.value)
-const totalQuantity = computed(() => cart.value.reduce((carry, item) => carry + Number(item.quantity || 0), 0))
-const totalPaid = computed(() => paymentRows.value.reduce((sum, row) => sum + Number(row.amount || 0), 0))
-const changeDue = computed(() => Math.max(0, totalPaid.value - grandTotal.value))
 
 const saleTaxRateOptions = computed(() =>
   taxRates.value.map((taxRate) => ({
@@ -1262,6 +1113,35 @@ const handleSaleTaxRateChange = (value) => {
 
   form.tax_rate_type = selected.type || 'percentage'
   form.tax_rate = Number(selected.rate || 0)
+}
+
+const handleLineTaxRateChange = (item, value) => {
+  item.tax_rate_id = value || ''
+
+  if (!item.tax_rate_id) {
+    item.tax_rate_name = ''
+    item.tax_rate_type = ''
+    item.tax_rate = 0
+    item.tax_type = ''
+    return
+  }
+
+  const selected = taxRates.value.find((taxRate) => taxRate.id === item.tax_rate_id)
+
+  if (!selected) {
+    item.tax_rate_name = ''
+    item.tax_rate_type = ''
+    item.tax_rate = 0
+    return
+  }
+
+  item.tax_rate_name = selected.name || ''
+  item.tax_rate_type = selected.type || 'percentage'
+  item.tax_rate = Number(selected.rate || 0)
+
+  if (!item.tax_type) {
+    item.tax_type = 'exclusive'
+  }
 }
 
 const openMultiplePay = () => {
@@ -1698,22 +1578,10 @@ const removeItem = (key) => {
 }
 
 const clearCart = () => {
-  cart.value = []
+  storeClearCart()
   closeLineModal()
-  paymentRows.value = [createPaymentRow({
-    payment_date: form.sale_date,
-  })]
-  form.discount_scope = DEFAULT_DISCOUNT_SCOPE
-  form.discount_type = ''
-  form.discount_amount = 0
-  form.tax_scope = DEFAULT_TAX_SCOPE
-  form.tax_rate_id = ''
-  form.tax_rate_type = ''
-  form.tax_rate = 0
-  form.tax_type = 'exclusive'
-  form.notes = ''
-  attemptedSubmit.value = false
   paymentModalOpen.value = false
+  attemptedSubmit.value = false
 }
 
 const buildPayload = (type) => ({
@@ -1847,10 +1715,36 @@ const loadCustomers = async () => {
   customers.value = response.data.data
 }
 
+let searchTimeout
+const debouncedLoadProducts = () => {
+  clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => {
+    loadProducts()
+  }, 300)
+}
+
+const loadCategories = async () => {
+  const response = await categoriesApi.getCategories({ per_page: 100 })
+  categories.value = response.data.data
+}
+
+const loadBrands = async () => {
+  const response = await brandsApi.getBrands({ per_page: 100 })
+  brands.value = response.data.data
+}
+
 const loadProducts = async () => {
+  if (!form.warehouse_id) {
+    products.value = []
+    return
+  }
+  
   const response = await productsApi.getProducts({
-    per_page: 250,
-    warehouse_id: form.warehouse_id || undefined,
+    per_page: 60,
+    warehouse_id: form.warehouse_id,
+    search: productSearch.value || undefined,
+    category_id: filterMode.value === 'category' ? (activeFilterId.value || undefined) : undefined,
+    brand_id: filterMode.value === 'brand' ? (activeFilterId.value || undefined) : undefined,
   })
   products.value = response.data.data.filter((product) => product.is_active && product.is_for_selling !== false)
 }
@@ -1870,22 +1764,19 @@ const loadTaxRates = async () => {
   taxRates.value = response.data.data
 }
 
-watch(grandTotal, (value) => {
-  if (!paymentRows.value[0]?.amount || totalPaid.value < Number(value)) {
-    paymentRows.value[0].amount = Number((Number(paymentRows.value[0].amount || 0) + (value - totalPaid.value)).toFixed(2))
-  }
-})
 
 watch(filterMode, () => {
   activeFilterId.value = ''
 })
 
 watch(() => form.warehouse_id, async () => {
-  if (loading.value) {
-    return
-  }
-
+  if (loading.value) return
   await loadProducts()
+})
+
+watch([productSearch, activeFilterId, filterMode], () => {
+  if (loading.value) return
+  debouncedLoadProducts()
 })
 
 onMounted(async () => {
@@ -1896,6 +1787,8 @@ onMounted(async () => {
       loadBranches(),
       loadWarehouses(),
       loadCustomers(),
+      loadCategories(),
+      loadBrands(),
       loadProducts(),
       loadRegisters(),
       loadPaymentAccounts(),
