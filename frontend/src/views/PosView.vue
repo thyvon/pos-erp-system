@@ -255,9 +255,11 @@
               <div v-if="cart.length" class="pos-cart-summary-footer">
                 <div class="pos-cart-pricing-controls">
                   <section class="pos-cart-pricing-section">
-                    <div class="pos-cart-pricing-heading">
+                    <div class="pos-cart-pricing-heading" @click="discountCollapsed = !discountCollapsed">
                       <span class="pos-cart-pricing-title">{{ t('sales.documentModal.fields.lineDiscount') }}</span>
+                      <i class="pos-collapse-icon" :class="discountCollapsed ? 'fa-solid fa-chevron-down' : 'fa-solid fa-chevron-up'"></i>
                     </div>
+                    <div v-show="!discountCollapsed" class="pos-cart-pricing-body" :class="{ 'pos-cart-pricing-body-collapsed': discountCollapsed }">
 
                     <div class="pos-cart-pricing-body">
                       <div class="pos-cart-pricing-control">
@@ -306,11 +308,11 @@
                   </section>
 
                   <section class="pos-cart-pricing-section">
-                    <div class="pos-cart-pricing-heading">
+                    <div class="pos-cart-pricing-heading" @click="taxCollapsed = !taxCollapsed">
                       <span class="pos-cart-pricing-title">{{ t('sales.documentModal.fields.tax') }}</span>
+                      <i class="pos-collapse-icon" :class="taxCollapsed ? 'fa-solid fa-chevron-down' : 'fa-solid fa-chevron-up'"></i>
                     </div>
-
-                    <div class="pos-cart-pricing-body">
+                    <div v-show="!taxCollapsed" class="pos-cart-pricing-body" :class="{ 'pos-cart-pricing-body-collapsed': taxCollapsed }">
                       <div class="pos-cart-pricing-control">
                         <label class="erp-label">{{ t('sales.documentModal.fields.taxMode') }}</label>
                         <div class="pos-radio-group">
@@ -380,52 +382,155 @@
                   </div>
                 </div>
 
-                <section class="pos-quick-checkout">
-                  <div class="pos-quick-checkout-heading">
-                    <span class="pos-quick-checkout-title">Quick checkout</span>
-                    <span class="pos-quick-checkout-hint">Single payment</span>
+                <section class="pos-checkout-section">
+                  <div class="pos-checkout-heading">
+                    <span class="pos-checkout-title">Checkout</span>
+                    <span class="pos-checkout-hint">Add payments and finalize sale</span>
                   </div>
 
-                  <div class="pos-quick-checkout-grid">
-                    <div class="pos-quick-checkout-control">
-                      <label class="erp-label">{{ t('sales.posPage.fields.paymentMethod') }}</label>
-                      <div class="pos-radio-group">
-                        <label class="pos-radio">
-                          <input v-model="quickPay.method" type="radio" value="cash" />
-                          <span>{{ t('sales.shared.methods.cash') }}</span>
-                        </label>
-                        <label class="pos-radio">
-                          <input v-model="quickPay.method" type="radio" value="card" />
-                          <span>{{ t('sales.shared.methods.card') }}</span>
-                        </label>
+                  <!-- Sell Note -->
+                  <div class="pos-sell-note">
+                    <label class="erp-label">{{ t('sales.posPage.fields.note') }}</label>
+                    <textarea
+                      v-model="form.notes"
+                      rows="2"
+                      class="erp-input pos-sell-note-input"
+                      :placeholder="t('sales.posPage.fields.note')"
+                    ></textarea>
+                  </div>
+
+                  <!-- Payment Table -->
+                  <div class="pos-payment-table">
+                    <div class="pos-payment-header">
+                      <div class="pos-payment-grid">
+                        <span>{{ t('sales.shared.methods.payment') }}</span>
+                        <span>{{ t('sales.posPage.fields.paymentAccount') }}</span>
+                        <span class="text-right">{{ t('sales.posPage.fields.paidAmount') }}</span>
+                        <span>{{ t('sales.salesPage.fields.reference') }}</span>
+                        <span></span>
                       </div>
                     </div>
 
-                    <div class="pos-quick-checkout-control">
-                      <label class="erp-label">{{ t('sales.posPage.fields.paymentAccount') }}</label>
-                      <AppSelect
-                        :model-value="quickPay.payment_account_id || null"
-                        :options="paymentAccountOptions"
-                        :placeholder="t('sales.salesPage.placeholders.selectPaymentAccount')"
-                        searchable
-                        @update:model-value="quickPay.payment_account_id = $event || ''"
-                      />
+                    <div class="pos-payment-list">
+                      <div
+                        v-for="(payment, index) in paymentRows"
+                        :key="payment.key || index"
+                        class="pos-payment-row"
+                      >
+                        <div class="pos-payment-grid">
+                          <div class="pos-payment-method">
+                            <AppSelect
+                              :model-value="payment.method || null"
+                              :options="paymentMethodOptions"
+                              :placeholder="t('sales.salesPage.placeholders.selectPaymentMethod')"
+                              @update:model-value="payment.method = $event || 'cash'"
+                            />
+                          </div>
+                          <div class="pos-payment-account">
+                            <AppSelect
+                              :model-value="payment.payment_account_id || null"
+                              :options="paymentAccountOptions"
+                              :placeholder="t('sales.salesPage.placeholders.selectPaymentAccount')"
+                              searchable
+                              @update:model-value="payment.payment_account_id = $event || ''"
+                            />
+                          </div>
+                          <div class="pos-payment-amount">
+                            <input
+                              v-model.number="payment.amount"
+                              type="number"
+                              min="0"
+                              step="0.01"
+                              class="erp-input pos-payment-amount-input text-right font-semibold"
+                              :placeholder="'0.00'"
+                            />
+                          </div>
+                          <div class="pos-payment-reference">
+                            <input
+                              v-model="payment.reference"
+                              type="text"
+                              class="erp-input pos-payment-reference-input"
+                              :placeholder="t('sales.posPage.fields.reference')"
+                            />
+                          </div>
+                          <div class="pos-payment-actions">
+                            <button
+                              type="button"
+                              class="pos-payment-remove"
+                              :disabled="paymentRows.length === 1"
+                              :title="t('sales.documentModal.removeLine')"
+                              @click="removePaymentRow(index)"
+                            >
+                              <i class="fa-solid fa-trash"></i>
+                            </button>
+                          </div>
+                        </div>
+                      </div>
                     </div>
 
-                    <div class="pos-quick-checkout-control">
-                      <label class="erp-label">{{ t('sales.posPage.fields.paidAmount') }}</label>
-                      <input v-model.number="quickPay.amount" type="number" min="0" step="0.01" class="erp-input text-right font-semibold" />
-                    </div>
-
-                    <div class="pos-quick-checkout-action">
-                      <button type="button" class="pos-quick-checkout-button" :disabled="saving || !cart.length" @click="submitQuickPay">
-                        <span
-                          v-if="saving"
-                          class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"
-                        ></span>
-                        <span v-else>Pay</span>
+                    <!-- Add Payment Button -->
+                    <div class="pos-payment-add">
+                      <button
+                        type="button"
+                        class="pos-payment-add-button"
+                        :disabled="saving"
+                        @click="addPaymentRow"
+                      >
+                        <i class="fa-solid fa-plus"></i>
+                        <span>{{ t('sales.posPage.actions.addPayment') }}</span>
                       </button>
                     </div>
+                  </div>
+
+                  <!-- Payment Summary -->
+                  <div class="pos-payment-summary">
+                    <div class="pos-payment-summary-row">
+                      <span class="pos-payment-summary-label">{{ t('sales.posPage.summary.total') }}</span>
+                      <strong class="pos-payment-summary-value">{{ formatAccountingMoney(grandTotal) }}</strong>
+                    </div>
+                    <div class="pos-payment-summary-row">
+                      <span class="pos-payment-summary-label">{{ t('sales.posPage.summary.totalPaid') }}</span>
+                      <strong class="pos-payment-summary-value">{{ formatAccountingMoney(totalPaid) }}</strong>
+                    </div>
+                    <div class="pos-payment-summary-row pos-payment-summary-change">
+                      <span class="pos-payment-summary-label">{{ t('sales.posPage.summary.change') }}</span>
+                      <strong class="pos-payment-summary-value">{{ formatAccountingMoney(changeDue) }}</strong>
+                    </div>
+                  </div>
+
+                  <!-- Checkout Actions -->
+                  <div class="pos-checkout-actions">
+                    <button
+                      type="button"
+                      class="pos-checkout-button pos-checkout-button-cash"
+                      :disabled="saving || !cart.length"
+                      @click="submitCash"
+                    >
+                      <span
+                        v-if="saving"
+                        class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"
+                      ></span>
+                      <i v-else class="fa-solid fa-money-bill-wave"></i>
+                      <span>{{ t('sales.posPage.actions.cash') }}</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="pos-checkout-button pos-checkout-button-card"
+                      :disabled="saving || !cart.length"
+                      @click="submitCard"
+                    >
+                      <i class="fa-solid fa-credit-card"></i>
+                      <span>{{ t('sales.posPage.actions.card') }}</span>
+                    </button>
+                    <button
+                      type="button"
+                      class="pos-checkout-button pos-checkout-button-primary"
+                      :disabled="saving || !cart.length"
+                      @click="submitFinalized"
+                    >
+                      <i class="fa-solid fa-money-check-dollar"></i>
+                      <span>{{ t('sales.shared.actions.finalizePosSale') }}</span>
+                    </button>
                   </div>
                 </section>
               </div>
@@ -536,57 +641,8 @@
       </template>
     </main>
 
-    
 
-    <SalePaymentModal
-      :show="paymentModalOpen"
-      :title="t('sales.posPage.actions.multiplePay')"
-      icon="payment"
-      size="xl"
-      :intro-text="'Finalize the payment method, account, and tendered amount before saving this POS sale.'"
-      :summary-label="t('sales.posPage.summary.total')"
-      :summary-value="grandTotal"
-      :form="paymentRows[0]"
-      :payments="paymentRows"
-      :payment-account-options="paymentAccountOptions"
-      :payment-method-options="paymentMethodOptions"
-      :account-label="t('sales.posPage.fields.paymentAccount')"
-      :method-label="t('sales.posPage.fields.paymentMethod')"
-      :amount-label="t('sales.posPage.fields.paidAmount')"
-      :payment-date-label="t('sales.salesPage.fields.paymentDate')"
-      :reference-label="t('sales.posPage.fields.reference')"
-      :note-label="t('sales.posPage.fields.note')"
-      :account-placeholder="t('sales.salesPage.placeholders.selectPaymentAccount')"
-      :method-placeholder="t('sales.salesPage.placeholders.selectPaymentMethod')"
-      :reference-placeholder="t('sales.posPage.fields.reference')"
-      :note-placeholder="t('sales.posPage.fields.note')"
-      :show-note="false"
-      :error="paymentValidationMessage"
-      :saving="saving"
-      allow-multiple-rows
-      :cancel-label="t('sales.shared.actions.cancel')"
-      :confirm-label="t('sales.shared.actions.finalizePosSale')"
-      @close="paymentModalOpen = false"
-      @add-row="addPaymentRow"
-      @remove-row="removePaymentRow"
-      @confirm="submitFinalized"
-    >
-      <template #extra>
-        <div class="space-y-3">
-          <div>
-            <label class="erp-label">{{ t('sales.posPage.fields.note') }}</label>
-            <input v-model="form.notes" type="text" class="erp-input" :placeholder="t('sales.posPage.fields.note')" />
-          </div>
 
-          <div class="rounded-[18px] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-900/40 dark:bg-emerald-950/25 dark:text-emerald-200">
-            <div class="flex items-center justify-between gap-3">
-              <span>{{ t('sales.posPage.summary.change') }}</span>
-              <span class="font-semibold">{{ formatAccountingMoney(changeDue) }}</span>
-            </div>
-          </div>
-        </div>
-      </template>
-    </SalePaymentModal>
 
     <AppModal
       :show="lineModal.show"
@@ -809,7 +865,6 @@ import * as salesApi from '@api/sales'
 import * as taxRatesApi from '@api/taxRates'
 import * as warehousesApi from '@api/warehouses'
 import InventoryProductLookup from '@components/inventory/InventoryProductLookup.vue'
-import SalePaymentModal from '@components/sales/SalePaymentModal.vue'
 import AppAlert from '@components/ui/AppAlert.vue'
 import AppModal from '@components/ui/AppModal.vue'
 import AppSelect from '@components/ui/AppSelect.vue'
@@ -848,6 +903,10 @@ const { createPaymentRow, lineGross, lineDiscountAmount, lineTaxable, lineBaseAm
 const filterMode = ref('category')
 const activeFilterId = ref('')
 const productSearch = ref('')
+
+// Collapsible sections state
+const discountCollapsed = ref(false)
+const taxCollapsed = ref(false)
 
 const alert = reactive({ show: false, type: 'success', title: '', message: '' })
 const lineModal = reactive({ show: false, item: null })
@@ -1724,7 +1783,22 @@ const submitSuspended = async () => {
 const submitFinalized = async () => {
   attemptedSubmit.value = true
 
-  if (validationMessage.value || paymentValidationMessage.value) {
+  if (validationMessage.value) {
+    showToast('danger', validationMessage.value)
+    return
+  }
+
+  // Validate payments
+  const validPayments = paymentRows.value
+    .filter((row) => row.payment_account_id && Number(row.amount || 0) > 0)
+
+  if (validPayments.length === 0) {
+    showToast('danger', 'At least one valid payment is required')
+    return
+  }
+
+  if (Number(totalPaid.value) < Number(grandTotal.value)) {
+    showToast('danger', 'Total paid amount must be at least the sale total')
     return
   }
 
@@ -1735,16 +1809,14 @@ const submitFinalized = async () => {
     const sale = created.data.data
     await salesApi.completeSale(sale.id)
 
-    const payments = paymentRows.value
-      .map((row) => ({
-        payment_account_id: row.payment_account_id || '',
-        amount: Number(row.amount || 0),
-        method: row.method || 'cash',
-        payment_date: row.payment_date || form.sale_date,
-        reference: row.reference?.trim() || '',
-        note: row.note?.trim() || '',
-      }))
-      .filter((row) => row.payment_account_id && row.amount > 0)
+    const payments = validPayments.map((row) => ({
+      payment_account_id: row.payment_account_id,
+      amount: Number(row.amount || 0),
+      method: row.method || 'cash',
+      payment_date: row.payment_date || form.sale_date,
+      reference: row.reference?.trim() || '',
+      note: row.note?.trim() || '',
+    }))
 
     for (const payment of payments) {
       await salesApi.recordSalePayment(sale.id, {
@@ -1757,7 +1829,6 @@ const submitFinalized = async () => {
       })
     }
 
-    paymentModalOpen.value = false
     showToast('success', t('sales.posPage.toast.finalized'))
     clearCart()
   } catch (error) {
@@ -1768,23 +1839,41 @@ const submitFinalized = async () => {
 }
 
 const submitCash = () => {
-  paymentRows.value = [createPaymentRow({
-    method: 'cash',
-    amount: Number(grandTotal.value.toFixed(2)),
-    payment_date: form.sale_date,
-    note: form.notes,
-  })]
-  openMultiplePay()
+  // Add or update cash payment row
+  if (paymentRows.value.length === 0) {
+    paymentRows.value = [createPaymentRow({
+      method: 'cash',
+      amount: Number(grandTotal.value.toFixed(2)),
+      payment_date: form.sale_date,
+      note: form.notes,
+    })]
+  } else {
+    // Update first row to cash
+    paymentRows.value[0].method = 'cash'
+    paymentRows.value[0].amount = Number(grandTotal.value.toFixed(2))
+  }
+
+  // Auto-submit
+  submitFinalized()
 }
 
 const submitCard = () => {
-  paymentRows.value = [createPaymentRow({
-    method: 'card',
-    amount: Number(grandTotal.value.toFixed(2)),
-    payment_date: form.sale_date,
-    note: form.notes,
-  })]
-  openMultiplePay()
+  // Add or update card payment row
+  if (paymentRows.value.length === 0) {
+    paymentRows.value = [createPaymentRow({
+      method: 'card',
+      amount: Number(grandTotal.value.toFixed(2)),
+      payment_date: form.sale_date,
+      note: form.notes,
+    })]
+  } else {
+    // Update first row to card
+    paymentRows.value[0].method = 'card'
+    paymentRows.value[0].amount = Number(grandTotal.value.toFixed(2))
+  }
+
+  // Auto-submit
+  submitFinalized()
 }
 
 const loadBranches = async () => {
@@ -1833,7 +1922,7 @@ const loadProducts = async () => {
     products.value = []
     return
   }
-  
+
   const response = await productsApi.getProducts({
     per_page: 60,
     warehouse_id: form.warehouse_id,
@@ -1904,11 +1993,11 @@ onMounted(async () => {
 <style scoped>
 .pos-terminal {
   background:
-    radial-gradient(circle at top left, rgba(125, 211, 252, 0.18), transparent 28%),
-    radial-gradient(circle at top right, rgba(110, 231, 183, 0.18), transparent 24%),
-    linear-gradient(135deg, rgba(248, 250, 252, 0.98), rgba(239, 246, 255, 0.96) 45%, rgba(240, 253, 250, 0.92)),
-    #f8fafc;
-  color: rgb(15 23 42);
+    radial-gradient(circle at top left, rgba(99, 102, 241, 0.08), transparent 28%),
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.08), transparent 24%),
+    linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(249, 250, 251, 0.96) 45%, rgba(250, 252, 250, 0.92)),
+    #ffffff;
+  color: rgb(17 24 39);
   padding-bottom: 6.25rem;
 }
 
@@ -1917,15 +2006,15 @@ onMounted(async () => {
   top: 0;
   z-index: 40;
   display: flex;
-  min-height: 4.75rem;
+  min-height: 5rem;
   align-items: center;
   justify-content: space-between;
-  gap: 1rem;
-  border-bottom: 1px solid rgba(203, 213, 225, 0.76);
-  background: rgba(255, 255, 255, 0.84);
-  padding: 1rem 1.1rem;
-  box-shadow: 0 18px 42px rgba(15, 23, 42, 0.09);
-  backdrop-filter: blur(18px) saturate(160%);
+  gap: 1.5rem;
+  border-bottom: 1px solid rgba(229, 231, 235, 0.8);
+  background: rgba(255, 255, 255, 0.95);
+  padding: 1.25rem 1.5rem;
+  box-shadow: 0 4px 24px rgba(17, 24, 39, 0.06);
+  backdrop-filter: blur(20px) saturate(180%);
 }
 
 .pos-header-copy {
@@ -1939,43 +2028,49 @@ onMounted(async () => {
 
 .pos-terminal-button {
   display: inline-flex;
-  min-height: 2.5rem;
+  min-height: 2.75rem;
   align-items: center;
   justify-content: center;
-  gap: 0.5rem;
-  border: 1px solid rgba(148, 163, 184, 0.38);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.78);
-  padding: 0 0.85rem;
-  color: rgb(51 65 85);
+  gap: 0.625rem;
+  border: 1px solid rgba(229, 231, 235, 0.6);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  padding: 0 1.125rem;
+  color: rgb(55, 65, 81);
   font-size: 0.875rem;
-  font-weight: 700;
-  transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease;
+  font-weight: 600;
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .pos-terminal-button:hover {
-  border-color: rgba(6, 182, 212, 0.52);
-  background: rgba(236, 254, 255, 0.9);
-  color: rgb(14 116 144);
+  border-color: rgba(99, 102, 241, 0.5);
+  background: rgba(248, 250, 252, 0.95);
+  color: rgb(79, 70, 229);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
 }
 
 .pos-terminal-icon-button {
   display: inline-flex;
-  height: 2.5rem;
-  width: 2.5rem;
+  height: 2.75rem;
+  width: 2.75rem;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(148, 163, 184, 0.38);
-  border-radius: 8px;
-  background: rgba(255, 255, 255, 0.78);
-  color: rgb(51 65 85);
-  transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease, opacity 150ms ease;
+  border: 1px solid rgba(229, 231, 235, 0.6);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.9);
+  color: rgb(55, 65, 81);
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .pos-terminal-icon-button:hover:not(:disabled) {
-  border-color: rgba(244, 63, 94, 0.42);
-  background: rgba(255, 241, 242, 0.9);
-  color: rgb(190 18 60);
+  border-color: rgba(239, 68, 68, 0.5);
+  background: rgba(254, 242, 242, 0.95);
+  color: rgb(220, 38, 38);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.15);
 }
 
 .pos-terminal-icon-button:disabled {
@@ -1984,15 +2079,15 @@ onMounted(async () => {
 }
 
 .pos-panel {
-  border: 1px solid rgba(203, 213, 225, 0.76);
-  border-radius: 10px;
+  border: 1px solid rgba(229, 231, 235, 0.8);
+  border-radius: 16px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(248, 250, 252, 0.82));
-  padding: 1rem;
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(249, 250, 251, 0.92));
+  padding: 1.25rem;
   box-shadow:
-    0 20px 44px rgba(15, 23, 42, 0.08),
-    inset 0 1px 0 rgba(255, 255, 255, 0.6);
-  backdrop-filter: blur(16px) saturate(150%);
+    0 4px 24px rgba(17, 24, 39, 0.06),
+    inset 0 1px 0 rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(20px) saturate(180%);
 }
 
 .pos-workspace {
@@ -2051,17 +2146,19 @@ onMounted(async () => {
 }
 
 .pos-section-title {
-  color: rgb(15 23 42);
-  font-size: 0.95rem;
-  font-weight: 900;
-  line-height: 1.2;
+  color: rgb(17 24 39);
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.25;
+  letter-spacing: -0.025em;
 }
 
 .pos-section-copy {
-  margin-top: 0.2rem;
-  color: rgb(100 116 139);
-  font-size: 0.78rem;
-  line-height: 1.45;
+  margin-top: 0.25rem;
+  color: rgb(107, 114, 128);
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  font-weight: 400;
 }
 
 .pos-sale-panel,
@@ -2281,27 +2378,30 @@ onMounted(async () => {
 
 .pos-quantity-stepper {
   display: grid;
-  grid-template-columns: 1.55rem minmax(0, 1fr) 1.55rem;
+  grid-template-columns: 1.75rem minmax(0, 1fr) 1.75rem;
   overflow: hidden;
   min-width: 0;
-  border: 1px solid rgba(226, 232, 240, 0.88);
-  border-radius: 6px;
-  background: rgba(255, 255, 255, 0.92);
+  border: 1px solid rgba(229, 231, 235, 0.8);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
 }
 
 .pos-quantity-stepper-button {
   display: inline-flex;
-  min-height: 1.75rem;
+  min-height: 2rem;
   align-items: center;
   justify-content: center;
-  color: rgb(71 85 105);
-  font-size: 0.62rem;
-  transition: background-color 150ms ease, color 150ms ease, opacity 150ms ease;
+  color: rgb(75, 85, 99);
+  font-size: 0.6875rem;
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  font-weight: 500;
 }
 
 .pos-quantity-stepper-button:hover:not(:disabled) {
-  background: rgb(224 242 254);
-  color: rgb(3 105 161);
+  background: linear-gradient(135deg, rgb(248, 250, 252), rgb(241, 245, 249));
+  color: rgb(79, 70, 229);
+  transform: scale(1.05);
 }
 
 .pos-quantity-stepper-button:disabled {
@@ -2312,13 +2412,16 @@ onMounted(async () => {
 .pos-quantity-stepper-input {
   min-width: 0;
   border: 0;
-  border-right: 1px solid rgba(226, 232, 240, 0.88);
-  border-left: 1px solid rgba(226, 232, 240, 0.88);
+  border-right: 1px solid rgba(229, 231, 235, 0.8);
+  border-left: 1px solid rgba(229, 231, 235, 0.8);
   border-radius: 0;
   background: transparent;
   box-shadow: none;
   appearance: textfield;
   -moz-appearance: textfield;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  color: rgb(17, 24, 39);
 }
 
 .pos-quantity-stepper-input::-webkit-inner-spin-button,
@@ -2333,27 +2436,36 @@ onMounted(async () => {
 }
 
 .pos-cart-price-input {
-  min-height: 1.75rem;
-  padding: 0.22rem 0.42rem;
-  font-size: 0.75rem;
+  min-height: 2rem;
+  padding: 0.375rem 0.625rem;
+  font-size: 0.8125rem;
+  border-radius: 8px;
+  border: 1px solid rgba(229, 231, 235, 0.6);
+  background: rgba(255, 255, 255, 0.9);
+  font-weight: 600;
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .pos-cart-delete {
   display: inline-flex;
-  height: 1.75rem;
-  width: 1.75rem;
+  height: 2rem;
+  width: 2rem;
   align-items: center;
   justify-content: center;
-  border: 1px solid rgba(254, 205, 211, 1);
-  border-radius: 6px;
-  color: rgb(225 29 72);
-  font-size: 0.72rem;
-  transition: border-color 150ms ease, background-color 150ms ease, color 150ms ease, opacity 150ms ease;
+  border: 1px solid rgba(252, 165, 165, 0.8);
+  border-radius: 10px;
+  color: rgb(220, 38, 38);
+  font-size: 0.75rem;
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  background: rgba(254, 242, 242, 0.8);
+  font-weight: 500;
 }
 
 .pos-cart-delete:hover:not(:disabled) {
-  border-color: rgb(253 164 175);
-  background: rgb(255 241 242);
+  border-color: rgb(248, 113, 113);
+  background: rgb(254, 226, 226);
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
 }
 
 .pos-cart-delete:disabled {
@@ -2393,20 +2505,22 @@ onMounted(async () => {
 .pos-cart-summary-item {
   display: grid;
   align-content: center;
-  gap: 0.1rem;
-  min-height: 3.2rem;
-  border: 1px solid rgba(203, 213, 225, 0.86);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.92);
-  padding: 0.55rem 0.75rem;
+  gap: 0.125rem;
+  min-height: 3.5rem;
+  border: 1px solid rgba(229, 231, 235, 0.8);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(249, 250, 251, 0.95));
+  padding: 0.75rem 1rem;
   text-align: right;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .pos-cart-summary-label {
-  color: rgb(100 116 139);
-  font-size: 0.62rem;
-  font-weight: 900;
-  letter-spacing: 0.06em;
+  color: rgb(107, 114, 128);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
   text-transform: uppercase;
   white-space: nowrap;
   overflow: hidden;
@@ -2414,11 +2528,11 @@ onMounted(async () => {
 }
 
 .pos-cart-summary-value {
-  color: rgb(15 23 42);
-  font-size: 0.92rem;
-  font-weight: 900;
+  color: rgb(17 24 39);
+  font-size: 1rem;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
-  line-height: 1.15;
+  line-height: 1.2;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2439,16 +2553,18 @@ onMounted(async () => {
 }
 
 .pos-cart-summary-total {
-  border-color: rgba(14, 165, 233, 0.22);
-  background: rgba(224, 242, 254, 0.55);
+  border-color: rgba(99, 102, 241, 0.3);
+  background: linear-gradient(135deg, rgba(238, 242, 255, 0.8), rgba(224, 231, 255, 0.7));
+  box-shadow: 0 2px 8px rgba(99, 102, 241, 0.1);
 }
 
 .pos-quick-checkout {
-  margin-top: 0.65rem;
-  border: 1px solid rgba(203, 213, 225, 0.72);
-  border-radius: 12px;
-  background: rgba(255, 255, 255, 0.75);
-  padding: 0.65rem 0.7rem;
+  margin-top: 0.75rem;
+  border: 1px solid rgba(229, 231, 235, 0.8);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(249, 250, 251, 0.95));
+  padding: 0.875rem 1rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
 }
 
 .pos-quick-checkout-heading {
@@ -2460,9 +2576,10 @@ onMounted(async () => {
 }
 
 .pos-quick-checkout-title {
-  color: rgb(15 23 42);
-  font-size: 0.78rem;
-  font-weight: 900;
+  color: rgb(17 24 39);
+  font-size: 0.875rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
 }
 
 .pos-quick-checkout-hint {
@@ -2488,18 +2605,22 @@ onMounted(async () => {
 
 .pos-quick-checkout-button {
   display: inline-flex;
-  min-height: 2.5rem;
-  min-width: 8rem;
+  min-height: 2.75rem;
+  min-width: 9rem;
   align-items: center;
   justify-content: center;
-  gap: 0.45rem;
-  border-radius: 10px;
-  background: linear-gradient(135deg, rgb(15 23 42), rgb(30 41 59));
+  gap: 0.625rem;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgb(16, 185, 129), rgb(5, 150, 105));
   color: white;
-  font-size: 0.9rem;
-  font-weight: 900;
+  font-size: 0.9375rem;
+  font-weight: 600;
   white-space: nowrap;
-  transition: opacity 150ms ease, transform 150ms ease;
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 12px rgba(16, 185, 129, 0.2);
+  letter-spacing: -0.01em;
+  position: relative;
+  overflow: hidden;
 }
 
 .pos-quick-checkout-button:disabled {
@@ -2507,8 +2628,14 @@ onMounted(async () => {
   opacity: 0.55;
 }
 
+.pos-quick-checkout-button:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px rgba(16, 185, 129, 0.3);
+  background: linear-gradient(135deg, rgb(5, 150, 105), rgb(4, 120, 87));
+}
+
 .pos-quick-checkout-button:active:not(:disabled) {
-  transform: scale(0.99);
+  transform: scale(0.96);
 }
 
 @media (min-width: 640px) {
@@ -2535,6 +2662,19 @@ onMounted(async () => {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
+  cursor: pointer;
+  user-select: none;
+  padding: 0.25rem;
+  border-radius: 8px;
+  transition: background-color 200ms ease;
+}
+
+.pos-cart-pricing-heading:hover {
+  background: rgba(249, 250, 251, 0.8);
+}
+
+.dark .pos-cart-pricing-heading:hover {
+  background: rgba(31, 41, 55, 0.8);
 }
 
 .pos-cart-pricing-title {
@@ -2547,6 +2687,33 @@ onMounted(async () => {
   margin-top: 0.45rem;
   display: grid;
   gap: 0.5rem;
+  overflow: hidden;
+  transition: all 300ms cubic-bezier(0.4, 0, 0.2, 1);
+  max-height: 1000px;
+}
+
+.pos-cart-pricing-body.collapsed {
+  max-height: 0;
+  margin-top: 0;
+  opacity: 0;
+}
+
+.pos-collapse-icon {
+  color: rgb(107, 114, 128);
+  font-size: 0.75rem;
+  transition: transform 200ms ease;
+}
+
+.pos-cart-pricing-heading:hover .pos-collapse-icon {
+  color: rgb(79, 70, 229);
+}
+
+.dark .pos-collapse-icon {
+  color: rgb(156, 163, 175);
+}
+
+.dark .pos-cart-pricing-heading:hover .pos-collapse-icon {
+  color: rgb(165, 180, 252);
 }
 
 .pos-cart-pricing-control :deep(.erp-label) {
@@ -2889,27 +3056,32 @@ onMounted(async () => {
 
 .pos-product-tile {
   display: grid;
-  min-height: 7.3rem;
-  grid-template-rows: 2.75rem auto auto auto;
-  gap: 0.2rem;
-  border: 1px solid rgba(203, 213, 225, 0.86);
-  border-radius: 10px;
+  min-height: 8rem;
+  grid-template-rows: 3rem auto auto auto;
+  gap: 0.375rem;
+  border: 1px solid rgba(229, 231, 235, 0.8);
+  border-radius: 16px;
   background:
-    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.88));
-  padding: 0.42rem;
+    linear-gradient(180deg, rgba(255, 255, 255, 0.98), rgba(249, 250, 251, 0.95));
+  padding: 0.75rem;
   text-align: left;
-  transition: border-color 150ms ease, box-shadow 150ms ease, transform 150ms ease, opacity 150ms ease;
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  position: relative;
+  overflow: hidden;
 }
 
 .pos-product-tile:hover:not(:disabled) {
-  border-color: rgba(14, 165, 233, 0.56);
-  box-shadow: 0 18px 34px rgba(15, 23, 42, 0.12);
-  transform: translateY(-2px);
+  border-color: rgba(99, 102, 241, 0.4);
+  box-shadow: 0 8px 24px rgba(99, 102, 241, 0.12);
+  transform: translateY(-3px) scale(1.02);
+  background: linear-gradient(180deg, rgba(255, 255, 255, 1), rgba(248, 250, 252, 0.98));
 }
 
 .pos-product-tile:disabled {
   cursor: not-allowed;
-  opacity: 0.55;
+  opacity: 0.6;
+  filter: grayscale(0.3);
 }
 
 .pos-product-image {
@@ -2917,10 +3089,11 @@ onMounted(async () => {
   overflow: hidden;
   align-items: center;
   justify-content: center;
-  border-radius: 6px;
-  background: rgb(241 245 249);
-  color: rgb(100 116 139);
-  padding: 0.35rem;
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgb(249 250 251), rgb(243 244 246));
+  color: rgb(107, 114, 128);
+  padding: 0.5rem;
+  border: 1px solid rgba(229, 231, 235, 0.4);
 }
 
 .pos-product-image img {
@@ -2933,20 +3106,21 @@ onMounted(async () => {
 .pos-product-name {
   display: -webkit-box;
   overflow: hidden;
-  color: rgb(15 23 42);
-  font-size: 0.72rem;
-  font-weight: 800;
-  line-height: 1.2;
+  color: rgb(17 24 39);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.3;
   line-clamp: 2;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
+  letter-spacing: -0.01em;
 }
 
 .pos-product-meta {
   overflow: hidden;
-  color: rgb(100 116 139);
-  font-size: 0.6rem;
-  font-weight: 700;
+  color: rgb(107, 114, 128);
+  font-size: 0.6875rem;
+  font-weight: 500;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -2986,10 +3160,14 @@ onMounted(async () => {
 }
 
 .pos-product-price {
-  color: rgb(4 120 87);
-  font-size: 0.72rem;
-  font-weight: 900;
+  color: rgb(16, 185, 129);
+  font-size: 0.875rem;
+  font-weight: 700;
   font-variant-numeric: tabular-nums;
+  background: linear-gradient(135deg, rgb(16, 185, 129), rgb(5, 150, 105));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
 }
 
 .pos-action-bar {
@@ -3026,17 +3204,19 @@ onMounted(async () => {
 .pos-action-primary,
 .pos-action-cash {
   display: inline-flex;
-  min-height: 2.7rem;
-  min-width: 7.25rem;
+  min-height: 3rem;
+  min-width: 8rem;
   align-items: center;
   justify-content: center;
-  gap: 0.45rem;
-  border-radius: 8px;
-  padding: 0 0.9rem;
-  font-size: 0.86rem;
-  font-weight: 900;
+  gap: 0.625rem;
+  border-radius: 12px;
+  padding: 0 1.125rem;
+  font-size: 0.875rem;
+  font-weight: 600;
   white-space: nowrap;
-  transition: opacity 150ms ease, transform 150ms ease;
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  letter-spacing: -0.01em;
 }
 
 .pos-action-cancel:disabled,
@@ -3051,28 +3231,39 @@ onMounted(async () => {
 .pos-action-lite:active:not(:disabled),
 .pos-action-primary:active:not(:disabled),
 .pos-action-cash:active:not(:disabled) {
-  transform: scale(0.98);
+  transform: scale(0.96);
 }
 
 .pos-action-cancel {
-  border: 2px solid rgb(251 113 133);
-  background: rgba(255, 255, 255, 0.98);
-  color: rgb(225 29 72);
+  border: 2px solid rgb(252, 165, 165);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(254, 242, 242, 0.95));
+  color: rgb(220, 38, 38);
+  position: relative;
+  overflow: hidden;
 }
 
 .pos-action-lite {
-  background: rgba(255, 255, 255, 0.98);
-  color: rgb(51 65 85);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(249, 250, 251, 0.95));
+  color: rgb(55, 65, 81);
+  border: 1px solid rgba(229, 231, 235, 0.6);
+  position: relative;
+  overflow: hidden;
 }
 
 .pos-action-primary {
-  background: linear-gradient(135deg, rgb(15 23 42), rgb(30 41 59));
+  background: linear-gradient(135deg, rgb(79, 70, 229), rgb(99, 102, 241));
   color: white;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+  position: relative;
+  overflow: hidden;
 }
 
 .pos-action-cash {
-  background: linear-gradient(135deg, rgb(22 163 74), rgb(5 150 105));
+  background: linear-gradient(135deg, rgb(16, 185, 129), rgb(5, 150, 105));
   color: white;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  position: relative;
+  overflow: hidden;
 }
 
 @media (max-width: 640px) {
@@ -3238,29 +3429,31 @@ onMounted(async () => {
 
 .dark .pos-terminal {
   background:
-    radial-gradient(circle at top left, rgba(8, 145, 178, 0.16), transparent 28%),
-    radial-gradient(circle at top right, rgba(16, 185, 129, 0.12), transparent 24%),
-    linear-gradient(135deg, rgba(2, 6, 23, 0.98), rgba(15, 23, 42, 0.96) 48%, rgba(8, 47, 73, 0.92)),
-    #020617;
-  color: rgb(241 245 249);
+    radial-gradient(circle at top left, rgba(99, 102, 241, 0.08), transparent 28%),
+    radial-gradient(circle at top right, rgba(34, 197, 94, 0.08), transparent 24%),
+    linear-gradient(135deg, rgba(17, 24, 39, 0.98), rgba(31, 41, 55, 0.96) 48%, rgba(17, 24, 39, 0.92)),
+    #111827;
+  color: rgb(243 244 246);
 }
 
 .dark .pos-terminal-header {
-  border-color: rgba(51, 65, 85, 0.82);
-  background: rgba(15, 23, 42, 0.9);
-  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.32);
+  border-color: rgba(75, 85, 99, 0.8);
+  background: rgba(17, 24, 39, 0.95);
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
 }
 
 .dark .pos-terminal-button {
-  border-color: rgba(71, 85, 105, 0.82);
-  background: rgba(15, 23, 42, 0.72);
-  color: rgb(226 232 240);
+  border-color: rgba(75, 85, 99, 0.8);
+  background: rgba(31, 41, 55, 0.9);
+  color: rgb(209, 213, 219);
 }
 
 .dark .pos-terminal-button:hover {
-  border-color: rgba(34, 211, 238, 0.45);
-  background: rgba(8, 47, 73, 0.62);
-  color: rgb(165 243 252);
+  border-color: rgba(99, 102, 241, 0.5);
+  background: rgba(55, 65, 81, 0.8);
+  color: rgb(165, 180, 252);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.2);
 }
 
 .dark .pos-inline-stat,
@@ -3328,15 +3521,15 @@ onMounted(async () => {
 }
 
 .dark .pos-panel {
-  border-color: rgba(51, 65, 85, 0.82);
+  border-color: rgba(75, 85, 99, 0.8);
   background:
-    linear-gradient(180deg, rgba(15, 23, 42, 0.82), rgba(15, 23, 42, 0.74));
-  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.28);
+    linear-gradient(180deg, rgba(31, 41, 55, 0.98), rgba(17, 24, 39, 0.92));
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.12);
 }
 
 .dark .pos-section-copy,
 .dark .pos-product-meta-secondary {
-  color: rgb(148 163 184);
+  color: rgb(156, 163, 175);
 }
 
 .dark .pos-scan-block {
@@ -3365,7 +3558,7 @@ onMounted(async () => {
 }
 
 .dark .pos-section-title {
-  color: rgb(241 245 249);
+  color: rgb(243 244 246);
 }
 
 .dark .pos-cart-header {
@@ -3383,8 +3576,8 @@ onMounted(async () => {
 .dark .pos-product-tile,
 .dark .pos-action-lite,
 .dark .pos-action-cancel {
-  border-color: rgba(51, 65, 85, 0.82);
-  background: rgba(15, 23, 42, 0.78);
+  border-color: rgba(75, 85, 99, 0.8);
+  background: linear-gradient(180deg, rgba(31, 41, 55, 0.98), rgba(17, 24, 39, 0.95));
 }
 
 .dark .pos-summary-value,
@@ -3393,8 +3586,8 @@ onMounted(async () => {
 .dark .pos-pricing-card-heading,
 .dark .pos-line-modal-heading,
 .dark .pos-product-name,
-.dark .pos-action-lite {
-  color: rgb(241 245 249);
+.dark .pos-product-name {
+  color: rgb(243 244 246);
 }
 
 .dark .pos-line-total-secondary,
@@ -3435,8 +3628,8 @@ onMounted(async () => {
 }
 
 .dark .pos-action-bar {
-  border-color: rgba(51, 65, 85, 0.82);
-  background: rgba(15, 23, 42, 0.94);
+  border-color: rgba(75, 85, 99, 0.8);
+  background: rgba(17, 24, 39, 0.95);
 }
 
 @media (max-width: 1024px) {
@@ -3565,6 +3758,419 @@ onMounted(async () => {
 @media (min-width: 1536px) {
   .pos-product-grid {
     grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+}
+
+/* Checkout Section Styles */
+.pos-checkout-section {
+  margin-top: 0.75rem;
+  border: 1px solid rgba(229, 231, 235, 0.8);
+  border-radius: 16px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(249, 250, 251, 0.95));
+  padding: 1.25rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+}
+
+.pos-checkout-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.pos-checkout-title {
+  color: rgb(17, 24, 39);
+  font-size: 1rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+
+.pos-checkout-hint {
+  color: rgb(107, 114, 128);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.pos-sell-note {
+  margin-bottom: 1rem;
+}
+
+.pos-sell-note-input {
+  min-height: 3.5rem;
+  padding: 0.625rem 0.875rem;
+  font-size: 0.875rem;
+  border-radius: 10px;
+  border: 1px solid rgba(229, 231, 235, 0.6);
+  background: rgba(255, 255, 255, 0.9);
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  resize: vertical;
+}
+
+.pos-sell-note-input:focus {
+  border-color: rgba(99, 102, 241, 0.5);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  outline: none;
+}
+
+.pos-payment-table {
+  margin-bottom: 1rem;
+}
+
+.pos-payment-header {
+  border-bottom: 1px solid rgba(229, 231, 235, 0.8);
+  background: rgba(249, 250, 251, 0.8);
+  padding: 0.625rem 0.875rem;
+  border-radius: 10px 10px 0 0;
+}
+
+.pos-payment-grid {
+  display: grid;
+  grid-template-columns: 1.2fr 1.5fr 1fr 1fr 2.5rem;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.pos-payment-header .pos-payment-grid {
+  color: rgb(107, 114, 128);
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+.pos-payment-list {
+  max-height: 12rem;
+  overflow-y: auto;
+  border: 1px solid rgba(229, 231, 235, 0.6);
+  border-radius: 0 0 10px 10px;
+  background: rgba(255, 255, 255, 0.5);
+}
+
+.pos-payment-row {
+  border-bottom: 1px solid rgba(229, 231, 235, 0.4);
+  padding: 0.625rem 0.875rem;
+  transition: background-color 150ms ease;
+}
+
+.pos-payment-row:hover {
+  background: rgba(249, 250, 251, 0.8);
+}
+
+.pos-payment-row:last-child {
+  border-bottom: none;
+}
+
+.pos-payment-method,
+.pos-payment-account,
+.pos-payment-amount,
+.pos-payment-reference {
+  min-width: 0;
+}
+
+.pos-payment-amount-input {
+  font-size: 0.875rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid rgba(229, 231, 235, 0.6);
+  background: rgba(255, 255, 255, 0.9);
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pos-payment-amount-input:focus {
+  border-color: rgba(99, 102, 241, 0.5);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  outline: none;
+}
+
+.pos-payment-reference-input {
+  font-size: 0.8125rem;
+  border-radius: 8px;
+  border: 1px solid rgba(229, 231, 235, 0.6);
+  background: rgba(255, 255, 255, 0.9);
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.pos-payment-reference-input:focus {
+  border-color: rgba(99, 102, 241, 0.5);
+  box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
+  outline: none;
+}
+
+.pos-payment-actions {
+  display: flex;
+  justify-content: center;
+}
+
+.pos-payment-remove {
+  display: inline-flex;
+  height: 2rem;
+  width: 2rem;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid rgba(252, 165, 165, 0.8);
+  border-radius: 8px;
+  color: rgb(220, 38, 38);
+  font-size: 0.75rem;
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  background: rgba(254, 242, 242, 0.8);
+  font-weight: 500;
+}
+
+.pos-payment-remove:hover:not(:disabled) {
+  border-color: rgb(248, 113, 113);
+  background: rgb(254, 226, 226);
+  transform: scale(1.1);
+  box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
+}
+
+.pos-payment-remove:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.pos-payment-add {
+  padding: 0.75rem;
+  border-top: 1px solid rgba(229, 231, 235, 0.6);
+  background: rgba(249, 250, 251, 0.5);
+}
+
+.pos-payment-add-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  min-height: 2.5rem;
+  padding: 0 1rem;
+  border: 1px dashed rgba(99, 102, 241, 0.5);
+  border-radius: 10px;
+  background: rgba(248, 250, 252, 0.8);
+  color: rgb(79, 70, 229);
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  width: 100%;
+}
+
+.pos-payment-add-button:hover:not(:disabled) {
+  border-color: rgba(99, 102, 241, 0.8);
+  background: rgba(238, 242, 255, 0.9);
+  color: rgb(67, 56, 202);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(99, 102, 241, 0.15);
+}
+
+.pos-payment-summary {
+  margin: 1rem 0;
+  padding: 1rem;
+  border: 1px solid rgba(229, 231, 235, 0.6);
+  border-radius: 12px;
+  background: linear-gradient(135deg, rgba(248, 250, 252, 0.8), rgba(241, 245, 249, 0.7));
+}
+
+.pos-payment-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid rgba(229, 231, 235, 0.4);
+}
+
+.pos-payment-summary-row:last-child {
+  border-bottom: none;
+}
+
+.pos-payment-summary-change {
+  border-top: 2px solid rgba(16, 185, 129, 0.3);
+  margin-top: 0.5rem;
+  padding-top: 0.75rem;
+  background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(5, 150, 105, 0.05));
+  border-radius: 8px;
+  padding: 0.75rem;
+  margin: 0.75rem -1rem -0.5rem -1rem;
+}
+
+.pos-payment-summary-label {
+  color: rgb(107, 114, 128);
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.pos-payment-summary-value {
+  color: rgb(17, 24, 39);
+  font-size: 1rem;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.pos-payment-summary-change .pos-payment-summary-value {
+  color: rgb(16, 185, 129);
+  font-size: 1.125rem;
+}
+
+.pos-checkout-actions {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: 0.75rem;
+  margin-top: 1rem;
+}
+
+.pos-checkout-button {
+  display: inline-flex;
+  min-height: 3rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.625rem;
+  border-radius: 12px;
+  padding: 0 1.125rem;
+  font-size: 0.875rem;
+  font-weight: 600;
+  white-space: nowrap;
+  transition: all 200ms cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+  letter-spacing: -0.01em;
+  position: relative;
+  overflow: hidden;
+}
+
+.pos-checkout-button-cash {
+  background: linear-gradient(135deg, rgb(16, 185, 129), rgb(5, 150, 105));
+  color: white;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+}
+
+.pos-checkout-button-cash:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.3);
+  background: linear-gradient(135deg, rgb(5, 150, 105), rgb(4, 120, 87));
+}
+
+.pos-checkout-button-card {
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.98), rgba(249, 250, 251, 0.95));
+  color: rgb(55, 65, 81);
+  border: 1px solid rgba(229, 231, 235, 0.6);
+}
+
+.pos-checkout-button-card:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
+  border-color: rgba(99, 102, 241, 0.4);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 1), rgba(248, 250, 252, 0.98));
+}
+
+.pos-checkout-button-primary {
+  background: linear-gradient(135deg, rgb(79, 70, 229), rgb(99, 102, 241));
+  color: white;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.pos-checkout-button-primary:hover:not(:disabled) {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 24px rgba(79, 70, 229, 0.3);
+  background: linear-gradient(135deg, rgb(67, 56, 202), rgb(99, 102, 241));
+}
+
+.pos-checkout-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.pos-checkout-button:active:not(:disabled) {
+  transform: scale(0.96);
+}
+
+/* Dark mode styles for checkout */
+.dark .pos-checkout-section {
+  border-color: rgba(75, 85, 99, 0.8);
+  background: linear-gradient(135deg, rgba(31, 41, 55, 0.98), rgba(17, 24, 39, 0.95));
+}
+
+.dark .pos-checkout-title {
+  color: rgb(243, 244, 246);
+}
+
+.dark .pos-checkout-hint {
+  color: rgb(156, 163, 175);
+}
+
+.dark .pos-sell-note-input {
+  background: rgba(31, 41, 55, 0.9);
+  border-color: rgba(75, 85, 99, 0.8);
+  color: rgb(243, 244, 246);
+}
+
+.dark .pos-payment-header {
+  background: rgba(31, 41, 55, 0.8);
+  border-color: rgba(75, 85, 99, 0.8);
+}
+
+.dark .pos-payment-list {
+  background: rgba(17, 24, 39, 0.5);
+  border-color: rgba(75, 85, 99, 0.6);
+}
+
+.dark .pos-payment-row:hover {
+  background: rgba(31, 41, 55, 0.8);
+}
+
+.dark .pos-payment-amount-input,
+.dark .pos-payment-reference-input {
+  background: rgba(31, 41, 55, 0.9);
+  border-color: rgba(75, 85, 99, 0.8);
+  color: rgb(243, 244, 246);
+}
+
+.dark .pos-payment-summary {
+  background: linear-gradient(135deg, rgba(31, 41, 55, 0.8), rgba(17, 24, 39, 0.7));
+  border-color: rgba(75, 85, 99, 0.6);
+}
+
+.dark .pos-payment-summary-label {
+  color: rgb(156, 163, 175);
+}
+
+.dark .pos-payment-summary-value {
+  color: rgb(243, 244, 246);
+}
+
+.dark .pos-checkout-button-card {
+  background: linear-gradient(135deg, rgba(31, 41, 55, 0.98), rgba(17, 24, 39, 0.95));
+  color: rgb(209, 213, 219);
+  border-color: rgba(75, 85, 99, 0.8);
+}
+
+.dark .pos-checkout-button-card:hover:not(:disabled) {
+  background: linear-gradient(135deg, rgba(55, 65, 81, 0.98), rgba(31, 41, 55, 0.95));
+}
+
+/* Responsive design */
+@media (max-width: 768px) {
+  .pos-payment-grid {
+    grid-template-columns: 1fr;
+    gap: 0.5rem;
+  }
+
+  .pos-payment-header .pos-payment-grid {
+    display: none;
+  }
+
+  .pos-checkout-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .pos-payment-method,
+  .pos-payment-account,
+  .pos-payment-amount,
+  .pos-payment-reference {
+    grid-column: 1;
+  }
+
+  .pos-payment-actions {
+    grid-column: 1;
+    justify-content: flex-end;
   }
 }
 </style>
