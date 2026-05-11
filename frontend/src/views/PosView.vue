@@ -52,11 +52,11 @@
               <div class="pos-section-heading">
                 <div>
                   <h2 class="pos-section-title">Sale Setup</h2>
-                  <p class="pos-section-copy">Choose the active branch, stock location, register, and customer before scanning items.</p>
+                  <p class="pos-section-copy">Set the branch, warehouse, register, and customer first. Then scan or search products to build the sale.</p>
                 </div>
               </div>
 
-              <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-[0.95fr,0.95fr,1.05fr,1.15fr]">
+              <div class="pos-setup-grid">
                 <div>
                   <label class="erp-label">{{ t('sales.posPage.fields.branch') }}</label>
                   <AppSelect
@@ -105,8 +105,11 @@
                 </div>
               </div>
 
-              <div class="mt-3">
+              <div class="pos-scan-block">
                 <label class="erp-label">{{ t('sales.posPage.scanTitle') }}</label>
+                <p class="pos-scan-hint">
+                  {{ form.warehouse_id ? t('sales.posPage.subtitle') : t('sales.posPage.noWarehouseHint') }}
+                </p>
                 <InventoryProductLookup
                   :warehouse-id="form.warehouse_id"
                   :disabled="!form.warehouse_id"
@@ -123,7 +126,7 @@
             <div class="pos-panel pos-cart-panel">
               <div class="pos-panel-topline">
                 <div>
-                  <h2 class="pos-section-title">Sell Lines</h2>
+                  <h2 class="pos-section-title">{{ t('sales.posPage.cartTitle') }}</h2>
                   <p class="pos-section-copy">Review quantity, unit, pricing, and discount before payment.</p>
                 </div>
               </div>
@@ -248,169 +251,183 @@
                   </article>
                 </div>
               </div>
-            </div>
 
-            <div class="pos-pricing-footer">
-              <article class="pos-pricing-card pos-pricing-card-discount">
-                <div class="pos-pricing-card-heading">
-                  <span class="pos-pricing-card-icon">
-                    <i class="fa-solid fa-tag"></i>
-                  </span>
-                  <span>Discount</span>
+              <div v-if="cart.length" class="pos-cart-summary-footer">
+                <div class="pos-cart-pricing-controls">
+                  <section class="pos-cart-pricing-section">
+                    <div class="pos-cart-pricing-heading">
+                      <span class="pos-cart-pricing-title">{{ t('sales.documentModal.fields.lineDiscount') }}</span>
+                    </div>
+
+                    <div class="pos-cart-pricing-body">
+                      <div class="pos-cart-pricing-control">
+                        <label class="erp-label">{{ t('sales.posPage.pricing.discountMode') }}</label>
+                        <div class="pos-radio-group">
+                          <label class="pos-radio">
+                            <input v-model="form.discount_scope" type="radio" value="line" />
+                            <span>{{ discountScopeOptions[0]?.label || 'Line' }}</span>
+                          </label>
+                          <label class="pos-radio">
+                            <input v-model="form.discount_scope" type="radio" value="sale" />
+                            <span>{{ discountScopeOptions[1]?.label || 'Whole invoice' }}</span>
+                          </label>
+                        </div>
+                      </div>
+
+                      <div v-if="form.discount_scope === 'sale'" class="grid gap-3 sm:grid-cols-2">
+                        <div class="pos-cart-pricing-control">
+                          <label class="erp-label">{{ t('sales.documentModal.fields.orderDiscountType') }}</label>
+                          <AppSelect
+                            :model-value="form.discount_type || null"
+                            :options="discountTypeOptions"
+                            :placeholder="t('sales.documentModal.placeholders.selectDiscountType')"
+                            clearable
+                            @update:model-value="form.discount_type = $event || ''"
+                          />
+                        </div>
+
+                        <div class="pos-cart-pricing-control">
+                          <label class="erp-label">{{ t('sales.documentModal.fields.orderDiscountAmount') }}</label>
+                          <input
+                            v-model.number="form.discount_amount"
+                            type="number"
+                            min="0"
+                            step="0.01"
+                            class="erp-input"
+                            :placeholder="t('sales.documentModal.placeholders.enterDiscount')"
+                          />
+                        </div>
+                      </div>
+
+                      <div v-else class="rounded-[10px] border border-dashed border-slate-200 bg-slate-50/80 px-3 py-3 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900/40 dark:text-slate-400">
+                        {{ t('sales.posPage.pricing.lineDiscountModeHint') }}
+                      </div>
+                    </div>
+                  </section>
+
+                  <section class="pos-cart-pricing-section">
+                    <div class="pos-cart-pricing-heading">
+                      <span class="pos-cart-pricing-title">{{ t('sales.documentModal.fields.tax') }}</span>
+                    </div>
+
+                    <div class="pos-cart-pricing-body">
+                      <div class="pos-cart-pricing-control">
+                        <label class="erp-label">{{ t('sales.documentModal.fields.taxMode') }}</label>
+                        <div class="pos-radio-group">
+                          <label class="pos-radio">
+                            <input v-model="form.tax_scope" type="radio" value="line" @change="handleTaxScopeChange($event.target.value)" />
+                            <span>{{ taxScopeOptions[0]?.label || 'Line' }}</span>
+                          </label>
+                          <label class="pos-radio">
+                            <input v-model="form.tax_scope" type="radio" value="sale" @change="handleTaxScopeChange($event.target.value)" />
+                            <span>{{ taxScopeOptions[1]?.label || 'Sale' }}</span>
+                          </label>
+                        </div>
+                      </div>
+
+                      <div v-if="form.tax_scope === 'sale'" class="grid gap-3 sm:grid-cols-2">
+                        <div class="pos-cart-pricing-control">
+                          <label class="erp-label">{{ t('sales.documentModal.fields.saleTax') }}</label>
+                          <AppSelect
+                            :model-value="form.tax_rate_id || null"
+                            :options="saleTaxRateOptions"
+                            :placeholder="t('sales.documentModal.placeholders.selectSaleTax')"
+                            :search-placeholder="t('sales.documentModal.placeholders.searchTaxes')"
+                            :empty-text="t('sales.documentModal.placeholders.noTaxes')"
+                            searchable
+                            clearable
+                            @update:model-value="handleSaleTaxRateChange"
+                          />
+                        </div>
+
+                        <div class="pos-cart-pricing-control">
+                          <label class="erp-label">{{ t('sales.documentModal.fields.saleTaxType') }}</label>
+                          <AppSelect
+                            :model-value="form.tax_type || null"
+                            :options="taxTypeOptions"
+                            :placeholder="t('sales.documentModal.placeholders.selectSaleTaxType')"
+                            @update:model-value="form.tax_type = $event || 'exclusive'"
+                          />
+                        </div>
+                      </div>
+
+                      <div v-else class="rounded-[10px] border border-dashed border-slate-200 bg-slate-50/80 px-3 py-3 text-sm text-slate-500 dark:border-slate-800 dark:bg-slate-900/40 dark:text-slate-400">
+                        {{ t('sales.posPage.pricing.lineTaxModeHint') }}
+                      </div>
+                    </div>
+                  </section>
                 </div>
 
-                <div class="pos-pricing-card-body">
-                  <div class="pos-pricing-control">
-                    <label class="erp-label">Discount mode</label>
-                    <AppSelect
-                      :model-value="form.discount_scope"
-                      :options="discountScopeOptions"
-                      @update:model-value="handleDiscountScopeChange"
-                    />
+                <div class="pos-cart-summary-row">
+                  <div class="pos-cart-summary-item">
+                    <span class="pos-cart-summary-label">{{ t('sales.posPage.summary.subtotal') }}</span>
+                    <strong class="pos-cart-summary-value">{{ formatAccountingMoney(summarySubtotal) }}</strong>
                   </div>
 
-                  <div v-if="!showLineDiscountControls" class="pos-pricing-control">
-                    <label class="erp-label">{{ t('sales.documentModal.fields.orderDiscountType') }}</label>
-                    <AppSelect
-                      :model-value="form.discount_type || null"
-                      :options="discountTypeOptions"
-                      :placeholder="t('sales.documentModal.placeholders.selectDiscountType')"
-                      clearable
-                      @update:model-value="form.discount_type = $event || ''"
-                    />
+                  <div class="pos-cart-summary-item">
+                    <span class="pos-cart-summary-label">{{ t('sales.documentModal.fields.lineDiscount') }}</span>
+                    <strong class="pos-cart-summary-value">-{{ formatAccountingMoney(totalDiscountAmount) }}</strong>
                   </div>
 
-                  <div v-if="!showLineDiscountControls" class="pos-pricing-control">
-                    <label class="erp-label">{{ t('sales.documentModal.fields.orderDiscountAmount') }}</label>
-                    <input
-                      v-model.number="form.discount_amount"
-                      type="number"
-                      min="0"
-                      step="0.01"
-                      class="erp-input pos-pricing-input"
-                      :placeholder="t('sales.documentModal.placeholders.enterDiscount')"
-                    />
-                  </div>
-                </div>
-              </article>
-
-              <article class="pos-pricing-card pos-pricing-card-tax">
-                <div class="pos-pricing-card-heading">
-                  <span class="pos-pricing-card-icon">
-                    <i class="fa-solid fa-percent"></i>
-                  </span>
-                  <span>Tax</span>
-                </div>
-
-                <div class="pos-pricing-card-body">
-                  <div class="pos-pricing-control">
-                    <label class="erp-label">{{ t('sales.documentModal.fields.taxMode') }}</label>
-                    <AppSelect
-                      :model-value="form.tax_scope || 'line'"
-                      :options="taxScopeOptions"
-                      @update:model-value="handleTaxScopeChange"
-                    />
+                  <div class="pos-cart-summary-item">
+                    <span class="pos-cart-summary-label">{{ t('sales.posPage.summary.tax') }}</span>
+                    <strong class="pos-cart-summary-value">{{ formatAccountingMoney(taxTotal) }}</strong>
                   </div>
 
-                  <div v-if="form.tax_scope === 'sale'" class="pos-pricing-control">
-                    <label class="erp-label">{{ t('sales.documentModal.fields.saleTax') }}</label>
-                    <AppSelect
-                      :model-value="form.tax_rate_id || null"
-                      :options="saleTaxRateOptions"
-                      :placeholder="t('sales.documentModal.placeholders.selectSaleTax')"
-                      :search-placeholder="t('sales.documentModal.placeholders.searchTaxes')"
-                      :empty-text="t('sales.documentModal.placeholders.noTaxes')"
-                      searchable
-                      clearable
-                      @update:model-value="handleSaleTaxRateChange"
-                    />
-                  </div>
-
-                  <div v-if="form.tax_scope === 'sale'" class="pos-pricing-control">
-                    <label class="erp-label">{{ t('sales.documentModal.fields.saleTaxType') }}</label>
-                    <AppSelect
-                      :model-value="form.tax_type || null"
-                      :options="taxTypeOptions"
-                      :placeholder="t('sales.documentModal.placeholders.selectSaleTaxType')"
-                      @update:model-value="form.tax_type = $event || 'exclusive'"
-                    />
+                  <div class="pos-cart-summary-item pos-cart-summary-total">
+                    <span class="pos-cart-summary-label">{{ t('sales.posPage.summary.total') }}</span>
+                    <strong class="pos-cart-summary-value">{{ formatAccountingMoney(grandTotal) }}</strong>
                   </div>
                 </div>
-              </article>
-            </div>
 
-            <div class="pos-totals-bar">
-              <div class="pos-total-cell">
-                <span>{{ t('sales.posPage.summary.items') }}</span>
-                <strong>{{ cart.length }}</strong>
-              </div>
-              <div class="pos-total-cell">
-                <span>{{ t('sales.posPage.summary.quantity') }}</span>
-                <strong>{{ totalQuantity }}</strong>
-              </div>
-              <div class="pos-total-cell">
-                <span>{{ t('sales.posPage.summary.subtotal') }}</span>
-                <strong>{{ formatAccountingMoney(summarySubtotal) }}</strong>
-              </div>
-              <div class="pos-total-cell pos-total-discount">
-                <span>Discount</span>
-                <strong>-{{ formatAccountingMoney(totalDiscountAmount) }}</strong>
-              </div>
-              <div class="pos-total-cell">
-                <span>{{ t('sales.posPage.summary.tax') }}</span>
-                <strong>{{ formatAccountingMoney(taxTotal) }}</strong>
-              </div>
-              <div class="pos-total-payable">
-                <span>{{ t('sales.posPage.summary.total') }}</span>
-                <strong>{{ formatAccountingMoney(grandTotal) }}</strong>
-              </div>
-            </div>
-
-            <div class="pos-panel pos-payment-panel">
-              <div class="pos-section-heading">
-                <div>
-                  <h2 class="pos-section-title">Checkout</h2>
-                  <p class="pos-section-copy">Finalize the payment method, account, and tendered amount.</p>
-                </div>
-              </div>
-
-              <div class="grid gap-3 md:grid-cols-2 xl:grid-cols-[1fr,0.8fr,0.85fr,1fr]">
-                <div>
-                  <label class="erp-label">{{ t('sales.posPage.fields.paymentMethod') }}</label>
-                  <AppSelect
-                    :model-value="paymentRows[0]?.method || null"
-                    :options="paymentMethodOptions"
-                    @update:model-value="paymentRows[0].method = $event || 'cash'"
-                  />
-                </div>
-
-                <div>
-                  <label class="erp-label">{{ t('sales.posPage.fields.paymentAccount') }}</label>
-                  <AppSelect
-                    :model-value="paymentRows[0]?.payment_account_id || null"
-                    :options="paymentAccountOptions"
-                    :placeholder="t('sales.salesPage.placeholders.selectPaymentAccount')"
-                    searchable
-                    @update:model-value="paymentRows[0].payment_account_id = $event || ''"
-                  />
-                </div>
-
-                <div>
-                  <label class="erp-label">{{ t('sales.posPage.fields.paidAmount') }}</label>
-                  <input v-model.number="paymentRows[0].amount" type="number" min="0" step="0.01" class="erp-input text-right font-semibold" />
-                </div>
-
-                <div class="rounded-[8px] border border-emerald-200 bg-emerald-50/70 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-900/50 dark:bg-emerald-950/25 dark:text-emerald-200">
-                  <div class="flex items-center justify-between gap-3">
-                    <span>{{ t('sales.posPage.summary.change') }}</span>
-                    <span class="font-semibold">{{ formatAccountingMoney(changeDue) }}</span>
+                <section class="pos-quick-checkout">
+                  <div class="pos-quick-checkout-heading">
+                    <span class="pos-quick-checkout-title">Quick checkout</span>
+                    <span class="pos-quick-checkout-hint">Single payment</span>
                   </div>
-                </div>
-              </div>
 
-              <div class="mt-3 grid gap-3 md:grid-cols-2">
-                <input v-model="paymentRows[0].reference" type="text" class="erp-input" :placeholder="t('sales.posPage.fields.reference')" />
-                <input v-model="form.notes" type="text" class="erp-input" :placeholder="t('sales.posPage.fields.note')" />
+                  <div class="pos-quick-checkout-grid">
+                    <div class="pos-quick-checkout-control">
+                      <label class="erp-label">{{ t('sales.posPage.fields.paymentMethod') }}</label>
+                      <div class="pos-radio-group">
+                        <label class="pos-radio">
+                          <input v-model="quickPay.method" type="radio" value="cash" />
+                          <span>{{ t('sales.shared.methods.cash') }}</span>
+                        </label>
+                        <label class="pos-radio">
+                          <input v-model="quickPay.method" type="radio" value="card" />
+                          <span>{{ t('sales.shared.methods.card') }}</span>
+                        </label>
+                      </div>
+                    </div>
+
+                    <div class="pos-quick-checkout-control">
+                      <label class="erp-label">{{ t('sales.posPage.fields.paymentAccount') }}</label>
+                      <AppSelect
+                        :model-value="quickPay.payment_account_id || null"
+                        :options="paymentAccountOptions"
+                        :placeholder="t('sales.salesPage.placeholders.selectPaymentAccount')"
+                        searchable
+                        @update:model-value="quickPay.payment_account_id = $event || ''"
+                      />
+                    </div>
+
+                    <div class="pos-quick-checkout-control">
+                      <label class="erp-label">{{ t('sales.posPage.fields.paidAmount') }}</label>
+                      <input v-model.number="quickPay.amount" type="number" min="0" step="0.01" class="erp-input text-right font-semibold" />
+                    </div>
+
+                    <div class="pos-quick-checkout-action">
+                      <button type="button" class="pos-quick-checkout-button" :disabled="saving || !cart.length" @click="submitQuickPay">
+                        <span
+                          v-if="saving"
+                          class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"
+                        ></span>
+                        <span v-else>Pay</span>
+                      </button>
+                    </div>
+                  </div>
+                </section>
               </div>
             </div>
 
@@ -427,28 +444,33 @@
                   <p class="pos-section-copy">Filter by category or brand, then tap a tile to add it to the current sale.</p>
                 </div>
                 <div class="pos-inline-stats">
-                  <span class="pos-inline-stat">{{ filteredProducts.length }} items</span>
+                  <span class="pos-inline-stat">{{ filteredProducts.length }} {{ t('sales.posPage.summary.items') }}</span>
+                  <span class="pos-inline-stat" :class="form.warehouse_id ? 'pos-inline-stat-active' : ''">
+                    {{ form.warehouse_id ? (selectedWarehouse?.name || t('sales.posPage.fields.warehouse')) : t('sales.posPage.noWarehouseHint') }}
+                  </span>
                 </div>
               </div>
 
-              <div class="grid grid-cols-2 gap-2">
-                <button type="button" class="pos-filter-button" @click="filterMode = 'category'">
-                  <i class="fa-solid fa-layer-group"></i>
-                  {{ t('sales.posPage.productBrowser.categories') }}
-                </button>
-                <button type="button" class="pos-filter-button" @click="filterMode = 'brand'">
-                  <i class="fa-solid fa-award"></i>
-                  {{ t('sales.posPage.productBrowser.brands') }}
-                </button>
-              </div>
+              <div class="pos-browser-toolbar">
+                <div class="pos-browser-mode">
+                  <button type="button" class="pos-filter-button" :class="filterMode === 'category' ? 'pos-filter-button-active' : ''" @click="filterMode = 'category'">
+                    <i class="fa-solid fa-layer-group"></i>
+                    {{ t('sales.posPage.productBrowser.categories') }}
+                  </button>
+                  <button type="button" class="pos-filter-button" :class="filterMode === 'brand' ? 'pos-filter-button-active' : ''" @click="filterMode = 'brand'">
+                    <i class="fa-solid fa-award"></i>
+                    {{ t('sales.posPage.productBrowser.brands') }}
+                  </button>
+                </div>
 
-              <div class="mt-3">
-                <input
-                  v-model="productSearch"
-                  type="text"
-                  class="erp-input"
-                  :placeholder="t('sales.posPage.productBrowser.searchProducts')"
-                />
+                <div class="pos-browser-search">
+                  <input
+                    v-model="productSearch"
+                    type="text"
+                    class="erp-input"
+                    :placeholder="t('sales.posPage.productBrowser.searchProducts')"
+                  />
+                </div>
               </div>
 
               <div class="pos-chip-strip">
@@ -513,6 +535,8 @@
         </section>
       </template>
     </main>
+
+    
 
     <SalePaymentModal
       :show="paymentModalOpen"
@@ -739,30 +763,32 @@
 
     <div class="pos-action-bar">
       <div class="pos-action-inner">
-        <button type="button" class="pos-action-cancel" :disabled="saving || !cart.length" @click="clearCart">
-          <i class="fa-solid fa-window-close"></i>
-          {{ t('sales.posPage.actions.clearCart') }}
-        </button>
-        <button type="button" class="pos-action-lite" :disabled="saving || !cart.length" @click="submitSuspended">
-          <i class="fa-solid fa-pause"></i>
-          {{ t('sales.posPage.actions.suspend') }}
-        </button>
-        <button type="button" class="pos-action-lite" :disabled="saving || !cart.length" @click="submitCard">
-          <i class="fa-solid fa-credit-card"></i>
-          {{ t('sales.posPage.actions.card') }}
-        </button>
-        <button type="button" class="pos-action-primary" :disabled="saving || !cart.length" @click="openMultiplePay">
-          <i class="fa-solid fa-money-check-dollar"></i>
-          {{ t('sales.posPage.actions.multiplePay') }}
-        </button>
-        <button type="button" class="pos-action-cash" :disabled="saving || !cart.length" @click="submitCash">
-          <span
-            v-if="saving"
-            class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"
-          ></span>
-          <i v-else class="fa-solid fa-money-bill-wave"></i>
-          {{ t('sales.posPage.actions.cash') }}
-        </button>
+        <div class="pos-action-buttons">
+          <button type="button" class="pos-action-cancel" :disabled="saving || !cart.length" @click="clearCart">
+            <i class="fa-solid fa-window-close"></i>
+            {{ t('sales.posPage.actions.clearCart') }}
+          </button>
+          <button type="button" class="pos-action-lite" :disabled="saving || !cart.length" @click="submitSuspended">
+            <i class="fa-solid fa-pause"></i>
+            {{ t('sales.posPage.actions.suspend') }}
+          </button>
+          <button type="button" class="pos-action-lite" :disabled="saving || !cart.length" @click="submitCard">
+            <i class="fa-solid fa-credit-card"></i>
+            {{ t('sales.posPage.actions.card') }}
+          </button>
+          <button type="button" class="pos-action-primary" :disabled="saving || !cart.length" @click="openMultiplePay">
+            <i class="fa-solid fa-money-check-dollar"></i>
+            {{ t('sales.posPage.actions.multiplePay') }}
+          </button>
+          <button type="button" class="pos-action-cash" :disabled="saving || !cart.length" @click="submitCash">
+            <span
+              v-if="saving"
+              class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white"
+            ></span>
+            <i v-else class="fa-solid fa-money-bill-wave"></i>
+            {{ t('sales.posPage.actions.cash') }}
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -908,6 +934,10 @@ const warehouseOptions = computed(() =>
     }))
 )
 
+const selectedWarehouse = computed(() =>
+  warehouses.value.find((warehouse) => warehouse.id === form.warehouse_id) || null
+)
+
 const customerOptions = computed(() =>
   customers.value.map((customer) => ({
     value: customer.id,
@@ -941,6 +971,30 @@ const paymentMethodOptions = computed(() => [
   { value: 'cheque', label: t('sales.shared.methods.cheque') },
   { value: 'other', label: t('sales.shared.methods.other') },
 ])
+
+const defaultPaymentAccountId = computed(() => paymentAccountOptions.value[0]?.value || '')
+
+const quickPay = reactive({
+  method: 'cash',
+  payment_account_id: '',
+  amount: 0,
+})
+
+
+watch(
+  [grandTotal, defaultPaymentAccountId],
+  () => {
+    if (!quickPay.payment_account_id && defaultPaymentAccountId.value) {
+      quickPay.payment_account_id = defaultPaymentAccountId.value
+    }
+
+    const numericAmount = Number(quickPay.amount || 0)
+    if (!numericAmount && Number(grandTotal.value) > 0) {
+      quickPay.amount = Number(Number(grandTotal.value).toFixed(2))
+    }
+  },
+  { immediate: true }
+)
 
 const discountTypeOptions = computed(() => [
   { value: 'fixed', label: t('sales.documentModal.discountTypes.fixed') },
@@ -1085,6 +1139,8 @@ const closeLineModal = () => {
   lineModal.item = null
 }
 
+// Pricing controls are now inline (no modal).
+
 const handleDiscountScopeChange = (value) => {
   form.discount_scope = value || 'line'
 }
@@ -1161,7 +1217,46 @@ const openMultiplePay = () => {
     paymentRows.value[0].amount = Number((Number(paymentRows.value[0].amount || 0) + (grandTotal.value - totalPaid.value)).toFixed(2))
   }
 
+  if (defaultPaymentAccountId.value) {
+    for (const row of paymentRows.value) {
+      if (!row.payment_account_id) {
+        row.payment_account_id = defaultPaymentAccountId.value
+      }
+    }
+  }
+
   paymentModalOpen.value = true
+}
+
+const submitQuickPay = async () => {
+  attemptedSubmit.value = true
+
+  if (validationMessage.value) {
+    showToast('danger', validationMessage.value)
+    return
+  }
+
+  if (!form.cash_register_session_id) {
+    showToast('danger', t('sales.documentModal.validation.missingRegisterSession'))
+    return
+  }
+
+  const paymentAccountId = quickPay.payment_account_id || defaultPaymentAccountId.value || ''
+
+  paymentRows.value = [createPaymentRow({
+    payment_account_id: paymentAccountId,
+    method: quickPay.method || 'cash',
+    amount: Number((quickPay.amount || Number(grandTotal.value || 0)).toFixed(2)),
+    payment_date: form.sale_date,
+    note: form.notes,
+  })]
+
+  if (paymentValidationMessage.value) {
+    showToast('danger', paymentValidationMessage.value)
+    return
+  }
+
+  await submitFinalized()
 }
 
 const addPaymentRow = () => {
@@ -1679,7 +1774,7 @@ const submitCash = () => {
     payment_date: form.sale_date,
     note: form.notes,
   })]
-  submitFinalized()
+  openMultiplePay()
 }
 
 const submitCard = () => {
@@ -1689,7 +1784,7 @@ const submitCard = () => {
     payment_date: form.sale_date,
     note: form.notes,
   })]
-  submitFinalized()
+  openMultiplePay()
 }
 
 const loadBranches = async () => {
@@ -1814,7 +1909,7 @@ onMounted(async () => {
     linear-gradient(135deg, rgba(248, 250, 252, 0.98), rgba(239, 246, 255, 0.96) 45%, rgba(240, 253, 250, 0.92)),
     #f8fafc;
   color: rgb(15 23 42);
-  padding-bottom: 5rem;
+  padding-bottom: 6.25rem;
 }
 
 .pos-terminal-header {
@@ -1918,6 +2013,34 @@ onMounted(async () => {
   gap: 1rem;
 }
 
+.pos-inline-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  justify-content: flex-end;
+}
+
+.pos-inline-stat {
+  display: inline-flex;
+  align-items: center;
+  min-height: 2rem;
+  max-width: 100%;
+  border: 1px solid rgba(203, 213, 225, 0.72);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  padding: 0 0.75rem;
+  color: rgb(71 85 105);
+  font-size: 0.72rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.pos-inline-stat-active {
+  border-color: rgba(14, 165, 233, 0.3);
+  background: rgba(224, 242, 254, 0.94);
+  color: rgb(3 105 161);
+}
+
 .pos-section-heading,
 .pos-panel-topline {
   display: flex;
@@ -1951,6 +2074,37 @@ onMounted(async () => {
   position: relative;
   z-index: 20;
   overflow: visible;
+}
+
+.pos-setup-grid {
+  display: grid;
+  gap: 0.85rem;
+  grid-template-columns: repeat(1, minmax(0, 1fr));
+}
+
+.pos-scan-block {
+  margin-top: 0.95rem;
+  border-top: 1px solid rgba(226, 232, 240, 0.92);
+  padding-top: 0.95rem;
+}
+
+.pos-scan-hint {
+  margin: 0.2rem 0 0.75rem;
+  color: rgb(100 116 139);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+@media (min-width: 768px) {
+  .pos-setup-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .pos-setup-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
 }
 
 .pos-cart-panel {
@@ -2213,6 +2367,325 @@ onMounted(async () => {
   gap: 0.65rem;
 }
 
+.pos-checkout-rail {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.pos-pricing-modal-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.pos-cart-summary-footer {
+  border-top: 1px solid rgba(226, 232, 240, 0.9);
+  background: rgba(248, 250, 252, 0.72);
+  padding: 0.85rem 0.9rem;
+}
+
+.pos-cart-summary-row {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+  align-items: stretch;
+}
+
+.pos-cart-summary-item {
+  display: grid;
+  align-content: center;
+  gap: 0.1rem;
+  min-height: 3.2rem;
+  border: 1px solid rgba(203, 213, 225, 0.86);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.92);
+  padding: 0.55rem 0.75rem;
+  text-align: right;
+}
+
+.pos-cart-summary-label {
+  color: rgb(100 116 139);
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pos-cart-summary-value {
+  color: rgb(15 23 42);
+  font-size: 0.92rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.15;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.pos-cart-summary-button {
+  cursor: pointer;
+  transition: border-color 150ms ease, background-color 150ms ease, transform 150ms ease;
+}
+
+.pos-cart-summary-button:hover {
+  border-color: rgba(14, 165, 233, 0.28);
+  background: rgba(224, 242, 254, 0.55);
+}
+
+.pos-cart-summary-button:active {
+  transform: scale(0.99);
+}
+
+.pos-cart-summary-total {
+  border-color: rgba(14, 165, 233, 0.22);
+  background: rgba(224, 242, 254, 0.55);
+}
+
+.pos-quick-checkout {
+  margin-top: 0.65rem;
+  border: 1px solid rgba(203, 213, 225, 0.72);
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.75);
+  padding: 0.65rem 0.7rem;
+}
+
+.pos-quick-checkout-heading {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.pos-quick-checkout-title {
+  color: rgb(15 23 42);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.pos-quick-checkout-hint {
+  color: rgb(100 116 139);
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.pos-quick-checkout-grid {
+  margin-top: 0.55rem;
+  display: grid;
+  gap: 0.55rem;
+  grid-template-columns: 1fr;
+  align-items: end;
+}
+
+.pos-quick-checkout-action {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.pos-quick-checkout-button {
+  display: inline-flex;
+  min-height: 2.5rem;
+  min-width: 8rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  border-radius: 10px;
+  background: linear-gradient(135deg, rgb(15 23 42), rgb(30 41 59));
+  color: white;
+  font-size: 0.9rem;
+  font-weight: 900;
+  white-space: nowrap;
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+
+.pos-quick-checkout-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.pos-quick-checkout-button:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+@media (min-width: 640px) {
+  .pos-quick-checkout-grid {
+    grid-template-columns: 1.1fr 1.4fr 0.8fr auto;
+  }
+}
+
+.pos-cart-pricing-controls {
+  margin-bottom: 0.65rem;
+  display: grid;
+  gap: 0.55rem;
+}
+
+.pos-cart-pricing-section {
+  border: 1px solid rgba(203, 213, 225, 0.72);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.66);
+  padding: 0.55rem 0.6rem;
+}
+
+.pos-cart-pricing-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.pos-cart-pricing-title {
+  color: rgb(15 23 42);
+  font-size: 0.74rem;
+  font-weight: 900;
+}
+
+.pos-cart-pricing-body {
+  margin-top: 0.45rem;
+  display: grid;
+  gap: 0.5rem;
+}
+
+.pos-cart-pricing-control :deep(.erp-label) {
+  font-size: 0.68rem;
+}
+
+.pos-radio-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.pos-radio {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  border: 1px solid rgba(226, 232, 240, 0.9);
+  border-radius: 999px;
+  background: rgba(248, 250, 252, 0.92);
+  padding: 0.24rem 0.55rem;
+  color: rgb(51 65 85);
+  font-size: 0.68rem;
+  font-weight: 800;
+  cursor: pointer;
+  user-select: none;
+}
+
+.pos-radio input {
+  accent-color: rgb(14 165 233);
+}
+
+@media (min-width: 1024px) {
+  .pos-cart-pricing-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 1024px) {
+  .pos-cart-summary-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+.pos-summary-card {
+  width: min(100%, 28rem);
+  border: 1px solid rgba(203, 213, 225, 0.82);
+  border-radius: 14px;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 250, 252, 0.9));
+  padding: 1rem 1rem 0.9rem;
+  box-shadow: 0 18px 36px rgba(15, 23, 42, 0.08);
+}
+
+.pos-summary-list {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.pos-summary-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 1rem;
+  min-height: 2.5rem;
+  padding: 0.45rem 0;
+  border-bottom: 1px dashed rgba(203, 213, 225, 0.9);
+}
+
+.pos-summary-main {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.pos-summary-label {
+  color: rgb(71 85 105);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.pos-summary-value {
+  color: rgb(15 23 42);
+  font-size: 0.92rem;
+  font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.pos-summary-row-button {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  appearance: none;
+  cursor: pointer;
+  text-align: left;
+  transition: color 150ms ease, transform 150ms ease;
+}
+
+.pos-summary-row-button:hover {
+  transform: translateX(2px);
+}
+
+.pos-summary-row-button small {
+  color: rgb(14 116 144);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.pos-summary-row-discount .pos-summary-value {
+  color: rgb(225 29 72);
+}
+
+.pos-summary-total {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 1rem;
+  margin-top: 0.8rem;
+  padding-top: 0.85rem;
+  border-top: 2px solid rgba(148, 163, 184, 0.22);
+}
+
+.pos-summary-total-label {
+  color: rgb(15 23 42);
+  font-size: 0.8rem;
+  font-weight: 900;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pos-summary-total-value {
+  color: rgb(4 120 87);
+  font-size: 1.9rem;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+  text-align: right;
+}
+
 .pos-pricing-card {
   position: relative;
   overflow: hidden;
@@ -2221,6 +2694,13 @@ onMounted(async () => {
   background:
     linear-gradient(180deg, rgba(255, 255, 255, 0.94), rgba(248, 250, 252, 0.88));
   padding: 0.65rem;
+}
+
+.pos-pricing-card-active {
+  border-color: rgba(14, 165, 233, 0.34);
+  box-shadow:
+    0 24px 52px rgba(14, 165, 233, 0.14),
+    inset 0 1px 0 rgba(255, 255, 255, 0.72);
 }
 
 .pos-pricing-card::before {
@@ -2328,63 +2808,6 @@ onMounted(async () => {
   color: rgb(4 120 87);
 }
 
-.pos-totals-bar {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  overflow: hidden;
-  border: 1px solid rgba(203, 213, 225, 0.76);
-  border-radius: 10px;
-  background: rgb(226 232 240);
-  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.06);
-}
-
-.pos-total-cell,
-.pos-total-payable {
-  display: flex;
-  min-height: 3.4rem;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  background: rgba(248, 250, 252, 0.94);
-  padding: 0.45rem;
-}
-
-.pos-total-cell span,
-.pos-total-payable span {
-  color: rgb(100 116 139);
-  font-size: 0.68rem;
-  font-weight: 800;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.pos-total-cell strong {
-  color: rgb(15 23 42);
-  font-size: 0.9rem;
-  font-variant-numeric: tabular-nums;
-}
-
-.pos-total-discount strong {
-  color: rgb(225 29 72);
-}
-
-.pos-total-payable {
-  grid-column: 1 / -1;
-  background:
-    linear-gradient(135deg, rgba(220, 252, 231, 0.95), rgba(209, 250, 229, 0.84));
-}
-
-.pos-total-payable span {
-  color: rgb(6 95 70);
-}
-
-.pos-total-payable strong {
-  color: rgb(4 120 87);
-  font-size: 1.8rem;
-  font-variant-numeric: tabular-nums;
-  line-height: 1.1;
-}
-
 .pos-filter-button {
   display: inline-flex;
   min-height: 2.5rem;
@@ -2404,8 +2827,30 @@ onMounted(async () => {
   filter: brightness(1.04);
 }
 
+.pos-filter-button-active {
+  box-shadow:
+    0 14px 30px rgba(14, 116, 144, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.24);
+}
+
 .pos-filter-button:active {
   transform: scale(0.98);
+}
+
+.pos-browser-toolbar {
+  display: grid;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.pos-browser-mode {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+.pos-browser-search {
+  min-width: 0;
 }
 
 .pos-chip-strip {
@@ -2492,6 +2937,7 @@ onMounted(async () => {
   font-size: 0.72rem;
   font-weight: 800;
   line-height: 1.2;
+  line-clamp: 2;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
@@ -2560,11 +3006,19 @@ onMounted(async () => {
 
 .pos-action-inner {
   display: flex;
-  min-height: 4rem;
+  flex-wrap: wrap;
+  align-items: stretch;
+  gap: 0.65rem;
+  padding: 0.65rem 1rem;
+}
+
+.pos-action-buttons {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
   align-items: center;
   gap: 0.65rem;
-  overflow-x: auto;
-  padding: 0.65rem 1rem;
+  justify-content: flex-end;
 }
 
 .pos-action-cancel,
@@ -2573,7 +3027,7 @@ onMounted(async () => {
 .pos-action-cash {
   display: inline-flex;
   min-height: 2.7rem;
-  min-width: 7.5rem;
+  min-width: 7.25rem;
   align-items: center;
   justify-content: center;
   gap: 0.45rem;
@@ -2619,6 +3073,20 @@ onMounted(async () => {
 .pos-action-cash {
   background: linear-gradient(135deg, rgb(22 163 74), rgb(5 150 105));
   color: white;
+}
+
+@media (max-width: 640px) {
+  .pos-action-buttons {
+    width: 100%;
+  }
+
+  .pos-action-cancel,
+  .pos-action-lite,
+  .pos-action-primary,
+  .pos-action-cash {
+    flex: 1 1 10rem;
+    min-width: 0;
+  }
 }
 
 .sale-line-quantity,
@@ -2795,6 +3263,64 @@ onMounted(async () => {
   color: rgb(165 243 252);
 }
 
+.dark .pos-inline-stat,
+.dark .pos-action-summary {
+  border-color: rgba(51, 65, 85, 0.82);
+  background: rgba(15, 23, 42, 0.74);
+}
+
+.dark .pos-inline-stat-active {
+  border-color: rgba(34, 211, 238, 0.35);
+  background: rgba(8, 47, 73, 0.72);
+}
+
+.dark .pos-summary-card {
+  border-color: rgba(51, 65, 85, 0.82);
+  background: linear-gradient(180deg, rgba(15, 23, 42, 0.82), rgba(15, 23, 42, 0.74));
+  box-shadow: 0 18px 48px rgba(0, 0, 0, 0.24);
+}
+
+.dark .pos-summary-row {
+  border-bottom-color: rgba(71, 85, 105, 0.56);
+}
+
+.dark .pos-summary-label {
+  color: rgb(148 163 184);
+}
+
+.dark .pos-summary-value,
+.dark .pos-summary-total-label {
+  color: rgb(241 245 249);
+}
+
+.dark .pos-summary-row-button small {
+  color: rgb(103 232 249);
+}
+
+.dark .pos-summary-row-button:hover {
+  color: rgb(165 243 252);
+}
+
+.dark .pos-summary-row-discount .pos-summary-value {
+  color: rgb(253 164 175);
+}
+
+.dark .pos-summary-total {
+  border-top-color: rgba(71, 85, 105, 0.72);
+}
+
+.dark .pos-summary-total-value {
+  color: rgb(110 231 183);
+}
+
+.dark .pos-action-summary-label {
+  color: rgb(148 163 184);
+}
+
+.dark .pos-action-summary-value {
+  color: rgb(241 245 249);
+}
+
 .dark .pos-terminal-icon-button {
   border-color: rgba(71, 85, 105, 0.82);
   background: rgba(15, 23, 42, 0.72);
@@ -2813,6 +3339,21 @@ onMounted(async () => {
   color: rgb(148 163 184);
 }
 
+.dark .pos-scan-block {
+  border-top-color: rgba(51, 65, 85, 0.86);
+}
+
+.dark .pos-scan-hint {
+  color: rgb(148 163 184);
+}
+
+.dark .pos-pricing-card-active {
+  border-color: rgba(34, 211, 238, 0.36);
+  box-shadow:
+    0 24px 52px rgba(8, 145, 178, 0.22),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+}
+
 .dark .pos-product-stock {
   background: rgba(6, 78, 59, 0.42);
   color: rgb(134 239 172);
@@ -2827,13 +3368,11 @@ onMounted(async () => {
   color: rgb(241 245 249);
 }
 
-.dark .pos-cart-header,
-.dark .pos-total-cell {
+.dark .pos-cart-header {
   background: rgba(15, 23, 42, 0.9);
 }
 
-.dark .pos-cart-header,
-.dark .pos-total-cell span {
+.dark .pos-cart-header {
   color: rgb(148 163 184);
 }
 
@@ -2848,7 +3387,7 @@ onMounted(async () => {
   background: rgba(15, 23, 42, 0.78);
 }
 
-.dark .pos-total-cell strong,
+.dark .pos-summary-value,
 .dark .pos-line-product-name,
 .dark .pos-line-total-primary,
 .dark .pos-pricing-card-heading,
@@ -2881,19 +3420,6 @@ onMounted(async () => {
   border-color: rgba(51, 65, 85, 0.82);
 }
 
-.dark .pos-total-discount strong {
-  color: rgb(253 164 175);
-}
-
-.dark .pos-totals-bar {
-  border-color: rgba(51, 65, 85, 0.82);
-  background: rgb(30 41 59);
-}
-
-.dark .pos-total-payable {
-  background: rgba(6, 78, 59, 0.46);
-}
-
 .dark .pos-chip {
   color: rgb(203 213 225);
 }
@@ -2918,6 +3444,10 @@ onMounted(async () => {
   .pos-panel-topline {
     flex-direction: column;
   }
+
+  .pos-inline-stats {
+    justify-content: flex-start;
+  }
 }
 
 @media (max-width: 767px) {
@@ -2935,6 +3465,16 @@ onMounted(async () => {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .pos-browser-toolbar,
+  .pos-browser-mode,
+  .pos-checkout-rail {
+    grid-template-columns: 1fr;
+  }
+
+  .pos-summary-card {
+    width: 100%;
+  }
+
   .pos-pricing-footer {
     grid-template-columns: 1fr;
   }
@@ -2942,32 +3482,82 @@ onMounted(async () => {
   .pos-pricing-card-body {
     grid-template-columns: 1fr;
   }
+
+  .pos-cart-table {
+    overflow-x: visible;
+  }
+
+  .pos-cart-list {
+    min-width: 0;
+    padding: 0.5rem;
+    gap: 0.5rem;
+  }
+
+  .pos-cart-line-grid {
+    min-width: 0;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.5rem;
+  }
+
+  .pos-line-product-cell {
+    grid-column: 1 / -1;
+  }
+
+  .pos-cart-delete {
+    justify-self: end;
+  }
+
+  .pos-action-inner {
+    flex-wrap: wrap;
+    padding: 0.75rem;
+  }
+
+  .pos-action-summary {
+    min-width: 0;
+    flex: 1 0 100%;
+  }
+
+  .pos-action-cancel,
+  .pos-action-lite,
+  .pos-action-primary,
+  .pos-action-cash {
+    min-width: 0;
+    flex: 1 1 calc(50% - 0.4rem);
+  }
 }
 
 @media (min-width: 1024px) {
   .pos-workspace {
-    grid-template-columns: minmax(0, 60fr) minmax(24rem, 40fr);
+    grid-template-columns: minmax(0, 58fr) minmax(24rem, 42fr);
+  }
+
+  .pos-product-panel {
+    position: sticky;
+    top: 5.7rem;
   }
 
   .pos-product-grid {
-    grid-template-columns: repeat(4, minmax(0, 1fr));
-  }
-
-  .pos-totals-bar {
-    grid-template-columns: repeat(5, minmax(0, 1fr)) minmax(12rem, 1.25fr);
-  }
-
-  .pos-total-payable {
-    grid-column: auto;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    max-height: calc(100vh - 19rem);
   }
 }
 
 @media (min-width: 768px) and (max-width: 1023px) {
+  .pos-checkout-rail {
+    grid-template-columns: 1fr;
+  }
+
   .pos-product-grid {
     grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 
   .pos-pricing-card-body {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (min-width: 1280px) {
+  .pos-pricing-modal-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

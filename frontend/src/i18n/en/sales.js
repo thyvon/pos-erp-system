@@ -348,6 +348,11 @@ export default {
         lookupRequired: 'Choose variant',
         noProducts: 'No products match the current filter.',
       },
+      pricing: {
+        discountMode: 'Discount mode',
+        lineDiscountModeHint: 'Line discount mode is active. Edit discount per item from the line details modal.',
+        lineTaxModeHint: 'Line tax mode is active. Edit tax per item from the line details modal.',
+      },
       tracking: {
         lot: 'Lot',
         serial: 'Serial',

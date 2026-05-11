@@ -348,6 +348,11 @@ export default {
         lookupRequired: 'ជ្រើស Variant',
         noProducts: 'មិនមានទំនិញត្រូវនឹងតម្រងបច្ចុប្បន្នទេ។',
       },
+      pricing: {
+        discountMode: 'របៀបបញ្ចុះតម្លៃ',
+        lineDiscountModeHint: 'កំពុងប្រើការបញ្ចុះតម្លៃតាមបន្ទាត់។ កែប្រែបញ្ចុះតម្លៃតាមទំនិញពីផ្ទាំងលម្អិតបន្ទាត់។',
+        lineTaxModeHint: 'កំពុងប្រើពន្ធតាមបន្ទាត់។ កែប្រែពន្ធតាមទំនិញពីផ្ទាំងលម្អិតបន្ទាត់។',
+      },
       tracking: {
         lot: 'Lot',
         serial: 'Serial',
