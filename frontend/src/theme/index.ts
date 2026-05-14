@@ -1,183 +1,209 @@
-import { createTheme } from '@mui/material/styles'
+import { createTheme, Theme, alpha } from '@mui/material/styles'
+import type { Shadows } from '@mui/material/styles'
+import { buildPalette, THEME_COLOR_PRESETS, type ThemeColorPreset } from './palette'
 
-declare module '@mui/material/styles' {
-  interface PaletteColor {
-    lighter?: string
-    darker?: string
-  }
+export { THEME_COLOR_PRESETS }
+export type { ThemeColorPreset }
 
-  interface SimplePaletteColorOptions {
-    lighter?: string
-    darker?: string
-  }
+export const SIDEBAR_WIDTH = 280
+export const SIDEBAR_COLLAPSED_WIDTH = 88
+export const TOPBAR_HEIGHT = 64
+export const CONTENT_MAX_WIDTH = 1440
+
+export type FontPreset = 'publicSans' | 'inter' | 'dmSans' | 'nunitoSans'
+
+export const ENGLISH_FONT_OPTIONS: Array<{ value: FontPreset; label: string; family: string }> = [
+  { value: 'publicSans', label: 'Public Sans', family: 'Public Sans' },
+  { value: 'inter', label: 'Inter', family: 'Inter' },
+  { value: 'dmSans', label: 'DM Sans', family: 'DM Sans' },
+  { value: 'nunitoSans', label: 'Nunito Sans', family: 'Nunito Sans' },
+]
+
+const SYSTEM_FONT_STACK = 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
+
+function resolveFontFamily(fontPreset: FontPreset) {
+  const fontOption = ENGLISH_FONT_OPTIONS.find((option) => option.value === fontPreset)
+  return `"${fontOption?.family ?? 'Public Sans'}", "Kantumruy Pro", ${SYSTEM_FONT_STACK}`
 }
 
-// Minimals.cc inspired theme
-export const theme = createTheme({
-  palette: {
-    mode: 'light',
-    primary: {
-      lighter: '#C8FACD',
-      light: '#5BE584',
-      main: '#00AB55',
-      dark: '#007B55',
-      darker: '#005249',
-      contrastText: '#fff',
-    } as any,
-    secondary: {
-      lighter: '#D6E4FF',
-      light: '#84A9FF',
-      main: '#3366FF',
-      dark: '#1939B7',
-      darker: '#091A7A',
-      contrastText: '#fff',
-    } as any,
-    error: {
-      lighter: '#FFE7D9',
-      light: '#FFA48D',
-      main: '#FF4842',
-      dark: '#B72136',
-      darker: '#7A0C2E',
-      contrastText: '#fff',
-    } as any,
-    warning: {
-      lighter: '#FFF7CD',
-      light: '#FFD666',
-      main: '#FFC107',
-      dark: '#B78103',
-      darker: '#7A4F01',
-      contrastText: '#000',
-    } as any,
-    info: {
-      lighter: '#D0F2FF',
-      light: '#74CAFF',
-      main: '#1890FF',
-      dark: '#0C53B7',
-      darker: '#04297A',
-      contrastText: '#fff',
-    } as any,
-    success: {
-      lighter: '#E9FCD4',
-      light: '#AAF27F',
-      main: '#54D62C',
-      dark: '#229A16',
-      darker: '#08660D',
-      contrastText: '#fff',
-    } as any,
-    grey: {
-      0: '#FFFFFF',
-      100: '#F9FAFB',
-      200: '#F4F6F8',
-      300: '#DFE3E8',
-      400: '#C4CDD5',
-      500: '#919EAB',
-      600: '#637381',
-      700: '#454F5B',
-      800: '#212B36',
-      900: '#161C24',
+export function createAppTheme(
+  mode: 'light' | 'dark',
+  fontPreset: FontPreset = 'publicSans',
+  colorPreset: ThemeColorPreset = 'default'
+): Theme {
+  const palette = buildPalette(mode, colorPreset)
+  const primaryMain =
+    palette.primary && 'main' in palette.primary ? palette.primary.main : '#00A76F'
+  const fontFamily = resolveFontFamily(fontPreset)
+
+  return createTheme({
+    palette,
+    typography: {
+      fontFamily,
+      h1: { fontWeight: 800, fontSize: '2.5rem', lineHeight: 1.2 },
+      h2: { fontWeight: 800, fontSize: '2rem', lineHeight: 1.3 },
+      h3: { fontWeight: 700, fontSize: '1.5rem', lineHeight: 1.5 },
+      h4: { fontWeight: 700, fontSize: '1.25rem', lineHeight: 1.5 },
+      h5: { fontWeight: 700, fontSize: '1.125rem', lineHeight: 1.5 },
+      h6: { fontWeight: 700, fontSize: '1rem', lineHeight: 1.5 },
+      subtitle1: { fontWeight: 600, fontSize: '1rem', lineHeight: 1.5 },
+      subtitle2: { fontWeight: 600, fontSize: '0.875rem', lineHeight: 1.5 },
+      body1: { fontSize: '1rem', lineHeight: 1.5 },
+      body2: { fontSize: '0.875rem', lineHeight: 1.5 },
+      caption: { fontSize: '0.75rem', lineHeight: 1.5 },
+      overline: { fontSize: '0.75rem', fontWeight: 700, letterSpacing: '1.1px', lineHeight: 1.5, textTransform: 'uppercase' },
     },
-    background: {
-      default: '#F9FAFB',
-      paper: '#FFFFFF',
-    },
-    text: {
-      primary: '#212B36',
-      secondary: '#637381',
-      disabled: '#919EAB',
-    },
-    divider: '#DFE3E8',
-    action: {
-      active: '#637381',
-      hover: 'rgba(145, 158, 171, 0.08)',
-      selected: 'rgba(145, 158, 171, 0.16)',
-      disabled: '#919EAB',
-      disabledBackground: 'rgba(145, 158, 171, 0.24)',
-    },
-  },
-  shape: {
-    borderRadius: 8,
-  },
-  shadows: [
-    'none',
-    '0px 2px 4px 0px rgba(145, 158, 171, 0.2)',
-    '0px 4px 8px 0px rgba(145, 158, 171, 0.2)',
-    '0px 8px 16px 0px rgba(145, 158, 171, 0.2)',
-    '0px 12px 24px -4px rgba(145, 158, 171, 0.2)',
-    '0px 16px 32px -4px rgba(145, 158, 171, 0.2)',
-    ...Array(19).fill('none'),
-  ] as any,
-  typography: {
-    fontFamily: '"Inter", "Kantumruy Pro", "Helvetica", "Arial", sans-serif',
-    khmer: {
-      fontFamily: '"Kantumruy Pro", "Inter", sans-serif',
-    },
-    h1: { fontSize: '2.5rem', fontWeight: 800, lineHeight: 1.2 },
-    h2: { fontSize: '2rem', fontWeight: 800, lineHeight: 1.3 },
-    h3: { fontSize: '1.5rem', fontWeight: 700, lineHeight: 1.5 },
-    h4: { fontSize: '1.25rem', fontWeight: 700, lineHeight: 1.5 },
-    h5: { fontSize: '1.125rem', fontWeight: 700, lineHeight: 1.5 },
-    h6: { fontSize: '1rem', fontWeight: 700, lineHeight: 1.5 },
-    body1: { fontSize: '1rem', lineHeight: 1.5 },
-    body2: { fontSize: '0.875rem', lineHeight: 1.5 },
-    subtitle1: { fontSize: '1rem', fontWeight: 600, lineHeight: 1.5 },
-    subtitle2: { fontSize: '0.875rem', fontWeight: 600, lineHeight: 1.5 },
-    caption: { fontSize: '0.75rem', lineHeight: 1.5 },
-  },
-  components: {
-    MuiCssBaseline: {
-      styleOverrides: {
-        body: {
-          backgroundColor: '#F9FAFB',
+    shape: { borderRadius: 8 },
+    shadows: [
+      'none',
+      `0 1px 2px 0 ${alpha('#919EAB', 0.16)}`,
+      `0 4px 8px -4px ${alpha('#919EAB', 0.2)}`,
+      `0 8px 16px -4px ${alpha('#919EAB', 0.2)}`,
+      `0 12px 24px -4px ${alpha('#919EAB', 0.16)}`,
+      `0 16px 32px -8px ${alpha('#919EAB', 0.16)}`,
+      `0 20px 40px -12px ${alpha('#919EAB', 0.12)}`,
+      ...Array(18).fill('none'),
+    ] as Shadows,
+    components: {
+      MuiCssBaseline: {
+        styleOverrides: {
+          '*': {
+            boxSizing: 'border-box',
+          },
+          html: {
+            width: '100%',
+            height: '100%',
+            WebkitOverflowScrolling: 'touch',
+          },
+          body: {
+            width: '100%',
+            height: '100%',
+            backgroundColor: palette.background?.default,
+            color: palette.text?.primary,
+            fontFamily,
+          },
+          'button, input, textarea, select': {
+            fontFamily: 'inherit',
+          },
+          '#root, #__next': {
+            width: '100%',
+            height: '100%',
+          },
         },
       },
-    },
-    MuiButton: {
-      defaultProps: {
-        disableElevation: true,
-      },
-      styleOverrides: {
-        root: {
-          textTransform: 'none',
-          fontWeight: 700,
-          borderRadius: '8px',
-          padding: '6px 16px',
+      MuiButton: {
+        defaultProps: {
+          disableElevation: true,
         },
-        containedPrimary: {
-          '&:hover': {
-            backgroundColor: '#007B55',
+        styleOverrides: {
+          root: {
+            textTransform: 'none',
+            fontWeight: 700,
+            borderRadius: 8,
+            padding: '6px 16px',
+          },
+        },
+      },
+      MuiOutlinedInput: {
+        styleOverrides: {
+          root: {
+            borderRadius: 8,
+            backgroundColor: mode === 'light' ? '#F9FAFB' : alpha('#FFFFFF', 0.04),
+            '&:hover .MuiOutlinedInput-notchedOutline': {
+              borderColor: primaryMain,
+            },
+            '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+              borderWidth: 1,
+              borderColor: primaryMain,
+            },
+          },
+          notchedOutline: {
+            borderColor: mode === 'light' ? alpha('#919EAB', 0.24) : alpha('#919EAB', 0.32),
+          },
+          input: {
+            paddingTop: 15,
+            paddingBottom: 15,
+          },
+        },
+      },
+      MuiCard: {
+        styleOverrides: {
+          root: {
+            position: 'relative',
+            boxShadow: `0 0 2px 0 ${alpha('#919EAB', 0.2)}, 0 12px 24px -4px ${alpha('#919EAB', 0.12)}`,
+            borderRadius: 8,
+            zIndex: 0,
+          },
+        },
+      },
+      MuiPaper: {
+        defaultProps: {
+          elevation: 0,
+        },
+        styleOverrides: {
+          root: {
+            backgroundImage: 'none',
+          },
+        },
+      },
+      MuiIconButton: {
+        styleOverrides: {
+          root: {
+            borderRadius: 8,
+          },
+        },
+      },
+      MuiPopover: {
+        styleOverrides: {
+          paper: {
+            borderRadius: 12,
+          },
+        },
+      },
+      MuiDrawer: {
+        styleOverrides: {
+          paper: {
+            border: 'none',
+            backgroundImage: 'none',
+          },
+        },
+      },
+      MuiAppBar: {
+        defaultProps: {
+          elevation: 0,
+        },
+        styleOverrides: {
+          root: {
+            backgroundColor: 'transparent',
+            color: palette.text?.primary,
+          },
+        },
+      },
+      MuiListItemButton: {
+        styleOverrides: {
+          root: {
+            borderRadius: 8,
+            margin: '4px 8px',
+            color: palette.text?.secondary,
+            '&.Mui-selected': {
+              color: primaryMain,
+              backgroundColor: alpha(primaryMain, 0.08),
+              '&:hover': {
+                backgroundColor: alpha(primaryMain, 0.16),
+              },
+            },
+
+          },
+        },
+      },
+      MuiListItemIcon: {
+        styleOverrides: {
+          root: {
+            color: 'inherit',
+            minWidth: 40,
           },
         },
       },
     },
-    MuiCard: {
-      styleOverrides: {
-        root: {
-          borderRadius: '16px',
-          boxShadow: '0 0 2px 0 rgba(145, 158, 171, 0.2), 0 12px 24px -4px rgba(145, 158, 171, 0.12)',
-          padding: '24px',
-        },
-      },
-    },
-    MuiAppBar: {
-      styleOverrides: {
-        root: {
-          boxShadow: 'none',
-          backdropFilter: 'blur(6px)',
-          backgroundColor: 'rgba(249, 250, 251, 0.8)',
-          color: '#212B36',
-          borderBottom: 'none',
-        },
-      },
-    },
-    MuiDrawer: {
-      styleOverrides: {
-        paper: {
-          borderRight: 'dashed 1px #DFE3E8',
-          backgroundColor: '#F9FAFB',
-        },
-      },
-    },
-  },
-} as any)
-
-export default theme
+  })
+}

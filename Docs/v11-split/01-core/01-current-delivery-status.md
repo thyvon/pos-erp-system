@@ -2,7 +2,7 @@
 
 ### 1.1 What Is Actually Built
 
-The current repository has working backend, frontend, migrations, policies, and tests for these areas:
+The current repository has working backend, migrations, policies, and tests for these areas. The frontend has been switched from the older Vue plan to a new Next.js/React stack and should be rebuilt module by module against these live backend APIs:
 
 - Authentication and tenant bootstrap
 - Business, branches, warehouses, users, roles, settings, and custom fields
@@ -51,8 +51,7 @@ The codebase differs from older v10 planning in important ways:
 - `AuditService` currently writes directly to `audit_logs` inside a guarded `try/catch`; it is **not queue-dispatched** yet.
 - `BaseRepository` is a thin CRUD abstraction; Redis caching is **not implemented** there yet.
 - There is no shared `Auditable` trait in the current codebase.
-- The frontend stack is currently smaller than the earlier plan: Vue 3, Pinia 3, Vue Router 4, Axios, VeeValidate, Yup, Tailwind, Font Awesome, Vue i18n.
+- The frontend stack has changed from the earlier Vue plan to Next.js, React, TypeScript, MUI, React Query, Zustand, Axios, React Hook Form, Zod, and i18next.
 - Purchases, reports, loyalty, CRM, manufacturing, HRM, and other later modules are still roadmap items, not current implementation.
 
 ---
-

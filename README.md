@@ -3,7 +3,7 @@
 This repository is now split into:
 
 - Laravel backend API in the project root
-- Standalone Vue frontend SPA in [frontend](/home/vun/Project/ERP-SYSTEM/frontend)
+- Standalone Next.js React frontend in [frontend](/home/vun/Project/ERP-SYSTEM/frontend)
 
 ## Backend
 
@@ -21,7 +21,7 @@ http://127.0.0.1:8000
 
 ## Frontend
 
-Run the standalone Vue frontend:
+Run the standalone Next.js frontend:
 
 ```bash
 cd frontend
@@ -32,13 +32,13 @@ npm run dev
 Default frontend URL:
 
 ```text
-http://127.0.0.1:5173
+http://127.0.0.1:3000
 ```
 
 The frontend is configured to call:
 
 ```text
-http://127.0.0.1:8000/api/v1
+http://127.0.0.1:8000/api
 ```
 
 ## Current Active Frontend

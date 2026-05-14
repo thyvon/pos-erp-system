@@ -2,31 +2,22 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { useAuthStore } from '@/stores/auth'
-import { Box, CircularProgress } from '@mui/material'
+import { useAuthStore } from '@/stores/authStore'
+import PageLoader from '@/components/ui/PageLoader'
 
-export default function Home() {
-  const { isAuthenticated } = useAuthStore()
+export default function HomePage() {
+  const { isLoggedIn, isLoading } = useAuthStore()
   const router = useRouter()
 
   useEffect(() => {
-    if (isAuthenticated) {
-      router.push('/dashboard')
-    } else {
-      router.push('/login')
+    if (!isLoading) {
+      if (isLoggedIn) {
+        router.push('/dashboard')
+      } else {
+        router.push('/login')
+      }
     }
-  }, [isAuthenticated, router])
+  }, [isLoggedIn, isLoading, router])
 
-  return (
-    <Box
-      sx={{
-        display: 'flex',
-        justifyContent: 'center',
-        alignItems: 'center',
-        minHeight: '100vh',
-      }}
-    >
-      <CircularProgress />
-    </Box>
-  )
+  return <PageLoader />
 }

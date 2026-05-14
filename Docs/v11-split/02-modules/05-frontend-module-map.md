@@ -2,28 +2,22 @@
 
 ### 5.1 Live Frontend Areas
 
-Implemented frontend pages and stores cover:
+The active frontend has been restacked to Next.js/React. Current implemented frontend areas cover:
 
-- Login, forgot password, reset password
+- Login and auth state persistence
 - Dashboard shell
-- Businesses admin page
-- Users and roles
-- Branches and warehouses
-- Settings
-- Tax rates and tax groups
-- Customer groups, customers, suppliers
-- Catalog pages for products, categories, brands, units, variation templates, rack locations, price groups
-- Inventory pages for adjustments, transfers, counts, lots, serials
-- Accounting pages for chart of accounts, journals, payment accounts, fiscal years
-- Sales pages for sales, sale form, POS, quotations, cash registers, sale returns
+- Protected dashboard layout, sidebar, topbar, breadcrumbs, account popover, settings panel, and notification popover shell
 - No-branch-access blocking page
+
+The backend APIs for foundation, contacts, catalog, inventory, accounting, and sales are live, but their Next.js frontend pages/forms must be rebuilt module by module.
 
 ### 5.2 Frontend Architecture Rules
 
 - `frontend/src/api/*` should contain transport logic only
-- `frontend/src/stores/*` own state and async actions
-- page views should call store actions, not inline Axios
-- route guards enforce login, permission checks, super-admin-only routes, and branch-access blocking
+- `frontend/src/features/*` should contain feature hooks, schemas, and module-specific client logic
+- `frontend/src/stores/*` own persistent local UI/auth state through Zustand
+- server data should flow through shared API wrappers and React Query hooks, not inline Axios inside page components
+- Next.js layouts/components enforce login, permission checks, super-admin-only routes, and branch-access blocking
 - sidebar visibility is permission-driven
 - translations must exist in both `en` and `km`
 
@@ -35,4 +29,3 @@ Implemented frontend pages and stores cover:
 - Sales and inventory flows filter branch and warehouse choices accordingly
 
 ---
-

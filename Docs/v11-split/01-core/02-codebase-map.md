@@ -41,13 +41,14 @@ Primary API entrypoints:
 
 ### 2.3 Frontend Structure
 
-- `frontend/src/api/` - Axios request wrappers only
-- `frontend/src/stores/` - Pinia state and async actions
-- `frontend/src/router/` - route definitions and auth/permission guards
-- `frontend/src/navigation/` - sidebar generation
-- `frontend/src/views/` - page-level Vue views
-- `frontend/src/components/` - reusable UI and feature components
-- `frontend/src/i18n/` - translation structure for `en` and `km`
+- `frontend/src/app/` - Next.js App Router pages and layouts
+- `frontend/src/api/` - Axios instance, request wrappers, API error handling, and React Query client setup
+- `frontend/src/features/` - feature-scoped API hooks, schemas, and UI logic
+- `frontend/src/stores/` - Zustand state for auth and UI preferences
+- `frontend/src/components/` - reusable MUI-based UI, auth, and layout components
+- `frontend/src/theme/` - MUI theme, palette, layout constants, and font presets
+- `frontend/src/i18n/` - i18next translation structure for `en` and `km`
+- `frontend/src/types/` - shared TypeScript API/domain types
 
 ### 2.4 Test Structure
 
@@ -63,4 +64,3 @@ This is meaningful because the new plan must distinguish:
 - planned but not built
 
 ---
-

@@ -1,0 +1,94 @@
+export default {
+  // Login Page
+  login: {
+    title: 'ស្វាគមន៍ត្រលប់មកវិញ',
+    subtitle: 'ចូលគណនីរបស់អ្នកដើម្បីបន្ត',
+    email: 'អាសយដ្ឋានអ៊ីមែល',
+    password: 'ពាក្យសម្ងាត់',
+    rememberMe: 'ចូលចាំខ្ញុំ',
+    signIn: 'ចូលគណនី',
+    forgotPassword: 'ភ្លេចពាក្យសម្ងាត់?',
+    noAccount: 'មិនមានគណនីមែនទេ?',
+    createOne: 'បង្កើតមួយ',
+    signingIn: 'កំពុងចូល...',
+    error: {
+      invalidCredentials: 'អ៊ីមែល ឬពាក្យសម្ងាត់មិនត្រឹមត្រូវ',
+      emailRequired: 'ត្រូវការអ៊ីមែល',
+      passwordRequired: 'ត្រូវការពាក្យសម្ងាត់',
+      emailInvalid: 'សូមបញ្ចូលអាសយដ្ឋានអ៊ីមែលដែលមានសុពលភាព',
+      passwordTooShort: 'ពាក្យសម្ងាត់ត្រូវតែមានយ៉ាងហោចណាស់ 6 តួអក្សរ',
+      networkError: 'កំហុសបណ្តាញ។ សូមព្យាយាមម្ដងទៀត។',
+      serverError: 'មានកំហុស។ សូមព្យាយាមម្ដងទៀត។',
+    },
+    demo: {
+      title: 'ក្រឹត្យលេខសាក',
+      email: 'demo@example.com',
+      password: 'demo123456',
+    },
+    copyright: '© 2026 ប្រព័ន្ធ ERP។ រក្សាសិទ្ធិ។',
+  },
+
+  // Forgot Password Page
+  forgotPassword: {
+    title: 'កំណត់ពាក្យសម្ងាត់ឡើងវិញ',
+    subtitle: 'បញ្ចូលអ៊ីមែលរបស់អ្នកដើម្បីទទួលលីងកកំណត់ពាក្យសម្ងាត់',
+    email: 'អាសយដ្ឋានអ៊ីមែល',
+    send: 'ផ្ញើលីងក',
+    backToLogin: 'ត្រលប់ទៅការចូល',
+    sending: 'កំពុងផ្ញើ...',
+    success: 'ពិនិត្យអ៊ីមែលរបស់អ្នកសម្រាប់លីងកកំណត់ពាក្យសម្ងាត់',
+    error: {
+      emailRequired: 'ត្រូវការអ៊ីមែល',
+      emailInvalid: 'សូមបញ្ចូលអាសយដ្ឋានអ៊ីមែលដែលមានសុពលភាព',
+      userNotFound: 'មិនមានគណនីដែលមានអ៊ីមែលនេះ',
+      serverError: 'បរាជ័យក្នុងការផ្ញើលីងក។ សូមព្យាយាមម្ដងទៀត។',
+    },
+  },
+
+  // Signup Page
+  signup: {
+    title: 'បង្កើតគណនី',
+    subtitle: 'ចូលរួមយើងស្វាគមន៍',
+    firstName: 'នាមខ្លួន',
+    lastName: 'នាមត្រកូល',
+    email: 'អាសយដ្ឋានអ៊ីមែល',
+    password: 'ពាក្យសម្ងាត់',
+    confirmPassword: 'បញ្ជាក់ពាក្យសម្ងាត់',
+    agreeTerms: 'ខ្ញុំយល់ព្រម ល័ក្ខខ័ណ្ឌសេវាកម្ម',
+    signUp: 'បង្កើតគណនី',
+    haveAccount: 'មានគណនីរួចហើយ?',
+    signIn: 'ចូលគណនី',
+    creating: 'កំពុងបង្កើត...',
+    error: {
+      firstNameRequired: 'ត្រូវការនាមខ្លួន',
+      lastNameRequired: 'ត្រូវការនាមត្រកូល',
+      emailRequired: 'ត្រូវការអ៊ីមែល',
+      emailInvalid: 'សូមបញ្ចូលអាសយដ្ឋានអ៊ីមែលដែលមានសុពលភាព',
+      passwordRequired: 'ត្រូវការពាក្យសម្ងាត់',
+      passwordTooShort: 'ពាក្យសម្ងាត់ត្រូវតែមានយ៉ាងហោចណាស់ 6 តួអក្សរ',
+      passwordMismatch: 'ពាក្យសម្ងាត់មិនផ្គូផ្គង',
+      termsRequired: 'អ្នកត្រូវយល់ព្រមលើលក្ខខណ្ឌ',
+      emailExists: 'អ៊ីមែលត្រូវបានចុះឈ្មោះរួចហើយ',
+      serverError: 'បរាជ័យក្នុងការបង្កើតគណនី។ សូមព្យាយាមម្ដងទៀត។',
+    },
+  },
+
+  // Reset Password Page
+  resetPassword: {
+    title: 'កំណត់ពាក្យសម្ងាត់ឡើងវិញ',
+    subtitle: 'បញ្ចូលពាក្យសម្ងាត់ថ្មីរបស់អ្នក',
+    password: 'ពាក្យសម្ងាត់ថ្មី',
+    confirmPassword: 'បញ្ជាក់ពាក្យសម្ងាត់',
+    reset: 'កំណត់ពាក្យសម្ងាត់ឡើងវិញ',
+    resetting: 'កំពុងកំណត់ឡើងវិញ...',
+    success: 'ពាក្យសម្ងាត់ត្រូវបានកំណត់ឡើងវិញដោយសមស្របរួច។ អ្នកអាចចូលបាននឹង។',
+    error: {
+      passwordRequired: 'ត្រូវការពាក្យសម្ងាត់',
+      passwordTooShort: 'ពាក្យសម្ងាត់ត្រូវតែមានយ៉ាងហោចណាស់ 6 តួអក្សរ',
+      passwordMismatch: 'ពាក្យសម្ងាត់មិនផ្គូផ្គង',
+      linkExpired: 'លីងកកំណត់ពាក្យសម្ងាត់បានផុតកំណត់',
+      invalidToken: 'លេខកូដកំណត់ពាក្យសម្ងាត់មិនមានសុពលភាព',
+      serverError: 'បរាជ័យក្នុងការកំណត់ពាក្យសម្ងាត់ឡើងវិញ។ សូមព្យាយាមម្ដងទៀត។',
+    },
+  },
+}

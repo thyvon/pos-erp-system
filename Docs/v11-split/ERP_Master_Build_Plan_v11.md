@@ -1,5 +1,5 @@
 # ERP System - Master Build Plan v11
-**Laravel 11 REST API - Vue 3 SPA - MariaDB - Sanctum - Spatie Permission**
+**Laravel 11 REST API - Next.js React Frontend - MariaDB - Sanctum - Spatie Permission**
 
 **Version:** 11.0  
 **Date:** 2026-05-11  
@@ -33,7 +33,7 @@ Reading order for an AI agent:
 
 ### 1.1 What Is Actually Built
 
-The current repository has working backend, frontend, migrations, policies, and tests for these areas:
+The current repository has working backend, migrations, policies, and tests for these areas. The frontend has been switched from the older Vue plan to a new Next.js/React stack and should be rebuilt module by module against these live backend APIs:
 
 - Authentication and tenant bootstrap
 - Business, branches, warehouses, users, roles, settings, and custom fields
@@ -82,7 +82,7 @@ The codebase differs from older v10 planning in important ways:
 - `AuditService` currently writes directly to `audit_logs` inside a guarded `try/catch`; it is **not queue-dispatched** yet.
 - `BaseRepository` is a thin CRUD abstraction; Redis caching is **not implemented** there yet.
 - There is no shared `Auditable` trait in the current codebase.
-- The frontend stack is currently smaller than the earlier plan: Vue 3, Pinia 3, Vue Router 4, Axios, VeeValidate, Yup, Tailwind, Font Awesome, Vue i18n.
+- The frontend stack has changed from the earlier Vue plan to Next.js, React, TypeScript, MUI, React Query, Zustand, Axios, React Hook Form, Zod, and i18next.
 - Purchases, reports, loyalty, CRM, manufacturing, HRM, and other later modules are still roadmap items, not current implementation.
 
 ---
@@ -130,13 +130,14 @@ Primary API entrypoints:
 
 ### 2.3 Frontend Structure
 
-- `frontend/src/api/` - Axios request wrappers only
-- `frontend/src/stores/` - Pinia state and async actions
-- `frontend/src/router/` - route definitions and auth/permission guards
-- `frontend/src/navigation/` - sidebar generation
-- `frontend/src/views/` - page-level Vue views
-- `frontend/src/components/` - reusable UI and feature components
-- `frontend/src/i18n/` - translation structure for `en` and `km`
+- `frontend/src/app/` - Next.js App Router pages and layouts
+- `frontend/src/api/` - Axios instance, request wrappers, API error handling, and React Query client setup
+- `frontend/src/features/` - feature-scoped API hooks, schemas, and UI logic
+- `frontend/src/stores/` - Zustand state for auth and UI preferences
+- `frontend/src/components/` - reusable MUI-based UI, auth, and layout components
+- `frontend/src/theme/` - MUI theme, palette, layout constants, and font presets
+- `frontend/src/i18n/` - i18next translation structure for `en` and `km`
+- `frontend/src/types/` - shared TypeScript API/domain types
 
 ### 2.4 Test Structure
 
@@ -157,10 +158,10 @@ This is meaningful because the new plan must distinguish:
 
 ### 3.1 Application Style
 
-The system is a Laravel 11 JSON API with a Vue 3 SPA inside `/frontend`.
+The system is a Laravel 11 JSON API with a standalone Next.js React frontend inside `/frontend`.
 
 - Backend returns JSON only for API routes.
-- Frontend is a single-page application using Vue Router.
+- Frontend uses Next.js App Router, client components where needed, React Query for server state, Zustand for local app state, and MUI for UI.
 - API versioning is currently centered on `/api/v1`.
 
 ### 3.2 Request Flow
@@ -362,28 +363,22 @@ Do not generate code assuming these modules already have backend structure in th
 
 ### 5.1 Live Frontend Areas
 
-Implemented frontend pages and stores cover:
+The active frontend has been restacked to Next.js/React. Current implemented frontend areas cover:
 
-- Login, forgot password, reset password
+- Login and auth state persistence
 - Dashboard shell
-- Businesses admin page
-- Users and roles
-- Branches and warehouses
-- Settings
-- Tax rates and tax groups
-- Customer groups, customers, suppliers
-- Catalog pages for products, categories, brands, units, variation templates, rack locations, price groups
-- Inventory pages for adjustments, transfers, counts, lots, serials
-- Accounting pages for chart of accounts, journals, payment accounts, fiscal years
-- Sales pages for sales, sale form, POS, quotations, cash registers, sale returns
+- Protected dashboard layout, sidebar, topbar, breadcrumbs, account popover, settings panel, and notification popover shell
 - No-branch-access blocking page
+
+The backend APIs for foundation, contacts, catalog, inventory, accounting, and sales are live, but their Next.js frontend pages/forms must be rebuilt module by module.
 
 ### 5.2 Frontend Architecture Rules
 
 - `frontend/src/api/*` should contain transport logic only
-- `frontend/src/stores/*` own state and async actions
-- page views should call store actions, not inline Axios
-- route guards enforce login, permission checks, super-admin-only routes, and branch-access blocking
+- `frontend/src/features/*` should contain feature hooks, schemas, and module-specific client logic
+- `frontend/src/stores/*` own persistent local UI/auth state through Zustand
+- server data should flow through shared API wrappers and React Query hooks, not inline Axios inside page components
+- Next.js layouts/components enforce login, permission checks, super-admin-only routes, and branch-access blocking
 - sidebar visibility is permission-driven
 - translations must exist in both `en` and `km`
 
@@ -567,7 +562,7 @@ Required implementation standards:
 - keep controllers thin
 - keep business logic in services
 - keep frontend HTTP calls in `frontend/src/api`
-- keep page views store-driven
+- keep page views driven by feature hooks, shared API wrappers, React Query, and Zustand stores where appropriate
 - add `en` and `km` translation keys in the same task
 
 Forbidden assumptions:

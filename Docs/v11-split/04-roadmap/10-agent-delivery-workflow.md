@@ -17,7 +17,7 @@ Required implementation standards:
 - keep controllers thin
 - keep business logic in services
 - keep frontend HTTP calls in `frontend/src/api`
-- keep page views store-driven
+- keep page views driven by feature hooks, shared API wrappers, React Query, and Zustand stores where appropriate
 - add `en` and `km` translation keys in the same task
 
 Forbidden assumptions:
@@ -28,4 +28,3 @@ Forbidden assumptions:
 - do not assume HRM is implemented because the module folder exists
 
 ---
-

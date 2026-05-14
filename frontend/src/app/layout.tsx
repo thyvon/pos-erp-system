@@ -1,32 +1,37 @@
-import { Inter } from 'next/font/google'
-import { AppProviders } from '@/providers/AppProviders'
+import type { Metadata } from 'next'
+import '@fontsource/public-sans/400.css'
+import '@fontsource/public-sans/500.css'
+import '@fontsource/public-sans/600.css'
+import '@fontsource/public-sans/700.css'
+import '@fontsource/inter/400.css'
+import '@fontsource/inter/500.css'
+import '@fontsource/inter/600.css'
+import '@fontsource/inter/700.css'
+import '@fontsource/dm-sans/400.css'
+import '@fontsource/dm-sans/500.css'
+import '@fontsource/dm-sans/600.css'
+import '@fontsource/dm-sans/700.css'
+import '@fontsource/nunito-sans/400.css'
+import '@fontsource/nunito-sans/500.css'
+import '@fontsource/nunito-sans/600.css'
+import '@fontsource/nunito-sans/700.css'
+import '@fontsource/kantumruy-pro/khmer-400.css'
+import '@fontsource/kantumruy-pro/khmer-500.css'
+import '@fontsource/kantumruy-pro/khmer-600.css'
+import '@fontsource/kantumruy-pro/khmer-700.css'
+import './globals.css'
+import { Providers } from './providers'
 
-const inter = Inter({
-  subsets: ['latin'],
-  display: 'swap',
-  weight: ['400', '500', '600', '700', '800'],
-  variable: '--font-inter',
-})
+export const metadata: Metadata = {
+  title: 'ERP System',
+  description: 'Modern ERP frontend for sales, inventory, accounting, and operations.',
+}
 
-export default function RootLayout({
-  children,
-}: {
-  children: React.ReactNode
-}) {
+export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={inter.className}>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@100;300;400;500;600;700;900&display=swap"
-          rel="stylesheet"
-        />
-      </head>
+    <html lang="en" suppressHydrationWarning>
       <body>
-        <AppProviders>
-          {children}
-        </AppProviders>
+        <Providers>{children}</Providers>
       </body>
     </html>
   )

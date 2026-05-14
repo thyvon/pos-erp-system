@@ -2,10 +2,10 @@
 
 ### 3.1 Application Style
 
-The system is a Laravel 11 JSON API with a Vue 3 SPA inside `/frontend`.
+The system is a Laravel 11 JSON API with a standalone Next.js React frontend inside `/frontend`.
 
 - Backend returns JSON only for API routes.
-- Frontend is a single-page application using Vue Router.
+- Frontend uses Next.js App Router, client components where needed, React Query for server state, Zustand for local app state, and MUI for UI.
 - API versioning is currently centered on `/api/v1`.
 
 ### 3.2 Request Flow
@@ -71,4 +71,3 @@ Current implemented modules generally follow this pattern correctly:
 This pattern should remain the default for all new work.
 
 ---
-

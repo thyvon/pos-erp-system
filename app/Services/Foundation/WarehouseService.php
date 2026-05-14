@@ -26,7 +26,9 @@ class WarehouseService
     {
         return DB::transaction(function () use ($data): Warehouse {
             $this->resolveBusiness();
-            $this->ensureUserCanAccessBranch($data['branch_id']);
+            if (filled($data['branch_id'] ?? null)) {
+                $this->ensureUserCanAccessBranch($data['branch_id']);
+            }
 
             if (blank($data['code'] ?? null)) {
                 $data['code'] = $this->generateCode();

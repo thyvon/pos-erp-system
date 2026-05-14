@@ -8,10 +8,9 @@
 6. Branch scope rules must match the current middleware and policy behavior exactly.
 7. Services may contain safety checks, but policies remain the primary authorization contract.
 8. Audit writes must never leak passwords, tokens, or secrets.
-9. Frontend pages must use stores and shared API wrappers, not ad hoc HTTP calls.
+9. Frontend pages must use shared API wrappers, feature hooks, React Query, and Zustand stores where appropriate, not ad hoc HTTP calls.
 10. Translation keys for `en` and `km` must be updated in the same task as UI changes.
 11. Tests are part of feature completion.
 12. Stabilize live modules before expanding deep into planned modules.
 
 ---
-
