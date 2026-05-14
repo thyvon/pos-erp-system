@@ -4,7 +4,7 @@ const nullableText = (max: number) =>
   z.union([z.string().max(max), z.literal('')]).transform((value) => value || null)
 
 export const warehouseSchema = z.object({
-  branch_id: z.union([z.string(), z.literal('')]).transform((value) => value || null),
+  branch_id: z.string().min(1, 'Branch is required'),
   name: z.string().min(1, 'Name is required').max(255, 'Name is too long'),
   code: nullableText(50),
   type: z.enum(['main', 'transit', 'returns', 'damaged']),

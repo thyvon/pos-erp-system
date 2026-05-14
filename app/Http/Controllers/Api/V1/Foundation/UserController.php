@@ -41,7 +41,10 @@ class UserController extends BaseApiController
     {
         $this->authorize('create', User::class);
         $validated = $request->validated();
-        $this->authorizeBranchAccessAssignment($validated, $validated['role']);
+        $this->authorizeBranchAccessAssignment(
+            $validated,
+            $validated['roles'] ?? [$validated['role']]
+        );
 
         $user = $this->userService->create($validated, $request->user());
 
@@ -61,7 +64,7 @@ class UserController extends BaseApiController
         $validated = $request->validated();
         $this->authorizeBranchAccessAssignment(
             $validated,
-            $validated['role'] ?? (string) $user->getRoleNames()->first()
+            $validated['roles'] ?? (isset($validated['role']) ? [$validated['role']] : $user->getRoleNames()->all())
         );
 
         $user = $this->userService->update($user, $validated, $request->user());
@@ -78,7 +81,7 @@ class UserController extends BaseApiController
         return $this->success(null, 'User deleted successfully.');
     }
 
-    protected function authorizeBranchAccessAssignment(array $data, string $targetRole): void
+    protected function authorizeBranchAccessAssignment(array $data, array $targetRoles): void
     {
         $branchIds = array_values(array_filter(
             (array) ($data['branch_ids'] ?? []),
@@ -90,6 +93,6 @@ class UserController extends BaseApiController
             return;
         }
 
-        $this->authorize('assignBranchAccess', [User::class, $targetRole]);
+        $this->authorize('assignBranchAccess', [User::class, $targetRoles]);
     }
 }

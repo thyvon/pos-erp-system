@@ -104,7 +104,6 @@ export const useAuthStore = create<AuthStore>()(
       hasBranchAccess: () => {
         const { user } = get()
         if (!user) return false
-        if (user.roles.includes('super_admin') || user.roles.includes('admin')) return true
         return (user.allowed_branches?.length ?? 0) > 0
       },
     }),

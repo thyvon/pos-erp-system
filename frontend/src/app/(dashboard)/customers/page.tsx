@@ -33,6 +33,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { RowActions } from '@/components/ui/RowActions'
 import { TableStateRow } from '@/components/ui/TableStateRow'
 import { CustomerFormDialog } from '@/features/customers/CustomerFormDialog'
+import { useCustomFieldsQuery } from '@/features/custom-fields/hooks'
 import {
   useCreateCustomerMutation,
   useCustomersQuery,
@@ -67,11 +68,23 @@ export default function CustomersPage() {
   )
 
   const customersQuery = useCustomersQuery(filters)
+  const customerCustomFieldsQuery = useCustomFieldsQuery({
+    module: 'customer',
+    per_page: 100,
+  })
   const createCustomer = useCreateCustomerMutation()
   const updateCustomer = useUpdateCustomerMutation()
   const deleteCustomer = useDeleteCustomerMutation()
 
   const customers = customersQuery.data?.data ?? []
+  const customerCustomFields = useMemo(
+    () =>
+      [...(customerCustomFieldsQuery.data?.data ?? [])].sort((a, b) => {
+        if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order
+        return a.field_label.localeCompare(b.field_label)
+      }),
+    [customerCustomFieldsQuery.data?.data]
+  )
   const meta = customersQuery.data?.meta
   const canCreate = can('customers.create')
   const canEdit = can('customers.edit')
@@ -185,6 +198,12 @@ export default function CustomersPage() {
             </Alert>
           )}
 
+          {customerCustomFieldsQuery.isError && (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              {toAppApiError(customerCustomFieldsQuery.error).message}
+            </Alert>
+          )}
+
           <TableContainer>
             <Table>
               <TableHead>
@@ -274,6 +293,8 @@ export default function CustomersPage() {
         key={`${formOpen ? 'open' : 'closed'}-${editingCustomer?.id ?? 'new'}`}
         open={formOpen}
         customer={editingCustomer}
+        customFields={customerCustomFields}
+        isLoadingCustomFields={customerCustomFieldsQuery.isLoading}
         isSaving={createCustomer.isPending || updateCustomer.isPending}
         onClose={() => setFormOpen(false)}
         onSubmit={handleSubmit}

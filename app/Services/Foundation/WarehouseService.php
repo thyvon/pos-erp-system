@@ -131,7 +131,7 @@ class WarehouseService
     {
         $user = auth()->user();
 
-        if ($user instanceof \App\Models\User && ! $user->hasRole('super_admin') && ! $user->hasBranchAccess($branchId)) {
+        if ($user instanceof \App\Models\User && ! $user->hasBranchAccess($branchId)) {
             throw new DomainException('You cannot manage warehouse data outside your assigned branches.', 403);
         }
     }

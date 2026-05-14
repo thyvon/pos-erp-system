@@ -121,7 +121,7 @@ class RackLocationService
             throw new DomainException('Selected warehouse is invalid for this business.', 422);
         }
 
-        if ($actor && ! $actor->hasRole('super_admin') && ! $actor->hasBranchAccess($warehouse->branch_id)) {
+        if ($actor && ! $actor->hasBranchAccess($warehouse->branch_id)) {
             throw new DomainException('You do not have branch access to the selected warehouse.', 403);
         }
 

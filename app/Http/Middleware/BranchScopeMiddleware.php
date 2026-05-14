@@ -19,12 +19,6 @@ class BranchScopeMiddleware
             return $next($request);
         }
 
-        if (method_exists($user, 'hasRole') && $user->hasRole(['super_admin', 'admin'])) {
-            app()->instance('branch_scope', null);
-
-            return $next($request);
-        }
-
         if ($this->shouldBypassBranchRequirement($request, $user)) {
             app()->instance('branch_scope', null);
 

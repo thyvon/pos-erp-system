@@ -87,7 +87,7 @@ class StockAdjustmentService
 
     protected function ensureUserCanAccessWarehouse(?User $user, Warehouse $warehouse): void
     {
-        if ($user && ! $user->hasRole('super_admin') && ! $user->hasBranchAccess($warehouse->branch_id)) {
+        if ($user && ! $user->hasBranchAccess($warehouse->branch_id)) {
             throw new DomainException('You cannot adjust stock outside your assigned branches.', 403);
         }
     }

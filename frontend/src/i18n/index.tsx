@@ -14,6 +14,11 @@ import enInventory from './en/inventory'
 import enCustomers from './en/customers'
 import enBranches from './en/branches'
 import enWarehouses from './en/warehouses'
+import enUsers from './en/users'
+import enSettings from './en/settings'
+import enCustomFields from './en/customFields'
+import enTaxRates from './en/taxRates'
+import enTaxGroups from './en/taxGroups'
 
 import kmCommon from './km/common'
 import kmAuth from './km/auth'
@@ -25,6 +30,11 @@ import kmInventory from './km/inventory'
 import kmCustomers from './km/customers'
 import kmBranches from './km/branches'
 import kmWarehouses from './km/warehouses'
+import kmUsers from './km/users'
+import kmSettings from './km/settings'
+import kmCustomFields from './km/customFields'
+import kmTaxRates from './km/taxRates'
+import kmTaxGroups from './km/taxGroups'
 
 const resources = {
   en: {
@@ -38,6 +48,11 @@ const resources = {
     customers: enCustomers,
     branches: enBranches,
     warehouses: enWarehouses,
+    users: enUsers,
+    settings: enSettings,
+    customFields: enCustomFields,
+    taxRates: enTaxRates,
+    taxGroups: enTaxGroups,
   },
   km: {
     common: kmCommon,
@@ -50,6 +65,11 @@ const resources = {
     customers: kmCustomers,
     branches: kmBranches,
     warehouses: kmWarehouses,
+    users: kmUsers,
+    settings: kmSettings,
+    customFields: kmCustomFields,
+    taxRates: kmTaxRates,
+    taxGroups: kmTaxGroups,
   },
 }
 

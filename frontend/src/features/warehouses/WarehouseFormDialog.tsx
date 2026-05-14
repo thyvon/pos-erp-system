@@ -189,8 +189,8 @@ export function WarehouseFormDialog({
                       value={field.value ?? ''}
                       labelId="warehouse-branch-label"
                       label={t('fields.branch')}
+                      required
                     >
-                      <MenuItem value="">{t('placeholders.noBranch')}</MenuItem>
                       {branchOptions.map((branch) => (
                         <MenuItem key={branch.id} value={branch.id}>
                           {branch.name}

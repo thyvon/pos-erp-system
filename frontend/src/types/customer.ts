@@ -45,6 +45,7 @@ export interface CustomerPayload {
   opening_balance?: number | null
   status?: CustomerStatus
   notes?: string | null
+  custom_fields?: Record<string, unknown>
 }
 
 export interface CustomerFilters {

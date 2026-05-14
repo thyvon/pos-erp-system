@@ -39,6 +39,14 @@ export default {
     createTitle: 'បង្កើតអតិថិជន',
     editTitle: 'កែប្រែអតិថិជន',
   },
+  customFields: {
+    title: 'វាលផ្ទាល់ខ្លួន',
+    loading: 'កំពុងផ្ទុកវាលផ្ទាល់ខ្លួន...',
+    noSelection: 'មិនជ្រើសរើស',
+  },
+  validation: {
+    requiredCustomField: 'ត្រូវបំពេញ {{field}}',
+  },
   messages: {
     created: 'បានបង្កើតអតិថិជន។',
     updated: 'បានកែប្រែអតិថិជន។',

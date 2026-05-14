@@ -1,0 +1,86 @@
+export default {
+  title: 'អ្នកប្រើប្រាស់',
+  subtitle: 'គ្រប់គ្រងសិទ្ធិក្រុម តួនាទី ការចាត់តាំងសាខា និងដែនកំណត់ការលក់។',
+  empty: 'រកមិនឃើញអ្នកប្រើប្រាស់។',
+  actions: {
+    new: 'អ្នកប្រើប្រាស់ថ្មី',
+  },
+  filters: {
+    search: 'ស្វែងរកអ្នកប្រើប្រាស់',
+    status: 'ស្ថានភាព',
+    role: 'តួនាទី',
+    roles: 'តួនាទី',
+    allStatuses: 'ស្ថានភាពទាំងអស់',
+    allRoles: 'តួនាទីទាំងអស់',
+  },
+  columns: {
+    user: 'អ្នកប្រើប្រាស់',
+    role: 'តួនាទី',
+    branches: 'សាខា',
+    salesLimits: 'ដែនកំណត់ការលក់',
+    status: 'ស្ថានភាព',
+    actions: 'សកម្មភាព',
+  },
+  status: {
+    active: 'សកម្ម',
+    inactive: 'អសកម្ម',
+    suspended: 'បានផ្អាក',
+  },
+  fields: {
+    firstName: 'នាមខ្លួន',
+    lastName: 'នាមត្រកូល',
+    email: 'អ៊ីមែល',
+    password: 'ពាក្យសម្ងាត់',
+    phone: 'ទូរស័ព្ទ',
+    avatarUrl: 'URL រូបតំណាង',
+    status: 'ស្ថានភាព',
+    role: 'តួនាទី',
+    roles: 'តួនាទី',
+    maxDiscount: 'បញ្ចុះតម្លៃអតិបរមា %',
+    commissionPercentage: 'កម្រៃជើងសារ %',
+    salesTargetAmount: 'គោលដៅលក់',
+    branches: 'សាខាដែលបានចាត់តាំង',
+    defaultBranch: 'សាខាលំនាំដើម',
+    directPermissions: 'សិទ្ធិផ្ទាល់',
+    preferences: 'ចំណូលចិត្ត',
+    preferenceLocale: 'ភាសាដែលចូលចិត្ត',
+    preferenceTimezone: 'តំបន់ពេលវេលា',
+  },
+  help: {
+    passwordCreate: 'យ៉ាងតិច ៨ តួអក្សរ។',
+    passwordEdit: 'ទុកទទេដើម្បីរក្សាពាក្យសម្ងាត់បច្ចុប្បន្ន។',
+  },
+  preferences: {
+    language: {
+      en: 'អង់គ្លេស',
+      km: 'ខ្មែរ',
+    },
+  },
+  validation: {
+    passwordRequired: 'ពាក្យសម្ងាត់ត្រូវមានយ៉ាងតិច ៨ តួអក្សរ។',
+  },
+  placeholders: {
+    noDefaultBranch: 'គ្មានសាខាលំនាំដើម',
+    noRole: 'គ្មានតួនាទី',
+    noBranches: 'គ្មានសាខាដែលបានចាត់តាំង',
+  },
+  summary: {
+    permissionsSelected: 'បានជ្រើស {{count}} សិទ្ធិ',
+    permissionsSelected_other: 'បានជ្រើស {{count}} សិទ្ធិ',
+    salesLimits: 'បញ្ចុះតម្លៃ {{discount}}% / កម្រៃ {{commission}}%',
+  },
+  form: {
+    createTitle: 'បង្កើតអ្នកប្រើប្រាស់',
+    editTitle: 'កែប្រែអ្នកប្រើប្រាស់',
+  },
+  messages: {
+    created: 'បានបង្កើតអ្នកប្រើប្រាស់។',
+    updated: 'បានកែប្រែអ្នកប្រើប្រាស់។',
+    deleted: 'បានលុបអ្នកប្រើប្រាស់។',
+  },
+  deleteDialog: {
+    title: 'លុបអ្នកប្រើប្រាស់',
+    message: 'លុប {{name}}? សកម្មភាពនេះមិនអាចត្រឡប់វិញបានទេ។',
+    confirm: 'លុប',
+  },
+}

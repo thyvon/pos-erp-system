@@ -39,6 +39,14 @@ export default {
     createTitle: 'Create customer',
     editTitle: 'Edit customer',
   },
+  customFields: {
+    title: 'Custom fields',
+    loading: 'Loading custom fields...',
+    noSelection: 'No selection',
+  },
+  validation: {
+    requiredCustomField: '{{field}} is required',
+  },
   messages: {
     created: 'Customer created.',
     updated: 'Customer updated.',

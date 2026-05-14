@@ -1,0 +1,86 @@
+export default {
+  title: 'Users',
+  subtitle: 'Manage team access, roles, branch assignment, and sales limits.',
+  empty: 'No users found.',
+  actions: {
+    new: 'New user',
+  },
+  filters: {
+    search: 'Search users',
+    status: 'Status',
+    role: 'Role',
+    roles: 'Roles',
+    allStatuses: 'All statuses',
+    allRoles: 'All roles',
+  },
+  columns: {
+    user: 'User',
+    role: 'Role',
+    branches: 'Branches',
+    salesLimits: 'Sales limits',
+    status: 'Status',
+    actions: 'Actions',
+  },
+  status: {
+    active: 'Active',
+    inactive: 'Inactive',
+    suspended: 'Suspended',
+  },
+  fields: {
+    firstName: 'First name',
+    lastName: 'Last name',
+    email: 'Email',
+    password: 'Password',
+    phone: 'Phone',
+    avatarUrl: 'Avatar URL',
+    status: 'Status',
+    role: 'Role',
+    roles: 'Roles',
+    maxDiscount: 'Max discount %',
+    commissionPercentage: 'Commission %',
+    salesTargetAmount: 'Sales target amount',
+    branches: 'Assigned branches',
+    defaultBranch: 'Default branch',
+    directPermissions: 'Direct permissions',
+    preferences: 'Preferences',
+    preferenceLocale: 'Preferred language',
+    preferenceTimezone: 'Timezone',
+  },
+  help: {
+    passwordCreate: 'Minimum 8 characters.',
+    passwordEdit: 'Leave blank to keep the current password.',
+  },
+  preferences: {
+    language: {
+      en: 'English',
+      km: 'Khmer',
+    },
+  },
+  validation: {
+    passwordRequired: 'Password must be at least 8 characters.',
+  },
+  placeholders: {
+    noDefaultBranch: 'No default branch',
+    noRole: 'No role',
+    noBranches: 'No assigned branches',
+  },
+  summary: {
+    permissionsSelected: '{{count}} permission selected',
+    permissionsSelected_other: '{{count}} permissions selected',
+    salesLimits: 'Discount {{discount}}% / Commission {{commission}}%',
+  },
+  form: {
+    createTitle: 'Create user',
+    editTitle: 'Edit user',
+  },
+  messages: {
+    created: 'User created.',
+    updated: 'User updated.',
+    deleted: 'User deleted.',
+  },
+  deleteDialog: {
+    title: 'Delete user',
+    message: 'Delete {{name}}? This action cannot be undone.',
+    confirm: 'Delete',
+  },
+}

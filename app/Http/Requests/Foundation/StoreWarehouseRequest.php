@@ -17,7 +17,7 @@ class StoreWarehouseRequest extends FormRequest
         $businessId = auth()->user()?->business_id;
 
         return [
-            'branch_id' => ['nullable', 'uuid', Rule::exists('branches', 'id')->where(fn ($query) => $query->where('business_id', $businessId))],
+            'branch_id' => ['required', 'uuid', Rule::exists('branches', 'id')->where(fn ($query) => $query->where('business_id', $businessId))],
             'name' => ['required', 'string', 'max:255'],
             'code' => [
                 'nullable',

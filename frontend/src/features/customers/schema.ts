@@ -23,6 +23,7 @@ export const customerSchema = z.object({
   opening_balance: nullableNumber,
   status: z.enum(['active', 'inactive']),
   notes: z.union([z.string(), z.literal('')]).transform((value) => value || null),
+  custom_fields: z.record(z.string(), z.unknown()).default({}),
 })
 
 export type CustomerFormInput = z.input<typeof customerSchema>

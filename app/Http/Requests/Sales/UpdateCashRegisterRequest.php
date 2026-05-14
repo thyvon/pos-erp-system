@@ -29,7 +29,7 @@ class UpdateCashRegisterRequest extends FormRequest
             $user = $this->user();
             $branchId = $this->input('branch_id');
 
-            if ($user && $branchId && ! $user->hasRole(['admin', 'super_admin']) && ! $user->hasBranchAccess($branchId)) {
+            if ($user && $branchId && ! $user->hasBranchAccess($branchId)) {
                 $validator->errors()->add('branch_id', 'The selected branch is outside your allowed branch access.');
             }
         });

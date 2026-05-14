@@ -28,26 +28,26 @@ class UserService
 
     public function create(array $data, ?User $actor = null): User
     {
-        $role = $data['role'];
+        $roles = $this->extractRoles($data, true);
         $directPermissions = array_values(array_unique($data['direct_permissions'] ?? []));
         $branchIds = array_values(array_unique($data['branch_ids'] ?? []));
         $defaultBranchId = $data['default_branch_id'] ?? null;
-        unset($data['role'], $data['direct_permissions'], $data['branch_ids'], $data['default_branch_id']);
+        unset($data['role'], $data['roles'], $data['direct_permissions'], $data['branch_ids'], $data['default_branch_id']);
 
-        $this->ensureRestrictedRoleCannotBeAssigned($role);
+        $this->ensureRestrictedRolesCannotBeAssigned($roles);
 
         $business = $this->resolveBusiness();
         $this->ensureUserLimitNotExceeded($business);
-        [$branchIds, $defaultBranchId] = $this->normalizeBranchAccess($business, $role, $branchIds, $defaultBranchId);
+        [$branchIds, $defaultBranchId] = $this->normalizeBranchAccess($business, $branchIds, $defaultBranchId);
 
         $data['business_id'] = $data['business_id'] ?? $business->id;
         $data['default_branch_id'] = $defaultBranchId;
         $data['password'] = Hash::make($data['password']);
 
-        $user = DB::transaction(function () use ($data, $role, $directPermissions, $branchIds): User {
+        $user = DB::transaction(function () use ($data, $roles, $directPermissions, $branchIds): User {
             /** @var User $user */
             $user = $this->users->create($data);
-            $user->assignRole($role);
+            $user->syncRoles($roles);
             $user->syncPermissions($directPermissions);
             $user->branches()->sync($branchIds);
 
@@ -63,8 +63,7 @@ class UserService
     public function update(User $user, array $data, ?User $actor = null): User
     {
         $before = $this->userAuditState($user);
-        $role = $data['role'] ?? null;
-        $effectiveRole = $role ?? $before['role'];
+        $roles = $this->extractRoles($data, false);
         $directPermissions = array_key_exists('direct_permissions', $data)
             ? array_values(array_unique($data['direct_permissions'] ?? []))
             : null;
@@ -72,22 +71,19 @@ class UserService
             ? array_values(array_unique($data['branch_ids'] ?? []))
             : null;
         $defaultBranchId = $data['default_branch_id'] ?? null;
-        unset($data['role'], $data['direct_permissions'], $data['branch_ids'], $data['default_branch_id']);
+        unset($data['role'], $data['roles'], $data['direct_permissions'], $data['branch_ids'], $data['default_branch_id']);
 
-        if ($role !== null) {
-            $this->ensureRestrictedRoleCannotBeAssigned($role);
+        if ($roles !== null) {
+            $this->ensureRestrictedRolesCannotBeAssigned($roles);
         }
 
         if (($data['status'] ?? null) !== null && $data['status'] !== 'active') {
-            $this->ensureNotLastAdmin($user, $role, $data['status']);
+            $this->ensureNotLastAdmin($user, $roles, $data['status']);
         }
 
-        $shouldResetBranchAccess = $role !== null && $this->roleUsesGlobalBranchAccess($effectiveRole);
-
-        if ($branchIds !== null || $shouldResetBranchAccess) {
+        if ($branchIds !== null) {
             [$branchIds, $defaultBranchId] = $this->normalizeBranchAccess(
                 $this->resolveBusiness(),
-                $effectiveRole,
                 $branchIds ?? [],
                 $defaultBranchId
             );
@@ -102,20 +98,20 @@ class UserService
             unset($data['password']);
         }
 
-        $updatedUser = DB::transaction(function () use ($user, $data, $role, $directPermissions, $branchIds, $shouldResetBranchAccess): User {
+        $updatedUser = DB::transaction(function () use ($user, $data, $roles, $directPermissions, $branchIds): User {
             /** @var User $updatedUser */
             $updatedUser = $this->users->update($user, $data);
 
-            if ($role !== null) {
-                $this->ensureNotLastAdmin($updatedUser, $role, $updatedUser->status);
-                $updatedUser->syncRoles([$role]);
+            if ($roles !== null) {
+                $this->ensureNotLastAdmin($updatedUser, $roles, $updatedUser->status);
+                $updatedUser->syncRoles($roles);
             }
 
             if ($directPermissions !== null) {
                 $updatedUser->syncPermissions($directPermissions);
             }
 
-            if ($branchIds !== null || $shouldResetBranchAccess) {
+            if ($branchIds !== null) {
                 $updatedUser->branches()->sync($branchIds ?? []);
             }
 
@@ -163,7 +159,7 @@ class UserService
             'email' => $email,
             'password' => Str::password(16),
             'status' => 'inactive',
-            'role' => $role,
+            'roles' => [$role],
         ]);
     }
 
@@ -223,16 +219,16 @@ class UserService
         }
     }
 
-    protected function ensureNotLastAdmin(User $user, ?string $nextRole = null, ?string $nextStatus = null): void
+    protected function ensureNotLastAdmin(User $user, ?array $nextRoles = null, ?string $nextStatus = null): void
     {
         if (! $user->hasRole('admin')) {
             return;
         }
 
-        $finalRole = $nextRole ?? $user->getRoleNames()->first();
+        $finalRoles = $nextRoles ?? $user->getRoleNames()->all();
         $finalStatus = $nextStatus ?? $user->status;
 
-        if ($finalRole === 'admin' && $finalStatus === 'active') {
+        if (in_array('admin', $finalRoles, true) && $finalStatus === 'active') {
             return;
         }
 
@@ -247,27 +243,18 @@ class UserService
         }
     }
 
-    protected function ensureRestrictedRoleCannotBeAssigned(string $role): void
+    protected function ensureRestrictedRolesCannotBeAssigned(array $roles): void
     {
-        if ($role === 'super_admin') {
+        if (in_array('super_admin', $roles, true)) {
             throw new DomainException('The super_admin role can only be assigned through seeders.', 422);
         }
     }
 
     protected function normalizeBranchAccess(
         Business $business,
-        string $role,
         array $branchIds,
         ?string $defaultBranchId
     ): array {
-        if ($this->roleUsesGlobalBranchAccess($role)) {
-            if ($branchIds !== [] || filled($defaultBranchId)) {
-                throw new DomainException('Branch access cannot be assigned to admin roles.', 422);
-            }
-
-            return [[], null];
-        }
-
         $branches = Branch::query()
             ->where('business_id', $business->id)
             ->whereIn('id', $branchIds)
@@ -288,9 +275,17 @@ class UserService
         return [$branches, $defaultBranchId];
     }
 
-    protected function roleUsesGlobalBranchAccess(?string $role): bool
+    protected function extractRoles(array $data, bool $required): ?array
     {
-        return in_array($role, ['super_admin', 'admin'], true);
+        if (array_key_exists('roles', $data)) {
+            return array_values(array_unique(array_filter((array) $data['roles'])));
+        }
+
+        if (array_key_exists('role', $data) && filled($data['role'])) {
+            return [(string) $data['role']];
+        }
+
+        return $required ? [] : null;
     }
 
     protected function userAuditState(User $user): array
@@ -301,6 +296,8 @@ class UserService
         sort($branchIds);
         $permissions = $user->permissions->pluck('name')->all();
         sort($permissions);
+        $roles = $user->getRoleNames()->all();
+        sort($roles);
 
         return [
             'first_name' => $user->first_name,
@@ -308,7 +305,7 @@ class UserService
             'email' => $user->email,
             'phone' => $user->phone,
             'status' => $user->status,
-            'role' => $user->getRoleNames()->first(),
+            'roles' => $roles,
             'direct_permissions' => $permissions,
             'branch_ids' => $branchIds,
             'default_branch_id' => $user->default_branch_id,
@@ -327,7 +324,7 @@ class UserService
             $actor,
             $businessId,
             null,
-            ['role' => $state['role']]
+            ['roles' => $state['roles']]
         );
 
         if ($state['branch_ids'] !== [] || $state['default_branch_id'] !== null) {
@@ -362,15 +359,15 @@ class UserService
             );
         }
 
-        if (($before['role'] ?? null) !== ($after['role'] ?? null)) {
+        if (($before['roles'] ?? []) !== ($after['roles'] ?? [])) {
             $this->auditLogger->log(
                 'role_assigned',
                 User::class,
                 $updatedUser->id,
                 $actor,
                 $updatedUser->business_id,
-                ['role' => $before['role'] ?? null],
-                ['role' => $after['role'] ?? null],
+                ['roles' => $before['roles'] ?? []],
+                ['roles' => $after['roles'] ?? []],
             );
         }
 

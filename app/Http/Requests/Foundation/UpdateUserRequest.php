@@ -29,6 +29,8 @@ class UpdateUserRequest extends FormRequest
             'sales_target_amount' => ['nullable', 'numeric', 'min:0'],
             'preferences' => ['nullable', 'array'],
             'role' => ['nullable', 'string', 'exists:roles,name', Rule::notIn(['super_admin'])],
+            'roles' => ['nullable', 'array', 'min:1'],
+            'roles.*' => ['string', 'distinct', 'exists:roles,name', Rule::notIn(['super_admin'])],
             'direct_permissions' => ['nullable', 'array'],
             'direct_permissions.*' => ['string', 'exists:permissions,name'],
             'branch_ids' => ['sometimes', 'array'],

@@ -18,7 +18,7 @@ class UpdateWarehouseRequest extends FormRequest
         $warehouseId = $this->route('warehouse')?->id ?? $this->route('warehouse');
 
         return [
-            'branch_id' => ['nullable', 'uuid', Rule::exists('branches', 'id')->where(fn ($query) => $query->where('business_id', $businessId))],
+            'branch_id' => ['sometimes', 'required', 'uuid', Rule::exists('branches', 'id')->where(fn ($query) => $query->where('business_id', $businessId))],
             'name' => ['sometimes', 'required', 'string', 'max:255'],
             'code' => [
                 'sometimes',

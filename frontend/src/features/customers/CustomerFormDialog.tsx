@@ -13,20 +13,27 @@ import {
   DialogContent,
   DialogTitle,
   FormControl,
+  FormControlLabel,
+  FormHelperText,
   InputLabel,
   MenuItem,
   Select,
   Stack,
+  Switch,
   TextField,
+  Typography,
 } from '@mui/material'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { customerSchema, type CustomerFormInput, type CustomerFormValues } from './schema'
+import type { CustomFieldDefinition } from '@/types/customField'
 import type { Customer, CustomerPayload } from '@/types/customer'
 
 interface CustomerFormDialogProps {
   open: boolean
   customer: Customer | null
+  customFields: CustomFieldDefinition[]
+  isLoadingCustomFields: boolean
   isSaving: boolean
   onClose: () => void
   onSubmit: (payload: CustomerPayload) => Promise<void>
@@ -44,6 +51,7 @@ const defaultValues: CustomerFormInput = {
   opening_balance: 0,
   status: 'active',
   notes: '',
+  custom_fields: {},
 }
 
 function customerToFormValues(customer: Customer | null): CustomerFormInput {
@@ -61,12 +69,41 @@ function customerToFormValues(customer: Customer | null): CustomerFormInput {
     opening_balance: customer.opening_balance,
     status: customer.status,
     notes: customer.notes ?? '',
+    custom_fields: customer.custom_fields ?? {},
   }
+}
+
+function isEmptyCustomValue(value: unknown) {
+  return value === undefined || value === null || value === ''
+}
+
+function isMissingRequiredCustomValue(definition: CustomFieldDefinition, value: unknown) {
+  if (definition.field_type === 'checkbox') {
+    return value !== true
+  }
+
+  return isEmptyCustomValue(value)
+}
+
+function normalizeCustomFieldValue(definition: CustomFieldDefinition, value: unknown) {
+  if (definition.field_type === 'checkbox') {
+    return Boolean(value)
+  }
+
+  if (definition.field_type === 'number') {
+    if (value === '' || value === null || value === undefined) return null
+    const numberValue = Number(value)
+    return Number.isNaN(numberValue) ? null : numberValue
+  }
+
+  return value === '' || value === undefined ? null : value
 }
 
 export function CustomerFormDialog({
   open,
   customer,
+  customFields,
+  isLoadingCustomFields,
   isSaving,
   onClose,
   onSubmit,
@@ -96,8 +133,29 @@ export function CustomerFormDialog({
   const submitForm = async (formValues: CustomerFormValues) => {
     setServerError('')
 
+    const customFieldValues: Record<string, unknown> = {}
+    let hasCustomFieldErrors = false
+
+    customFields.forEach((definition) => {
+      const value = formValues.custom_fields?.[definition.field_name]
+      if (definition.is_required && isMissingRequiredCustomValue(definition, value)) {
+        setError(`custom_fields.${definition.field_name}` as keyof CustomerFormInput, {
+          type: 'manual',
+          message: t('validation.requiredCustomField', { field: definition.field_label }),
+        })
+        hasCustomFieldErrors = true
+      }
+
+      customFieldValues[definition.field_name] = normalizeCustomFieldValue(definition, value)
+    })
+
+    if (hasCustomFieldErrors) return
+
     try {
-      await onSubmit(formValues)
+      await onSubmit({
+        ...formValues,
+        custom_fields: customFieldValues,
+      })
       onClose()
     } catch (error) {
       const apiError = toAppApiError(error)
@@ -115,7 +173,7 @@ export function CustomerFormDialog({
 
   return (
     <Dialog open={open} onClose={isSaving ? undefined : onClose} fullWidth maxWidth="md">
-      <Box component="form" onSubmit={handleSubmit(submitForm)}>
+      <Box component="form" noValidate onSubmit={handleSubmit(submitForm)}>
         <DialogTitle>{title}</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2.5} sx={{ pt: 0.5 }}>
@@ -291,6 +349,123 @@ export function CustomerFormDialog({
                 />
               )}
             />
+
+            {isLoadingCustomFields && (
+              <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+                <CircularProgress size={18} />
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  {t('customFields.loading')}
+                </Typography>
+              </Stack>
+            )}
+
+            {!isLoadingCustomFields && customFields.length > 0 && (
+              <Stack spacing={2}>
+                <Typography variant="subtitle2">{t('customFields.title')}</Typography>
+                <Box
+                  sx={{
+                    display: 'grid',
+                    gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' },
+                    gap: 2,
+                  }}
+                >
+                  {customFields.map((definition) => {
+                    const name = `custom_fields.${definition.field_name}` as keyof CustomerFormInput
+                    const customFieldErrors = errors.custom_fields as Record<string, { message?: string }> | undefined
+                    const errorMessage = customFieldErrors?.[definition.field_name]?.message
+
+                    if (definition.field_type === 'checkbox') {
+                      return (
+                        <Controller
+                          key={definition.id}
+                          name={name}
+                          control={control}
+                          render={({ field }) => (
+                            <FormControl error={!!errorMessage}>
+                              <FormControlLabel
+                                control={
+                                  <Switch
+                                    checked={Boolean(field.value)}
+                                    onChange={(_, checked) => field.onChange(checked)}
+                                  />
+                                }
+                                label={definition.field_label}
+                              />
+                              <FormHelperText>{errorMessage}</FormHelperText>
+                            </FormControl>
+                          )}
+                        />
+                      )
+                    }
+
+                    if (definition.field_type === 'select') {
+                      return (
+                        <Controller
+                          key={definition.id}
+                          name={name}
+                          control={control}
+                          render={({ field }) => (
+                            <FormControl error={!!errorMessage} required={definition.is_required}>
+                              <InputLabel id={`customer-custom-field-${definition.id}`}>
+                                {definition.field_label}
+                              </InputLabel>
+                              <Select
+                                {...field}
+                                value={typeof field.value === 'string' ? field.value : ''}
+                                labelId={`customer-custom-field-${definition.id}`}
+                                label={definition.field_label}
+                              >
+                                {!definition.is_required && (
+                                  <MenuItem value="">{t('customFields.noSelection')}</MenuItem>
+                                )}
+                                {(definition.options ?? []).map((option) => (
+                                  <MenuItem key={option} value={option}>
+                                    {option}
+                                  </MenuItem>
+                                ))}
+                              </Select>
+                              <FormHelperText>{errorMessage}</FormHelperText>
+                            </FormControl>
+                          )}
+                        />
+                      )
+                    }
+
+                    return (
+                      <Controller
+                        key={definition.id}
+                        name={name}
+                        control={control}
+                        render={({ field }) => (
+                          <TextField
+                            {...field}
+                            value={
+                              typeof field.value === 'string' || typeof field.value === 'number'
+                                ? field.value
+                                : ''
+                            }
+                            label={definition.field_label}
+                            type={
+                              definition.field_type === 'number'
+                                ? 'number'
+                                : definition.field_type === 'date'
+                                  ? 'date'
+                                  : 'text'
+                            }
+                            required={definition.is_required}
+                            error={!!errorMessage}
+                            helperText={errorMessage}
+                            slotProps={{
+                              inputLabel: definition.field_type === 'date' ? { shrink: true } : undefined,
+                            }}
+                          />
+                        )}
+                      />
+                    )
+                  })}
+                </Box>
+              </Stack>
+            )}
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>

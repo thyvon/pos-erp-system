@@ -41,10 +41,6 @@ class UserResource extends JsonResource
             'roles' => $this->getRoleNames()->values(),
             'direct_permissions' => $this->permissions->pluck('name')->values(),
             'permissions' => $this->getAllPermissions()->pluck('name')->values(),
-            /*
-             * Scoped roles get [{ id, name }]; admin and super_admin get [] (load all branches via API).
-             * Kept alongside full `branches` for existing UI (user forms, branch picker metadata).
-             */
             'allowed_branches' => $this->resolveAllowedBranches(),
             'branches' => $this->branches->map(fn ($branch) => [
                 'id' => $branch->id,
@@ -69,10 +65,6 @@ class UserResource extends JsonResource
      */
     protected function resolveAllowedBranches(): array
     {
-        if ($this->resource->hasAnyRole(['super_admin', 'admin'])) {
-            return [];
-        }
-
         return $this->resource->branches
             ->map(fn ($branch) => [
                 'id' => $branch->id,

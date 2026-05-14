@@ -19,10 +19,6 @@ class BranchAccess
             return is_array($branchScope) ? $branchScope : null;
         }
 
-        if ($user->hasRole(['super_admin', 'admin'])) {
-            return null;
-        }
-
         $requestUser = request()?->user();
 
         if ($requestUser instanceof User && $requestUser->is($user) && app()->bound('branch_scope')) {
