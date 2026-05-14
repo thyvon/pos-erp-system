@@ -29,6 +29,7 @@ class UpdateBrandRequest extends FormRequest
             ],
             'description' => ['sometimes', 'nullable', 'string'],
             'image_url' => ['sometimes', 'nullable', 'url', 'max:500'],
+            'image_file' => ['nullable', 'file', 'image', 'max:5120'],
         ];
     }
 }

@@ -6,9 +6,11 @@ use App\Exceptions\Domain\DomainException;
 use App\Models\Brand;
 use App\Models\User;
 use App\Repositories\Catalog\BrandRepository;
+use App\Services\Foundation\FileAssetService;
 use App\Support\Audit\AuditLogger;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
@@ -16,6 +18,7 @@ class BrandService
 {
     public function __construct(
         protected BrandRepository $brands,
+        protected FileAssetService $fileAssets,
         protected AuditLogger $auditLogger,
     ) {
     }
@@ -35,6 +38,8 @@ class BrandService
         return DB::transaction(function () use ($businessId, $data, $actor): Brand {
             /** @var Brand $brand */
             $brand = $this->brands->create($this->normalizePayload($businessId, $data));
+            $this->syncBrandImage($brand, $data['image_file'] ?? null);
+            $brand = $brand->refresh();
 
             $this->auditLogger->log(
                 'created',
@@ -58,6 +63,14 @@ class BrandService
 
             /** @var Brand $updatedBrand */
             $updatedBrand = $this->brands->update($brand, $this->normalizePayload($businessId, $data, $brand));
+            if (
+                array_key_exists('image_url', $data)
+                && ! ($data['image_file'] ?? null) instanceof UploadedFile
+            ) {
+                $this->fileAssets->deleteAll($updatedBrand);
+            }
+            $this->syncBrandImage($updatedBrand, $data['image_file'] ?? null);
+            $updatedBrand = $updatedBrand->refresh();
 
             $this->auditLogger->log(
                 'updated',
@@ -80,6 +93,7 @@ class BrandService
             $this->ensureBrandCanBeDeleted($brand);
             $before = $this->auditPayload($brand);
 
+            $this->fileAssets->deleteAll($brand);
             $this->brands->delete($brand);
 
             $this->auditLogger->log(
@@ -106,6 +120,25 @@ class BrandService
                 ? $data['image_url']
                 : $brand?->image_url,
         ];
+    }
+
+    protected function syncBrandImage(Brand $brand, mixed $uploadedFile): void
+    {
+        if (! $uploadedFile instanceof UploadedFile) {
+            return;
+        }
+
+        $asset = $this->fileAssets->replaceSingleImage(
+            $brand,
+            $uploadedFile,
+            'products/'.$brand->business_id.'/brands'
+        );
+
+        if ($asset !== null) {
+            $brand->forceFill([
+                'image_url' => $asset->publicUrl(),
+            ])->save();
+        }
     }
 
     protected function ensureBelongsToBusiness(string $businessId, Brand $brand): void

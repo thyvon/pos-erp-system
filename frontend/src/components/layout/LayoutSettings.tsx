@@ -33,6 +33,10 @@ export default function LayoutSettings() {
     setFontPreset,
     colorPreset,
     setColorPreset,
+    sidebarTheme,
+    setSidebarTheme,
+    topbarTheme,
+    setTopbarTheme,
     sidebarOpen,
     setSidebarOpen,
     contentStretch,
@@ -225,6 +229,40 @@ export default function LayoutSettings() {
                 {t('layoutSettings.mini')}
               </Button>
             </Stack>
+          </Box>
+
+          <Box>
+            <Typography variant="subtitle2" sx={{ mb: 1.5 }}>
+              {t('layoutSettings.sidebarTheme')}
+            </Typography>
+            <ToggleButtonGroup
+              exclusive
+              fullWidth
+              value={sidebarTheme}
+              onChange={(_, value) => value && setSidebarTheme(value)}
+              size="small"
+            >
+              <ToggleButton value="inherit">{t('layoutSettings.inherit')}</ToggleButton>
+              <ToggleButton value="light">{t('layoutSettings.light')}</ToggleButton>
+              <ToggleButton value="dark">{t('layoutSettings.dark')}</ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
+
+          <Box>
+            <Typography variant="subtitle2" sx={{ mb: 1.5 }}>
+              {t('layoutSettings.topbarTheme')}
+            </Typography>
+            <ToggleButtonGroup
+              exclusive
+              fullWidth
+              value={topbarTheme}
+              onChange={(_, value) => value && setTopbarTheme(value)}
+              size="small"
+            >
+              <ToggleButton value="inherit">{t('layoutSettings.inherit')}</ToggleButton>
+              <ToggleButton value="light">{t('layoutSettings.light')}</ToggleButton>
+              <ToggleButton value="dark">{t('layoutSettings.dark')}</ToggleButton>
+            </ToggleButtonGroup>
           </Box>
 
           <Box>

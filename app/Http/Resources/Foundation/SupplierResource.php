@@ -24,7 +24,7 @@ class SupplierResource extends JsonResource
             'opening_balance' => (float) $this->opening_balance,
             'status' => $this->status,
             'notes' => $this->notes,
-            'custom_fields' => $this->custom_fields ?? [],
+            'custom_fields' => (object) ($this->custom_fields ?? []),
             'documents' => $this->documents ?? [],
             'balance' => (float) ($this->balance ?? 0),
             'created_at' => $this->created_at,

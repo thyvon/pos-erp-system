@@ -25,13 +25,17 @@ import {
 } from '@mui/material'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
+import { AppDatePicker } from '@/components/ui/AppDatePicker'
 import { customerSchema, type CustomerFormInput, type CustomerFormValues } from './schema'
 import type { CustomFieldDefinition } from '@/types/customField'
 import type { Customer, CustomerPayload } from '@/types/customer'
+import type { CustomerGroup } from '@/types/customerGroup'
 
 interface CustomerFormDialogProps {
   open: boolean
   customer: Customer | null
+  customerGroups: CustomerGroup[]
+  isLoadingCustomerGroups: boolean
   customFields: CustomFieldDefinition[]
   isLoadingCustomFields: boolean
   isSaving: boolean
@@ -40,35 +44,83 @@ interface CustomerFormDialogProps {
 }
 
 const defaultValues: CustomerFormInput = {
+  customer_group_id: '',
   name: '',
   type: 'individual',
   email: '',
   phone: '',
   mobile: '',
   tax_id: '',
+  date_of_birth: '',
+  village: '',
+  commune: '',
+  district: '',
+  province_city: '',
+  country: 'Cambodia',
   credit_limit: 0,
   pay_term: 0,
   opening_balance: 0,
   status: 'active',
   notes: '',
+  documents_text: '',
   custom_fields: {},
+}
+
+function addressValue(address: Record<string, unknown> | null, keys: string[]) {
+  if (!address) return ''
+
+  for (const key of keys) {
+    const value = address[key]
+    if (typeof value === 'string') return value
+  }
+
+  return ''
+}
+
+function parseDocuments(value: string) {
+  return value
+    .split(/\r?\n/)
+    .map((document) => document.trim())
+    .filter(Boolean)
+}
+
+function buildAddress(values: CustomerFormValues) {
+  const address = {
+    village: values.village,
+    commune: values.commune,
+    district: values.district,
+    province_city: values.province_city,
+    country: values.country,
+  }
+
+  const hasAddressValue = Object.values(address).some((value) => value !== null && value !== '')
+
+  return hasAddressValue ? address : null
 }
 
 function customerToFormValues(customer: Customer | null): CustomerFormInput {
   if (!customer) return defaultValues
 
   return {
+    customer_group_id: customer.customer_group_id ?? '',
     name: customer.name,
     type: customer.type,
     email: customer.email ?? '',
     phone: customer.phone ?? '',
     mobile: customer.mobile ?? '',
     tax_id: customer.tax_id ?? '',
+    date_of_birth: customer.date_of_birth ?? '',
+    village: addressValue(customer.address, ['village', 'line_1', 'address_line_1', 'street', 'address']),
+    commune: addressValue(customer.address, ['commune', 'line_2', 'address_line_2']),
+    district: addressValue(customer.address, ['district']),
+    province_city: addressValue(customer.address, ['province_city', 'province', 'city', 'state']),
+    country: addressValue(customer.address, ['country']) || 'Cambodia',
     credit_limit: customer.credit_limit,
     pay_term: customer.pay_term,
     opening_balance: customer.opening_balance,
     status: customer.status,
     notes: customer.notes ?? '',
+    documents_text: customer.documents?.join('\n') ?? '',
     custom_fields: customer.custom_fields ?? {},
   }
 }
@@ -102,6 +154,8 @@ function normalizeCustomFieldValue(definition: CustomFieldDefinition, value: unk
 export function CustomerFormDialog({
   open,
   customer,
+  customerGroups,
+  isLoadingCustomerGroups,
   customFields,
   isLoadingCustomFields,
   isSaving,
@@ -154,6 +208,8 @@ export function CustomerFormDialog({
     try {
       await onSubmit({
         ...formValues,
+        address: buildAddress(formValues),
+        documents: parseDocuments(formValues.documents_text),
         custom_fields: customFieldValues,
       })
       onClose()
@@ -258,6 +314,31 @@ export function CustomerFormDialog({
               />
 
               <Controller
+                name="customer_group_id"
+                control={control}
+                render={({ field }) => (
+                  <FormControl error={!!errors.customer_group_id}>
+                    <InputLabel id="customer-group-label">{t('fields.customerGroup')}</InputLabel>
+                    <Select
+                      {...field}
+                      value={field.value ?? ''}
+                      labelId="customer-group-label"
+                      label={t('fields.customerGroup')}
+                      disabled={isLoadingCustomerGroups}
+                    >
+                      <MenuItem value="">{t('placeholders.noCustomerGroup')}</MenuItem>
+                      {customerGroups.map((group) => (
+                        <MenuItem key={group.id} value={group.id}>
+                          {group.name}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                    <FormHelperText>{errors.customer_group_id?.message}</FormHelperText>
+                  </FormControl>
+                )}
+              />
+
+              <Controller
                 name="tax_id"
                 control={control}
                 render={({ field }) => (
@@ -267,6 +348,21 @@ export function CustomerFormDialog({
                     label={t('fields.taxId')}
                     error={!!errors.tax_id}
                     helperText={errors.tax_id?.message}
+                  />
+                )}
+              />
+
+              <Controller
+                name="date_of_birth"
+                control={control}
+                render={({ field }) => (
+                  <AppDatePicker
+                    value={field.value ?? ''}
+                    onChange={field.onChange}
+                    label={t('fields.dateOfBirth')}
+                    disableFuture
+                    error={!!errors.date_of_birth}
+                    helperText={errors.date_of_birth?.message}
                   />
                 )}
               />
@@ -334,6 +430,88 @@ export function CustomerFormDialog({
               />
             </Box>
 
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: {
+                  xs: '1fr',
+                  sm: 'repeat(2, minmax(0, 1fr))',
+                  md: 'repeat(5, minmax(0, 1fr))',
+                },
+                gap: 1.5,
+              }}
+            >
+              <Controller
+                name="village"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    value={field.value ?? ''}
+                    label={t('fields.village')}
+                    error={!!errors.village}
+                    helperText={errors.village?.message}
+                  />
+                )}
+              />
+
+              <Controller
+                name="commune"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    value={field.value ?? ''}
+                    label={t('fields.commune')}
+                    error={!!errors.commune}
+                    helperText={errors.commune?.message}
+                  />
+                )}
+              />
+
+              <Controller
+                name="district"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    value={field.value ?? ''}
+                    label={t('fields.district')}
+                    error={!!errors.district}
+                    helperText={errors.district?.message}
+                  />
+                )}
+              />
+
+              <Controller
+                name="province_city"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    value={field.value ?? ''}
+                    label={t('fields.provinceCity')}
+                    error={!!errors.province_city}
+                    helperText={errors.province_city?.message}
+                  />
+                )}
+              />
+
+              <Controller
+                name="country"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    value={field.value ?? ''}
+                    label={t('fields.country')}
+                    error={!!errors.country}
+                    helperText={errors.country?.message}
+                  />
+                )}
+              />
+            </Box>
+
             <Controller
               name="notes"
               control={control}
@@ -346,6 +524,23 @@ export function CustomerFormDialog({
                   minRows={3}
                   error={!!errors.notes}
                   helperText={errors.notes?.message}
+                />
+              )}
+            />
+
+            <Controller
+              name="documents_text"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  value={field.value ?? ''}
+                  label={t('fields.documents')}
+                  placeholder={t('placeholders.documents')}
+                  multiline
+                  minRows={3}
+                  error={!!errors.documents_text}
+                  helperText={errors.documents_text?.message || t('help.documents')}
                 />
               )}
             />
@@ -436,30 +631,36 @@ export function CustomerFormDialog({
                         key={definition.id}
                         name={name}
                         control={control}
-                        render={({ field }) => (
-                          <TextField
-                            {...field}
-                            value={
-                              typeof field.value === 'string' || typeof field.value === 'number'
-                                ? field.value
-                                : ''
-                            }
-                            label={definition.field_label}
-                            type={
-                              definition.field_type === 'number'
-                                ? 'number'
-                                : definition.field_type === 'date'
-                                  ? 'date'
-                                  : 'text'
-                            }
-                            required={definition.is_required}
-                            error={!!errorMessage}
-                            helperText={errorMessage}
-                            slotProps={{
-                              inputLabel: definition.field_type === 'date' ? { shrink: true } : undefined,
-                            }}
-                          />
-                        )}
+                        render={({ field }) => {
+                          if (definition.field_type === 'date') {
+                            return (
+                              <AppDatePicker
+                                value={typeof field.value === 'string' ? field.value : ''}
+                                onChange={field.onChange}
+                                label={definition.field_label}
+                                required={definition.is_required}
+                                error={!!errorMessage}
+                                helperText={errorMessage}
+                              />
+                            )
+                          }
+
+                          return (
+                            <TextField
+                              {...field}
+                              value={
+                                typeof field.value === 'string' || typeof field.value === 'number'
+                                  ? field.value
+                                  : ''
+                              }
+                              label={definition.field_label}
+                              type={definition.field_type === 'number' ? 'number' : 'text'}
+                              required={definition.is_required}
+                              error={!!errorMessage}
+                              helperText={errorMessage}
+                            />
+                          )
+                        }}
                       />
                     )
                   })}

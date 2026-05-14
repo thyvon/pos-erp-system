@@ -31,6 +31,7 @@ const BREADCRUMB_KEY_MAP: Record<string, string> = {
   '/custom-fields': 'customFields',
   '/tax-rates': 'taxRates',
   '/tax-groups': 'taxGroups',
+  '/customer-groups': 'customerGroups',
   '/audit-logs': 'auditLogs',
 }
 

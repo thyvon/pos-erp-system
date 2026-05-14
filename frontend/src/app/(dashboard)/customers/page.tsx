@@ -32,6 +32,7 @@ import { toAppApiError } from '@/api/errors'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { RowActions } from '@/components/ui/RowActions'
 import { TableStateRow } from '@/components/ui/TableStateRow'
+import { useCustomerGroupsQuery } from '@/features/customer-groups/hooks'
 import { CustomerFormDialog } from '@/features/customers/CustomerFormDialog'
 import { useCustomFieldsQuery } from '@/features/custom-fields/hooks'
 import {
@@ -68,6 +69,7 @@ export default function CustomersPage() {
   )
 
   const customersQuery = useCustomersQuery(filters)
+  const customerGroupsQuery = useCustomerGroupsQuery({ per_page: 100 })
   const customerCustomFieldsQuery = useCustomFieldsQuery({
     module: 'customer',
     per_page: 100,
@@ -77,6 +79,7 @@ export default function CustomersPage() {
   const deleteCustomer = useDeleteCustomerMutation()
 
   const customers = customersQuery.data?.data ?? []
+  const customerGroups = customerGroupsQuery.data?.data ?? []
   const customerCustomFields = useMemo(
     () =>
       [...(customerCustomFieldsQuery.data?.data ?? [])].sort((a, b) => {
@@ -204,6 +207,12 @@ export default function CustomersPage() {
             </Alert>
           )}
 
+          {customerGroupsQuery.isError && (
+            <Alert severity="warning" sx={{ mb: 2 }}>
+              {toAppApiError(customerGroupsQuery.error).message}
+            </Alert>
+          )}
+
           <TableContainer>
             <Table>
               <TableHead>
@@ -293,6 +302,8 @@ export default function CustomersPage() {
         key={`${formOpen ? 'open' : 'closed'}-${editingCustomer?.id ?? 'new'}`}
         open={formOpen}
         customer={editingCustomer}
+        customerGroups={customerGroups}
+        isLoadingCustomerGroups={customerGroupsQuery.isLoading}
         customFields={customerCustomFields}
         isLoadingCustomFields={customerCustomFieldsQuery.isLoading}
         isSaving={createCustomer.isPending || updateCustomer.isPending}

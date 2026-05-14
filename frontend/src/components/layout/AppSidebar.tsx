@@ -18,7 +18,6 @@ import {
   Collapse,
   alpha,
   Stack,
-  IconButton,
 } from '@mui/material'
 import {
   DashboardOutlined,
@@ -34,12 +33,12 @@ import {
   TuneOutlined,
   PercentOutlined,
   CalculateOutlined,
+  GroupsOutlined,
   HistoryOutlined,
   AccountTreeOutlined,
+  LocalOfferOutlined,
   ExpandLess,
   ExpandMore,
-  ChevronLeft,
-  ChevronRight,
 } from '@mui/icons-material'
 import { useAuthStore } from '@/stores/authStore'
 import { useUIStore } from '@/stores/uiStore'
@@ -81,6 +80,7 @@ const NAV_CONFIG: NavSection[] = [
     items: [
       { key: 'taxRates', path: '/tax-rates', icon: <PercentOutlined /> },
       { key: 'taxGroups', path: '/tax-groups', icon: <CalculateOutlined /> },
+      { key: 'customerGroups', path: '/customer-groups', icon: <GroupsOutlined /> },
       { key: 'customers', path: '/customers', icon: <PeopleOutlined /> },
       { key: 'suppliers', path: '/suppliers', icon: <LocalShippingOutlined /> },
     ],
@@ -88,8 +88,9 @@ const NAV_CONFIG: NavSection[] = [
   {
     key: 'inventory',
     items: [
-      { key: 'products', path: '/products', icon: <Inventory2Outlined /> },
       { key: 'categories', path: '/categories', icon: <CategoryOutlined /> },
+      { key: 'brands', path: '/brands', icon: <LocalOfferOutlined /> },
+      { key: 'products', path: '/products', icon: <Inventory2Outlined /> },
       {
         key: 'warehouse',
         icon: <WarehouseOutlined />,
@@ -135,11 +136,25 @@ export default function AppSidebar() {
   const router = useRouter()
   const theme = useTheme()
   const isDesktop = useMediaQuery(theme.breakpoints.up('lg'))
-  const { sidebarOpen, setSidebarOpen, mobileSidebarOpen, setMobileSidebarOpen } = useUIStore()
+  const { sidebarOpen, setSidebarOpen, mobileSidebarOpen, setMobileSidebarOpen, sidebarTheme } = useUIStore()
   const { isAdmin } = useAuthStore()
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({})
   const expanded = isDesktop ? sidebarOpen : true
   const drawerWidth = expanded ? SIDEBAR_WIDTH : SIDEBAR_COLLAPSED_WIDTH
+  const resolvedSidebarTheme = sidebarTheme === 'inherit' ? theme.palette.mode : sidebarTheme
+  const sidebarIsDark = resolvedSidebarTheme === 'dark'
+  const sidebarColors = {
+    bg: sidebarIsDark ? '#111827' : theme.palette.background.default,
+    paper: sidebarIsDark ? '#111827' : theme.palette.background.default,
+    border: sidebarIsDark ? alpha('#ffffff', 0.14) : theme.palette.divider,
+    text: sidebarIsDark ? '#f9fafb' : theme.palette.text.primary,
+    muted: sidebarIsDark ? alpha('#ffffff', 0.72) : theme.palette.text.secondary,
+    disabled: sidebarIsDark ? alpha('#ffffff', 0.42) : theme.palette.text.disabled,
+    hover: sidebarIsDark ? alpha('#ffffff', 0.08) : alpha(theme.palette.grey[500], 0.08),
+    selected: sidebarIsDark ? alpha(theme.palette.primary.light, 0.18) : alpha(theme.palette.primary.main, 0.08),
+    selectedHover: sidebarIsDark ? alpha(theme.palette.primary.light, 0.24) : alpha(theme.palette.primary.main, 0.12),
+    selectedText: sidebarIsDark ? theme.palette.primary.light : theme.palette.primary.main,
+  }
 
   const activeParentMenus = useMemo(() => {
     const nextOpenMenus: Record<string, boolean> = {}
@@ -187,16 +202,16 @@ export default function AppSidebar() {
             borderRadius: 1,
             mb: 0.5,
             justifyContent: expanded ? 'initial' : 'center',
-            color: active ? 'text.primary' : 'text.secondary',
-            bgcolor: active ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
+            color: active ? sidebarColors.text : sidebarColors.muted,
+            bgcolor: active ? sidebarColors.selected : 'transparent',
             '&:hover': {
-              bgcolor: alpha(theme.palette.grey[500], 0.08),
+              bgcolor: sidebarColors.hover,
             },
             '&.Mui-selected': {
-              bgcolor: alpha(theme.palette.primary.main, 0.08),
-              color: 'primary.main',
+              bgcolor: sidebarColors.selected,
+              color: sidebarColors.selectedText,
               '&:hover': {
-                bgcolor: alpha(theme.palette.primary.main, 0.12),
+                bgcolor: sidebarColors.selectedHover,
               },
             },
           }}
@@ -206,7 +221,7 @@ export default function AppSidebar() {
               minWidth: 0,
               mr: expanded ? 1.5 : 0,
               justifyContent: 'center',
-              color: active ? 'primary.main' : 'inherit',
+              color: active ? sidebarColors.selectedText : 'inherit',
               '& svg': {
                 width: 22,
                 height: 22,
@@ -247,12 +262,12 @@ export default function AppSidebar() {
                       minHeight: 40,
                       borderRadius: 1,
                       mb: 0.5,
-                      color: childActive ? 'primary.main' : 'text.secondary',
-                      bgcolor: childActive ? alpha(theme.palette.primary.main, 0.08) : 'transparent',
+                      color: childActive ? sidebarColors.selectedText : sidebarColors.muted,
+                      bgcolor: childActive ? sidebarColors.selected : 'transparent',
                       '&:hover': {
                         bgcolor: childActive
-                          ? alpha(theme.palette.primary.main, 0.12)
-                          : alpha(theme.palette.grey[500], 0.08),
+                          ? sidebarColors.selectedHover
+                          : sidebarColors.hover,
                       },
                     }}
                   >
@@ -295,6 +310,8 @@ export default function AppSidebar() {
         flexShrink: 0,
         whiteSpace: 'nowrap',
         boxSizing: 'border-box',
+        overflow: 'visible',
+        position: 'relative',
         '& .MuiDrawer-paper': {
           width: isDesktop ? drawerWidth : SIDEBAR_WIDTH,
           transition: theme.transitions.create('width', {
@@ -302,40 +319,12 @@ export default function AppSidebar() {
             duration: theme.transitions.duration.enteringScreen,
           }),
           overflow: 'visible',
-          backgroundColor: theme.palette.background.default,
-          borderRight: `1px dashed ${theme.palette.divider}`,
+          backgroundColor: sidebarColors.paper,
+          borderRight: `1px dashed ${sidebarColors.border}`,
           px: 1.5,
         },
       }}
     >
-      {isDesktop && (
-        <Tooltip title={expanded ? 'Collapse' : 'Expand'} placement="right">
-          <IconButton
-            onClick={() => setSidebarOpen(!sidebarOpen)}
-            size="small"
-            sx={{
-              position: 'absolute',
-              top: 26,
-              right: -13,
-              zIndex: 2,
-              width: 26,
-              height: 26,
-              color: 'text.secondary',
-              bgcolor: 'background.paper',
-              border: (theme) => `1px solid ${theme.palette.divider}`,
-              boxShadow: (theme) => theme.shadows[2],
-              '&:hover': {
-                color: 'primary.main',
-                bgcolor: 'background.paper',
-              },
-            }}
-            aria-label={expanded ? 'Collapse sidebar' : 'Expand sidebar'}
-          >
-            {expanded ? <ChevronLeft fontSize="small" /> : <ChevronRight fontSize="small" />}
-          </IconButton>
-        </Tooltip>
-      )}
-
       <Stack
         spacing={3}
         sx={{
@@ -370,7 +359,7 @@ export default function AppSidebar() {
             E
           </Box>
           {expanded && (
-            <Typography variant="h6" sx={{ fontWeight: 800, color: 'text.primary' }}>
+            <Typography variant="h6" sx={{ fontWeight: 800, color: sidebarColors.text }}>
               ERP SYSTEM
             </Typography>
           )}
@@ -399,7 +388,7 @@ export default function AppSidebar() {
                   px: 1.5,
                   mb: 1,
                   display: 'block',
-                  color: 'text.disabled',
+                  color: sidebarColors.disabled,
                   fontWeight: 700,
                   letterSpacing: 0.4,
                 }}

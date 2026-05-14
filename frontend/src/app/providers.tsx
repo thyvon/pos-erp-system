@@ -2,6 +2,8 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { ThemeProvider, CssBaseline, GlobalStyles, alpha } from '@mui/material'
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import { QueryClientProvider } from '@tanstack/react-query'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { SnackbarProvider } from 'notistack'
@@ -72,7 +74,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
             maxSnack={3}
             anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
           >
-            {children}
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+              {children}
+            </LocalizationProvider>
           </SnackbarProvider>
         </ThemeProvider>
         <ReactQueryDevtools initialIsOpen={false} />

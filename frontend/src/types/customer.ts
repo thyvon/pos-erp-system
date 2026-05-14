@@ -34,18 +34,22 @@ export interface Customer {
 }
 
 export interface CustomerPayload {
+  customer_group_id?: string | null
   name: string
   type: CustomerType
   email?: string | null
   phone?: string | null
   mobile?: string | null
   tax_id?: string | null
+  date_of_birth?: string | null
+  address?: Record<string, unknown> | null
   credit_limit?: number | null
   pay_term?: number | null
   opening_balance?: number | null
   status?: CustomerStatus
   notes?: string | null
   custom_fields?: Record<string, unknown>
+  documents?: string[]
 }
 
 export interface CustomerFilters {

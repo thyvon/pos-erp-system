@@ -12,6 +12,10 @@ import enProducts from './en/products'
 import enSales from './en/sales'
 import enInventory from './en/inventory'
 import enCustomers from './en/customers'
+import enCustomerGroups from './en/customerGroups'
+import enSuppliers from './en/suppliers'
+import enCategories from './en/categories'
+import enBrands from './en/brands'
 import enBranches from './en/branches'
 import enWarehouses from './en/warehouses'
 import enUsers from './en/users'
@@ -28,6 +32,10 @@ import kmProducts from './km/products'
 import kmSales from './km/sales'
 import kmInventory from './km/inventory'
 import kmCustomers from './km/customers'
+import kmCustomerGroups from './km/customerGroups'
+import kmSuppliers from './km/suppliers'
+import kmCategories from './km/categories'
+import kmBrands from './km/brands'
 import kmBranches from './km/branches'
 import kmWarehouses from './km/warehouses'
 import kmUsers from './km/users'
@@ -46,6 +54,10 @@ const resources = {
     sales: enSales,
     inventory: enInventory,
     customers: enCustomers,
+    customerGroups: enCustomerGroups,
+    suppliers: enSuppliers,
+    categories: enCategories,
+    brands: enBrands,
     branches: enBranches,
     warehouses: enWarehouses,
     users: enUsers,
@@ -63,6 +75,10 @@ const resources = {
     sales: kmSales,
     inventory: kmInventory,
     customers: kmCustomers,
+    customerGroups: kmCustomerGroups,
+    suppliers: kmSuppliers,
+    categories: kmCategories,
+    brands: kmBrands,
     branches: kmBranches,
     warehouses: kmWarehouses,
     users: kmUsers,

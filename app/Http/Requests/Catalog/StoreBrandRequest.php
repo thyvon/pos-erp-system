@@ -26,6 +26,7 @@ class StoreBrandRequest extends FormRequest
             ],
             'description' => ['nullable', 'string'],
             'image_url' => ['nullable', 'url', 'max:500'],
+            'image_file' => ['nullable', 'file', 'image', 'max:5120'],
         ];
     }
 }

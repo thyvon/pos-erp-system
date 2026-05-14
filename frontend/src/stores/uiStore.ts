@@ -2,6 +2,8 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import type { FontPreset, ThemeColorPreset } from '@/theme'
 
+export type LayoutSurfaceTheme = 'inherit' | 'light' | 'dark'
+
 interface UIState {
   sidebarOpen: boolean
   mobileSidebarOpen: boolean
@@ -10,6 +12,8 @@ interface UIState {
   language: 'en' | 'km'
   fontPreset: FontPreset
   colorPreset: ThemeColorPreset
+  sidebarTheme: LayoutSurfaceTheme
+  topbarTheme: LayoutSurfaceTheme
   contentStretch: boolean
 }
 
@@ -25,6 +29,8 @@ interface UIActions {
   setLanguage: (language: 'en' | 'km') => void
   setFontPreset: (fontPreset: FontPreset) => void
   setColorPreset: (colorPreset: ThemeColorPreset) => void
+  setSidebarTheme: (theme: LayoutSurfaceTheme) => void
+  setTopbarTheme: (theme: LayoutSurfaceTheme) => void
   setContentStretch: (stretch: boolean) => void
 }
 
@@ -40,6 +46,8 @@ export const useUIStore = create<UIStore>()(
       language: 'en',
       fontPreset: 'publicSans',
       colorPreset: 'default',
+      sidebarTheme: 'inherit',
+      topbarTheme: 'inherit',
       contentStretch: true,
 
       toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
@@ -53,6 +61,8 @@ export const useUIStore = create<UIStore>()(
       setLanguage: (language) => set({ language }),
       setFontPreset: (fontPreset) => set({ fontPreset }),
       setColorPreset: (colorPreset) => set({ colorPreset }),
+      setSidebarTheme: (sidebarTheme) => set({ sidebarTheme }),
+      setTopbarTheme: (topbarTheme) => set({ topbarTheme }),
       setContentStretch: (contentStretch) => set({ contentStretch }),
     }),
     {
@@ -65,6 +75,8 @@ export const useUIStore = create<UIStore>()(
         language: (persistedState as Partial<UIStore>)?.language ?? 'en',
         fontPreset: (persistedState as Partial<UIStore>)?.fontPreset ?? 'publicSans',
         colorPreset: (persistedState as Partial<UIStore>)?.colorPreset ?? 'default',
+        sidebarTheme: (persistedState as Partial<UIStore>)?.sidebarTheme ?? 'inherit',
+        topbarTheme: (persistedState as Partial<UIStore>)?.topbarTheme ?? 'inherit',
       }),
     }
   )

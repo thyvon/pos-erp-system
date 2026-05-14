@@ -14,10 +14,17 @@ import {
   ListItemButton,
   ListItemText,
   alpha,
+  type SxProps,
+  type Theme,
 } from '@mui/material'
 import { Notifications, DoneAll } from '@mui/icons-material'
 
-export default function NotificationsPopover() {
+interface NotificationsPopoverProps {
+  buttonSx?: SxProps<Theme>
+  activeColor?: string
+}
+
+export default function NotificationsPopover({ buttonSx, activeColor }: NotificationsPopoverProps) {
   const [open, setOpen] = useState<HTMLElement | null>(null)
 
   const handleOpen = (event: React.MouseEvent<HTMLElement>) => {
@@ -31,9 +38,11 @@ export default function NotificationsPopover() {
   return (
     <>
       <IconButton
-        color={open ? 'primary' : 'default'}
         onClick={handleOpen}
-        sx={{ width: 40, height: 40 }}
+        sx={[
+          { width: 40, height: 40, color: open ? activeColor ?? 'primary.main' : undefined },
+          ...(Array.isArray(buttonSx) ? buttonSx : buttonSx ? [buttonSx] : []),
+        ]}
       >
         <Badge badgeContent={2} color="error">
           <Notifications />
