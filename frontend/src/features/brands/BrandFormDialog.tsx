@@ -193,6 +193,7 @@ export function BrandFormDialog({
                       urlLabel={t('fields.imageUrl')}
                       uploadLabel={t('buttons.uploadImage')}
                       removeLabel={t('buttons.removeImage')}
+                      hideUrlField
                       disabled={isSaving}
                     />
                   )}

@@ -23,6 +23,7 @@ interface AppImageUploadProps {
   urlLabel?: string
   uploadLabel?: string
   removeLabel?: string
+  hideUrlField?: boolean
   disabled?: boolean
 }
 
@@ -37,6 +38,7 @@ export function AppImageUpload({
   urlLabel,
   uploadLabel = 'Upload image',
   removeLabel = 'Remove',
+  hideUrlField = false,
   disabled,
 }: AppImageUploadProps) {
   const inputRef = useRef<HTMLInputElement | null>(null)
@@ -70,16 +72,22 @@ export function AppImageUpload({
         </Avatar>
 
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <TextField
-            value={value ?? ''}
-            onChange={(event) => onUrlChange(event.target.value)}
-            label={urlLabel ?? label}
-            error={error}
-            helperText={helperText}
-            disabled={disabled}
-            fullWidth
-          />
-          <Stack direction="row" spacing={1} sx={{ mt: 1.5, flexWrap: 'wrap', gap: 1 }}>
+          {!hideUrlField && (
+            <TextField
+              value={value ?? ''}
+              onChange={(event) => onUrlChange(event.target.value)}
+              label={urlLabel ?? label}
+              error={error}
+              helperText={helperText}
+              disabled={disabled}
+              fullWidth
+            />
+          )}
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{ mt: hideUrlField ? 0 : 1.5, flexWrap: 'wrap', gap: 1 }}
+          >
             <Button
               component="label"
               variant="outlined"
@@ -114,6 +122,11 @@ export function AppImageUpload({
               </Button>
             )}
           </Stack>
+          {hideUrlField && helperText && (
+            <FormHelperText error={error}>
+              {helperText}
+            </FormHelperText>
+          )}
           {file && (
             <FormHelperText>
               {file.name}

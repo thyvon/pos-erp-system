@@ -3,11 +3,11 @@
 import { useMemo, useState } from 'react'
 import {
   Alert,
-  Avatar,
   Box,
   Button,
   Card,
   CardContent,
+  Chip,
   InputAdornment,
   Stack,
   Table,
@@ -20,37 +20,37 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
-import { Add, ImageOutlined, LocalOfferOutlined, Search } from '@mui/icons-material'
+import { Add, Search, StraightenOutlined } from '@mui/icons-material'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { RowActions } from '@/components/ui/RowActions'
 import { TableStateRow } from '@/components/ui/TableStateRow'
-import { BrandFormDialog } from '@/features/brands/BrandFormDialog'
+import { UnitFormDialog } from '@/features/units/UnitFormDialog'
 import {
-  useBrandsQuery,
-  useCreateBrandMutation,
-  useDeleteBrandMutation,
-  useUpdateBrandMutation,
-} from '@/features/brands/hooks'
+  useCreateUnitMutation,
+  useDeleteUnitMutation,
+  useUnitsQuery,
+  useUpdateUnitMutation,
+} from '@/features/units/hooks'
 import { useAuthStore } from '@/stores/authStore'
-import type { Brand, BrandFilters, BrandPayload } from '@/types/brand'
+import type { Unit, UnitFilters, UnitPayload } from '@/types/unit'
 
 const rowsPerPageOptions = [10, 25, 50]
 
-export default function BrandsPage() {
-  const { t } = useTranslation(['brands', 'common'])
+export default function UnitsPage() {
+  const { t } = useTranslation(['units', 'common'])
   const { enqueueSnackbar } = useSnackbar()
   const can = useAuthStore((state) => state.can)
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(0)
   const [perPage, setPerPage] = useState(10)
   const [formOpen, setFormOpen] = useState(false)
-  const [editingBrand, setEditingBrand] = useState<Brand | null>(null)
-  const [deletingBrand, setDeletingBrand] = useState<Brand | null>(null)
+  const [editingUnit, setEditingUnit] = useState<Unit | null>(null)
+  const [deletingUnit, setDeletingUnit] = useState<Unit | null>(null)
 
-  const filters: BrandFilters = useMemo(
+  const filters: UnitFilters = useMemo(
     () => ({
       search: search || undefined,
       page: page + 1,
@@ -59,46 +59,46 @@ export default function BrandsPage() {
     [page, perPage, search]
   )
 
-  const brandsQuery = useBrandsQuery(filters)
-  const createBrand = useCreateBrandMutation()
-  const updateBrand = useUpdateBrandMutation()
-  const deleteBrand = useDeleteBrandMutation()
+  const unitsQuery = useUnitsQuery(filters)
+  const createUnit = useCreateUnitMutation()
+  const updateUnit = useUpdateUnitMutation()
+  const deleteUnit = useDeleteUnitMutation()
 
-  const brands = brandsQuery.data?.data ?? []
-  const meta = brandsQuery.data?.meta
-  const canCreate = can('brands.create')
-  const canEdit = can('brands.edit')
-  const canDelete = can('brands.delete')
+  const units = unitsQuery.data?.data ?? []
+  const meta = unitsQuery.data?.meta
+  const canCreate = can('units.create')
+  const canEdit = can('units.edit')
+  const canDelete = can('units.delete')
 
   const openCreateForm = () => {
-    setEditingBrand(null)
+    setEditingUnit(null)
     setFormOpen(true)
   }
 
-  const openEditForm = (brand: Brand) => {
-    setEditingBrand(brand)
+  const openEditForm = (unit: Unit) => {
+    setEditingUnit(unit)
     setFormOpen(true)
   }
 
-  const handleSubmit = async (payload: BrandPayload) => {
-    if (editingBrand) {
-      await updateBrand.mutateAsync({ id: editingBrand.id, payload })
+  const handleSubmit = async (payload: UnitPayload) => {
+    if (editingUnit) {
+      await updateUnit.mutateAsync({ id: editingUnit.id, payload })
       enqueueSnackbar(t('messages.updated'), { variant: 'success' })
       return
     }
 
-    await createBrand.mutateAsync(payload)
+    await createUnit.mutateAsync(payload)
     enqueueSnackbar(t('messages.created'), { variant: 'success' })
     setPage(0)
   }
 
   const handleDelete = async () => {
-    if (!deletingBrand) return
+    if (!deletingUnit) return
 
     try {
-      await deleteBrand.mutateAsync(deletingBrand.id)
+      await deleteUnit.mutateAsync(deletingUnit.id)
       enqueueSnackbar(t('messages.deleted'), { variant: 'success' })
-      setDeletingBrand(null)
+      setDeletingUnit(null)
     } catch (error) {
       const apiError = toAppApiError(error)
       enqueueSnackbar(apiError.message, { variant: 'error' })
@@ -114,7 +114,7 @@ export default function BrandsPage() {
       >
         <Box>
           <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-            <LocalOfferOutlined color="primary" />
+            <StraightenOutlined color="primary" />
             <Typography variant="h4">{t('title')}</Typography>
           </Stack>
           <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
@@ -149,9 +149,9 @@ export default function BrandsPage() {
             }}
           />
 
-          {brandsQuery.isError && (
+          {unitsQuery.isError && (
             <Alert severity="error" sx={{ mb: 2 }}>
-              {toAppApiError(brandsQuery.error).message}
+              {toAppApiError(unitsQuery.error).message}
             </Alert>
           )}
 
@@ -159,58 +159,67 @@ export default function BrandsPage() {
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>{t('columns.brand')}</TableCell>
-                  <TableCell>{t('columns.description')}</TableCell>
-                  <TableCell>{t('columns.products')}</TableCell>
+                  <TableCell>{t('columns.unit')}</TableCell>
+                  <TableCell>{t('columns.decimal')}</TableCell>
+                  <TableCell>{t('columns.subUnits')}</TableCell>
                   <TableCell align="right">{t('columns.actions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {brandsQuery.isLoading && <TableStateRow colSpan={4} loading />}
+                {unitsQuery.isLoading && <TableStateRow colSpan={4} loading />}
 
-                {!brandsQuery.isLoading && brands.length === 0 && (
+                {!unitsQuery.isLoading && units.length === 0 && (
                   <TableStateRow colSpan={4} message={t('empty')} />
                 )}
 
-                {brands.map((brand) => (
-                  <TableRow key={brand.id} hover>
+                {units.map((unit) => (
+                  <TableRow key={unit.id} hover>
                     <TableCell>
-                      <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-                        <Avatar
-                          variant="rounded"
-                          src={brand.image_url ?? undefined}
-                          sx={{ width: 40, height: 40, borderRadius: 1, bgcolor: 'action.hover' }}
-                        >
-                          <ImageOutlined fontSize="small" />
-                        </Avatar>
-                        <Stack sx={{ minWidth: 0 }}>
-                          <Typography variant="subtitle2">{brand.name}</Typography>
-                        </Stack>
+                      <Stack spacing={0.25}>
+                        <Typography variant="subtitle2">{unit.name}</Typography>
+                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                          {unit.short_name}
+                        </Typography>
                       </Stack>
                     </TableCell>
                     <TableCell>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          maxWidth: 460,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {brand.description || '-'}
-                      </Typography>
+                      <Chip
+                        size="small"
+                        label={unit.allow_decimal ? t('labels.decimalAllowed') : t('labels.wholeOnly')}
+                        color={unit.allow_decimal ? 'primary' : 'default'}
+                        variant="outlined"
+                      />
                     </TableCell>
-                    <TableCell>{brand.products_count}</TableCell>
+                    <TableCell>
+                      {unit.sub_units.length > 0 ? (
+                        <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
+                          {unit.sub_units.map((subUnit) => (
+                            <Chip
+                              key={subUnit.id}
+                              size="small"
+                              label={t('labels.subUnitChip', {
+                                name: subUnit.name,
+                                factor: subUnit.conversion_factor,
+                              })}
+                              variant="outlined"
+                            />
+                          ))}
+                        </Stack>
+                      ) : (
+                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                          {t('labels.noSubUnits')}
+                        </Typography>
+                      )}
+                    </TableCell>
                     <TableCell align="right">
                       <RowActions
                         editLabel={t('common:buttons.edit')}
                         deleteLabel={t('common:buttons.delete')}
                         showEdit={canEdit}
                         showDelete={canDelete}
-                        deleteDisabled={deleteBrand.isPending}
-                        onEdit={() => openEditForm(brand)}
-                        onDelete={() => setDeletingBrand(brand)}
+                        deleteDisabled={deleteUnit.isPending}
+                        onEdit={() => openEditForm(unit)}
+                        onDelete={() => setDeletingUnit(unit)}
                       />
                     </TableCell>
                   </TableRow>
@@ -234,23 +243,23 @@ export default function BrandsPage() {
         </CardContent>
       </Card>
 
-      <BrandFormDialog
-        key={`${formOpen ? 'open' : 'closed'}-${editingBrand?.id ?? 'new'}`}
+      <UnitFormDialog
+        key={`${formOpen ? 'open' : 'closed'}-${editingUnit?.id ?? 'new'}`}
         open={formOpen}
-        brand={editingBrand}
-        isSaving={createBrand.isPending || updateBrand.isPending}
+        unit={editingUnit}
+        isSaving={createUnit.isPending || updateUnit.isPending}
         onClose={() => setFormOpen(false)}
         onSubmit={handleSubmit}
       />
 
       <ConfirmDialog
-        open={!!deletingBrand}
+        open={!!deletingUnit}
         title={t('deleteDialog.title')}
-        message={t('deleteDialog.message', { name: deletingBrand?.name ?? '' })}
+        message={t('deleteDialog.message', { name: deletingUnit?.name ?? '' })}
         confirmText={t('deleteDialog.confirm')}
         cancelText={t('common:buttons.cancel')}
-        loading={deleteBrand.isPending}
-        onClose={() => setDeletingBrand(null)}
+        loading={deleteUnit.isPending}
+        onClose={() => setDeletingUnit(null)}
         onConfirm={handleDelete}
       />
     </Stack>

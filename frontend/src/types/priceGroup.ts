@@ -9,6 +9,12 @@ export interface PriceGroup {
   updated_at: string
 }
 
+export interface PriceGroupPayload {
+  name: string
+  description?: string | null
+  is_default: boolean
+}
+
 export interface PriceGroupFilters {
   search?: string
   page?: number

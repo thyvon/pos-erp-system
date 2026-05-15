@@ -3,6 +3,7 @@
 namespace Tests\Feature\Api\V1\Catalog;
 
 use App\Models\Business;
+use App\Models\Branch;
 use App\Models\Unit;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
@@ -51,8 +52,11 @@ class UnitApiTest extends TestCase
     public function test_manager_can_create_unit(): void
     {
         $business = Business::factory()->create();
+        $branch = Branch::factory()->for($business)->create();
         $manager = User::factory()->for($business)->create();
         $manager->assignRole('manager');
+        $manager->branches()->sync([$branch->id]);
+        $manager->forceFill(['default_branch_id' => $branch->id])->save();
 
         Sanctum::actingAs($manager);
 

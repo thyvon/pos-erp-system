@@ -41,8 +41,35 @@ class LocalAdminUserSeeder extends Seeder
             ]
         );
 
+        $defaultBranch = Branch::firstOrCreate(
+            [
+                'business_id' => $business->id,
+                'code' => 'MAIN',
+            ],
+            [
+                'name' => 'Main Branch',
+                'type' => 'retail',
+                'phone' => $business->phone,
+                'email' => $business->email,
+                'address' => $business->address,
+                'is_default' => true,
+                'is_active' => true,
+                'business_hours' => ['mon' => '08:00-17:00'],
+                'invoice_settings' => ['prefix' => 'INV'],
+            ]
+        );
+
+        if (! $defaultBranch->is_default || ! $defaultBranch->is_active) {
+            $defaultBranch->forceFill([
+                'is_default' => true,
+                'is_active' => true,
+            ])->save();
+        }
+
         $branchIds = Branch::query()
             ->where('business_id', $business->id)
+            ->orderByDesc('is_default')
+            ->orderBy('name')
             ->pluck('id')
             ->all();
 

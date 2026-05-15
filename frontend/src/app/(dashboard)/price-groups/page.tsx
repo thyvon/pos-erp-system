@@ -3,11 +3,11 @@
 import { useMemo, useState } from 'react'
 import {
   Alert,
-  Avatar,
   Box,
   Button,
   Card,
   CardContent,
+  Chip,
   InputAdornment,
   Stack,
   Table,
@@ -20,37 +20,37 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
-import { Add, ImageOutlined, LocalOfferOutlined, Search } from '@mui/icons-material'
+import { Add, LocalAtmOutlined, Search } from '@mui/icons-material'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { RowActions } from '@/components/ui/RowActions'
 import { TableStateRow } from '@/components/ui/TableStateRow'
-import { BrandFormDialog } from '@/features/brands/BrandFormDialog'
+import { PriceGroupFormDialog } from '@/features/price-groups/PriceGroupFormDialog'
 import {
-  useBrandsQuery,
-  useCreateBrandMutation,
-  useDeleteBrandMutation,
-  useUpdateBrandMutation,
-} from '@/features/brands/hooks'
+  useCreatePriceGroupMutation,
+  useDeletePriceGroupMutation,
+  usePriceGroupsQuery,
+  useUpdatePriceGroupMutation,
+} from '@/features/price-groups/hooks'
 import { useAuthStore } from '@/stores/authStore'
-import type { Brand, BrandFilters, BrandPayload } from '@/types/brand'
+import type { PriceGroup, PriceGroupFilters, PriceGroupPayload } from '@/types/priceGroup'
 
 const rowsPerPageOptions = [10, 25, 50]
 
-export default function BrandsPage() {
-  const { t } = useTranslation(['brands', 'common'])
+export default function PriceGroupsPage() {
+  const { t } = useTranslation(['priceGroups', 'common'])
   const { enqueueSnackbar } = useSnackbar()
   const can = useAuthStore((state) => state.can)
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(0)
   const [perPage, setPerPage] = useState(10)
   const [formOpen, setFormOpen] = useState(false)
-  const [editingBrand, setEditingBrand] = useState<Brand | null>(null)
-  const [deletingBrand, setDeletingBrand] = useState<Brand | null>(null)
+  const [editingPriceGroup, setEditingPriceGroup] = useState<PriceGroup | null>(null)
+  const [deletingPriceGroup, setDeletingPriceGroup] = useState<PriceGroup | null>(null)
 
-  const filters: BrandFilters = useMemo(
+  const filters: PriceGroupFilters = useMemo(
     () => ({
       search: search || undefined,
       page: page + 1,
@@ -59,46 +59,46 @@ export default function BrandsPage() {
     [page, perPage, search]
   )
 
-  const brandsQuery = useBrandsQuery(filters)
-  const createBrand = useCreateBrandMutation()
-  const updateBrand = useUpdateBrandMutation()
-  const deleteBrand = useDeleteBrandMutation()
+  const priceGroupsQuery = usePriceGroupsQuery(filters)
+  const createPriceGroup = useCreatePriceGroupMutation()
+  const updatePriceGroup = useUpdatePriceGroupMutation()
+  const deletePriceGroup = useDeletePriceGroupMutation()
 
-  const brands = brandsQuery.data?.data ?? []
-  const meta = brandsQuery.data?.meta
-  const canCreate = can('brands.create')
-  const canEdit = can('brands.edit')
-  const canDelete = can('brands.delete')
+  const priceGroups = priceGroupsQuery.data?.data ?? []
+  const meta = priceGroupsQuery.data?.meta
+  const canCreate = can('price_groups.create')
+  const canEdit = can('price_groups.edit')
+  const canDelete = can('price_groups.delete')
 
   const openCreateForm = () => {
-    setEditingBrand(null)
+    setEditingPriceGroup(null)
     setFormOpen(true)
   }
 
-  const openEditForm = (brand: Brand) => {
-    setEditingBrand(brand)
+  const openEditForm = (priceGroup: PriceGroup) => {
+    setEditingPriceGroup(priceGroup)
     setFormOpen(true)
   }
 
-  const handleSubmit = async (payload: BrandPayload) => {
-    if (editingBrand) {
-      await updateBrand.mutateAsync({ id: editingBrand.id, payload })
+  const handleSubmit = async (payload: PriceGroupPayload) => {
+    if (editingPriceGroup) {
+      await updatePriceGroup.mutateAsync({ id: editingPriceGroup.id, payload })
       enqueueSnackbar(t('messages.updated'), { variant: 'success' })
       return
     }
 
-    await createBrand.mutateAsync(payload)
+    await createPriceGroup.mutateAsync(payload)
     enqueueSnackbar(t('messages.created'), { variant: 'success' })
     setPage(0)
   }
 
   const handleDelete = async () => {
-    if (!deletingBrand) return
+    if (!deletingPriceGroup) return
 
     try {
-      await deleteBrand.mutateAsync(deletingBrand.id)
+      await deletePriceGroup.mutateAsync(deletingPriceGroup.id)
       enqueueSnackbar(t('messages.deleted'), { variant: 'success' })
-      setDeletingBrand(null)
+      setDeletingPriceGroup(null)
     } catch (error) {
       const apiError = toAppApiError(error)
       enqueueSnackbar(apiError.message, { variant: 'error' })
@@ -114,7 +114,7 @@ export default function BrandsPage() {
       >
         <Box>
           <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-            <LocalOfferOutlined color="primary" />
+            <LocalAtmOutlined color="primary" />
             <Typography variant="h4">{t('title')}</Typography>
           </Stack>
           <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
@@ -149,9 +149,9 @@ export default function BrandsPage() {
             }}
           />
 
-          {brandsQuery.isError && (
+          {priceGroupsQuery.isError && (
             <Alert severity="error" sx={{ mb: 2 }}>
-              {toAppApiError(brandsQuery.error).message}
+              {toAppApiError(priceGroupsQuery.error).message}
             </Alert>
           )}
 
@@ -159,58 +159,56 @@ export default function BrandsPage() {
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>{t('columns.brand')}</TableCell>
+                  <TableCell>{t('columns.name')}</TableCell>
                   <TableCell>{t('columns.description')}</TableCell>
-                  <TableCell>{t('columns.products')}</TableCell>
+                  <TableCell>{t('columns.default')}</TableCell>
+                  <TableCell>{t('columns.customerGroups')}</TableCell>
                   <TableCell align="right">{t('columns.actions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {brandsQuery.isLoading && <TableStateRow colSpan={4} loading />}
+                {priceGroupsQuery.isLoading && <TableStateRow colSpan={5} loading />}
 
-                {!brandsQuery.isLoading && brands.length === 0 && (
-                  <TableStateRow colSpan={4} message={t('empty')} />
+                {!priceGroupsQuery.isLoading && priceGroups.length === 0 && (
+                  <TableStateRow colSpan={5} message={t('empty')} />
                 )}
 
-                {brands.map((brand) => (
-                  <TableRow key={brand.id} hover>
+                {priceGroups.map((priceGroup) => (
+                  <TableRow key={priceGroup.id} hover>
                     <TableCell>
-                      <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-                        <Avatar
-                          variant="rounded"
-                          src={brand.image_url ?? undefined}
-                          sx={{ width: 40, height: 40, borderRadius: 1, bgcolor: 'action.hover' }}
-                        >
-                          <ImageOutlined fontSize="small" />
-                        </Avatar>
-                        <Stack sx={{ minWidth: 0 }}>
-                          <Typography variant="subtitle2">{brand.name}</Typography>
-                        </Stack>
-                      </Stack>
+                      <Typography variant="subtitle2">{priceGroup.name}</Typography>
                     </TableCell>
                     <TableCell>
                       <Typography
                         variant="body2"
                         sx={{
-                          maxWidth: 460,
+                          maxWidth: 520,
                           overflow: 'hidden',
                           textOverflow: 'ellipsis',
                           whiteSpace: 'nowrap',
                         }}
                       >
-                        {brand.description || '-'}
+                        {priceGroup.description || '-'}
                       </Typography>
                     </TableCell>
-                    <TableCell>{brand.products_count}</TableCell>
+                    <TableCell>
+                      <Chip
+                        size="small"
+                        label={priceGroup.is_default ? t('labels.default') : t('labels.standard')}
+                        color={priceGroup.is_default ? 'primary' : 'default'}
+                        variant="outlined"
+                      />
+                    </TableCell>
+                    <TableCell>{priceGroup.customer_groups_count}</TableCell>
                     <TableCell align="right">
                       <RowActions
                         editLabel={t('common:buttons.edit')}
                         deleteLabel={t('common:buttons.delete')}
                         showEdit={canEdit}
                         showDelete={canDelete}
-                        deleteDisabled={deleteBrand.isPending}
-                        onEdit={() => openEditForm(brand)}
-                        onDelete={() => setDeletingBrand(brand)}
+                        deleteDisabled={deletePriceGroup.isPending}
+                        onEdit={() => openEditForm(priceGroup)}
+                        onDelete={() => setDeletingPriceGroup(priceGroup)}
                       />
                     </TableCell>
                   </TableRow>
@@ -234,23 +232,23 @@ export default function BrandsPage() {
         </CardContent>
       </Card>
 
-      <BrandFormDialog
-        key={`${formOpen ? 'open' : 'closed'}-${editingBrand?.id ?? 'new'}`}
+      <PriceGroupFormDialog
+        key={`${formOpen ? 'open' : 'closed'}-${editingPriceGroup?.id ?? 'new'}`}
         open={formOpen}
-        brand={editingBrand}
-        isSaving={createBrand.isPending || updateBrand.isPending}
+        priceGroup={editingPriceGroup}
+        isSaving={createPriceGroup.isPending || updatePriceGroup.isPending}
         onClose={() => setFormOpen(false)}
         onSubmit={handleSubmit}
       />
 
       <ConfirmDialog
-        open={!!deletingBrand}
+        open={!!deletingPriceGroup}
         title={t('deleteDialog.title')}
-        message={t('deleteDialog.message', { name: deletingBrand?.name ?? '' })}
+        message={t('deleteDialog.message', { name: deletingPriceGroup?.name ?? '' })}
         confirmText={t('deleteDialog.confirm')}
         cancelText={t('common:buttons.cancel')}
-        loading={deleteBrand.isPending}
-        onClose={() => setDeletingBrand(null)}
+        loading={deletePriceGroup.isPending}
+        onClose={() => setDeletingPriceGroup(null)}
         onConfirm={handleDelete}
       />
     </Stack>

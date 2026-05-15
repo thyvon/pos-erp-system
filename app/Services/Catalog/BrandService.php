@@ -60,16 +60,16 @@ class BrandService
         return DB::transaction(function () use ($businessId, $brand, $data, $actor): Brand {
             $this->ensureBelongsToBusiness($businessId, $brand);
             $before = $this->auditPayload($brand);
+            $uploadedFile = $data['image_file'] ?? null;
+            $imageUrlChanged = array_key_exists('image_url', $data)
+                && $data['image_url'] !== $brand->image_url;
 
             /** @var Brand $updatedBrand */
             $updatedBrand = $this->brands->update($brand, $this->normalizePayload($businessId, $data, $brand));
-            if (
-                array_key_exists('image_url', $data)
-                && ! ($data['image_file'] ?? null) instanceof UploadedFile
-            ) {
+            if ($imageUrlChanged && ! $uploadedFile instanceof UploadedFile) {
                 $this->fileAssets->deleteAll($updatedBrand);
             }
-            $this->syncBrandImage($updatedBrand, $data['image_file'] ?? null);
+            $this->syncBrandImage($updatedBrand, $uploadedFile);
             $updatedBrand = $updatedBrand->refresh();
 
             $this->auditLogger->log(

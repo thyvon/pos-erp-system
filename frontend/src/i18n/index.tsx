@@ -16,6 +16,10 @@ import enCustomerGroups from './en/customerGroups'
 import enSuppliers from './en/suppliers'
 import enCategories from './en/categories'
 import enBrands from './en/brands'
+import enUnits from './en/units'
+import enVariationTemplates from './en/variationTemplates'
+import enRackLocations from './en/rackLocations'
+import enPriceGroups from './en/priceGroups'
 import enBranches from './en/branches'
 import enWarehouses from './en/warehouses'
 import enUsers from './en/users'
@@ -36,6 +40,10 @@ import kmCustomerGroups from './km/customerGroups'
 import kmSuppliers from './km/suppliers'
 import kmCategories from './km/categories'
 import kmBrands from './km/brands'
+import kmUnits from './km/units'
+import kmVariationTemplates from './km/variationTemplates'
+import kmRackLocations from './km/rackLocations'
+import kmPriceGroups from './km/priceGroups'
 import kmBranches from './km/branches'
 import kmWarehouses from './km/warehouses'
 import kmUsers from './km/users'
@@ -58,6 +66,10 @@ const resources = {
     suppliers: enSuppliers,
     categories: enCategories,
     brands: enBrands,
+    units: enUnits,
+    variationTemplates: enVariationTemplates,
+    rackLocations: enRackLocations,
+    priceGroups: enPriceGroups,
     branches: enBranches,
     warehouses: enWarehouses,
     users: enUsers,
@@ -79,6 +91,10 @@ const resources = {
     suppliers: kmSuppliers,
     categories: kmCategories,
     brands: kmBrands,
+    units: kmUnits,
+    variationTemplates: kmVariationTemplates,
+    rackLocations: kmRackLocations,
+    priceGroups: kmPriceGroups,
     branches: kmBranches,
     warehouses: kmWarehouses,
     users: kmUsers,

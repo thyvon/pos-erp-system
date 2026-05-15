@@ -3,11 +3,11 @@
 import { useMemo, useState } from 'react'
 import {
   Alert,
-  Avatar,
   Box,
   Button,
   Card,
   CardContent,
+  Chip,
   InputAdornment,
   Stack,
   Table,
@@ -20,37 +20,41 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
-import { Add, ImageOutlined, LocalOfferOutlined, Search } from '@mui/icons-material'
+import { Add, PaletteOutlined, Search } from '@mui/icons-material'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { RowActions } from '@/components/ui/RowActions'
 import { TableStateRow } from '@/components/ui/TableStateRow'
-import { BrandFormDialog } from '@/features/brands/BrandFormDialog'
+import { VariationTemplateFormDialog } from '@/features/variation-templates/VariationTemplateFormDialog'
 import {
-  useBrandsQuery,
-  useCreateBrandMutation,
-  useDeleteBrandMutation,
-  useUpdateBrandMutation,
-} from '@/features/brands/hooks'
+  useCreateVariationTemplateMutation,
+  useDeleteVariationTemplateMutation,
+  useUpdateVariationTemplateMutation,
+  useVariationTemplatesQuery,
+} from '@/features/variation-templates/hooks'
 import { useAuthStore } from '@/stores/authStore'
-import type { Brand, BrandFilters, BrandPayload } from '@/types/brand'
+import type {
+  VariationTemplate,
+  VariationTemplateFilters,
+  VariationTemplatePayload,
+} from '@/types/variationTemplate'
 
 const rowsPerPageOptions = [10, 25, 50]
 
-export default function BrandsPage() {
-  const { t } = useTranslation(['brands', 'common'])
+export default function VariationTemplatesPage() {
+  const { t } = useTranslation(['variationTemplates', 'common'])
   const { enqueueSnackbar } = useSnackbar()
   const can = useAuthStore((state) => state.can)
   const [search, setSearch] = useState('')
   const [page, setPage] = useState(0)
   const [perPage, setPerPage] = useState(10)
   const [formOpen, setFormOpen] = useState(false)
-  const [editingBrand, setEditingBrand] = useState<Brand | null>(null)
-  const [deletingBrand, setDeletingBrand] = useState<Brand | null>(null)
+  const [editingTemplate, setEditingTemplate] = useState<VariationTemplate | null>(null)
+  const [deletingTemplate, setDeletingTemplate] = useState<VariationTemplate | null>(null)
 
-  const filters: BrandFilters = useMemo(
+  const filters: VariationTemplateFilters = useMemo(
     () => ({
       search: search || undefined,
       page: page + 1,
@@ -59,46 +63,46 @@ export default function BrandsPage() {
     [page, perPage, search]
   )
 
-  const brandsQuery = useBrandsQuery(filters)
-  const createBrand = useCreateBrandMutation()
-  const updateBrand = useUpdateBrandMutation()
-  const deleteBrand = useDeleteBrandMutation()
+  const templatesQuery = useVariationTemplatesQuery(filters)
+  const createTemplate = useCreateVariationTemplateMutation()
+  const updateTemplate = useUpdateVariationTemplateMutation()
+  const deleteTemplate = useDeleteVariationTemplateMutation()
 
-  const brands = brandsQuery.data?.data ?? []
-  const meta = brandsQuery.data?.meta
-  const canCreate = can('brands.create')
-  const canEdit = can('brands.edit')
-  const canDelete = can('brands.delete')
+  const templates = templatesQuery.data?.data ?? []
+  const meta = templatesQuery.data?.meta
+  const canCreate = can('variation_templates.create')
+  const canEdit = can('variation_templates.edit')
+  const canDelete = can('variation_templates.delete')
 
   const openCreateForm = () => {
-    setEditingBrand(null)
+    setEditingTemplate(null)
     setFormOpen(true)
   }
 
-  const openEditForm = (brand: Brand) => {
-    setEditingBrand(brand)
+  const openEditForm = (template: VariationTemplate) => {
+    setEditingTemplate(template)
     setFormOpen(true)
   }
 
-  const handleSubmit = async (payload: BrandPayload) => {
-    if (editingBrand) {
-      await updateBrand.mutateAsync({ id: editingBrand.id, payload })
+  const handleSubmit = async (payload: VariationTemplatePayload) => {
+    if (editingTemplate) {
+      await updateTemplate.mutateAsync({ id: editingTemplate.id, payload })
       enqueueSnackbar(t('messages.updated'), { variant: 'success' })
       return
     }
 
-    await createBrand.mutateAsync(payload)
+    await createTemplate.mutateAsync(payload)
     enqueueSnackbar(t('messages.created'), { variant: 'success' })
     setPage(0)
   }
 
   const handleDelete = async () => {
-    if (!deletingBrand) return
+    if (!deletingTemplate) return
 
     try {
-      await deleteBrand.mutateAsync(deletingBrand.id)
+      await deleteTemplate.mutateAsync(deletingTemplate.id)
       enqueueSnackbar(t('messages.deleted'), { variant: 'success' })
-      setDeletingBrand(null)
+      setDeletingTemplate(null)
     } catch (error) {
       const apiError = toAppApiError(error)
       enqueueSnackbar(apiError.message, { variant: 'error' })
@@ -114,7 +118,7 @@ export default function BrandsPage() {
       >
         <Box>
           <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-            <LocalOfferOutlined color="primary" />
+            <PaletteOutlined color="primary" />
             <Typography variant="h4">{t('title')}</Typography>
           </Stack>
           <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
@@ -149,9 +153,9 @@ export default function BrandsPage() {
             }}
           />
 
-          {brandsQuery.isError && (
+          {templatesQuery.isError && (
             <Alert severity="error" sx={{ mb: 2 }}>
-              {toAppApiError(brandsQuery.error).message}
+              {toAppApiError(templatesQuery.error).message}
             </Alert>
           )}
 
@@ -159,58 +163,47 @@ export default function BrandsPage() {
             <Table>
               <TableHead>
                 <TableRow>
-                  <TableCell>{t('columns.brand')}</TableCell>
-                  <TableCell>{t('columns.description')}</TableCell>
-                  <TableCell>{t('columns.products')}</TableCell>
+                  <TableCell>{t('columns.name')}</TableCell>
+                  <TableCell>{t('columns.values')}</TableCell>
+                  <TableCell>{t('columns.valueCount')}</TableCell>
                   <TableCell align="right">{t('columns.actions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {brandsQuery.isLoading && <TableStateRow colSpan={4} loading />}
+                {templatesQuery.isLoading && <TableStateRow colSpan={4} loading />}
 
-                {!brandsQuery.isLoading && brands.length === 0 && (
+                {!templatesQuery.isLoading && templates.length === 0 && (
                   <TableStateRow colSpan={4} message={t('empty')} />
                 )}
 
-                {brands.map((brand) => (
-                  <TableRow key={brand.id} hover>
+                {templates.map((template) => (
+                  <TableRow key={template.id} hover>
                     <TableCell>
-                      <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-                        <Avatar
-                          variant="rounded"
-                          src={brand.image_url ?? undefined}
-                          sx={{ width: 40, height: 40, borderRadius: 1, bgcolor: 'action.hover' }}
-                        >
-                          <ImageOutlined fontSize="small" />
-                        </Avatar>
-                        <Stack sx={{ minWidth: 0 }}>
-                          <Typography variant="subtitle2">{brand.name}</Typography>
-                        </Stack>
+                      <Typography variant="subtitle2">{template.name}</Typography>
+                    </TableCell>
+                    <TableCell>
+                      <Stack direction="row" spacing={0.75} useFlexGap sx={{ flexWrap: 'wrap' }}>
+                        {template.values.length > 0 ? (
+                          template.values.map((value) => (
+                            <Chip key={value.id} size="small" label={value.name} variant="outlined" />
+                          ))
+                        ) : (
+                          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                            {t('labels.noValues')}
+                          </Typography>
+                        )}
                       </Stack>
                     </TableCell>
-                    <TableCell>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          maxWidth: 460,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {brand.description || '-'}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>{brand.products_count}</TableCell>
+                    <TableCell>{template.values_count}</TableCell>
                     <TableCell align="right">
                       <RowActions
                         editLabel={t('common:buttons.edit')}
                         deleteLabel={t('common:buttons.delete')}
                         showEdit={canEdit}
                         showDelete={canDelete}
-                        deleteDisabled={deleteBrand.isPending}
-                        onEdit={() => openEditForm(brand)}
-                        onDelete={() => setDeletingBrand(brand)}
+                        deleteDisabled={deleteTemplate.isPending}
+                        onEdit={() => openEditForm(template)}
+                        onDelete={() => setDeletingTemplate(template)}
                       />
                     </TableCell>
                   </TableRow>
@@ -234,23 +227,23 @@ export default function BrandsPage() {
         </CardContent>
       </Card>
 
-      <BrandFormDialog
-        key={`${formOpen ? 'open' : 'closed'}-${editingBrand?.id ?? 'new'}`}
+      <VariationTemplateFormDialog
+        key={`${formOpen ? 'open' : 'closed'}-${editingTemplate?.id ?? 'new'}`}
         open={formOpen}
-        brand={editingBrand}
-        isSaving={createBrand.isPending || updateBrand.isPending}
+        template={editingTemplate}
+        isSaving={createTemplate.isPending || updateTemplate.isPending}
         onClose={() => setFormOpen(false)}
         onSubmit={handleSubmit}
       />
 
       <ConfirmDialog
-        open={!!deletingBrand}
+        open={!!deletingTemplate}
         title={t('deleteDialog.title')}
-        message={t('deleteDialog.message', { name: deletingBrand?.name ?? '' })}
+        message={t('deleteDialog.message', { name: deletingTemplate?.name ?? '' })}
         confirmText={t('deleteDialog.confirm')}
         cancelText={t('common:buttons.cancel')}
-        loading={deleteBrand.isPending}
-        onClose={() => setDeletingBrand(null)}
+        loading={deleteTemplate.isPending}
+        onClose={() => setDeletingTemplate(null)}
         onConfirm={handleDelete}
       />
     </Stack>

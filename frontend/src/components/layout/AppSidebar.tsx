@@ -37,6 +37,9 @@ import {
   HistoryOutlined,
   AccountTreeOutlined,
   LocalOfferOutlined,
+  LocalAtmOutlined,
+  PaletteOutlined,
+  StraightenOutlined,
   ExpandLess,
   ExpandMore,
 } from '@mui/icons-material'
@@ -90,6 +93,10 @@ const NAV_CONFIG: NavSection[] = [
     items: [
       { key: 'categories', path: '/categories', icon: <CategoryOutlined /> },
       { key: 'brands', path: '/brands', icon: <LocalOfferOutlined /> },
+      { key: 'units', path: '/units', icon: <StraightenOutlined /> },
+      { key: 'variationTemplates', path: '/variation-templates', icon: <PaletteOutlined /> },
+      { key: 'rackLocations', path: '/rack-locations', icon: <WarehouseOutlined /> },
+      { key: 'priceGroups', path: '/price-groups', icon: <LocalAtmOutlined /> },
       { key: 'products', path: '/products', icon: <Inventory2Outlined /> },
       {
         key: 'warehouse',

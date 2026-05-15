@@ -38,7 +38,15 @@ class BranchScopeMiddleware
 
     protected function shouldBypassBranchRequirement(Request $request, object $user): bool
     {
-        if (! method_exists($user, 'hasRole') || ! $user->hasRole('accountant')) {
+        if (! method_exists($user, 'hasRole')) {
+            return false;
+        }
+
+        if ($user->hasRole(['super_admin', 'admin'])) {
+            return true;
+        }
+
+        if (! $user->hasRole('accountant')) {
             return false;
         }
 

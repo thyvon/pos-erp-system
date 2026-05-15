@@ -1,8 +1,8 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { priceGroupsApi } from './api'
-import type { PriceGroupFilters } from '@/types/priceGroup'
+import type { PriceGroupFilters, PriceGroupPayload } from '@/types/priceGroup'
 
 export const priceGroupKeys = {
   all: ['price-groups'] as const,
@@ -13,5 +13,39 @@ export function usePriceGroupsQuery(filters: PriceGroupFilters) {
   return useQuery({
     queryKey: priceGroupKeys.list(filters),
     queryFn: () => priceGroupsApi.list(filters),
+  })
+}
+
+export function useCreatePriceGroupMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (payload: PriceGroupPayload) => priceGroupsApi.create(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: priceGroupKeys.all })
+    },
+  })
+}
+
+export function useUpdatePriceGroupMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: PriceGroupPayload }) =>
+      priceGroupsApi.update(id, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: priceGroupKeys.all })
+    },
+  })
+}
+
+export function useDeletePriceGroupMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: string) => priceGroupsApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: priceGroupKeys.all })
+    },
   })
 }
