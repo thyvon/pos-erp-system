@@ -25,6 +25,7 @@ interface AppImageUploadProps {
   removeLabel?: string
   hideUrlField?: boolean
   disabled?: boolean
+  allowRemoveExisting?: boolean
 }
 
 export function AppImageUpload({
@@ -40,6 +41,7 @@ export function AppImageUpload({
   removeLabel = 'Remove',
   hideUrlField = false,
   disabled,
+  allowRemoveExisting = true,
 }: AppImageUploadProps) {
   const inputRef = useRef<HTMLInputElement | null>(null)
   const objectUrl = useMemo(() => (file ? URL.createObjectURL(file) : null), [file])
@@ -106,7 +108,7 @@ export function AppImageUpload({
                 }}
               />
             </Button>
-            {(file || value) && (
+            {(file || (allowRemoveExisting && value)) && (
               <Button
                 variant="text"
                 color="inherit"

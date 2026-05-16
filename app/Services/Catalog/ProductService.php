@@ -95,7 +95,7 @@ class ProductService
                     ->get()
                 : collect(),
             'custom_fields' => CustomFieldDefinition::query()
-                ->where('module', 'products')
+                ->where('module', 'product')
                 ->orderBy('sort_order')
                 ->orderBy('field_label')
                 ->get(),

@@ -1,25 +1,31 @@
 'use client'
 
 import { useState } from 'react'
-import { DeleteOutlined, EditOutlined, MoreVert } from '@mui/icons-material'
+import { DeleteOutlined, EditOutlined, MoreVert, VisibilityOutlined } from '@mui/icons-material'
 import { IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Tooltip } from '@mui/material'
 
 interface RowActionsProps {
+  viewLabel?: string
   editLabel: string
   deleteLabel: string
+  showView?: boolean
   showEdit?: boolean
   showDelete?: boolean
   deleteDisabled?: boolean
+  onView?: () => void
   onEdit?: () => void
   onDelete?: () => void
 }
 
 export function RowActions({
+  viewLabel,
   editLabel,
   deleteLabel,
+  showView = false,
   showEdit = true,
   showDelete = true,
   deleteDisabled = false,
+  onView,
   onEdit,
   onDelete,
 }: RowActionsProps) {
@@ -35,12 +41,17 @@ export function RowActions({
     onEdit?.()
   }
 
+  const handleView = () => {
+    handleClose()
+    onView?.()
+  }
+
   const handleDelete = () => {
     handleClose()
     onDelete?.()
   }
 
-  if (!showEdit && !showDelete) return null
+  if (!showView && !showEdit && !showDelete) return null
 
   return (
     <>
@@ -64,6 +75,14 @@ export function RowActions({
         anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
       >
+      {showView && (
+        <MenuItem onClick={handleView}>
+          <ListItemIcon>
+            <VisibilityOutlined />
+          </ListItemIcon>
+          <ListItemText>{viewLabel}</ListItemText>
+        </MenuItem>
+      )}
       {showEdit && (
         <MenuItem onClick={handleEdit}>
           <ListItemIcon>

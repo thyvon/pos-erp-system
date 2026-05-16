@@ -5,6 +5,7 @@ namespace Tests\Feature\Api\V1\Catalog;
 use App\Models\Brand;
 use App\Models\Business;
 use App\Models\Category;
+use App\Models\CustomFieldDefinition;
 use App\Models\PriceGroup;
 use App\Models\Product;
 use App\Models\SubUnit;
@@ -73,6 +74,130 @@ class ProductApiTest extends TestCase
             ->assertJsonPath('data.sub_unit_id', $subUnit->id)
             ->assertJsonPath('data.sub_unit_selling_price', '300.00')
             ->assertJsonPath('data.track_inventory', true);
+    }
+
+    public function test_single_product_requires_unit_and_prices(): void
+    {
+        $business = Business::factory()->create();
+        $admin = User::factory()->for($business)->create();
+        $admin->assignRole('admin');
+
+        Sanctum::actingAs($admin);
+
+        $this->postJson('/api/v1/products', [
+            'name' => 'Incomplete Product',
+            'barcode_type' => 'C128',
+            'type' => 'single',
+            'stock_tracking' => 'none',
+            'tax_type' => 'exclusive',
+        ])
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors([
+                'unit_id',
+                'selling_price',
+                'purchase_price',
+            ]);
+    }
+
+    public function test_form_options_include_product_custom_fields(): void
+    {
+        $business = Business::factory()->create();
+        $admin = User::factory()->for($business)->create();
+        $admin->assignRole('admin');
+
+        CustomFieldDefinition::query()->create([
+            'business_id' => $business->id,
+            'module' => 'product',
+            'field_name' => 'warranty_code',
+            'field_label' => 'Warranty Code',
+            'field_type' => 'text',
+            'is_required' => true,
+            'sort_order' => 1,
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $this->getJson('/api/v1/products/form-options')
+            ->assertOk()
+            ->assertJsonFragment([
+                'field_name' => 'warranty_code',
+                'field_label' => 'Warranty Code',
+                'is_required' => true,
+            ]);
+    }
+
+    public function test_admin_can_update_product_custom_fields(): void
+    {
+        $business = Business::factory()->create();
+        $admin = User::factory()->for($business)->create();
+        $admin->assignRole('admin');
+        $unit = Unit::factory()->create(['business_id' => $business->id]);
+        $product = Product::factory()->create([
+            'business_id' => $business->id,
+            'unit_id' => $unit->id,
+            'type' => 'single',
+            'barcode_type' => 'C128',
+            'stock_tracking' => 'none',
+            'tax_type' => 'exclusive',
+            'selling_price' => 25,
+            'purchase_price' => 10,
+            'custom_fields' => ['warranty_code' => 'OLD'],
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $this->putJson("/api/v1/products/{$product->id}", [
+            'name' => $product->name,
+            'unit_id' => $unit->id,
+            'barcode_type' => 'C128',
+            'type' => 'single',
+            'stock_tracking' => 'none',
+            'selling_price' => 25,
+            'purchase_price' => 10,
+            'tax_type' => 'exclusive',
+            'custom_fields' => [
+                'warranty_code' => 'NEW',
+                'fragile' => true,
+            ],
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.custom_fields.warranty_code', 'NEW')
+            ->assertJsonPath('data.custom_fields.fragile', true);
+    }
+
+    public function test_admin_can_clear_product_custom_fields_with_null(): void
+    {
+        $business = Business::factory()->create();
+        $admin = User::factory()->for($business)->create();
+        $admin->assignRole('admin');
+        $unit = Unit::factory()->create(['business_id' => $business->id]);
+        $product = Product::factory()->create([
+            'business_id' => $business->id,
+            'unit_id' => $unit->id,
+            'type' => 'single',
+            'barcode_type' => 'C128',
+            'stock_tracking' => 'none',
+            'tax_type' => 'exclusive',
+            'selling_price' => 25,
+            'purchase_price' => 10,
+            'custom_fields' => ['warranty_code' => 'OLD'],
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $this->putJson("/api/v1/products/{$product->id}", [
+            'name' => $product->name,
+            'unit_id' => $unit->id,
+            'barcode_type' => 'C128',
+            'type' => 'single',
+            'stock_tracking' => 'none',
+            'selling_price' => 25,
+            'purchase_price' => 10,
+            'tax_type' => 'exclusive',
+            'custom_fields' => null,
+        ])
+            ->assertOk()
+            ->assertJsonPath('data.custom_fields', []);
     }
 
     public function test_admin_can_create_variable_product_with_variations(): void

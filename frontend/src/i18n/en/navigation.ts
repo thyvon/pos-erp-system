@@ -44,6 +44,8 @@ export default {
     customers: 'Customers',
     suppliers: 'Suppliers',
     products: 'Product Catalog',
+    productCreate: 'Create Product',
+    productEdit: 'Edit Product',
     categories: 'Categories',
     brands: 'Brands',
     units: 'Units',

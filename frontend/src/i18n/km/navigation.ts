@@ -44,6 +44,8 @@ export default {
     customers: 'អតិថិជន',
     suppliers: 'អ្នកផ្គត់ផ្គង់',
     products: 'កាតាឡុកផលិតផល',
+    productCreate: 'បង្កើតផលិតផល',
+    productEdit: 'កែប្រែផលិតផល',
     categories: 'ប្រភេទផលិតផល',
     brands: 'ម៉ាកផលិតផល',
     units: 'ខ្នាត',

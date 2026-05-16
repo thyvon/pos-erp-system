@@ -5,6 +5,7 @@ import { usePathname } from 'next/navigation'
 import { Breadcrumbs as MuiBreadcrumbs, Link, Typography, Box } from '@mui/material'
 import { NavigateNext } from '@mui/icons-material'
 import { useTranslation } from 'react-i18next'
+import { useProductQuery } from '@/features/products/hooks'
 
 const BREADCRUMB_KEY_MAP: Record<string, string> = {
   '/dashboard': 'dashboard',
@@ -13,6 +14,7 @@ const BREADCRUMB_KEY_MAP: Record<string, string> = {
   '/customers': 'customers',
   '/suppliers': 'suppliers',
   '/products': 'products',
+  '/products/create': 'productCreate',
   '/categories': 'categories',
   '/units': 'units',
   '/variation-templates': 'variationTemplates',
@@ -39,10 +41,21 @@ const BREADCRUMB_KEY_MAP: Record<string, string> = {
   '/audit-logs': 'auditLogs',
 }
 
+function breadcrumbLabelKey(to: string, pathnames: string[], index: number) {
+  if (pathnames[0] === 'products' && pathnames[2] === 'edit' && index === 2) {
+    return 'productEdit'
+  }
+
+  return BREADCRUMB_KEY_MAP[to]
+}
+
 export default function Breadcrumbs() {
   const { t } = useTranslation('navigation')
   const pathname = usePathname()
   const pathnames = pathname.split('/').filter((x) => x)
+  const isProductRouteWithId = pathnames[0] === 'products' && !!pathnames[1] && pathnames[1] !== 'create'
+  const productId = isProductRouteWithId ? pathnames[1] : null
+  const productQuery = useProductQuery(productId)
 
   return (
     <Box sx={{ mb: 3 }}>
@@ -62,8 +75,10 @@ export default function Breadcrumbs() {
         {pathnames.map((value, index) => {
           const last = index === pathnames.length - 1
           const to = `/${pathnames.slice(0, index + 1).join('/')}`
-          const labelKey = BREADCRUMB_KEY_MAP[to]
-          const label = labelKey
+          const labelKey = breadcrumbLabelKey(to, pathnames, index)
+          const label = isProductRouteWithId && index === 1
+            ? (productQuery.data?.name ?? t('breadcrumbs.productEdit'))
+            : labelKey
             ? t(`breadcrumbs.${labelKey}`)
             : value.charAt(0).toUpperCase() + value.slice(1)
 
@@ -72,6 +87,14 @@ export default function Breadcrumbs() {
               key={to}
               variant="body2"
               sx={{ color: 'text.primary', fontWeight: 600 }}
+            >
+              {label}
+            </Typography>
+          ) : isProductRouteWithId && index === 1 ? (
+            <Typography
+              key={to}
+              variant="body2"
+              sx={{ color: 'text.secondary', fontWeight: 500 }}
             >
               {label}
             </Typography>

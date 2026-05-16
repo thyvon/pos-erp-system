@@ -56,7 +56,7 @@ class RackLocationApiTest extends TestCase
         ]);
 
         $response
-            ->assertStatus(400)
+            ->assertStatus(422)
             ->assertJsonPath('message', 'Rack locations are disabled in stock settings.');
     }
 
@@ -177,10 +177,11 @@ class RackLocationApiTest extends TestCase
 
     protected function enableRackLocations(string $businessId): void
     {
-        Setting::withoutGlobalScopes()->create([
+        Setting::withoutGlobalScopes()->updateOrCreate([
             'business_id' => $businessId,
             'group' => 'stock',
             'key' => 'enable_rack_location',
+        ], [
             'value' => '1',
             'type' => 'boolean',
             'is_encrypted' => false,
