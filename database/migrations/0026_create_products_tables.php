@@ -86,31 +86,10 @@ return new class extends Migration
             $table->index(['product_id', 'child_product_id'], 'combo_items_parent_child_index');
         });
 
-        Schema::create('product_packagings', function (Blueprint $table): void {
-            $table->uuid('id')->primary();
-            $table->foreignUuid('business_id')->constrained('businesses')->cascadeOnDelete();
-            $table->foreignUuid('product_id')->constrained('products')->cascadeOnDelete();
-            $table->string('name', 100);
-            $table->string('short_name', 50)->nullable();
-            $table->decimal('conversion_factor', 14, 4);
-            $table->string('sku', 100)->nullable();
-            $table->string('barcode', 100)->nullable();
-            $table->decimal('selling_price', 14, 2)->nullable();
-            $table->decimal('purchase_price', 14, 2)->nullable();
-            $table->boolean('is_default')->default(false);
-            $table->boolean('is_active')->default(true);
-            $table->timestamps();
-            $table->softDeletes();
-
-            $table->unique(['product_id', 'name']);
-            $table->unique(['business_id', 'sku']);
-            $table->index(['product_id', 'is_default', 'is_active'], 'product_packagings_listing_index');
-        });
     }
 
     public function down(): void
     {
-        Schema::dropIfExists('product_packagings');
         Schema::dropIfExists('combo_items');
         Schema::dropIfExists('product_variations');
         Schema::dropIfExists('products');

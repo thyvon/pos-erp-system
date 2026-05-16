@@ -25,6 +25,8 @@ export interface ProductVariation {
   sku?: string | null
   variation_value_ids?: string[]
   sub_unit_id?: string | null
+  conversion_unit?: string | null
+  conversion_factor?: string | null
   selling_price: string | number | null
   purchase_price: string | number | null
   sub_unit_selling_price?: string | number | null

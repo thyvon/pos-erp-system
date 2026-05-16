@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api\V1;
 
+use App\Models\Branch;
 use App\Models\Business;
 use App\Models\Supplier;
 use App\Models\User;
@@ -73,6 +74,8 @@ class SupplierApiTest extends TestCase
         $business = Business::factory()->create();
         $manager = User::factory()->for($business)->create();
         $manager->assignRole('manager');
+        $branch = Branch::factory()->for($business)->create();
+        $manager->branches()->attach($branch->id);
 
         Sanctum::actingAs($manager);
 
@@ -90,6 +93,8 @@ class SupplierApiTest extends TestCase
         $business = Business::factory()->create();
         $inventoryManager = User::factory()->for($business)->create();
         $inventoryManager->assignRole('inventory_manager');
+        $branch = Branch::factory()->for($business)->create();
+        $inventoryManager->branches()->attach($branch->id);
 
         Sanctum::actingAs($inventoryManager);
 

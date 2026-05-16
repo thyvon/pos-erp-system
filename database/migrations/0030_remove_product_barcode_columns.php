@@ -43,11 +43,6 @@ return new class extends Migration
             });
         }
 
-        if (Schema::hasTable('product_packagings') && Schema::hasColumn('product_packagings', 'barcode')) {
-            Schema::table('product_packagings', function (Blueprint $table) {
-                $table->dropColumn('barcode');
-            });
-        }
     }
 
     public function down(): void
@@ -86,10 +81,5 @@ return new class extends Migration
             });
         }
 
-        if (Schema::hasTable('product_packagings') && ! Schema::hasColumn('product_packagings', 'barcode')) {
-            Schema::table('product_packagings', function (Blueprint $table) {
-                $table->string('barcode', 100)->nullable()->after('sku');
-            });
-        }
     }
 };

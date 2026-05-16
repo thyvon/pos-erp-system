@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api\V1;
 
+use App\Models\Branch;
 use App\Models\Business;
 use App\Models\Customer;
 use App\Models\CustomerGroup;
@@ -75,6 +76,8 @@ class CustomerApiTest extends TestCase
         $business = Business::factory()->create();
         $manager = User::factory()->for($business)->create();
         $manager->assignRole('manager');
+        $branch = Branch::factory()->for($business)->create();
+        $manager->branches()->attach($branch->id);
 
         Sanctum::actingAs($manager);
 

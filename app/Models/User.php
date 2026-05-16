@@ -107,6 +107,10 @@ class User extends Authenticatable
 
     public function hasBranchAccess(string $branchId): bool
     {
+        if ($this->hasRole(['super_admin', 'admin'])) {
+            return true;
+        }
+
         return in_array($branchId, $this->accessibleBranchIds(), true);
     }
 }

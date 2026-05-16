@@ -19,7 +19,15 @@
 - [x] Product custom fields accept `null`/empty-array payloads and blank optional custom-field values are normalized to `null`.
 - [x] Product form now shows a top validation alert when client-side validation blocks saving.
 - [x] Product detail page added with row View action, product-name breadcrumbs, read-only product profile, variations, combo items, and custom fields.
-- [ ] Continue product frontend hardening with detail-view polish and any packaging workflow only after confirming implemented backend routes.
+- [x] Product detail view polished into a single-page read-only layout with one main surface, internal dividers, media summary, and responsive detail sections.
+- [x] Product detail view now shows type-appropriate sections, custom-field labels, product barcode, and a wider variation table with variant images.
+- [x] Catalog frontend rebuild slice is complete for the currently implemented API surface.
+
+## Stabilization
+
+- [x] Fixed product-filtered backend test failures by aligning tax tests with the real products schema and inventory lookup test with current branch-access rules.
+- [x] Stabilized full backend test suite for branch access, stock count live edits/removal/completion corrections, serial movement validation, supplier branch setup, and admin branch-bypass behavior.
+- [x] Full backend suite verified with `php artisan test` passing 149 tests and 564 assertions.
 
 ## Important Reminders
 

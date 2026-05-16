@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api\V1\Catalog;
 
+use App\Models\Branch;
 use App\Models\Business;
 use App\Models\Category;
 use App\Models\User;
@@ -48,6 +49,8 @@ class CategoryApiTest extends TestCase
         $business = Business::factory()->create();
         $manager = User::factory()->for($business)->create();
         $manager->assignRole('manager');
+        $branch = Branch::factory()->for($business)->create();
+        $manager->branches()->attach($branch->id);
         $parent = Category::factory()->for($business)->create([
             'name' => 'Beverages',
             'parent_id' => null,
@@ -88,7 +91,7 @@ class CategoryApiTest extends TestCase
         ]);
 
         $response
-            ->assertStatus(400)
+            ->assertStatus(422)
             ->assertJsonPath('message', 'Categories support a maximum depth of two levels.');
     }
 
@@ -140,7 +143,7 @@ class CategoryApiTest extends TestCase
         $response = $this->deleteJson("/api/v1/categories/{$parent->id}");
 
         $response
-            ->assertStatus(400)
+            ->assertStatus(422)
             ->assertJsonPath('message', 'Category cannot be deleted because it still has child categories.');
     }
 }

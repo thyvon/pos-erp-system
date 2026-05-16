@@ -101,7 +101,7 @@ class StockCountService
                 );
             }
 
-            $count = $count->load(['warehouse.branch', 'creator']);
+            $count = $count->load(['warehouse.branch', 'creator', 'items.product', 'items.variation', 'items.lot']);
 
             $this->auditLogger->log(
                 'stock_count_started',
@@ -177,7 +177,7 @@ class StockCountService
                 'created_by' => $actor?->id,
             ]);
 
-            $count = $count->refresh()->load(['warehouse.branch', 'creator', 'completer']);
+            $count = $count->refresh()->load(['warehouse.branch', 'creator', 'completer', 'items.product', 'items.variation', 'items.lot']);
 
             $this->auditLogger->log(
                 'stock_count_entry_recorded',
@@ -215,8 +215,8 @@ class StockCountService
             $this->ensureUserCanAccessWarehouse($actor, $count->warehouse);
             $this->ensureCountItemBelongsToCount($count, $countItem);
 
-            if ($count->status !== 'in_progress') {
-                throw new DomainException('Only in-progress stock counts can be edited.', 422);
+            if (! in_array($count->status, ['in_progress', 'completed'], true)) {
+                throw new DomainException('Only in-progress or completed stock counts can be edited.', 422);
             }
 
             $targetQuantity = round((float) $data['counted_quantity'], 4);
@@ -224,7 +224,7 @@ class StockCountService
             $delta = round($targetQuantity - $currentQuantity, 4);
 
             if ($delta === 0.0) {
-                return $count->refresh()->load(['warehouse.branch', 'creator', 'completer']);
+                return $count->refresh()->load(['warehouse.branch', 'creator', 'completer', 'items.product', 'items.variation', 'items.lot']);
             }
 
             $countItem->counted_quantity = $targetQuantity;
@@ -240,7 +240,23 @@ class StockCountService
                 'created_by' => $actor?->id,
             ]);
 
-            $count = $count->refresh()->load(['warehouse.branch', 'creator', 'completer']);
+            if ($count->status === 'completed') {
+                $this->stockMovementService->record($businessId, [
+                    'product_id' => $countItem->product_id,
+                    'variation_id' => $countItem->variation_id,
+                    'lot_id' => $countItem->lot_id,
+                    'warehouse_id' => $count->warehouse_id,
+                    'type' => 'stock_count_correction',
+                    'direction' => $delta > 0 ? 'in' : 'out',
+                    'quantity' => abs($delta),
+                    'unit_cost' => $countItem->unit_cost,
+                    'reference_type' => StockCount::class,
+                    'reference_id' => $count->id,
+                    'notes' => 'Stock count post-completion correction',
+                ], $actor);
+            }
+
+            $count = $count->refresh()->load(['warehouse.branch', 'creator', 'completer', 'items.product', 'items.variation', 'items.lot']);
 
             $this->auditLogger->log(
                 'stock_count_item_updated',
@@ -295,7 +311,7 @@ class StockCountService
             $countItem->entries()->delete();
             $countItem->delete();
 
-            $count = $count->refresh()->load(['warehouse.branch', 'creator', 'completer']);
+            $count = $count->refresh()->load(['warehouse.branch', 'creator', 'completer', 'items.product', 'items.variation', 'items.lot']);
 
             $this->auditLogger->log(
                 'stock_count_item_removed',
@@ -416,7 +432,7 @@ class StockCountService
             $count->completed_by = $actor?->id;
             $count->save();
 
-            $count = $count->refresh()->load(['warehouse.branch', 'creator', 'completer']);
+            $count = $count->refresh()->load(['warehouse.branch', 'creator', 'completer', 'items.product', 'items.variation', 'items.lot']);
 
             $this->auditLogger->log(
                 'stock_count_completed',

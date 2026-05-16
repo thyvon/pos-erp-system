@@ -3,6 +3,7 @@
 namespace Tests\Feature\Api\V1;
 
 use App\Models\Business;
+use App\Models\Branch;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
@@ -84,6 +85,8 @@ class BusinessApiTest extends TestCase
         $business = Business::factory()->create();
         $cashier = User::factory()->for($business)->create();
         $cashier->assignRole('cashier');
+        $branch = Branch::factory()->for($business)->create();
+        $cashier->branches()->attach($branch->id);
 
         Sanctum::actingAs($cashier);
 

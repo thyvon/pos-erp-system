@@ -3,14 +3,13 @@
 namespace Tests\Feature\Api\V1;
 
 use App\Models\Business;
+use App\Models\Product;
 use App\Models\TaxGroup;
 use App\Models\TaxRate;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\DB;
-use Illuminate\Support\Facades\Schema;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
@@ -150,29 +149,18 @@ class TaxRateApiTest extends TestCase
         $admin->assignRole('admin');
         $taxRate = TaxRate::factory()->for($business)->create();
 
-        Schema::create('products', function (Blueprint $table): void {
-            $table->uuid('id')->primary();
-            $table->uuid('business_id');
-            $table->uuid('tax_rate_id')->nullable();
-        });
+        Product::factory()->create([
+            'business_id' => $business->id,
+            'tax_rate_id' => $taxRate->id,
+        ]);
 
-        try {
-            DB::table('products')->insert([
-                'id' => (string) Str::uuid(),
-                'business_id' => $business->id,
-                'tax_rate_id' => $taxRate->id,
-            ]);
+        Sanctum::actingAs($admin);
 
-            Sanctum::actingAs($admin);
+        $response = $this->deleteJson("/api/v1/tax-rates/{$taxRate->id}");
 
-            $response = $this->deleteJson("/api/v1/tax-rates/{$taxRate->id}");
-
-            $response
-                ->assertStatus(422)
-                ->assertJsonPath('message', 'Tax rate cannot be deleted because it is still assigned to products.');
-        } finally {
-            Schema::dropIfExists('products');
-        }
+        $response
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'Tax rate cannot be deleted because it is still assigned to products.');
     }
 
     public function test_tax_rate_delete_is_blocked_when_tax_group_uses_it(): void

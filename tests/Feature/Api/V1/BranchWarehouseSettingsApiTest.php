@@ -4,12 +4,13 @@ namespace Tests\Feature\Api\V1;
 
 use App\Models\Branch;
 use App\Models\Business;
+use App\Models\Product;
 use App\Models\Setting;
+use App\Models\Unit;
 use App\Models\User;
 use App\Models\Warehouse;
 use Database\Seeders\DefaultSettingsSeeder;
 use Database\Seeders\RolePermissionSeeder;
-use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
@@ -201,16 +202,22 @@ class BranchWarehouseSettingsApiTest extends TestCase
         $admin->branches()->sync([$branch->id]);
         $admin->forceFill(['default_branch_id' => $branch->id])->save();
         $warehouse = Warehouse::factory()->forBranch($branch)->create();
-
-        Schema::create('stock_movements', function (Blueprint $table): void {
-            $table->uuid('id')->primary();
-            $table->uuid('warehouse_id');
-        });
+        $unit = Unit::factory()->create(['business_id' => $business->id]);
+        $product = Product::factory()->create([
+            'business_id' => $business->id,
+            'unit_id' => $unit->id,
+        ]);
 
         try {
             DB::table('stock_movements')->insert([
                 'id' => (string) Str::uuid(),
+                'business_id' => $business->id,
+                'product_id' => $product->id,
                 'warehouse_id' => $warehouse->id,
+                'type' => 'adjustment_in',
+                'quantity' => 1,
+                'unit_cost' => 1,
+                'created_at' => now(),
             ]);
 
             Sanctum::actingAs($admin);
@@ -221,7 +228,7 @@ class BranchWarehouseSettingsApiTest extends TestCase
                 ->assertStatus(422)
                 ->assertJsonPath('success', false);
         } finally {
-            Schema::dropIfExists('stock_movements');
+            DB::table('stock_movements')->where('warehouse_id', $warehouse->id)->delete();
         }
     }
 

@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Api\V1\Catalog;
 
+use App\Models\Branch;
 use App\Models\Business;
 use App\Models\User;
 use App\Models\VariationTemplate;
@@ -49,6 +50,8 @@ class VariationTemplateApiTest extends TestCase
         $business = Business::factory()->create();
         $manager = User::factory()->for($business)->create();
         $manager->assignRole('manager');
+        $branch = Branch::factory()->for($business)->create();
+        $manager->branches()->attach($branch->id);
 
         Sanctum::actingAs($manager);
 

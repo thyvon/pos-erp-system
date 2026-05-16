@@ -35,6 +35,7 @@ class UserService
         unset($data['role'], $data['roles'], $data['direct_permissions'], $data['branch_ids'], $data['default_branch_id']);
 
         $this->ensureRestrictedRolesCannotBeAssigned($roles);
+        $this->ensureAdminRoleHasNoBranchAccess($roles, $branchIds, $defaultBranchId);
 
         $business = $this->resolveBusiness();
         $this->ensureUserLimitNotExceeded($business);
@@ -81,7 +82,11 @@ class UserService
             $this->ensureNotLastAdmin($user, $roles, $data['status']);
         }
 
-        if ($branchIds !== null) {
+        if ($roles !== null && in_array('admin', $roles, true)) {
+            $branchIds = [];
+            $defaultBranchId = null;
+            $data['default_branch_id'] = null;
+        } elseif ($branchIds !== null) {
             [$branchIds, $defaultBranchId] = $this->normalizeBranchAccess(
                 $this->resolveBusiness(),
                 $branchIds ?? [],
@@ -247,6 +252,17 @@ class UserService
     {
         if (in_array('super_admin', $roles, true)) {
             throw new DomainException('The super_admin role can only be assigned through seeders.', 422);
+        }
+    }
+
+    protected function ensureAdminRoleHasNoBranchAccess(array $roles, array $branchIds, ?string $defaultBranchId): void
+    {
+        if (! in_array('admin', $roles, true)) {
+            return;
+        }
+
+        if ($branchIds !== [] || $defaultBranchId !== null) {
+            throw new DomainException('Admin users cannot be assigned branch-scoped access.', 403);
         }
     }
 

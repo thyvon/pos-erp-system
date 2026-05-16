@@ -46,7 +46,6 @@ Implemented:
 - Products
 - Product variations
 - Combo items
-- Product packaging
 
 The product area already supports more than the old foundation docs implied. The plan must treat it as live, not upcoming.
 
@@ -128,4 +127,3 @@ These are **not implemented yet** and must stay in roadmap status:
 Do not generate code assuming these modules already have backend structure in this repo.
 
 ---
-

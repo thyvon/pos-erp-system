@@ -66,7 +66,7 @@ These areas exist in permissions, old plans, or placeholders, but are **not full
 |---|---|---|
 | Foundation | Live | End-to-end backend/frontend/tests exist |
 | Contacts and Tax | Live | CRUD and policy coverage exist |
-| Catalog | Live | Product flow is implemented with variations and packaging |
+| Catalog | Live | Product flow is implemented with variations and combo items |
 | Inventory | Live but still stabilizing | Core workflows exist; some count edge-case tests still fail |
 | Accounting | Live | Manual journals, payment accounts, fiscal years implemented |
 | Sales | Live | Sales, quotations, registers, payments, returns implemented |
@@ -276,7 +276,6 @@ Implemented:
 - Products
 - Product variations
 - Combo items
-- Product packaging
 
 The product area already supports more than the old foundation docs implied. The plan must treat it as live, not upcoming.
 

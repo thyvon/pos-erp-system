@@ -81,6 +81,7 @@ class InventoryProductLookupApiTest extends TestCase
     public function test_inventory_lookup_can_match_product_description_without_warehouse_context(): void
     {
         $business = Business::factory()->create();
+        $branch = Branch::factory()->create(['business_id' => $business->id]);
         $unit = Unit::factory()->create(['business_id' => $business->id]);
         $product = Product::factory()->create([
             'business_id' => $business->id,
@@ -92,6 +93,7 @@ class InventoryProductLookupApiTest extends TestCase
 
         $user = User::factory()->for($business)->create();
         $user->assignRole('inventory_manager');
+        $user->branches()->attach($branch->id);
 
         Sanctum::actingAs($user);
 

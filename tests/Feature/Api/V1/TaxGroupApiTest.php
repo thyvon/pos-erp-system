@@ -157,9 +157,7 @@ class TaxGroupApiTest extends TestCase
             'tax_rate_id' => $rate->id,
         ]);
 
-        Schema::create('products', function (Blueprint $table): void {
-            $table->uuid('id')->primary();
-            $table->uuid('business_id');
+        Schema::table('products', function (Blueprint $table): void {
             $table->uuid('tax_group_id')->nullable();
         });
 
@@ -167,7 +165,15 @@ class TaxGroupApiTest extends TestCase
             DB::table('products')->insert([
                 'id' => (string) Str::uuid(),
                 'business_id' => $business->id,
+                'name' => 'Taxed product',
+                'sku' => 'TAX-GROUP-001',
                 'tax_group_id' => $group->id,
+                'barcode_type' => 'C128',
+                'type' => 'single',
+                'stock_tracking' => 'none',
+                'tax_type' => 'exclusive',
+                'created_at' => now(),
+                'updated_at' => now(),
             ]);
 
             Sanctum::actingAs($admin);
@@ -178,7 +184,9 @@ class TaxGroupApiTest extends TestCase
                 ->assertStatus(422)
                 ->assertJsonPath('message', 'Tax group cannot be deleted because it is still assigned to products.');
         } finally {
-            Schema::dropIfExists('products');
+            Schema::table('products', function (Blueprint $table): void {
+                $table->dropColumn('tax_group_id');
+            });
         }
     }
 

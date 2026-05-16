@@ -58,8 +58,8 @@ class StockMovementService
                 $context['warehouse']->id
             );
 
-            $this->ensureOnHandCanChange($level, $delta, $context['warehouse']);
             $this->ensureTrackedInventoryCanChange($context, $type, $quantity, $delta);
+            $this->ensureOnHandCanChange($level, $delta, $context['warehouse']);
 
             $level->quantity = $this->formatDecimal($level->quantity + $delta);
             $level->save();
