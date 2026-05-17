@@ -42,21 +42,8 @@ class BranchScopeMiddleware
             return false;
         }
 
-        if ($user->hasRole(['super_admin', 'admin'])) {
+        if ($user->hasRole('super_admin')) {
             return true;
-        }
-
-        if (! $user->hasRole('accountant')) {
-            return false;
-        }
-
-        foreach ([
-            'api/v1/accounting',
-            'api/v1/accounting/*',
-        ] as $pattern) {
-            if ($request->is($pattern)) {
-                return true;
-            }
         }
 
         return false;

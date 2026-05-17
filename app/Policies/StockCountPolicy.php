@@ -5,6 +5,7 @@ namespace App\Policies;
 use App\Models\StockCount;
 use App\Models\User;
 use App\Policies\Concerns\HandlesTenantPolicy;
+use App\Services\Foundation\EditWindowService;
 
 class StockCountPolicy
 {
@@ -32,6 +33,7 @@ class StockCountPolicy
         return $user->can('inventory.count')
             && $this->belongsToSameBusiness($user, $stockCount)
             && $user->hasBranchAccess($stockCount->warehouse?->branch_id)
+            && $this->withinEditWindow($stockCount)
             && $stockCount->status === 'in_progress';
     }
 
@@ -40,6 +42,7 @@ class StockCountPolicy
         return $user->can('inventory.count')
             && $this->belongsToSameBusiness($user, $stockCount)
             && $user->hasBranchAccess($stockCount->warehouse?->branch_id)
+            && $this->withinEditWindow($stockCount)
             && in_array($stockCount->status, ['in_progress', 'completed'], true);
     }
 
@@ -48,6 +51,16 @@ class StockCountPolicy
         return $user->can('inventory.count')
             && $this->belongsToSameBusiness($user, $stockCount)
             && $user->hasBranchAccess($stockCount->warehouse?->branch_id)
+            && $this->withinEditWindow($stockCount)
             && $stockCount->status === 'in_progress';
+    }
+
+    protected function withinEditWindow(StockCount $stockCount): bool
+    {
+        return app(EditWindowService::class)->isWithinWindow(
+            $stockCount->date ?? $stockCount->created_at,
+            'stock',
+            'count_edit_lifetime_days',
+        );
     }
 }

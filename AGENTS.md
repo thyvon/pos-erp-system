@@ -32,9 +32,8 @@ Keep this file short. Use the plan docs for detail.
 - Preserve tenant isolation through `business_id` and existing tenant/global-scope patterns.
 - Preserve branch access:
   - `super_admin` bypasses globally.
-  - `admin` bypasses business branch scope.
-  - `accountant` only bypasses no-branch blocking for accounting routes.
-  - Other users with no assigned branches get `403 No branch access assigned`.
+  - Tenant roles, including `admin` and `accountant`, must use assigned branch access.
+  - Tenant users with no assigned branches get `403 No branch access assigned`.
 - Keep authorization in middleware/controllers/policies, not primarily in services.
 - Add or update tests when backend behavior changes.
 
@@ -47,6 +46,8 @@ Keep this file short. Use the plan docs for detail.
 - Keep shared types in `frontend/src/types/*`.
 - Page components must not call Axios directly. Use React Query for server state.
 - Reuse existing shared components for loading, empty states, row actions, confirmations, toasts, filters, selects, status displays, and branch-aware behavior.
+- Keep button styling consistent across the system: primary create/save/confirm actions use filled buttons, secondary navigation/cancel actions use outlined buttons, destructive actions use error styling, and table row view/edit/delete actions use the shared row action pattern.
+- Keep button sizing consistent: primary page/header actions, form footer actions, and dialog actions use the default MUI button size; secondary page-header navigation such as Back uses a small icon-only `IconButton` with a tooltip; dense table inline actions and icon-only row controls use `size="small"`.
 - New pages need loading, empty, validation, error, create, edit, and delete states where backend supports them.
 - Sidebar/routes should expose only implemented frontend pages.
 

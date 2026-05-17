@@ -1,0 +1,269 @@
+'use client'
+
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
+import { inventoryApi, stockAdjustmentsApi, stockCountsApi, stockTransfersApi } from './api'
+import type {
+  StockAdjustmentFilters,
+  StockAdjustmentPayload,
+  StockCountCompletePayload,
+  StockCountEntryPayload,
+  StockCountFilters,
+  StockCountItemFilters,
+  StockCountItemUpdatePayload,
+  StockCountPayload,
+  StockTransferFilters,
+  StockTransferPayload,
+} from '@/types/inventory'
+
+export const inventoryKeys = {
+  all: ['inventory'] as const,
+  options: () => [...inventoryKeys.all, 'options'] as const,
+  productLookup: (q: string, warehouseId?: string) =>
+    [...inventoryKeys.all, 'product-lookup', q, warehouseId ?? 'all'] as const,
+}
+
+export const stockAdjustmentKeys = {
+  all: ['stock-adjustments'] as const,
+  list: (filters: StockAdjustmentFilters) => [...stockAdjustmentKeys.all, 'list', filters] as const,
+  detail: (id: string) => [...stockAdjustmentKeys.all, 'detail', id] as const,
+}
+
+export const stockTransferKeys = {
+  all: ['stock-transfers'] as const,
+  list: (filters: StockTransferFilters) => [...stockTransferKeys.all, 'list', filters] as const,
+  detail: (id: string) => [...stockTransferKeys.all, 'detail', id] as const,
+}
+
+export const stockCountKeys = {
+  all: ['stock-counts'] as const,
+  list: (filters: StockCountFilters) => [...stockCountKeys.all, 'list', filters] as const,
+  detail: (id: string) => [...stockCountKeys.all, 'detail', id] as const,
+  items: (id: string, filters: StockCountItemFilters) => [...stockCountKeys.detail(id), 'items', filters] as const,
+}
+
+export function useInventoryOptionsQuery() {
+  return useQuery({
+    queryKey: inventoryKeys.options(),
+    queryFn: () => inventoryApi.options(),
+  })
+}
+
+export function useInventoryProductLookupQuery(q: string, warehouseId?: string) {
+  const term = q.trim()
+
+  return useQuery({
+    queryKey: inventoryKeys.productLookup(term, warehouseId),
+    queryFn: () => inventoryApi.productLookup({ q: term, warehouse_id: warehouseId }),
+    enabled: term.length >= 2,
+  })
+}
+
+export function useStockAdjustmentsQuery(filters: StockAdjustmentFilters) {
+  return useQuery({
+    queryKey: stockAdjustmentKeys.list(filters),
+    queryFn: () => stockAdjustmentsApi.list(filters),
+  })
+}
+
+export function useStockAdjustmentQuery(id: string | null) {
+  return useQuery({
+    queryKey: id ? stockAdjustmentKeys.detail(id) : [...stockAdjustmentKeys.all, 'detail', 'none'],
+    queryFn: () => stockAdjustmentsApi.show(id ?? ''),
+    enabled: !!id,
+  })
+}
+
+export function useCreateStockAdjustmentMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (payload: StockAdjustmentPayload) => stockAdjustmentsApi.create(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: stockAdjustmentKeys.all })
+      queryClient.invalidateQueries({ queryKey: inventoryKeys.all })
+    },
+  })
+}
+
+export function useUpdateStockAdjustmentMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: StockAdjustmentPayload }) =>
+      stockAdjustmentsApi.update(id, payload),
+    onSuccess: (adjustment) => {
+      queryClient.invalidateQueries({ queryKey: stockAdjustmentKeys.all })
+      queryClient.invalidateQueries({ queryKey: stockAdjustmentKeys.detail(adjustment.id) })
+      queryClient.invalidateQueries({ queryKey: inventoryKeys.all })
+    },
+  })
+}
+
+export function useStockTransfersQuery(filters: StockTransferFilters) {
+  return useQuery({
+    queryKey: stockTransferKeys.list(filters),
+    queryFn: () => stockTransfersApi.list(filters),
+  })
+}
+
+export function useStockTransferQuery(id: string | null) {
+  return useQuery({
+    queryKey: id ? stockTransferKeys.detail(id) : [...stockTransferKeys.all, 'detail', 'none'],
+    queryFn: () => stockTransfersApi.show(id ?? ''),
+    enabled: !!id,
+  })
+}
+
+export function useCreateStockTransferMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (payload: StockTransferPayload) => stockTransfersApi.create(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: stockTransferKeys.all })
+      queryClient.invalidateQueries({ queryKey: inventoryKeys.all })
+    },
+  })
+}
+
+export function useUpdateStockTransferMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: StockTransferPayload }) =>
+      stockTransfersApi.update(id, payload),
+    onSuccess: (transfer) => {
+      queryClient.invalidateQueries({ queryKey: stockTransferKeys.all })
+      queryClient.invalidateQueries({ queryKey: stockTransferKeys.detail(transfer.id) })
+      queryClient.invalidateQueries({ queryKey: inventoryKeys.all })
+    },
+  })
+}
+
+export function useDeleteStockTransferMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: string) => stockTransfersApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: stockTransferKeys.all })
+      queryClient.invalidateQueries({ queryKey: inventoryKeys.all })
+    },
+  })
+}
+
+export function useReceiveStockTransferMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: string) => stockTransfersApi.receive(id),
+    onSuccess: (transfer) => {
+      queryClient.invalidateQueries({ queryKey: stockTransferKeys.all })
+      queryClient.invalidateQueries({ queryKey: stockTransferKeys.detail(transfer.id) })
+      queryClient.invalidateQueries({ queryKey: inventoryKeys.all })
+    },
+  })
+}
+
+export function useStockCountsQuery(filters: StockCountFilters) {
+  return useQuery({
+    queryKey: stockCountKeys.list(filters),
+    queryFn: () => stockCountsApi.list(filters),
+  })
+}
+
+export function useStockCountQuery(id: string | null) {
+  return useQuery({
+    queryKey: id ? stockCountKeys.detail(id) : [...stockCountKeys.all, 'detail', 'none'],
+    queryFn: () => stockCountsApi.show(id ?? ''),
+    enabled: !!id,
+  })
+}
+
+export function useStockCountItemsQuery(id: string | null, filters: StockCountItemFilters) {
+  return useQuery({
+    queryKey: id ? stockCountKeys.items(id, filters) : [...stockCountKeys.all, 'items', 'none', filters],
+    queryFn: () => stockCountsApi.items(id ?? '', filters),
+    enabled: !!id,
+  })
+}
+
+export function useCreateStockCountMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (payload: StockCountPayload) => stockCountsApi.create(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: stockCountKeys.all })
+      queryClient.invalidateQueries({ queryKey: inventoryKeys.all })
+    },
+  })
+}
+
+export function useAddStockCountEntryMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: StockCountEntryPayload }) =>
+      stockCountsApi.addEntry(id, payload),
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: stockCountKeys.all })
+      queryClient.invalidateQueries({ queryKey: stockCountKeys.detail(count.id) })
+      queryClient.invalidateQueries({ queryKey: inventoryKeys.all })
+    },
+  })
+}
+
+export function useUpdateStockCountItemMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ countId, itemId, payload }: { countId: string; itemId: string; payload: StockCountItemUpdatePayload }) =>
+      stockCountsApi.updateItem(countId, itemId, payload),
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: stockCountKeys.all })
+      queryClient.invalidateQueries({ queryKey: stockCountKeys.detail(count.id) })
+      queryClient.invalidateQueries({ queryKey: inventoryKeys.all })
+    },
+  })
+}
+
+export function useDeleteStockCountItemMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ countId, itemId }: { countId: string; itemId: string }) =>
+      stockCountsApi.deleteItem(countId, itemId),
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: stockCountKeys.all })
+      queryClient.invalidateQueries({ queryKey: stockCountKeys.detail(count.id) })
+      queryClient.invalidateQueries({ queryKey: inventoryKeys.all })
+    },
+  })
+}
+
+export function useCompleteStockCountMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload?: StockCountCompletePayload }) =>
+      stockCountsApi.complete(id, payload ?? {}),
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: stockCountKeys.all })
+      queryClient.invalidateQueries({ queryKey: stockCountKeys.detail(count.id) })
+      queryClient.invalidateQueries({ queryKey: inventoryKeys.all })
+    },
+  })
+}
+
+export function useDeleteStockCountMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: string) => stockCountsApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: stockCountKeys.all })
+      queryClient.invalidateQueries({ queryKey: inventoryKeys.all })
+    },
+  })
+}

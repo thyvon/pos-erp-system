@@ -175,7 +175,7 @@ class UserApiTest extends TestCase
             ->assertJsonPath('data.default_branch_id', null);
     }
 
-    public function test_admin_cannot_assign_branch_access_to_admin_role(): void
+    public function test_admin_can_assign_branch_access_to_admin_role(): void
     {
         $business = Business::factory()->create();
         $actor = User::factory()->for($business)->create();
@@ -198,8 +198,10 @@ class UserApiTest extends TestCase
         ]);
 
         $response
-            ->assertForbidden()
-            ->assertJsonPath('success', false);
+            ->assertCreated()
+            ->assertJsonPath('data.roles.0', 'admin')
+            ->assertJsonPath('data.branch_ids.0', $branch->id)
+            ->assertJsonPath('data.default_branch_id', $branch->id);
     }
 
     public function test_admin_can_assign_branch_access_to_accountant_role(): void
@@ -231,7 +233,7 @@ class UserApiTest extends TestCase
             ->assertJsonPath('data.default_branch_id', $branch->id);
     }
 
-    public function test_update_to_admin_role_clears_existing_branch_access(): void
+    public function test_update_to_admin_role_preserves_existing_branch_access(): void
     {
         $business = Business::factory()->create();
         $actor = User::factory()->for($business)->create();
@@ -255,8 +257,8 @@ class UserApiTest extends TestCase
         $response
             ->assertOk()
             ->assertJsonPath('data.roles.0', 'admin')
-            ->assertJsonPath('data.branch_ids', [])
-            ->assertJsonPath('data.default_branch_id', null);
+            ->assertJsonPath('data.branch_ids.0', $branch->id)
+            ->assertJsonPath('data.default_branch_id', $branch->id);
     }
 
     public function test_user_create_update_and_delete_write_phase_four_audit_events(): void

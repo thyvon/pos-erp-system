@@ -16,6 +16,7 @@ return static function (): void {
     Route::get('inventory/adjustments', [StockAdjustmentController::class, 'index'])->middleware('can:inventory.index');
     Route::post('inventory/adjustments', [StockAdjustmentController::class, 'store'])->middleware('can:inventory.adjust');
     Route::get('inventory/adjustments/{stockAdjustment}', [StockAdjustmentController::class, 'show'])->middleware('can:inventory.index');
+    Route::put('inventory/adjustments/{stockAdjustment}', [StockAdjustmentController::class, 'update'])->middleware('can:inventory.adjust');
 
     Route::get('inventory/lots', [LotController::class, 'index'])->middleware('can:inventory.index');
     Route::get('inventory/lots/{stockLot}', [LotController::class, 'show'])->middleware('can:inventory.index');

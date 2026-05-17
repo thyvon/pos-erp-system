@@ -20,19 +20,20 @@ use App\Models\User;
 use App\Models\Warehouse;
 use App\Repositories\Sales\SaleRepository;
 use App\Services\Accounting\AccountingService;
+use App\Services\Foundation\EditWindowService;
 use App\Services\Foundation\SettingsService;
 use App\Services\AuditService;
 use App\Services\Inventory\StockMovementService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
-use Throwable;
 
 class SaleService
 {
     public function __construct(
         protected SaleRepository $sales,
         protected SettingsService $settings,
+        protected EditWindowService $editWindow,
         protected StockMovementService $stockMovementService,
         protected AccountingService $accountingService,
         protected AuditService $auditService,
@@ -900,7 +901,7 @@ class SaleService
             $this->failValidation('The selected cash register session belongs to another branch.');
         }
 
-        if ($actor && ! $actor->hasRole(['admin', 'super_admin']) && (string) $session->user_id !== (string) $actor->id) {
+        if ($actor && (string) $session->user_id !== (string) $actor->id && ! $actor->can('sales.edit')) {
             $this->failValidation('You can only use your own open cash register session.');
         }
 
@@ -1227,30 +1228,12 @@ class SaleService
             throw new InvalidStateTransitionException('This sale can no longer be edited.');
         }
 
-        $lifetimeDays = $this->saleEditLifetimeDays();
-
-        if ($lifetimeDays <= 0) {
-            return;
-        }
-
-        $referenceDate = $sale->sale_date ?? $sale->created_at;
-
-        if (! $referenceDate) {
-            return;
-        }
-
-        if (now()->startOfDay()->diffInDays($referenceDate->copy()->startOfDay()) > $lifetimeDays) {
-            throw new InvalidStateTransitionException('This sale is outside the allowed edit lifetime.');
-        }
-    }
-
-    protected function saleEditLifetimeDays(): int
-    {
-        try {
-            return max(0, (int) $this->settings->get('sales', 'edit_lifetime_days'));
-        } catch (Throwable) {
-            return 30;
-        }
+        $this->editWindow->assertWithinWindow(
+            $sale->sale_date ?? $sale->created_at,
+            'sales',
+            'edit_lifetime_days',
+            'This sale is outside the allowed edit lifetime.',
+        );
     }
 
     protected function failValidation(string $message): never

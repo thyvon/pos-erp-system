@@ -75,6 +75,67 @@ class InventoryWorkflowApiTest extends TestCase
         $forbiddenResponse->assertForbidden();
     }
 
+    public function test_inventory_manager_can_update_stock_adjustment_within_edit_window(): void
+    {
+        $business = Business::factory()->create();
+        $branch = Branch::factory()->create(['business_id' => $business->id]);
+        $warehouse = Warehouse::factory()->forBranch($branch)->create();
+        $unit = Unit::factory()->create(['business_id' => $business->id]);
+        $product = Product::factory()->create([
+            'business_id' => $business->id,
+            'unit_id' => $unit->id,
+            'track_inventory' => true,
+        ]);
+        $user = User::factory()->for($business)->create();
+        $user->assignRole('inventory_manager');
+        $user->branches()->attach($branch->id);
+
+        Sanctum::actingAs($user);
+
+        $createResponse = $this->postJson('/api/v1/inventory/adjustments', [
+            'warehouse_id' => $warehouse->id,
+            'date' => now()->toDateString(),
+            'reason' => 'Opening correction',
+            'items' => [[
+                'product_id' => $product->id,
+                'direction' => 'in',
+                'quantity' => 5,
+                'unit_cost' => 1.2,
+            ]],
+        ])->assertCreated();
+
+        $adjustmentId = $createResponse->json('data.id');
+
+        $this->putJson("/api/v1/inventory/adjustments/{$adjustmentId}", [
+            'warehouse_id' => $warehouse->id,
+            'date' => now()->toDateString(),
+            'reason' => 'Corrected opening count',
+            'items' => [[
+                'product_id' => $product->id,
+                'direction' => 'in',
+                'quantity' => 8,
+                'unit_cost' => 1.5,
+            ]],
+        ])->assertOk()
+            ->assertJsonPath('data.id', $adjustmentId)
+            ->assertJsonPath('data.reason', 'Corrected opening count')
+            ->assertJsonPath('data.items.0.quantity', '8.0000');
+
+        $this->assertDatabaseHas('stock_levels', [
+            'product_id' => $product->id,
+            'warehouse_id' => $warehouse->id,
+            'quantity' => '8.0000',
+            'reserved_quantity' => '0.0000',
+        ]);
+
+        $this->assertDatabaseHas('stock_adjustment_items', [
+            'stock_adjustment_id' => $adjustmentId,
+            'product_id' => $product->id,
+            'quantity' => '8.0000',
+            'unit_cost' => '1.5000',
+        ]);
+    }
+
     public function test_cross_branch_transfer_appears_in_both_sides_transfer_lists(): void
     {
         $business = Business::factory()->create();
@@ -273,7 +334,75 @@ class InventoryWorkflowApiTest extends TestCase
         ]);
     }
 
-    public function test_admin_can_see_business_transfers_without_explicit_branch_assignment(): void
+    public function test_inventory_manager_can_delete_in_transit_transfer_before_received(): void
+    {
+        $business = Business::factory()->create();
+        $branchA = Branch::factory()->create(['business_id' => $business->id]);
+        $branchB = Branch::factory()->create(['business_id' => $business->id]);
+        $warehouseA = Warehouse::factory()->forBranch($branchA)->create();
+        $warehouseB = Warehouse::factory()->forBranch($branchB)->create();
+        $unit = Unit::factory()->create(['business_id' => $business->id]);
+        $product = Product::factory()->create([
+            'business_id' => $business->id,
+            'unit_id' => $unit->id,
+            'track_inventory' => true,
+        ]);
+        $user = User::factory()->for($business)->create();
+        $user->assignRole('inventory_manager');
+        $user->branches()->attach([$branchA->id, $branchB->id]);
+
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/v1/inventory/adjustments', [
+            'warehouse_id' => $warehouseA->id,
+            'date' => now()->toDateString(),
+            'reason' => 'Seed stock',
+            'items' => [[
+                'product_id' => $product->id,
+                'direction' => 'in',
+                'quantity' => 12,
+                'unit_cost' => 2,
+            ]],
+        ])->assertCreated();
+
+        $transferResponse = $this->postJson('/api/v1/inventory/transfers', [
+            'from_warehouse_id' => $warehouseA->id,
+            'to_warehouse_id' => $warehouseB->id,
+            'date' => now()->toDateString(),
+            'send' => true,
+            'items' => [[
+                'product_id' => $product->id,
+                'quantity' => 5,
+                'unit_cost' => 2,
+            ]],
+        ])->assertCreated()
+            ->assertJsonPath('data.status', 'in_transit');
+
+        $transferId = $transferResponse->json('data.id');
+
+        $this->assertDatabaseHas('stock_levels', [
+            'product_id' => $product->id,
+            'warehouse_id' => $warehouseA->id,
+            'quantity' => '12.0000',
+            'reserved_quantity' => '5.0000',
+        ]);
+
+        $this->deleteJson("/api/v1/inventory/transfers/{$transferId}")
+            ->assertOk();
+
+        $this->assertSoftDeleted('stock_transfers', [
+            'id' => $transferId,
+        ]);
+
+        $this->assertDatabaseHas('stock_levels', [
+            'product_id' => $product->id,
+            'warehouse_id' => $warehouseA->id,
+            'quantity' => '12.0000',
+            'reserved_quantity' => '0.0000',
+        ]);
+    }
+
+    public function test_admin_requires_branch_assignment_for_inventory_transfers(): void
     {
         $business = Business::factory()->create();
         $branchA = Branch::factory()->create(['business_id' => $business->id]);
@@ -323,6 +452,13 @@ class InventoryWorkflowApiTest extends TestCase
         $admin->assignRole('admin');
 
         Sanctum::actingAs($admin);
+
+        $this->getJson('/api/v1/inventory/transfers')
+            ->assertForbidden()
+            ->assertJsonPath('message', 'No branch access assigned. Contact your administrator.');
+
+        $admin->branches()->sync([$branchA->id]);
+        $admin->forceFill(['default_branch_id' => $branchA->id])->save();
 
         $this->getJson('/api/v1/inventory/transfers')
             ->assertOk()

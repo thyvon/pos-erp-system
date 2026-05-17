@@ -3,6 +3,7 @@
 namespace Tests\Feature\Api\V1\Accounting;
 
 use App\Models\Business;
+use App\Models\Branch;
 use App\Models\ChartOfAccount;
 use App\Models\PaymentAccount;
 use App\Models\User;
@@ -25,8 +26,11 @@ class AccountingApiTest extends TestCase
     public function test_accountant_can_view_seeded_chart_of_accounts_and_cannot_edit_system_account(): void
     {
         $business = Business::factory()->create();
+        $branch = Branch::factory()->for($business)->create();
         $user = User::factory()->for($business)->create();
         $user->assignRole('accountant');
+        $user->branches()->sync([$branch->id]);
+        $user->forceFill(['default_branch_id' => $branch->id])->save();
 
         Sanctum::actingAs($user);
 
@@ -47,8 +51,11 @@ class AccountingApiTest extends TestCase
     public function test_accountant_can_post_and_reverse_manual_journal(): void
     {
         $business = Business::factory()->create();
+        $branch = Branch::factory()->for($business)->create();
         $user = User::factory()->for($business)->create();
         $user->assignRole('accountant');
+        $user->branches()->sync([$branch->id]);
+        $user->forceFill(['default_branch_id' => $branch->id])->save();
 
         $cash = ChartOfAccount::withoutGlobalScopes()
             ->where('business_id', $business->id)
@@ -98,8 +105,11 @@ class AccountingApiTest extends TestCase
     public function test_payment_account_transfer_creates_transactions_and_audit_log(): void
     {
         $business = Business::factory()->create();
+        $branch = Branch::factory()->for($business)->create();
         $user = User::factory()->for($business)->create();
         $user->assignRole('accountant');
+        $user->branches()->sync([$branch->id]);
+        $user->forceFill(['default_branch_id' => $branch->id])->save();
 
         $cash = ChartOfAccount::withoutGlobalScopes()
             ->where('business_id', $business->id)
@@ -161,8 +171,11 @@ class AccountingApiTest extends TestCase
     public function test_only_one_active_fiscal_year_is_allowed(): void
     {
         $business = Business::factory()->create();
+        $branch = Branch::factory()->for($business)->create();
         $user = User::factory()->for($business)->create();
         $user->assignRole('accountant');
+        $user->branches()->sync([$branch->id]);
+        $user->forceFill(['default_branch_id' => $branch->id])->save();
 
         Sanctum::actingAs($user);
 

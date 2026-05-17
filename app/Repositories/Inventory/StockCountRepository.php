@@ -57,4 +57,38 @@ class StockCountRepository extends BaseRepository
 
         return $query->paginate($perPage)->withQueryString();
     }
+
+    public function paginateItems(StockCount $count, array $filters): LengthAwarePaginator
+    {
+        $perPage = max(1, min((int) ($filters['per_page'] ?? 25), 100));
+        $search = trim((string) ($filters['search'] ?? ''));
+
+        $query = $count->items()
+            ->with(['product', 'variation', 'lot'])
+            ->orderByRaw('case when counted_quantity is null then 1 else 0 end')
+            ->orderBy('product_id')
+            ->orderBy('variation_id')
+            ->orderBy('lot_id');
+
+        if ($search !== '') {
+            $query->where(function ($builder) use ($search): void {
+                $builder
+                    ->whereHas('product', function ($productQuery) use ($search): void {
+                        $productQuery
+                            ->where('name', 'like', "%{$search}%")
+                            ->orWhere('sku', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('variation', function ($variationQuery) use ($search): void {
+                        $variationQuery
+                            ->where('name', 'like', "%{$search}%")
+                            ->orWhere('sku', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('lot', function ($lotQuery) use ($search): void {
+                        $lotQuery->where('lot_number', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        return $query->paginate($perPage)->withQueryString();
+    }
 }

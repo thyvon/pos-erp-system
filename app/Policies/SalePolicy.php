@@ -5,9 +5,8 @@ namespace App\Policies;
 use App\Models\Sale;
 use App\Models\User;
 use App\Policies\Concerns\HandlesTenantPolicy;
-use App\Services\Foundation\SettingsService;
+use App\Services\Foundation\EditWindowService;
 use Carbon\CarbonInterface;
-use Throwable;
 
 class SalePolicy
 {
@@ -93,29 +92,14 @@ class SalePolicy
             return false;
         }
 
-        $lifetimeDays = $this->saleEditLifetimeDays();
-
-        if ($lifetimeDays <= 0) {
-            return true;
-        }
-
         $referenceDate = $sale->sale_date instanceof CarbonInterface
             ? $sale->sale_date->copy()->startOfDay()
             : $sale->created_at?->copy()->startOfDay();
 
-        if (! $referenceDate) {
-            return true;
-        }
-
-        return now()->startOfDay()->diffInDays($referenceDate) <= $lifetimeDays;
-    }
-
-    protected function saleEditLifetimeDays(): int
-    {
-        try {
-            return max(0, (int) app(SettingsService::class)->get('sales', 'edit_lifetime_days'));
-        } catch (Throwable) {
-            return 30;
-        }
+        return app(EditWindowService::class)->isWithinWindow(
+            $referenceDate,
+            'sales',
+            'edit_lifetime_days',
+        );
     }
 }

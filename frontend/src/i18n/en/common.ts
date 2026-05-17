@@ -4,6 +4,7 @@ export default {
     cancel: 'Cancel',
     delete: 'Delete',
     edit: 'Edit',
+    view: 'View',
     add: 'Add',
     search: 'Search',
     filter: 'Filter',

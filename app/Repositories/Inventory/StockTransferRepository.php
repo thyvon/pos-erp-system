@@ -77,7 +77,7 @@ class StockTransferRepository extends BaseRepository
                 filled($filters['date_to'] ?? null),
                 fn ($query) => $query->whereDate('date', '<=', $filters['date_to'])
             )
-            ->when($user && ! $user->hasRole(['super_admin', 'admin']), function ($query) use ($user): void {
+            ->when($user && ! $user->hasRole('super_admin'), function ($query) use ($user): void {
                 $query->where(function ($transferQuery) use ($user): void {
                     $transferQuery
                         ->whereHas('fromWarehouse', fn ($warehouseQuery) => BranchAccess::scopeBranchQuery($warehouseQuery, $user, 'branch_id'))

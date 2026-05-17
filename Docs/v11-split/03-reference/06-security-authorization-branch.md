@@ -22,10 +22,9 @@ The permission seeder includes permissions for both implemented and future modul
 
 Current branch behavior must be documented exactly:
 
-- `super_admin`: global bypass
-- `admin`: business-wide branch bypass
-- `accountant`: still branch-aware generally, but not blocked from accounting routes when unassigned
-- other non-bypass roles: must have at least one assigned branch to use the app
+- `super_admin`: platform administration bypass
+- tenant roles, including `admin` and `accountant`: branch access comes from assigned branches
+- tenant users must have at least one assigned branch to use tenant API routes
 
 ### 6.4 Policy Expectations
 
@@ -42,4 +41,3 @@ For implemented modules:
 - all API failures must stay JSON-shaped for API routes
 
 ---
-

@@ -40,6 +40,9 @@ class DefaultSettings
             ['group' => 'stock', 'key' => 'lot_expiry_alert_days', 'value' => '30', 'type' => 'integer', 'is_encrypted' => false],
             ['group' => 'stock', 'key' => 'default_lot_selection', 'value' => 'fefo', 'type' => 'string', 'is_encrypted' => false],
             ['group' => 'stock', 'key' => 'enable_rack_location', 'value' => '0', 'type' => 'boolean', 'is_encrypted' => false],
+            ['group' => 'stock', 'key' => 'adjustment_edit_lifetime_days', 'value' => '30', 'type' => 'integer', 'is_encrypted' => false],
+            ['group' => 'stock', 'key' => 'transfer_edit_lifetime_days', 'value' => '30', 'type' => 'integer', 'is_encrypted' => false],
+            ['group' => 'stock', 'key' => 'count_edit_lifetime_days', 'value' => '30', 'type' => 'integer', 'is_encrypted' => false],
 
             ['group' => 'email', 'key' => 'driver', 'value' => 'smtp', 'type' => 'string', 'is_encrypted' => false],
             ['group' => 'email', 'key' => 'host', 'value' => '127.0.0.1', 'type' => 'string', 'is_encrypted' => false],

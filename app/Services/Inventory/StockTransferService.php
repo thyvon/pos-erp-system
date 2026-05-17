@@ -10,6 +10,7 @@ use App\Models\StockTransferItem;
 use App\Models\User;
 use App\Models\Warehouse;
 use App\Repositories\Inventory\StockTransferRepository;
+use App\Services\Foundation\EditWindowService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
@@ -17,6 +18,7 @@ class StockTransferService
 {
     public function __construct(
         protected StockTransferRepository $transfers,
+        protected EditWindowService $editWindow,
         protected StockMovementService $stockMovementService,
     ) {
     }
@@ -174,6 +176,8 @@ class StockTransferService
                 throw new DomainException('Only pending or in-transit transfers can be edited.', 422);
             }
 
+            $this->assertTransferWithinEditWindow($lockedTransfer);
+
             $fromWarehouse = $this->resolveWarehouse($businessId, $data['from_warehouse_id']);
             $toWarehouse = $this->resolveWarehouse($businessId, $data['to_warehouse_id']);
             $shouldSend = $this->shouldSend($data) || $lockedTransfer->status === 'in_transit';
@@ -249,9 +253,11 @@ class StockTransferService
                 throw new DomainException('Selected transfer is invalid for this business.', 422);
             }
 
-            if ($lockedTransfer->status !== 'pending') {
-                throw new DomainException('Only pending transfers can be deleted.', 422);
+            if (! in_array($lockedTransfer->status, ['pending', 'in_transit'], true)) {
+                throw new DomainException('Only pending or in-transit transfers can be deleted.', 422);
             }
+
+            $this->assertTransferWithinEditWindow($lockedTransfer);
 
             foreach ($lockedTransfer->items as $existingItem) {
                 $this->releasePendingTransferItem($businessId, $lockedTransfer, $existingItem);
@@ -260,6 +266,16 @@ class StockTransferService
             $lockedTransfer->items()->delete();
             $lockedTransfer->delete();
         });
+    }
+
+    protected function assertTransferWithinEditWindow(StockTransfer $transfer): void
+    {
+        $this->editWindow->assertWithinWindow(
+            $transfer->date ?? $transfer->created_at,
+            'stock',
+            'transfer_edit_lifetime_days',
+            'This stock transfer is outside the allowed edit lifetime.',
+        );
     }
 
     protected function resolveWarehouse(string $businessId, string $warehouseId): Warehouse

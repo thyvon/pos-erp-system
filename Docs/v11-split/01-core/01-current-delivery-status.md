@@ -46,8 +46,8 @@ These areas exist in permissions, old plans, or placeholders, but are **not full
 
 The codebase differs from older v10 planning in important ways:
 
-- `admin` and `super_admin` both bypass branch scope globally.
-- `accountant` bypasses branch-assignment blocking only for accounting routes.
+- `super_admin` bypasses branch scope for platform administration.
+- Tenant roles, including `admin` and `accountant`, require assigned branch access.
 - `AuditService` currently writes directly to `audit_logs` inside a guarded `try/catch`; it is **not queue-dispatched** yet.
 - `BaseRepository` is a thin CRUD abstraction; Redis caching is **not implemented** there yet.
 - There is no shared `Auditable` trait in the current codebase.

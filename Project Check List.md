@@ -29,6 +29,33 @@
 - [x] Stabilized full backend test suite for branch access, stock count live edits/removal/completion corrections, serial movement validation, supplier branch setup, and admin branch-bypass behavior.
 - [x] Full backend suite verified with `php artisan test` passing 149 tests and 564 assertions.
 
+## Inventory Frontend Rebuild
+
+- [x] Stock Adjustments page, create form, inventory API hooks, types, product lookup, filters, detail view, and translations are present.
+- [x] Stock Adjustments edit support added with shared form reuse, adjustment update API, and duration-based backend edit-window enforcement.
+- [x] Stock Adjustments frontend type-check and lint verified.
+- [x] Stock Transfers list, dedicated create/edit pages, dedicated detail page, reusable product lookup, filters, delete/receive actions, API hooks, types, and translations are present.
+- [x] Stock Transfer buttons follow the shared UI standard: filled create/save/receive, small icon-only page-header back actions, outlined form cancel, default form/dialog action sizing, small dense table actions, shared row actions, and confirmed receive from the detail page.
+- [x] Stock Transfer form item lines use a bordered, horizontally scrollable, fixed-layout table consistent with the product variation matrix pattern.
+- [x] Stock Counts list, dedicated create page, dedicated count workflow detail page, count entry/correction/delete/complete actions, API hooks, types, breadcrumbs, and translations are present.
+- [x] Stock Counts frontend type-check and lint verified; lint still reports only the existing anonymous-default-export translation warnings.
+- [x] Stock Counts actual counted quantity entry simplified into one-screen inline table inputs on create and detail pages, removing the hidden correction-dialog workflow.
+- [x] Stock Count backend service refactored to match inventory service/repository standards with item pagination in the repository and focused workflow helpers for locking, status checks, entries, corrections, deletion, completion, and audit payloads.
+- [x] Stock Count backend refactor verified with focused stock count tests and the full inventory feature test directory.
+- [x] Stock Count seeded items can now be explicitly marked as zero counted quantity and still post the expected completion correction.
+
+## Edit Window Policy
+
+- [x] Shared edit-window service added with per-feature lifetime-day settings pattern.
+- [x] Sales edit lifetime refactored to use the shared edit-window service.
+- [x] Stock adjustment, transfer, and count edit lifetime settings added; transfer and count edit endpoints enforce the shared window.
+
+## Authorization And Branch Scope
+
+- [x] Admin branch bypass removed; tenant admins now require assigned branches like other tenant users.
+- [x] User management allows admin branch assignments instead of clearing or rejecting them.
+- [x] Cash register and journal role shortcuts replaced with permission-based checks.
+
 ## Important Reminders
 
 - `AGENTS.md` was shortened to main points only and now references the actual `Docs/v11-split/00-INDEX.md` filename.

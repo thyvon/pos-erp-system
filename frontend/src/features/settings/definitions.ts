@@ -91,6 +91,9 @@ export const SETTINGS_GROUPS: SettingsGroupDefinition[] = [
         ],
       },
       { key: 'enable_rack_location', type: 'boolean' },
+      { key: 'adjustment_edit_lifetime_days', type: 'number' },
+      { key: 'transfer_edit_lifetime_days', type: 'number' },
+      { key: 'count_edit_lifetime_days', type: 'number' },
     ],
   },
   {

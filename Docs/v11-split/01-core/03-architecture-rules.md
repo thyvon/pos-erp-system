@@ -30,9 +30,9 @@ The intended request path in current code is:
 
 - `BranchScopeMiddleware` sets `app('branch_scope')`.
 - `BelongsToBranch` applies `whereIn(branch_id, allowedIds)` globally for branch-scoped models.
-- `admin` and `super_admin` bypass branch scope.
-- `accountant` may bypass branch-assignment blocking for accounting endpoints only.
-- A non-bypass user with zero assigned branches receives `403 No branch access assigned`.
+- `super_admin` bypasses branch scope for platform administration.
+- Tenant roles, including `admin` and `accountant`, use assigned branch access.
+- A tenant user with zero assigned branches receives `403 No branch access assigned`.
 
 ### 3.5 Authorization Model
 

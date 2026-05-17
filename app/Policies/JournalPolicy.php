@@ -28,8 +28,7 @@ class JournalPolicy
 
     public function reverse(User $user, Journal $journal): bool
     {
-        return ($user->hasRole('admin') || $user->hasRole('accountant'))
-            && ($user->can('accounting.journals') || $user->can('accounting.index'))
+        return ($user->can('accounting.journals') || $user->can('accounting.index'))
             && $this->belongsToSameBusiness($user, $journal);
     }
 

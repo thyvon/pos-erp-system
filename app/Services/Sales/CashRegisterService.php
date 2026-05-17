@@ -231,8 +231,8 @@ class CashRegisterService
 
             if (
                 $actor
-                && ! $actor->hasRole(['admin', 'super_admin', 'manager'])
                 && (string) $lockedSession->user_id !== (string) $actor->id
+                && ! $actor->can('sales.edit')
             ) {
                 throw new DomainException('You can only close your own open cash register session.', 422);
             }

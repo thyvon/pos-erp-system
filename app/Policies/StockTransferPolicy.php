@@ -5,6 +5,7 @@ namespace App\Policies;
 use App\Models\StockTransfer;
 use App\Models\User;
 use App\Policies\Concerns\HandlesTenantPolicy;
+use App\Services\Foundation\EditWindowService;
 
 class StockTransferPolicy
 {
@@ -43,14 +44,11 @@ class StockTransferPolicy
 
     public function update(User $user, StockTransfer $transfer): bool
     {
-        $isOwner = (string) $transfer->created_by === (string) $user->id;
-        $hasAdminBypass = $user->hasRole('admin');
-
         return ! $this->isPlatformOnlyUser($user)
             && $user->can('inventory.transfer')
             && $this->belongsToSameBusiness($user, $transfer)
             && in_array($transfer->status, ['pending', 'in_transit'], true)
-            && ($isOwner || $hasAdminBypass)
+            && app(EditWindowService::class)->isWithinWindow($transfer->date ?? $transfer->created_at, 'stock', 'transfer_edit_lifetime_days')
             && $user->hasBranchAccess($transfer->fromWarehouse?->branch_id);
     }
 

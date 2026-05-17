@@ -4,6 +4,7 @@ export default {
     cancel: 'បោះបង់',
     delete: 'លុប',
     edit: 'កែប្រែ',
+    view: 'មើល',
     add: 'បន្ថែម',
     search: 'ស្វែងរក',
     filter: 'តម្រង',

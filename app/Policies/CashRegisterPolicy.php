@@ -24,37 +24,33 @@ class CashRegisterPolicy
 
     public function create(User $user): bool
     {
-        return $user->hasRole(['admin', 'manager']) && $user->can('sales.create');
+        return $user->can('sales.edit');
     }
 
     public function update(User $user, CashRegister $cashRegister): bool
     {
-        return $user->hasRole(['admin', 'manager'])
-            && $user->can('sales.edit')
+        return $user->can('sales.edit')
             && $this->belongsToSameBusiness($user, $cashRegister)
             && $user->hasBranchAccess($cashRegister->branch_id);
     }
 
     public function delete(User $user, CashRegister $cashRegister): bool
     {
-        return $user->hasRole(['admin', 'manager'])
-            && $user->can('sales.edit')
+        return $user->can('sales.edit')
             && $this->belongsToSameBusiness($user, $cashRegister)
             && $user->hasBranchAccess($cashRegister->branch_id);
     }
 
     public function openSession(User $user, CashRegister $cashRegister): bool
     {
-        return $user->hasRole(['admin', 'manager', 'cashier'])
-            && $user->can('sales.create')
+        return $user->can('sales.create')
             && $this->belongsToSameBusiness($user, $cashRegister)
             && $user->hasBranchAccess($cashRegister->branch_id);
     }
 
     public function closeSession(User $user, CashRegister $cashRegister): bool
     {
-        return $user->hasRole(['admin', 'manager', 'cashier'])
-            && $user->can('sales.create')
+        return $user->can('sales.create')
             && $this->belongsToSameBusiness($user, $cashRegister)
             && $user->hasBranchAccess($cashRegister->branch_id);
     }

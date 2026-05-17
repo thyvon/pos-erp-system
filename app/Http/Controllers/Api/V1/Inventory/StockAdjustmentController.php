@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Api\V1\Inventory;
 
 use App\Http\Controllers\Api\V1\BaseApiController;
 use App\Http\Requests\Inventory\StoreStockAdjustmentRequest;
+use App\Http\Requests\Inventory\UpdateStockAdjustmentRequest;
 use App\Http\Resources\Inventory\StockAdjustmentResource;
 use App\Models\StockAdjustment;
 use App\Services\Inventory\StockAdjustmentService;
@@ -51,5 +52,19 @@ class StockAdjustmentController extends BaseApiController
         return $this->success(new StockAdjustmentResource(
             $stockAdjustment->load(['warehouse.branch', 'creator', 'items.product', 'items.variation', 'items.lot', 'items.serial'])
         ));
+    }
+
+    public function update(UpdateStockAdjustmentRequest $request, StockAdjustment $stockAdjustment): JsonResponse
+    {
+        $this->authorize('update', $stockAdjustment);
+
+        $adjustment = $this->adjustmentService->update(
+            $request->user()->business_id,
+            $stockAdjustment,
+            $request->validated(),
+            $request->user()
+        );
+
+        return $this->success(new StockAdjustmentResource($adjustment), 'Stock adjustment updated successfully.');
     }
 }
