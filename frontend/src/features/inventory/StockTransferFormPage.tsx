@@ -35,7 +35,6 @@ import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
-import { TableStateRow } from '@/components/ui/TableStateRow'
 import { InventoryProductLookupPicker } from './components/InventoryProductLookupPicker'
 import {
   useCreateStockTransferMutation,
@@ -218,7 +217,11 @@ export function StockTransferFormPage({ transferId }: StockTransferFormPageProps
   }
 
   if (isEdit && transferQuery.isLoading) {
-    return <TableStateRow colSpan={1} loading />
+    return (
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+        <CircularProgress />
+      </Box>
+    )
   }
 
   return (

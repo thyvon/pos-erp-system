@@ -34,6 +34,7 @@ import { RowActions } from '@/components/ui/RowActions'
 import { TableStateRow } from '@/components/ui/TableStateRow'
 import { useDeleteStockCountMutation, useInventoryOptionsQuery, useStockCountsQuery } from '@/features/inventory/hooks'
 import { useAuthStore } from '@/stores/authStore'
+import { formatAppDate, getAppDateLocale } from '@/utils/dateFormat'
 import type { StockCount, StockCountFilters, StockCountStatus } from '@/types/inventory'
 
 const rowsPerPageOptions = [10, 25, 50]
@@ -43,7 +44,7 @@ function statusColor(status: StockCountStatus) {
 }
 
 export default function StockCountsPage() {
-  const { t } = useTranslation(['inventory', 'common'])
+  const { t, i18n } = useTranslation(['inventory', 'common'])
   const router = useRouter()
   const { enqueueSnackbar } = useSnackbar()
   const can = useAuthStore((state) => state.can)
@@ -76,6 +77,7 @@ export default function StockCountsPage() {
   const warehouses = optionsQuery.data?.warehouses ?? []
   const meta = countsQuery.data?.meta
   const canCount = can('inventory.count')
+  const dateLocale = getAppDateLocale(i18n.language)
 
   const confirmDelete = async () => {
     if (!deletingCount) return
@@ -225,7 +227,7 @@ export default function StockCountsPage() {
                     <TableCell>
                       <Typography variant="subtitle2">{count.reference_no}</Typography>
                     </TableCell>
-                    <TableCell>{count.date}</TableCell>
+                    <TableCell>{formatAppDate(count.date, dateLocale)}</TableCell>
                     <TableCell>
                       <Stack spacing={0.25}>
                         <Typography variant="body2">{count.warehouse?.name ?? '-'}</Typography>

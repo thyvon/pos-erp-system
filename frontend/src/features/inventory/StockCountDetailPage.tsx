@@ -36,6 +36,7 @@ import {
   useStockCountItemsQuery,
   useStockCountQuery,
 } from './hooks'
+import { formatAppDate, getAppDateLocale } from '@/utils/dateFormat'
 import type { StockCountItem, StockCountStatus } from '@/types/inventory'
 
 interface StockCountDetailPageProps {
@@ -70,7 +71,7 @@ function getEndingBalance(item: StockCountItem) {
 }
 
 export function StockCountDetailPage({ countId }: StockCountDetailPageProps) {
-  const { t } = useTranslation(['inventory', 'common'])
+  const { t, i18n } = useTranslation(['inventory', 'common'])
   const router = useRouter()
   const { enqueueSnackbar } = useSnackbar()
   const can = useAuthStore((state) => state.can)
@@ -97,6 +98,7 @@ export function StockCountDetailPage({ countId }: StockCountDetailPageProps) {
   const meta = itemsQuery.data?.meta
   const canCount = can('inventory.count')
   const isInProgress = count?.status === 'in_progress'
+  const dateLocale = getAppDateLocale(i18n.language)
 
   const confirmComplete = async () => {
     await completeCount.mutateAsync({ id: countId })
@@ -168,7 +170,7 @@ export function StockCountDetailPage({ countId }: StockCountDetailPageProps) {
                   <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                     {t('counts.fields.date')}
                   </Typography>
-                  <Typography variant="body2">{count.date}</Typography>
+                  <Typography variant="body2">{formatAppDate(count.date, dateLocale)}</Typography>
                 </Box>
                 <Box>
                   <Typography variant="caption" sx={{ color: 'text.secondary' }}>

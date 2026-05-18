@@ -42,6 +42,7 @@ import {
   useUpdateStockAdjustmentMutation,
 } from '@/features/inventory/hooks'
 import { useAuthStore } from '@/stores/authStore'
+import { formatAppDate, getAppDateLocale } from '@/utils/dateFormat'
 import type { StockAdjustment, StockAdjustmentFilters, StockAdjustmentPayload } from '@/types/inventory'
 
 const rowsPerPageOptions = [10, 25, 50]
@@ -53,7 +54,7 @@ function formatQuantity(value: string | number | null | undefined) {
 }
 
 export default function StockAdjustmentsPage() {
-  const { t } = useTranslation(['inventory', 'common'])
+  const { t, i18n } = useTranslation(['inventory', 'common'])
   const { enqueueSnackbar } = useSnackbar()
   const can = useAuthStore((state) => state.can)
   const [search, setSearch] = useState('')
@@ -90,6 +91,7 @@ export default function StockAdjustmentsPage() {
   const canCreate = can('inventory.adjust')
   const selectedAdjustment = detailQuery.data ?? viewingAdjustment
   const isSaving = createAdjustment.isPending || updateAdjustment.isPending
+  const dateLocale = getAppDateLocale(i18n.language)
 
   const handleSubmit = async (payload: StockAdjustmentPayload) => {
     if (editingAdjustment) {
@@ -246,7 +248,7 @@ export default function StockAdjustmentsPage() {
                     <TableCell>
                       <Typography variant="subtitle2">{adjustment.reference_no}</Typography>
                     </TableCell>
-                    <TableCell>{adjustment.date}</TableCell>
+                    <TableCell>{formatAppDate(adjustment.date, dateLocale)}</TableCell>
                     <TableCell>
                       <Stack spacing={0.25}>
                         <Typography variant="body2">{adjustment.warehouse?.name ?? '-'}</Typography>
@@ -326,7 +328,7 @@ export default function StockAdjustmentsPage() {
                   <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                     {t('adjustments.fields.date')}
                   </Typography>
-                  <Typography variant="body2">{selectedAdjustment.date}</Typography>
+                  <Typography variant="body2">{formatAppDate(selectedAdjustment.date, dateLocale)}</Typography>
                 </Box>
                 <Box>
                   <Typography variant="caption" sx={{ color: 'text.secondary' }}>

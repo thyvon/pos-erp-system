@@ -128,6 +128,12 @@ const inventory = {
     detail: {
       title: 'Stock transfer detail',
       subtitle: 'Review warehouses, status, handlers, and transferred items.',
+      movement: 'Warehouse movement',
+      movementHelp: 'Source and destination warehouse for this transfer.',
+      items: 'Transfer lines',
+      itemsHelp: 'Products, lots, serials, quantities, and unit costs included in this movement.',
+      sentAt: 'Sent at',
+      receivedAt: 'Received at',
     },
     confirmDelete: {
       title: 'Delete stock transfer',

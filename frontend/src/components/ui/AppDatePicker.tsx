@@ -1,9 +1,9 @@
 'use client'
 
 import dayjs, { type Dayjs } from 'dayjs'
-import 'dayjs/locale/km'
 import { DatePicker } from '@mui/x-date-pickers/DatePicker'
 import { useTranslation } from 'react-i18next'
+import { getAppDateDisplayFormat, getAppDateLocale } from '@/utils/dateFormat'
 
 interface AppDatePickerProps {
   label: string
@@ -50,15 +50,14 @@ export function AppDatePicker({
   maxDate,
 }: AppDatePickerProps) {
   const { i18n } = useTranslation()
-  const locale = i18n.language.startsWith('km') ? 'km' : 'en'
-  const displayFormat = locale === 'km' ? 'D MMMM YYYY' : 'MMMM D, YYYY'
+  const locale = getAppDateLocale(i18n.language)
 
   return (
     <DatePicker
       label={label}
       value={toDayjs(value, locale)}
       onChange={(nextValue) => onChange(toDateString(nextValue))}
-      format={displayFormat}
+      format={getAppDateDisplayFormat(locale)}
       disabled={disabled}
       disableFuture={disableFuture}
       disablePast={disablePast}

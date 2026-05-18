@@ -42,6 +42,7 @@ import {
   useStockCountQuery,
   useUpdateStockCountEntryMutation,
 } from './hooks'
+import { formatAppDateTime, getAppDateLocale } from '@/utils/dateFormat'
 import type { InventoryProductLookupItem, StockCountEntry, StockCountItem, StockCountStatus } from '@/types/inventory'
 
 interface StockCountEntryPageProps {
@@ -69,7 +70,7 @@ function getEndingBalance(item: StockCountItem) {
 }
 
 export function StockCountEntryPage({ countId }: StockCountEntryPageProps) {
-  const { t } = useTranslation(['inventory', 'common'])
+  const { t, i18n } = useTranslation(['inventory', 'common'])
   const router = useRouter()
   const { enqueueSnackbar } = useSnackbar()
   const can = useAuthStore((state) => state.can)
@@ -89,6 +90,7 @@ export function StockCountEntryPage({ countId }: StockCountEntryPageProps) {
   const count = countQuery.data
   const canCount = can('inventory.count')
   const canRecordEntries = canCount && count?.status === 'in_progress'
+  const dateLocale = getAppDateLocale(i18n.language)
   const selectedItemSearch = selectedItem?.sku ?? selectedItem?.product_name ?? selectedItem?.label ?? undefined
 
   const selectedItemsQuery = useStockCountItemsQuery(countId, {
@@ -501,7 +503,7 @@ export function StockCountEntryPage({ countId }: StockCountEntryPageProps) {
                       <TableCell align="right">{formatQuantity(entry.quantity)}</TableCell>
                       <TableCell align="right">{formatQuantity(entry.unit_cost)}</TableCell>
                       <TableCell>{entry.creator?.name ?? '-'}</TableCell>
-                      <TableCell>{entry.created_at ? new Date(entry.created_at).toLocaleString() : '-'}</TableCell>
+                      <TableCell>{formatAppDateTime(entry.created_at, dateLocale)}</TableCell>
                       <TableCell align="right">
                         {canRecordEntries ? (
                           <Tooltip title={t('counts.actions.editEntry')}>

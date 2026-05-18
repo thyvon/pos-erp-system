@@ -51,6 +51,9 @@
 - [x] Stock Count entry page now puts the product picker above the entry row, shows selected product info beside count quantity, and refreshes the entry table immediately after recording.
 - [x] Stock Count entry page now includes a live count item totals table and refreshes it after each recorded entry so counted totals update immediately.
 - [x] Stock Count entry history rows can be edited while in progress, applying the quantity delta back to unique item counted totals, and the entry row clears its selected product after recording.
+- [x] Stock Transfer edit loading state now uses valid page-level markup instead of rendering a table row outside a table.
+- [x] Stock Transfer detail page rebuilt into a more standard ERP read-only layout with header actions, transfer summary, warehouse movement, timeline metadata, and fixed transfer-line table.
+- [x] Inventory list/detail read-only dates now use the same locale-aware display format as the shared date picker.
 
 ## Frontend UI Consistency
 
