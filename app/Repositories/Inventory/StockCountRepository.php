@@ -65,7 +65,7 @@ class StockCountRepository extends BaseRepository
 
         $query = $count->items()
             ->with(['product', 'variation', 'lot'])
-            ->orderByRaw('case when counted_quantity is null then 1 else 0 end')
+            ->orderByRaw('case when counted_quantity is null then 0 else 1 end')
             ->orderBy('product_id')
             ->orderBy('variation_id')
             ->orderBy('lot_id');
@@ -85,6 +85,43 @@ class StockCountRepository extends BaseRepository
                     })
                     ->orWhereHas('lot', function ($lotQuery) use ($search): void {
                         $lotQuery->where('lot_number', 'like', "%{$search}%");
+                    });
+            });
+        }
+
+        return $query->paginate($perPage)->withQueryString();
+    }
+
+    public function paginateEntries(StockCount $count, array $filters): LengthAwarePaginator
+    {
+        $perPage = max(1, min((int) ($filters['per_page'] ?? 25), 100));
+        $search = trim((string) ($filters['search'] ?? ''));
+
+        $query = $count->entries()
+            ->with(['product', 'variation', 'stockCountItem.lot', 'creator'])
+            ->orderByDesc('created_at')
+            ->orderByDesc('id');
+
+        if ($search !== '') {
+            $query->where(function ($builder) use ($search): void {
+                $builder
+                    ->whereHas('product', function ($productQuery) use ($search): void {
+                        $productQuery
+                            ->where('name', 'like', "%{$search}%")
+                            ->orWhere('sku', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('variation', function ($variationQuery) use ($search): void {
+                        $variationQuery
+                            ->where('name', 'like', "%{$search}%")
+                            ->orWhere('sku', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('stockCountItem.lot', function ($lotQuery) use ($search): void {
+                        $lotQuery->where('lot_number', 'like', "%{$search}%");
+                    })
+                    ->orWhereHas('creator', function ($creatorQuery) use ($search): void {
+                        $creatorQuery
+                            ->where('first_name', 'like', "%{$search}%")
+                            ->orWhere('last_name', 'like', "%{$search}%");
                     });
             });
         }

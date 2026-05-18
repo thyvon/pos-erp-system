@@ -6,6 +6,7 @@ use App\Exceptions\Domain\DomainException;
 use App\Models\Product;
 use App\Models\ProductVariation;
 use App\Models\StockCount;
+use App\Models\StockCountEntry;
 use App\Models\StockCountItem;
 use App\Models\StockLevel;
 use App\Models\StockLot;
@@ -56,6 +57,18 @@ class StockCountService
         return $this->counts->paginateItems($count, $filters);
     }
 
+    public function paginateEntries(StockCount $count, array $filters, ?User $user = null): LengthAwarePaginator
+    {
+        if ($user) {
+            $this->ensureBelongsToBusiness($user->business_id, $count);
+        }
+
+        $count->loadMissing('warehouse');
+        $this->ensureUserCanAccessWarehouse($user, $count->warehouse);
+
+        return $this->counts->paginateEntries($count, $filters);
+    }
+
     public function create(string $businessId, array $data, ?User $actor = null): StockCount
     {
         return DB::transaction(function () use ($businessId, $data, $actor): StockCount {
@@ -73,6 +86,7 @@ class StockCountService
                 'created_by' => $actor?->id,
             ]);
 
+            $this->seedCurrentStockItems($count, $businessId, $warehouse->id);
             $this->seedCountItems($count, $businessId, $warehouse->id, $data['items'] ?? []);
 
             $count = $this->loadCountForResponse($count);
@@ -109,6 +123,40 @@ class StockCountService
 
             $count = $this->loadCountForResponse($count, refresh: true);
             $this->auditEntryRecorded($businessId, $count, $countItem, $quantity, $actor);
+
+            return $count;
+        });
+    }
+
+    public function updateEntry(
+        string $businessId,
+        StockCount $count,
+        StockCountEntry $entry,
+        array $data,
+        ?User $actor = null
+    ): StockCount {
+        return DB::transaction(function () use ($businessId, $count, $entry, $data, $actor): StockCount {
+            $count = $this->lockCountForUpdate($count, ['warehouse']);
+            $this->ensureCountIsManageable($businessId, $count, $actor);
+            $this->assertCountStatus($count, [self::STATUS_IN_PROGRESS], 'Only in-progress stock counts can update entries.');
+            $this->assertCountWithinEditWindow($count);
+
+            $entry = $this->lockEntryForUpdate($count, $entry);
+            $countItem = $this->lockCountItemForUpdate($count, $entry->stockCountItem);
+
+            $oldQuantity = round((float) $entry->quantity, 4);
+            $newQuantity = $this->normalizeEntryQuantity($data['quantity']);
+            $delta = round($newQuantity - $oldQuantity, 4);
+
+            if ($delta !== 0.0) {
+                $this->incrementCountedQuantity($countItem, $delta);
+            }
+
+            $entry->quantity = $newQuantity;
+            $entry->save();
+
+            $count = $this->loadCountForResponse($count, refresh: true);
+            $this->auditEntryUpdated($businessId, $count, $countItem, $oldQuantity, $newQuantity, $delta, $actor);
 
             return $count;
         });
@@ -255,6 +303,29 @@ class StockCountService
         }
     }
 
+    protected function seedCurrentStockItems(StockCount $count, string $businessId, string $warehouseId): void
+    {
+        StockLevel::withoutGlobalScopes()
+            ->where('business_id', $businessId)
+            ->where('warehouse_id', $warehouseId)
+            ->where('quantity', '!=', 0)
+            ->orderBy('product_id')
+            ->orderBy('variation_id')
+            ->chunkById(100, function ($levels) use ($count, $businessId, $warehouseId): void {
+                foreach ($levels as $level) {
+                    $this->findOrCreateCountItem(
+                        $count,
+                        $businessId,
+                        $warehouseId,
+                        $level->product_id,
+                        $level->variation_id,
+                        null,
+                        0
+                    );
+                }
+            });
+    }
+
     protected function postCompletionCorrections(string $businessId, StockCount $count, array $data, ?User $actor): int
     {
         $payloadById = collect($data['items'] ?? [])->keyBy('id');
@@ -349,8 +420,8 @@ class StockCountService
     {
         $quantity = round((float) $quantity, 4);
 
-        if ($quantity === 0.0) {
-            throw new DomainException('Count quantity cannot be zero.', 422);
+        if ($quantity < 0) {
+            throw new DomainException('Count quantity cannot be negative.', 422);
         }
 
         return $quantity;
@@ -420,6 +491,22 @@ class StockCountService
             ->firstOrFail();
 
         return $lockedItem;
+    }
+
+    protected function lockEntryForUpdate(StockCount $count, StockCountEntry $entry): StockCountEntry
+    {
+        $this->ensureEntryBelongsToCount($count, $entry);
+
+        /** @var StockCountEntry $lockedEntry */
+        $lockedEntry = StockCountEntry::query()
+            ->with('stockCountItem')
+            ->whereKey($entry->id)
+            ->lockForUpdate()
+            ->firstOrFail();
+
+        $this->ensureEntryBelongsToCount($count, $lockedEntry);
+
+        return $lockedEntry;
     }
 
     protected function loadCountForResponse(StockCount $count, bool $refresh = false): StockCount
@@ -611,6 +698,13 @@ class StockCountService
         }
     }
 
+    protected function ensureEntryBelongsToCount(StockCount $count, StockCountEntry $entry): void
+    {
+        if ((string) $entry->stock_count_id !== (string) $count->id) {
+            throw new DomainException('Selected stock count entry does not belong to this count session.', 422);
+        }
+    }
+
     protected function ensureUserCanAccessWarehouse(?User $user, ?Warehouse $warehouse): void
     {
         if (! $warehouse) {
@@ -663,6 +757,27 @@ class StockCountService
             'product_id' => $item->product_id,
             'variation_id' => $item->variation_id,
             'quantity' => $quantity,
+            'counted_quantity' => $item->counted_quantity,
+        ]);
+    }
+
+    protected function auditEntryUpdated(
+        string $businessId,
+        StockCount $count,
+        StockCountItem $item,
+        float $oldQuantity,
+        float $newQuantity,
+        float $delta,
+        ?User $actor,
+    ): void {
+        $this->auditCountEvent('stock_count_entry_updated', $businessId, $count, $actor, [
+            'warehouse_id' => $count->warehouse_id,
+            'reference_no' => $count->reference_no,
+            'product_id' => $item->product_id,
+            'variation_id' => $item->variation_id,
+            'old_quantity' => $oldQuantity,
+            'new_quantity' => $newQuantity,
+            'delta' => $delta,
             'counted_quantity' => $item->counted_quantity,
         ]);
     }

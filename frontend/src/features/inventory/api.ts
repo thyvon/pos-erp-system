@@ -7,7 +7,10 @@ import type {
   StockAdjustmentPayload,
   StockCount,
   StockCountCompletePayload,
+  StockCountEntry,
+  StockCountEntryFilters,
   StockCountEntryPayload,
+  StockCountEntryUpdatePayload,
   StockCountFilters,
   StockCountItem,
   StockCountItemFilters,
@@ -52,10 +55,14 @@ export const stockCountsApi = {
   show: (id: string) => apiClient.get<StockCount>(`/v1/inventory/counts/${id}`),
   items: (id: string, filters: StockCountItemFilters = {}) =>
     apiClient.getPaginated<StockCountItem>(`/v1/inventory/counts/${id}/items`, filters),
+  entries: (id: string, filters: StockCountEntryFilters = {}) =>
+    apiClient.getPaginated<StockCountEntry>(`/v1/inventory/counts/${id}/entries`, filters),
   create: (payload: StockCountPayload) =>
     apiClient.post<StockCount, StockCountPayload>('/v1/inventory/counts', payload),
   addEntry: (id: string, payload: StockCountEntryPayload) =>
     apiClient.post<StockCount, StockCountEntryPayload>(`/v1/inventory/counts/${id}/entries`, payload),
+  updateEntry: (countId: string, entryId: string, payload: StockCountEntryUpdatePayload) =>
+    apiClient.put<StockCount, StockCountEntryUpdatePayload>(`/v1/inventory/counts/${countId}/entries/${entryId}`, payload),
   updateItem: (countId: string, itemId: string, payload: StockCountItemUpdatePayload) =>
     apiClient.post<StockCount, StockCountItemUpdatePayload>(`/v1/inventory/counts/${countId}/items/${itemId}`, payload),
   deleteItem: (countId: string, itemId: string) =>

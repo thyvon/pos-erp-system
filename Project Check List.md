@@ -43,6 +43,13 @@
 - [x] Stock Count backend service refactored to match inventory service/repository standards with item pagination in the repository and focused workflow helpers for locking, status checks, entries, corrections, deletion, completion, and audit payloads.
 - [x] Stock Count backend refactor verified with focused stock count tests and the full inventory feature test directory.
 - [x] Stock Count seeded items can now be explicitly marked as zero counted quantity and still post the expected completion correction.
+- [x] Stock Count flow corrected so unique count items are auto-created from current warehouse stock, users record duplicate count entries per item, item counted totals are summed from entries, and the workspace shows ending balance beside counted totals.
+- [x] Stock Count workspace now has a visible top count-entry strip for scanning/searching an item, seeing current counted total and ending balance, entering this pass quantity, and saving the entry.
+- [x] Stock Count item table action column now opens a dedicated count-entry dialog for the selected unique item, with ending balance, counted total, difference, and this-entry quantity.
+- [x] Stock Count list action can open an in-progress count directly into the count-entry flow, and the Next.js dynamic detail route uses the current async params contract.
+- [x] Stock Count entry workflow split into a dedicated entry page with scan/search form and duplicate entry history, while the detail page is now a unique stock-count-item review page.
+- [x] Stock Count entry page now puts the product picker above the entry row, shows selected product info beside count quantity, and refreshes the entry table immediately after recording.
+- [x] Stock Count entry page now includes a live count item totals table and refreshes it after each recorded entry so counted totals update immediately.
 
 ## Frontend UI Consistency
 

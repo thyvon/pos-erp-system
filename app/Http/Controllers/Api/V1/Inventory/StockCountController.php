@@ -6,10 +6,13 @@ use App\Http\Controllers\Api\V1\BaseApiController;
 use App\Http\Requests\Inventory\CompleteStockCountRequest;
 use App\Http\Requests\Inventory\StoreStockCountRequest;
 use App\Http\Requests\Inventory\StoreStockCountEntryRequest;
+use App\Http\Requests\Inventory\UpdateStockCountEntryRequest;
 use App\Http\Requests\Inventory\UpdateStockCountItemRequest;
+use App\Http\Resources\Inventory\StockCountEntryResource;
 use App\Http\Resources\Inventory\StockCountResource;
 use App\Http\Resources\Inventory\StockCountItemResource;
 use App\Models\StockCount;
+use App\Models\StockCountEntry;
 use App\Models\StockCountItem;
 use App\Services\Inventory\StockCountService;
 use Illuminate\Http\JsonResponse;
@@ -72,6 +75,19 @@ class StockCountController extends BaseApiController
         return $this->paginated($items, StockCountItemResource::class);
     }
 
+    public function entries(Request $request, StockCount $stockCount): JsonResponse
+    {
+        $this->authorize('view', $stockCount);
+
+        $entries = $this->countService->paginateEntries(
+            $stockCount,
+            $request->only(['search', 'per_page']),
+            $request->user()
+        );
+
+        return $this->paginated($entries, StockCountEntryResource::class);
+    }
+
     public function addEntry(StoreStockCountEntryRequest $request, StockCount $stockCount): JsonResponse
     {
         $this->authorize('record', $stockCount);
@@ -84,6 +100,21 @@ class StockCountController extends BaseApiController
         );
 
         return $this->success(new StockCountResource($count), 'Count entry recorded successfully.');
+    }
+
+    public function updateEntry(UpdateStockCountEntryRequest $request, StockCount $stockCount, StockCountEntry $stockCountEntry): JsonResponse
+    {
+        $this->authorize('record', $stockCount);
+
+        $count = $this->countService->updateEntry(
+            $request->user()->business_id,
+            $stockCount,
+            $stockCountEntry,
+            $request->validated(),
+            $request->user()
+        );
+
+        return $this->success(new StockCountResource($count), 'Count entry updated successfully.');
     }
 
     public function updateItem(UpdateStockCountItemRequest $request, StockCount $stockCount, StockCountItem $stockCountItem): JsonResponse

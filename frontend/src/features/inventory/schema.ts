@@ -86,7 +86,7 @@ export const stockCountEntrySchema = z.object({
   product_label: z.string().optional(),
   sku: z.string().nullable().optional(),
   lot_number: z.string().nullable().optional(),
-  quantity: z.coerce.number().refine((value) => value !== 0, 'Quantity cannot be zero'),
+  quantity: z.coerce.number().min(0, 'Quantity cannot be negative'),
   unit_cost: z.coerce.number().min(0, 'Unit cost cannot be negative').nullable().optional(),
 })
 

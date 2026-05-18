@@ -16,6 +16,7 @@ import type { InventoryProductLookupItem } from '@/types/inventory'
 interface InventoryProductLookupPickerProps {
   warehouseId?: string
   disabled?: boolean
+  autoFocus?: boolean
   label?: string
   helperText?: string
   onSelect: (item: InventoryProductLookupItem) => void
@@ -51,6 +52,7 @@ function findExactLookupMatch(items: InventoryProductLookupItem[], term: string)
 export function InventoryProductLookupPicker({
   warehouseId,
   disabled = false,
+  autoFocus = false,
   label,
   helperText,
   onSelect,
@@ -127,6 +129,7 @@ export function InventoryProductLookupPicker({
       renderInput={(params) => (
         <TextField
           {...params}
+          autoFocus={autoFocus}
           label={label ?? t('lookup.label')}
           helperText={helperText}
           onKeyDown={(event) => {

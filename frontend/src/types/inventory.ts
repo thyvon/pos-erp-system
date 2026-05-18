@@ -289,12 +289,29 @@ export interface StockCountItem {
   product_id: string
   variation_id: string | null
   system_quantity: string | number
+  ending_balance?: string | number
   counted_quantity: string | number | null
   difference: string | number | null
   unit_cost: string | number | null
   product: StockCountItemProduct | null
   variation: StockCountItemVariation | null
   lot: StockCountItemLot | null
+}
+
+export interface StockCountEntry {
+  id: string
+  business_id: string
+  stock_count_id: string
+  stock_count_item_id: string
+  product_id: string
+  variation_id: string | null
+  quantity: string | number
+  unit_cost: string | number | null
+  product: StockCountItemProduct | null
+  variation: StockCountItemVariation | null
+  lot: StockCountItemLot | null
+  creator: StockCountUser | null
+  created_at: string
 }
 
 export interface StockCount {
@@ -330,6 +347,12 @@ export interface StockCountItemFilters {
   per_page?: number
 }
 
+export interface StockCountEntryFilters {
+  search?: string
+  page?: number
+  per_page?: number
+}
+
 export interface StockCountSeedItemPayload {
   product_id: string
   variation_id?: string | null
@@ -350,6 +373,10 @@ export interface StockCountEntryPayload {
   lot_id?: string | null
   quantity: number
   unit_cost?: number | null
+}
+
+export interface StockCountEntryUpdatePayload {
+  quantity: number
 }
 
 export interface StockCountItemUpdatePayload {

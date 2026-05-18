@@ -6,7 +6,9 @@ import type {
   StockAdjustmentFilters,
   StockAdjustmentPayload,
   StockCountCompletePayload,
+  StockCountEntryFilters,
   StockCountEntryPayload,
+  StockCountEntryUpdatePayload,
   StockCountFilters,
   StockCountItemFilters,
   StockCountItemUpdatePayload,
@@ -39,6 +41,7 @@ export const stockCountKeys = {
   list: (filters: StockCountFilters) => [...stockCountKeys.all, 'list', filters] as const,
   detail: (id: string) => [...stockCountKeys.all, 'detail', id] as const,
   items: (id: string, filters: StockCountItemFilters) => [...stockCountKeys.detail(id), 'items', filters] as const,
+  entries: (id: string, filters: StockCountEntryFilters) => [...stockCountKeys.detail(id), 'entries', filters] as const,
 }
 
 export function useInventoryOptionsQuery() {
@@ -188,6 +191,14 @@ export function useStockCountItemsQuery(id: string | null, filters: StockCountIt
   })
 }
 
+export function useStockCountEntriesQuery(id: string | null, filters: StockCountEntryFilters) {
+  return useQuery({
+    queryKey: id ? stockCountKeys.entries(id, filters) : [...stockCountKeys.all, 'entries', 'none', filters],
+    queryFn: () => stockCountsApi.entries(id ?? '', filters),
+    enabled: !!id,
+  })
+}
+
 export function useCreateStockCountMutation() {
   const queryClient = useQueryClient()
 
@@ -209,6 +220,24 @@ export function useAddStockCountEntryMutation() {
     onSuccess: (count) => {
       queryClient.invalidateQueries({ queryKey: stockCountKeys.all })
       queryClient.invalidateQueries({ queryKey: stockCountKeys.detail(count.id) })
+      queryClient.invalidateQueries({ queryKey: [...stockCountKeys.detail(count.id), 'items'] })
+      queryClient.invalidateQueries({ queryKey: [...stockCountKeys.detail(count.id), 'entries'] })
+      queryClient.invalidateQueries({ queryKey: inventoryKeys.all })
+    },
+  })
+}
+
+export function useUpdateStockCountEntryMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ countId, entryId, payload }: { countId: string; entryId: string; payload: StockCountEntryUpdatePayload }) =>
+      stockCountsApi.updateEntry(countId, entryId, payload),
+    onSuccess: (count) => {
+      queryClient.invalidateQueries({ queryKey: stockCountKeys.all })
+      queryClient.invalidateQueries({ queryKey: stockCountKeys.detail(count.id) })
+      queryClient.invalidateQueries({ queryKey: [...stockCountKeys.detail(count.id), 'items'] })
+      queryClient.invalidateQueries({ queryKey: [...stockCountKeys.detail(count.id), 'entries'] })
       queryClient.invalidateQueries({ queryKey: inventoryKeys.all })
     },
   })

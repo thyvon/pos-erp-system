@@ -9,6 +9,7 @@ import {
   Card,
   CardContent,
   Chip,
+  IconButton,
   InputAdornment,
   MenuItem,
   Stack,
@@ -20,6 +21,7 @@ import {
   TablePagination,
   TableRow,
   TextField,
+  Tooltip,
   Typography,
 } from '@mui/material'
 import { Add, FactCheckOutlined, Search } from '@/components/ui/icons'
@@ -254,6 +256,18 @@ export default function StockCountsPage() {
                         onView={() => router.push(`/inventory/counts/${count.id}`)}
                         onDelete={() => setDeletingCount(count)}
                       />
+                      {canCount && count.status === 'in_progress' && (
+                        <Tooltip title={t('counts.actions.openEntryForm')}>
+                          <IconButton
+                            size="small"
+                            color="primary"
+                            aria-label={t('counts.actions.openEntryForm')}
+                            onClick={() => router.push(`/inventory/counts/${count.id}/entries`)}
+                          >
+                            <Add fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
+                      )}
                     </TableCell>
                   </TableRow>
                 ))}

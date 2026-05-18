@@ -1,0 +1,474 @@
+'use client'
+
+import { useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import {
+  Alert,
+  Box,
+  Button,
+  Card,
+  CardContent,
+  Chip,
+  CircularProgress,
+  IconButton,
+  InputAdornment,
+  Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TablePagination,
+  TableRow,
+  TextField,
+  Tooltip,
+  Typography,
+} from '@mui/material'
+import { ArrowBack, SaveOutlined, Search } from '@/components/ui/icons'
+import { useSnackbar } from 'notistack'
+import { useTranslation } from 'react-i18next'
+import { toAppApiError } from '@/api/errors'
+import { TableStateRow } from '@/components/ui/TableStateRow'
+import { useAuthStore } from '@/stores/authStore'
+import { InventoryProductLookupPicker } from './components/InventoryProductLookupPicker'
+import {
+  useAddStockCountEntryMutation,
+  useStockCountEntriesQuery,
+  useStockCountItemsQuery,
+  useStockCountQuery,
+} from './hooks'
+import type { InventoryProductLookupItem, StockCountEntry, StockCountItem, StockCountStatus } from '@/types/inventory'
+
+interface StockCountEntryPageProps {
+  countId: string
+}
+
+const rowsPerPageOptions = [10, 25, 50]
+
+function formatQuantity(value: string | number | null | undefined) {
+  if (value === null || value === undefined || value === '') return '-'
+  const numeric = Number(value)
+  return Number.isFinite(numeric) ? numeric.toLocaleString(undefined, { maximumFractionDigits: 4 }) : String(value)
+}
+
+function statusColor(status: StockCountStatus) {
+  return status === 'completed' ? 'success' : 'warning'
+}
+
+function getItemLabel(item: StockCountItem | StockCountEntry) {
+  return [item.product?.name, item.variation?.name].filter(Boolean).join(' / ') || item.product_id
+}
+
+function getEndingBalance(item: StockCountItem) {
+  return item.ending_balance ?? item.system_quantity
+}
+
+export function StockCountEntryPage({ countId }: StockCountEntryPageProps) {
+  const { t } = useTranslation(['inventory', 'common'])
+  const router = useRouter()
+  const { enqueueSnackbar } = useSnackbar()
+  const can = useAuthStore((state) => state.can)
+  const [selectedItem, setSelectedItem] = useState<InventoryProductLookupItem | null>(null)
+  const [entryQuantity, setEntryQuantity] = useState('1')
+  const [itemSearch, setItemSearch] = useState('')
+  const [itemPage, setItemPage] = useState(0)
+  const [itemPerPage, setItemPerPage] = useState(10)
+  const [entrySearch, setEntrySearch] = useState('')
+  const [page, setPage] = useState(0)
+  const [perPage, setPerPage] = useState(25)
+  const [serverError, setServerError] = useState('')
+
+  const countQuery = useStockCountQuery(countId)
+  const count = countQuery.data
+  const canCount = can('inventory.count')
+  const canRecordEntries = canCount && count?.status === 'in_progress'
+  const selectedItemSearch = selectedItem?.sku ?? selectedItem?.product_name ?? selectedItem?.label ?? undefined
+
+  const selectedItemsQuery = useStockCountItemsQuery(countId, {
+    search: selectedItemSearch,
+    page: 1,
+    per_page: 10,
+  })
+
+  const entriesFilters = useMemo(
+    () => ({
+      search: entrySearch || undefined,
+      page: page + 1,
+      per_page: perPage,
+    }),
+    [entrySearch, page, perPage]
+  )
+
+  const itemFilters = useMemo(
+    () => ({
+      search: itemSearch || undefined,
+      page: itemPage + 1,
+      per_page: itemPerPage,
+    }),
+    [itemPage, itemPerPage, itemSearch]
+  )
+
+  const entriesQuery = useStockCountEntriesQuery(countId, entriesFilters)
+  const countItemsQuery = useStockCountItemsQuery(countId, itemFilters)
+  const addEntry = useAddStockCountEntryMutation()
+  const entries = entriesQuery.data?.data ?? []
+  const meta = entriesQuery.data?.meta
+  const countItems = countItemsQuery.data?.data ?? []
+  const itemMeta = countItemsQuery.data?.meta
+  const selectedCountItem = selectedItem
+    ? selectedItemsQuery.data?.data.find((item) =>
+        item.product_id === selectedItem.product_id
+        && (item.variation_id ?? null) === (selectedItem.variation_id ?? null)
+        && ((item.lot?.id ?? null) === (selectedItem.lot_id ?? null))
+      ) ?? null
+    : null
+
+  const selectLookupItem = (item: InventoryProductLookupItem) => {
+    setSelectedItem(item)
+    setEntryQuantity('1')
+  }
+
+  const submitEntry = async () => {
+    if (!selectedItem) return
+
+    const quantity = Number(entryQuantity)
+
+    if (entryQuantity === '' || !Number.isFinite(quantity) || quantity < 0) {
+      setServerError(t('counts.messages.invalidEntryQuantity'))
+      return
+    }
+
+    setServerError('')
+
+    try {
+      await addEntry.mutateAsync({
+        id: countId,
+        payload: {
+          product_id: selectedItem.product_id,
+          variation_id: selectedItem.variation_id ?? null,
+          lot_id: selectedItem.lot_id ?? null,
+          quantity,
+          unit_cost: selectedItem.unit_cost ? Number(selectedItem.unit_cost) : 0,
+        },
+      })
+      enqueueSnackbar(t('counts.messages.entryRecorded'), { variant: 'success' })
+      setEntryQuantity('1')
+      setItemSearch('')
+      setItemPage(0)
+      setEntrySearch('')
+      setPage(0)
+      await Promise.all([
+        entriesQuery.refetch(),
+        countItemsQuery.refetch(),
+        selectedItemsQuery.refetch(),
+      ])
+    } catch (error) {
+      setServerError(toAppApiError(error).message)
+    }
+  }
+
+  return (
+    <Stack spacing={3}>
+      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ justifyContent: 'space-between' }}>
+        <Box>
+          <Typography variant="h4">{count?.reference_no ?? t('counts.entries.title')}</Typography>
+          <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
+            {t('counts.entries.subtitle')}
+          </Typography>
+        </Box>
+        <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+          {count && (
+            <Chip
+              size="small"
+              label={t(`counts.status.${count.status}`)}
+              color={statusColor(count.status)}
+              variant="outlined"
+            />
+          )}
+          <Tooltip title={t('counts.actions.backToDetail')}>
+            <IconButton
+              size="small"
+              aria-label={t('counts.actions.backToDetail')}
+              onClick={() => router.push(`/inventory/counts/${countId}`)}
+            >
+              <ArrowBack />
+            </IconButton>
+          </Tooltip>
+        </Stack>
+      </Stack>
+
+      {countQuery.isError && <Alert severity="error">{toAppApiError(countQuery.error).message}</Alert>}
+      {entriesQuery.isError && <Alert severity="error">{toAppApiError(entriesQuery.error).message}</Alert>}
+      {countItemsQuery.isError && <Alert severity="error">{toAppApiError(countItemsQuery.error).message}</Alert>}
+      {selectedItemsQuery.isError && <Alert severity="error">{toAppApiError(selectedItemsQuery.error).message}</Alert>}
+      {serverError && <Alert severity="error">{serverError}</Alert>}
+
+      <Card>
+        <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+          <Stack spacing={2}>
+            <Box>
+              <Typography variant="subtitle2">{t('counts.entries.formTitle')}</Typography>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                {t('counts.entries.formHelp')}
+              </Typography>
+            </Box>
+
+            {!canRecordEntries && count && (
+              <Alert severity="info">{t('counts.entries.readOnly')}</Alert>
+            )}
+
+            <InventoryProductLookupPicker
+              warehouseId={count?.warehouse_id}
+              disabled={!canRecordEntries || addEntry.isPending}
+              autoFocus
+              helperText={t('counts.detail.entryPickerHelp')}
+              onSelect={selectLookupItem}
+            />
+
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'minmax(260px, 1fr) 150px 150px 170px auto' }, gap: 1.5, alignItems: 'start' }}>
+              <Box sx={{ minHeight: 56, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  {t('counts.fields.product')}
+                </Typography>
+                <Typography variant="body2">
+                  {selectedItem?.label ?? '-'}
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  {selectedItem && [selectedItem.sku, selectedItem.lot_number].filter(Boolean).join(' / ') || '-'}
+                </Typography>
+              </Box>
+              <Box sx={{ minHeight: 56, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary', textAlign: { xs: 'left', lg: 'right' } }}>
+                  {t('counts.columns.endingBalance')}
+                </Typography>
+                <Typography variant="body2" sx={{ textAlign: { xs: 'left', lg: 'right' } }}>
+                  {formatQuantity(selectedCountItem ? getEndingBalance(selectedCountItem) : selectedItem?.ending_quantity)}
+                </Typography>
+              </Box>
+              <Box sx={{ minHeight: 56, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary', textAlign: { xs: 'left', lg: 'right' } }}>
+                  {t('counts.columns.countedQuantity')}
+                </Typography>
+                <Typography variant="body2" sx={{ textAlign: { xs: 'left', lg: 'right' } }}>
+                  {formatQuantity(selectedCountItem?.counted_quantity)}
+                </Typography>
+              </Box>
+              <TextField
+                value={entryQuantity}
+                type="number"
+                label={t('counts.fields.countEntryQuantity')}
+                disabled={!canRecordEntries || addEntry.isPending || !selectedItem}
+                slotProps={{ htmlInput: { min: 0, step: 0.0001, style: { textAlign: 'right' } } }}
+                onChange={(event) => setEntryQuantity(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault()
+                    void submitEntry()
+                  }
+                }}
+              />
+              <Button
+                variant="contained"
+                startIcon={addEntry.isPending ? undefined : <SaveOutlined />}
+                disabled={!canRecordEntries || addEntry.isPending || !selectedItem}
+                onClick={() => void submitEntry()}
+                sx={{ minHeight: 56 }}
+              >
+                {addEntry.isPending ? <CircularProgress size={20} color="inherit" /> : t('counts.actions.record')}
+              </Button>
+            </Box>
+          </Stack>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+          <Stack spacing={2}>
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={2}
+              sx={{ alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between' }}
+            >
+              <Box>
+                <Typography variant="subtitle2">{t('counts.entries.itemTotalsTitle')}</Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  {t('counts.entries.itemTotalsHelp')}
+                </Typography>
+              </Box>
+              <TextField
+                value={itemSearch}
+                onChange={(event) => {
+                  setItemSearch(event.target.value)
+                  setItemPage(0)
+                }}
+                placeholder={t('counts.filters.searchItems')}
+                size="small"
+                sx={{ width: { xs: '100%', sm: 320 } }}
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Search fontSize="small" />
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+              />
+            </Stack>
+
+            <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1, overflowX: 'auto' }}>
+              <Table size="small" sx={{ minWidth: 840, tableLayout: 'fixed' }}>
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ width: 360 }}>{t('counts.fields.product')}</TableCell>
+                    <TableCell align="right" sx={{ width: 160 }}>{t('counts.columns.endingBalance')}</TableCell>
+                    <TableCell align="right" sx={{ width: 160 }}>{t('counts.columns.countedQuantity')}</TableCell>
+                    <TableCell align="right" sx={{ width: 160 }}>{t('counts.columns.difference')}</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {countItemsQuery.isLoading && <TableStateRow colSpan={4} loading />}
+
+                  {!countItemsQuery.isLoading && countItems.length === 0 && (
+                    <TableStateRow colSpan={4} message={t('counts.emptyItems')} />
+                  )}
+
+                  {countItems.map((item) => (
+                    <TableRow key={item.id} hover>
+                      <TableCell>
+                        <Stack spacing={0.25}>
+                          <Typography variant="body2">{getItemLabel(item)}</Typography>
+                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                            {[item.variation?.sku ?? item.product?.sku, item.lot?.lot_number].filter(Boolean).join(' / ') || '-'}
+                          </Typography>
+                        </Stack>
+                      </TableCell>
+                      <TableCell align="right">{formatQuantity(getEndingBalance(item))}</TableCell>
+                      <TableCell align="right">{formatQuantity(item.counted_quantity)}</TableCell>
+                      <TableCell align="right">
+                        <Typography
+                          variant="body2"
+                          sx={{
+                            color: Number(item.difference ?? 0) === 0
+                              ? 'text.primary'
+                              : Number(item.difference ?? 0) > 0
+                              ? 'success.main'
+                              : 'error.main',
+                          }}
+                        >
+                          {formatQuantity(item.difference)}
+                        </Typography>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+
+            <TablePagination
+              component="div"
+              count={itemMeta?.total ?? 0}
+              page={itemPage}
+              rowsPerPage={itemPerPage}
+              rowsPerPageOptions={rowsPerPageOptions}
+              onPageChange={(_, nextPage) => setItemPage(nextPage)}
+              onRowsPerPageChange={(event) => {
+                setItemPerPage(Number(event.target.value))
+                setItemPage(0)
+              }}
+            />
+          </Stack>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+          <Stack spacing={2}>
+            <Stack
+              direction={{ xs: 'column', sm: 'row' }}
+              spacing={2}
+              sx={{ alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between' }}
+            >
+              <Box>
+                <Typography variant="subtitle2">{t('counts.entries.listTitle')}</Typography>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  {t('counts.entries.listHelp')}
+                </Typography>
+              </Box>
+              <TextField
+                value={entrySearch}
+                onChange={(event) => {
+                  setEntrySearch(event.target.value)
+                  setPage(0)
+                }}
+                placeholder={t('counts.filters.searchEntries')}
+                size="small"
+                sx={{ width: { xs: '100%', sm: 320 } }}
+                slotProps={{
+                  input: {
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <Search fontSize="small" />
+                      </InputAdornment>
+                    ),
+                  },
+                }}
+              />
+            </Stack>
+
+            <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1, overflowX: 'auto' }}>
+              <Table size="small" sx={{ minWidth: 920, tableLayout: 'fixed' }}>
+                <TableHead>
+                  <TableRow>
+                    <TableCell sx={{ width: 320 }}>{t('counts.fields.product')}</TableCell>
+                    <TableCell align="right" sx={{ width: 150 }}>{t('counts.fields.countEntryQuantity')}</TableCell>
+                    <TableCell align="right" sx={{ width: 140 }}>{t('counts.fields.unitCost')}</TableCell>
+                    <TableCell sx={{ width: 180 }}>{t('counts.columns.countedBy')}</TableCell>
+                    <TableCell sx={{ width: 190 }}>{t('counts.columns.countedAt')}</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {entriesQuery.isLoading && <TableStateRow colSpan={5} loading />}
+
+                  {!entriesQuery.isLoading && entries.length === 0 && (
+                    <TableStateRow colSpan={5} message={t('counts.emptyEntries')} />
+                  )}
+
+                  {entries.map((entry) => (
+                    <TableRow key={entry.id} hover>
+                      <TableCell>
+                        <Stack spacing={0.25}>
+                          <Typography variant="body2">{getItemLabel(entry)}</Typography>
+                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                            {[entry.variation?.sku ?? entry.product?.sku, entry.lot?.lot_number].filter(Boolean).join(' / ') || '-'}
+                          </Typography>
+                        </Stack>
+                      </TableCell>
+                      <TableCell align="right">{formatQuantity(entry.quantity)}</TableCell>
+                      <TableCell align="right">{formatQuantity(entry.unit_cost)}</TableCell>
+                      <TableCell>{entry.creator?.name ?? '-'}</TableCell>
+                      <TableCell>{entry.created_at ? new Date(entry.created_at).toLocaleString() : '-'}</TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+
+            <TablePagination
+              component="div"
+              count={meta?.total ?? 0}
+              page={page}
+              rowsPerPage={perPage}
+              rowsPerPageOptions={rowsPerPageOptions}
+              onPageChange={(_, nextPage) => setPage(nextPage)}
+              onRowsPerPageChange={(event) => {
+                setPerPage(Number(event.target.value))
+                setPage(0)
+              }}
+            />
+          </Stack>
+        </CardContent>
+      </Card>
+    </Stack>
+  )
+}

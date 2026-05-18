@@ -107,6 +107,12 @@ class StockCountApiTest extends TestCase
             ->assertJsonPath('data.items.0.counted_quantity', '8.0000')
             ->assertJsonCount(1, 'data.items');
 
+        $this->getJson("/api/v1/inventory/counts/{$countId}/entries")
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.quantity', '3.0000')
+            ->assertJsonPath('data.1.quantity', '5.0000');
+
         $completeResponse = $this->postJson("/api/v1/inventory/counts/{$countId}/complete", [])
             ->assertOk();
 
@@ -125,6 +131,48 @@ class StockCountApiTest extends TestCase
             'type' => 'stock_count_correction',
             'quantity' => '2.0000',
         ]);
+    }
+
+    public function test_count_start_auto_creates_unique_items_from_current_stock_levels(): void
+    {
+        $business = Business::factory()->create();
+        $branch = Branch::factory()->create(['business_id' => $business->id]);
+        $warehouse = Warehouse::factory()->forBranch($branch)->create();
+        $unit = Unit::factory()->create(['business_id' => $business->id]);
+        $product = Product::factory()->create([
+            'business_id' => $business->id,
+            'unit_id' => $unit->id,
+            'track_inventory' => true,
+        ]);
+        $user = User::factory()->for($business)->create();
+        $user->assignRole('inventory_manager');
+        $user->branches()->attach($branch->id);
+
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/v1/inventory/adjustments', [
+            'warehouse_id' => $warehouse->id,
+            'date' => now()->toDateString(),
+            'reason' => 'Seed stock',
+            'items' => [[
+                'product_id' => $product->id,
+                'direction' => 'in',
+                'quantity' => 10,
+                'unit_cost' => 2,
+            ]],
+        ])->assertCreated();
+
+        $createCount = $this->postJson('/api/v1/inventory/counts', [
+            'warehouse_id' => $warehouse->id,
+            'date' => now()->toDateString(),
+        ])->assertCreated();
+
+        $createCount
+            ->assertJsonCount(1, 'data.items')
+            ->assertJsonPath('data.items.0.product_id', $product->id)
+            ->assertJsonPath('data.items.0.system_quantity', '10.0000')
+            ->assertJsonPath('data.items.0.ending_balance', '10.0000')
+            ->assertJsonPath('data.items.0.counted_quantity', null);
     }
 
     public function test_live_count_item_can_be_edited_to_a_new_total(): void
@@ -320,11 +368,19 @@ class StockCountApiTest extends TestCase
         $countId = $createCount->json('data.id');
         $itemId = $createCount->json('data.items.0.id');
 
-        $this->postJson("/api/v1/inventory/counts/{$countId}/items/{$itemId}", [
-            'counted_quantity' => 0,
+        $this->postJson("/api/v1/inventory/counts/{$countId}/entries", [
+            'product_id' => $product->id,
+            'quantity' => 0,
+            'unit_cost' => 2,
         ])->assertOk()
             ->assertJsonPath('data.items.0.counted_quantity', '0.0000')
             ->assertJsonPath('data.items.0.difference', '-10.0000');
+
+        $this->assertDatabaseHas('stock_count_entries', [
+            'stock_count_id' => $countId,
+            'stock_count_item_id' => $itemId,
+            'quantity' => '0.0000',
+        ]);
 
         $this->postJson("/api/v1/inventory/counts/{$countId}/complete", [])
             ->assertOk()

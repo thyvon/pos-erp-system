@@ -38,7 +38,9 @@ return static function (): void {
     Route::get('inventory/counts/{stockCount}', [StockCountController::class, 'show'])->middleware('can:inventory.index');
     Route::delete('inventory/counts/{stockCount}', [StockCountController::class, 'destroy'])->middleware('can:inventory.count');
     Route::get('inventory/counts/{stockCount}/items', [StockCountController::class, 'items'])->middleware('can:inventory.index');
+    Route::get('inventory/counts/{stockCount}/entries', [StockCountController::class, 'entries'])->middleware('can:inventory.index');
     Route::post('inventory/counts/{stockCount}/entries', [StockCountController::class, 'addEntry'])->middleware('can:inventory.count');
+    Route::put('inventory/counts/{stockCount}/entries/{stockCountEntry}', [StockCountController::class, 'updateEntry'])->middleware('can:inventory.count');
     Route::post('inventory/counts/{stockCount}/items/{stockCountItem}', [StockCountController::class, 'updateItem'])->middleware('can:inventory.count');
     Route::delete('inventory/counts/{stockCount}/items/{stockCountItem}', [StockCountController::class, 'destroyItem'])->middleware('can:inventory.count');
     Route::post('inventory/counts/{stockCount}/complete', [StockCountController::class, 'complete'])->middleware('can:inventory.count');

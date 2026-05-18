@@ -1,9 +1,11 @@
 import { StockCountDetailPage } from '@/features/inventory/StockCountDetailPage'
 
 interface StockCountPageProps {
-  params: { id: string }
+  params: Promise<{ id: string }>
 }
 
-export default function StockCountPage({ params }: StockCountPageProps) {
-  return <StockCountDetailPage countId={params.id} />
+export default async function StockCountPage({ params }: StockCountPageProps) {
+  const { id } = await params
+
+  return <StockCountDetailPage countId={id} />
 }
