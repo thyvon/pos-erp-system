@@ -107,10 +107,24 @@ class StockCountApiTest extends TestCase
             ->assertJsonPath('data.items.0.counted_quantity', '8.0000')
             ->assertJsonCount(1, 'data.items');
 
-        $this->getJson("/api/v1/inventory/counts/{$countId}/entries")
+        $entriesResponse = $this->getJson("/api/v1/inventory/counts/{$countId}/entries")
             ->assertOk()
             ->assertJsonCount(2, 'data')
             ->assertJsonPath('data.0.quantity', '3.0000')
+            ->assertJsonPath('data.1.quantity', '5.0000');
+
+        $entryId = $entriesResponse->json('data.0.id');
+
+        $this->putJson("/api/v1/inventory/counts/{$countId}/entries/{$entryId}", [
+            'quantity' => 6,
+        ])->assertOk()
+            ->assertJsonPath('data.items.0.counted_quantity', '11.0000')
+            ->assertJsonPath('data.items.0.difference', '1.0000');
+
+        $this->getJson("/api/v1/inventory/counts/{$countId}/entries")
+            ->assertOk()
+            ->assertJsonCount(2, 'data')
+            ->assertJsonPath('data.0.quantity', '6.0000')
             ->assertJsonPath('data.1.quantity', '5.0000');
 
         $completeResponse = $this->postJson("/api/v1/inventory/counts/{$countId}/complete", [])
@@ -129,7 +143,7 @@ class StockCountApiTest extends TestCase
             'reference_type' => StockCount::class,
             'reference_id' => $countId,
             'type' => 'stock_count_correction',
-            'quantity' => '2.0000',
+            'quantity' => '1.0000',
         ]);
     }
 

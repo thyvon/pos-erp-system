@@ -162,6 +162,7 @@ const inventory = {
       recordEntry: 'កត់ត្រាការរាប់',
       openEntryForm: 'បើកទម្រង់កត់ត្រាការរាប់',
       complete: 'បញ្ចប់ការរាប់',
+      editEntry: 'កែការរាប់',
       correct: 'កែបរិមាណ',
       saveCountedQuantity: 'រក្សាទុកបរិមាណបានរាប់',
       removeItem: 'លុបទំនិញ',
@@ -243,6 +244,7 @@ const inventory = {
     dialogs: {
       correctTitle: 'កែបរិមាណដែលបានរាប់',
       entryTitle: 'កត់ត្រាការរាប់',
+      editEntryTitle: 'កែការរាប់',
     },
     confirmDelete: {
       title: 'លុបការរាប់ស្តុក',
@@ -260,6 +262,7 @@ const inventory = {
       created: 'បានចាប់ផ្តើមការរាប់ស្តុក។',
       deleted: 'បានលុបការរាប់ស្តុក។',
       entryRecorded: 'បានកត់ត្រាការរាប់។',
+      entryUpdated: 'បានកែការរាប់។',
       itemUpdated: 'បានកែបរិមាណដែលបានរាប់។',
       itemDeleted: 'បានលុបបន្ទាត់ដែលបានរាប់។',
       completed: 'បានបញ្ចប់ការរាប់ស្តុក។',

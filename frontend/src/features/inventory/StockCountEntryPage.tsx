@@ -10,6 +10,10 @@ import {
   CardContent,
   Chip,
   CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
   IconButton,
   InputAdornment,
   Stack,
@@ -24,7 +28,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
-import { ArrowBack, SaveOutlined, Search } from '@/components/ui/icons'
+import { ArrowBack, EditOutlined, SaveOutlined, Search } from '@/components/ui/icons'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
@@ -36,6 +40,7 @@ import {
   useStockCountEntriesQuery,
   useStockCountItemsQuery,
   useStockCountQuery,
+  useUpdateStockCountEntryMutation,
 } from './hooks'
 import type { InventoryProductLookupItem, StockCountEntry, StockCountItem, StockCountStatus } from '@/types/inventory'
 
@@ -77,6 +82,8 @@ export function StockCountEntryPage({ countId }: StockCountEntryPageProps) {
   const [page, setPage] = useState(0)
   const [perPage, setPerPage] = useState(25)
   const [serverError, setServerError] = useState('')
+  const [editingEntry, setEditingEntry] = useState<StockCountEntry | null>(null)
+  const [editingQuantity, setEditingQuantity] = useState('')
 
   const countQuery = useStockCountQuery(countId)
   const count = countQuery.data
@@ -111,6 +118,7 @@ export function StockCountEntryPage({ countId }: StockCountEntryPageProps) {
   const entriesQuery = useStockCountEntriesQuery(countId, entriesFilters)
   const countItemsQuery = useStockCountItemsQuery(countId, itemFilters)
   const addEntry = useAddStockCountEntryMutation()
+  const updateEntry = useUpdateStockCountEntryMutation()
   const entries = entriesQuery.data?.data ?? []
   const meta = entriesQuery.data?.meta
   const countItems = countItemsQuery.data?.data ?? []
@@ -152,11 +160,56 @@ export function StockCountEntryPage({ countId }: StockCountEntryPageProps) {
         },
       })
       enqueueSnackbar(t('counts.messages.entryRecorded'), { variant: 'success' })
+      setSelectedItem(null)
       setEntryQuantity('1')
       setItemSearch('')
       setItemPage(0)
       setEntrySearch('')
       setPage(0)
+      await Promise.all([
+        entriesQuery.refetch(),
+        countItemsQuery.refetch(),
+        selectedItemsQuery.refetch(),
+      ])
+    } catch (error) {
+      setServerError(toAppApiError(error).message)
+    }
+  }
+
+  const openEditEntry = (entry: StockCountEntry) => {
+    setServerError('')
+    setEditingEntry(entry)
+    setEditingQuantity(String(Number(entry.quantity ?? 0)))
+  }
+
+  const closeEditEntry = () => {
+    if (updateEntry.isPending) return
+
+    setEditingEntry(null)
+    setEditingQuantity('')
+  }
+
+  const submitEditEntry = async () => {
+    if (!editingEntry) return
+
+    const quantity = Number(editingQuantity)
+
+    if (editingQuantity === '' || !Number.isFinite(quantity) || quantity < 0) {
+      setServerError(t('counts.messages.invalidEntryQuantity'))
+      return
+    }
+
+    setServerError('')
+
+    try {
+      await updateEntry.mutateAsync({
+        countId,
+        entryId: editingEntry.id,
+        payload: { quantity },
+      })
+      enqueueSnackbar(t('counts.messages.entryUpdated'), { variant: 'success' })
+      setEditingEntry(null)
+      setEditingQuantity('')
       await Promise.all([
         entriesQuery.refetch(),
         countItemsQuery.refetch(),
@@ -219,7 +272,7 @@ export function StockCountEntryPage({ countId }: StockCountEntryPageProps) {
 
             <InventoryProductLookupPicker
               warehouseId={count?.warehouse_id}
-              disabled={!canRecordEntries || addEntry.isPending}
+              disabled={!canRecordEntries || addEntry.isPending || updateEntry.isPending}
               autoFocus
               helperText={t('counts.detail.entryPickerHelp')}
               onSelect={selectLookupItem}
@@ -257,7 +310,7 @@ export function StockCountEntryPage({ countId }: StockCountEntryPageProps) {
                 value={entryQuantity}
                 type="number"
                 label={t('counts.fields.countEntryQuantity')}
-                disabled={!canRecordEntries || addEntry.isPending || !selectedItem}
+                disabled={!canRecordEntries || addEntry.isPending || updateEntry.isPending || !selectedItem}
                 slotProps={{ htmlInput: { min: 0, step: 0.0001, style: { textAlign: 'right' } } }}
                 onChange={(event) => setEntryQuantity(event.target.value)}
                 onKeyDown={(event) => {
@@ -270,7 +323,7 @@ export function StockCountEntryPage({ countId }: StockCountEntryPageProps) {
               <Button
                 variant="contained"
                 startIcon={addEntry.isPending ? undefined : <SaveOutlined />}
-                disabled={!canRecordEntries || addEntry.isPending || !selectedItem}
+                disabled={!canRecordEntries || addEntry.isPending || updateEntry.isPending || !selectedItem}
                 onClick={() => void submitEntry()}
                 sx={{ minHeight: 56 }}
               >
@@ -417,7 +470,7 @@ export function StockCountEntryPage({ countId }: StockCountEntryPageProps) {
             </Stack>
 
             <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1, overflowX: 'auto' }}>
-              <Table size="small" sx={{ minWidth: 920, tableLayout: 'fixed' }}>
+              <Table size="small" sx={{ minWidth: 1000, tableLayout: 'fixed' }}>
                 <TableHead>
                   <TableRow>
                     <TableCell sx={{ width: 320 }}>{t('counts.fields.product')}</TableCell>
@@ -425,13 +478,14 @@ export function StockCountEntryPage({ countId }: StockCountEntryPageProps) {
                     <TableCell align="right" sx={{ width: 140 }}>{t('counts.fields.unitCost')}</TableCell>
                     <TableCell sx={{ width: 180 }}>{t('counts.columns.countedBy')}</TableCell>
                     <TableCell sx={{ width: 190 }}>{t('counts.columns.countedAt')}</TableCell>
+                    <TableCell align="right" sx={{ width: 100 }}>{t('counts.columns.actions')}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {entriesQuery.isLoading && <TableStateRow colSpan={5} loading />}
+                  {entriesQuery.isLoading && <TableStateRow colSpan={6} loading />}
 
                   {!entriesQuery.isLoading && entries.length === 0 && (
-                    <TableStateRow colSpan={5} message={t('counts.emptyEntries')} />
+                    <TableStateRow colSpan={6} message={t('counts.emptyEntries')} />
                   )}
 
                   {entries.map((entry) => (
@@ -448,6 +502,23 @@ export function StockCountEntryPage({ countId }: StockCountEntryPageProps) {
                       <TableCell align="right">{formatQuantity(entry.unit_cost)}</TableCell>
                       <TableCell>{entry.creator?.name ?? '-'}</TableCell>
                       <TableCell>{entry.created_at ? new Date(entry.created_at).toLocaleString() : '-'}</TableCell>
+                      <TableCell align="right">
+                        {canRecordEntries ? (
+                          <Tooltip title={t('counts.actions.editEntry')}>
+                            <span>
+                              <IconButton
+                                size="small"
+                                color="primary"
+                                disabled={addEntry.isPending || updateEntry.isPending}
+                                aria-label={t('counts.actions.editEntry')}
+                                onClick={() => openEditEntry(entry)}
+                              >
+                                <EditOutlined fontSize="small" />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                        ) : '-'}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -469,6 +540,53 @@ export function StockCountEntryPage({ countId }: StockCountEntryPageProps) {
           </Stack>
         </CardContent>
       </Card>
+
+      <Dialog open={!!editingEntry} onClose={closeEditEntry} fullWidth maxWidth="sm">
+        <DialogTitle>{t('counts.dialogs.editEntryTitle')}</DialogTitle>
+        <DialogContent dividers>
+          {editingEntry && (
+            <Stack spacing={2}>
+              <Box>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  {t('counts.fields.product')}
+                </Typography>
+                <Typography variant="body2">{getItemLabel(editingEntry)}</Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                  {[editingEntry.variation?.sku ?? editingEntry.product?.sku, editingEntry.lot?.lot_number].filter(Boolean).join(' / ') || '-'}
+                </Typography>
+              </Box>
+              <TextField
+                autoFocus
+                value={editingQuantity}
+                type="number"
+                label={t('counts.fields.countEntryQuantity')}
+                disabled={updateEntry.isPending}
+                slotProps={{ htmlInput: { min: 0, step: 0.0001, style: { textAlign: 'right' } } }}
+                onChange={(event) => setEditingQuantity(event.target.value)}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter') {
+                    event.preventDefault()
+                    void submitEditEntry()
+                  }
+                }}
+              />
+            </Stack>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, py: 2 }}>
+          <Button variant="outlined" disabled={updateEntry.isPending} onClick={closeEditEntry}>
+            {t('common:buttons.cancel')}
+          </Button>
+          <Button
+            variant="contained"
+            startIcon={updateEntry.isPending ? undefined : <SaveOutlined />}
+            disabled={updateEntry.isPending}
+            onClick={() => void submitEditEntry()}
+          >
+            {updateEntry.isPending ? <CircularProgress size={20} color="inherit" /> : t('common:buttons.save')}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Stack>
   )
 }

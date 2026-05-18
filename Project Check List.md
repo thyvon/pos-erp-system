@@ -50,6 +50,7 @@
 - [x] Stock Count entry workflow split into a dedicated entry page with scan/search form and duplicate entry history, while the detail page is now a unique stock-count-item review page.
 - [x] Stock Count entry page now puts the product picker above the entry row, shows selected product info beside count quantity, and refreshes the entry table immediately after recording.
 - [x] Stock Count entry page now includes a live count item totals table and refreshes it after each recorded entry so counted totals update immediately.
+- [x] Stock Count entry history rows can be edited while in progress, applying the quantity delta back to unique item counted totals, and the entry row clears its selected product after recording.
 
 ## Frontend UI Consistency
 

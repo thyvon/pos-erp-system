@@ -162,6 +162,7 @@ const inventory = {
       recordEntry: 'Record count entry',
       openEntryForm: 'Open count entry form',
       complete: 'Complete count',
+      editEntry: 'Edit count entry',
       correct: 'Correct quantity',
       saveCountedQuantity: 'Save counted quantity',
       removeItem: 'Remove item',
@@ -243,6 +244,7 @@ const inventory = {
     dialogs: {
       correctTitle: 'Correct counted quantity',
       entryTitle: 'Record count entry',
+      editEntryTitle: 'Edit count entry',
     },
     confirmDelete: {
       title: 'Delete stock count',
@@ -260,6 +262,7 @@ const inventory = {
       created: 'Stock count started.',
       deleted: 'Stock count deleted.',
       entryRecorded: 'Count entry recorded.',
+      entryUpdated: 'Count entry updated.',
       itemUpdated: 'Counted quantity updated.',
       itemDeleted: 'Counted line removed.',
       completed: 'Stock count completed.',
