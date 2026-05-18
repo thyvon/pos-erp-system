@@ -44,6 +44,11 @@
 - [x] Stock Count backend refactor verified with focused stock count tests and the full inventory feature test directory.
 - [x] Stock Count seeded items can now be explicitly marked as zero counted quantity and still post the expected completion correction.
 
+## Frontend UI Consistency
+
+- [x] Frontend shared and page-level icons now use Solar icons through a single local icon module, including sidebar navigation and common actions.
+- [x] Solar icon frontend change verified with `npm.cmd run type-check`, `npm.cmd run lint`, and `npm.cmd run build`.
+
 ## Edit Window Policy
 
 - [x] Shared edit-window service added with per-feature lifetime-day settings pattern.

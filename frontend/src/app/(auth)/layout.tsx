@@ -14,7 +14,7 @@ import {
   AccountBalanceWalletOutlined,
   Inventory2Outlined,
   PointOfSaleOutlined,
-} from '@mui/icons-material'
+} from '@/components/ui/icons'
 import { useAuthStore } from '@/stores/authStore'
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {

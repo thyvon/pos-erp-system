@@ -20,7 +20,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
-import { Add, DeleteOutlined } from '@mui/icons-material'
+import { Add, DeleteOutlined } from '@/components/ui/icons'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { unitSchema, type UnitFormInput, type UnitFormValues } from './schema'

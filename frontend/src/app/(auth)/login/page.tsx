@@ -28,7 +28,7 @@ import {
   VisibilityOff,
   Mail,
   LockOutlined,
-} from '@mui/icons-material'
+} from '@/components/ui/icons'
 import { useLoginMutation } from '@/features/auth/hooks'
 import { toAppApiError } from '@/api/errors'
 

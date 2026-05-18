@@ -9,7 +9,7 @@ import {
   TableRow,
   Typography,
 } from '@mui/material'
-import { Add, DeleteOutlined } from '@mui/icons-material'
+import { Add, DeleteOutlined } from '@/components/ui/icons'
 import { useWatch } from 'react-hook-form'
 import type { FieldErrors, UseFieldArrayReturn } from 'react-hook-form'
 import type { TFunction } from 'i18next'

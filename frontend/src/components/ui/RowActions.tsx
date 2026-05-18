@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { DeleteOutlined, EditOutlined, MoreVert, VisibilityOutlined } from '@mui/icons-material'
+import { DeleteOutlined, EditOutlined, MoreVert, VisibilityOutlined } from '@/components/ui/icons'
 import { IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Tooltip } from '@mui/material'
 
 interface RowActionsProps {

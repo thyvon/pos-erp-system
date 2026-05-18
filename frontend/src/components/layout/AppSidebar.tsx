@@ -42,7 +42,7 @@ import {
   StraightenOutlined,
   ExpandLess,
   ExpandMore,
-} from '@mui/icons-material'
+} from '@/components/ui/icons'
 import { useAuthStore } from '@/stores/authStore'
 import { useUIStore } from '@/stores/uiStore'
 import { SIDEBAR_WIDTH, SIDEBAR_COLLAPSED_WIDTH } from '@/theme'

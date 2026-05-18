@@ -17,7 +17,7 @@ import {
   PointOfSaleOutlined,
   ReceiptLongOutlined,
   TrendingUpOutlined,
-} from '@mui/icons-material'
+} from '@/components/ui/icons'
 
 const stats = [
   {

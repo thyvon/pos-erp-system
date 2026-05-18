@@ -28,7 +28,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
-import { ArrowBack, DeleteOutlined, SaveOutlined } from '@mui/icons-material'
+import { ArrowBack, DeleteOutlined, SaveOutlined } from '@/components/ui/icons'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'

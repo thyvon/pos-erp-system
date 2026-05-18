@@ -17,7 +17,7 @@ import {
   TuneOutlined,
   ChevronLeft,
   ChevronRight,
-} from '@mui/icons-material'
+} from '@/components/ui/icons'
 import { useUIStore } from '@/stores/uiStore'
 import { SIDEBAR_WIDTH, SIDEBAR_COLLAPSED_WIDTH, TOPBAR_HEIGHT } from '@/theme'
 import AccountPopover from './AccountPopover'

@@ -29,7 +29,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
-import { DeleteOutlined } from '@mui/icons-material'
+import { DeleteOutlined } from '@/components/ui/icons'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'

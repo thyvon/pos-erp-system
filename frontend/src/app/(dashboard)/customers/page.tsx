@@ -25,7 +25,7 @@ import {
   Add,
   PeopleOutlined,
   Search,
-} from '@mui/icons-material'
+} from '@/components/ui/icons'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'

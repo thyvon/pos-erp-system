@@ -16,7 +16,7 @@ import {
   Stack,
   Typography,
 } from '@mui/material'
-import { ArrowBack, SaveOutlined } from '@mui/icons-material'
+import { ArrowBack, SaveOutlined } from '@/components/ui/icons'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'

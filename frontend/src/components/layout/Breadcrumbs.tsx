@@ -3,7 +3,7 @@
 import NextLink from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Breadcrumbs as MuiBreadcrumbs, Link, Typography, Box } from '@mui/material'
-import { NavigateNext } from '@mui/icons-material'
+import { NavigateNext } from '@/components/ui/icons'
 import { useTranslation } from 'react-i18next'
 import { useProductQuery } from '@/features/products/hooks'
 import { useStockCountQuery, useStockTransferQuery } from '@/features/inventory/hooks'

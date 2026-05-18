@@ -18,7 +18,7 @@ import {
   TableRow,
   Typography,
 } from '@mui/material'
-import { ArrowBack, EditOutlined, ImageOutlined } from '@mui/icons-material'
+import { ArrowBack, EditOutlined, ImageOutlined } from '@/components/ui/icons'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { useProductFormOptionsQuery, useProductQuery } from './hooks'

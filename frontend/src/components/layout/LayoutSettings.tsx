@@ -14,7 +14,7 @@ import {
   alpha,
   useTheme,
 } from '@mui/material'
-import { Close, DarkModeOutlined, LightModeOutlined, ViewSidebarOutlined } from '@mui/icons-material'
+import { Close, DarkModeOutlined, LightModeOutlined, ViewSidebarOutlined } from '@/components/ui/icons'
 import { useTranslation } from 'react-i18next'
 import { useUIStore } from '@/stores/uiStore'
 import { ENGLISH_FONT_OPTIONS, THEME_COLOR_PRESETS } from '@/theme'

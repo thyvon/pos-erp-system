@@ -17,7 +17,7 @@ import {
   type SxProps,
   type Theme,
 } from '@mui/material'
-import { Notifications, DoneAll } from '@mui/icons-material'
+import { Notifications, DoneAll } from '@/components/ui/icons'
 
 interface NotificationsPopoverProps {
   buttonSx?: SxProps<Theme>

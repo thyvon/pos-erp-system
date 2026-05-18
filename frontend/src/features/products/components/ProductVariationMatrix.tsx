@@ -16,7 +16,7 @@ import {
   TableRow,
   Typography,
 } from '@mui/material'
-import { DeleteOutlined, ImageOutlined, UploadOutlined } from '@mui/icons-material'
+import { DeleteOutlined, ImageOutlined, UploadOutlined } from '@/components/ui/icons'
 import { Controller, useFieldArray } from 'react-hook-form'
 import type { FieldErrors } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
