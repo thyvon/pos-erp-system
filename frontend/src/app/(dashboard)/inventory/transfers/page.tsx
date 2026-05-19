@@ -36,8 +36,9 @@ import {
   useReceiveStockTransferMutation,
   useStockTransfersQuery,
 } from '@/features/inventory/hooks'
+import { useAppDateFormat } from '@/features/settings/useAppDateFormat'
 import { useAuthStore } from '@/stores/authStore'
-import { formatAppDate, getAppDateLocale } from '@/utils/dateFormat'
+import { formatAppDate } from '@/utils/dateFormat'
 import type { StockTransfer, StockTransferFilters, StockTransferStatus } from '@/types/inventory'
 
 const rowsPerPageOptions = [10, 25, 50]
@@ -87,7 +88,7 @@ export default function StockTransfersPage() {
   const warehouses = optionsQuery.data?.warehouses ?? []
   const meta = transfersQuery.data?.meta
   const canTransfer = can('inventory.transfer')
-  const dateLocale = getAppDateLocale(i18n.language)
+  const dateFormat = useAppDateFormat()
 
   const confirmDelete = async () => {
     if (!deletingTransfer) return
@@ -260,7 +261,7 @@ export default function StockTransfersPage() {
                     <TableCell>
                       <Typography variant="subtitle2">{transfer.reference_no}</Typography>
                     </TableCell>
-                    <TableCell>{formatAppDate(transfer.date, dateLocale)}</TableCell>
+                    <TableCell>{formatAppDate(transfer.date, dateFormat, i18n.language)}</TableCell>
                     <TableCell>
                       <Stack spacing={0.25}>
                         <Typography variant="body2">{transfer.from_warehouse?.name ?? '-'}</Typography>

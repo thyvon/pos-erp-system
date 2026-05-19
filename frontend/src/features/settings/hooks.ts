@@ -9,10 +9,11 @@ export const settingsKeys = {
   group: (group: SettingsGroupKey) => [...settingsKeys.all, group] as const,
 }
 
-export function useSettingsGroupQuery(group: SettingsGroupKey) {
+export function useSettingsGroupQuery(group: SettingsGroupKey, enabled = true) {
   return useQuery({
     queryKey: settingsKeys.group(group),
     queryFn: () => settingsApi.getGroup(group),
+    enabled,
   })
 }
 

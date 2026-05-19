@@ -41,8 +41,9 @@ import {
   useStockAdjustmentsQuery,
   useUpdateStockAdjustmentMutation,
 } from '@/features/inventory/hooks'
+import { useAppDateFormat } from '@/features/settings/useAppDateFormat'
 import { useAuthStore } from '@/stores/authStore'
-import { formatAppDate, getAppDateLocale } from '@/utils/dateFormat'
+import { formatAppDate } from '@/utils/dateFormat'
 import type { StockAdjustment, StockAdjustmentFilters, StockAdjustmentPayload } from '@/types/inventory'
 
 const rowsPerPageOptions = [10, 25, 50]
@@ -91,7 +92,7 @@ export default function StockAdjustmentsPage() {
   const canCreate = can('inventory.adjust')
   const selectedAdjustment = detailQuery.data ?? viewingAdjustment
   const isSaving = createAdjustment.isPending || updateAdjustment.isPending
-  const dateLocale = getAppDateLocale(i18n.language)
+  const dateFormat = useAppDateFormat()
 
   const handleSubmit = async (payload: StockAdjustmentPayload) => {
     if (editingAdjustment) {
@@ -248,7 +249,7 @@ export default function StockAdjustmentsPage() {
                     <TableCell>
                       <Typography variant="subtitle2">{adjustment.reference_no}</Typography>
                     </TableCell>
-                    <TableCell>{formatAppDate(adjustment.date, dateLocale)}</TableCell>
+                    <TableCell>{formatAppDate(adjustment.date, dateFormat, i18n.language)}</TableCell>
                     <TableCell>
                       <Stack spacing={0.25}>
                         <Typography variant="body2">{adjustment.warehouse?.name ?? '-'}</Typography>
@@ -328,7 +329,7 @@ export default function StockAdjustmentsPage() {
                   <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                     {t('adjustments.fields.date')}
                   </Typography>
-                  <Typography variant="body2">{formatAppDate(selectedAdjustment.date, dateLocale)}</Typography>
+                  <Typography variant="body2">{formatAppDate(selectedAdjustment.date, dateFormat, i18n.language)}</Typography>
                 </Box>
                 <Box>
                   <Typography variant="caption" sx={{ color: 'text.secondary' }}>

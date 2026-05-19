@@ -33,8 +33,9 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { RowActions } from '@/components/ui/RowActions'
 import { TableStateRow } from '@/components/ui/TableStateRow'
 import { useDeleteStockCountMutation, useInventoryOptionsQuery, useStockCountsQuery } from '@/features/inventory/hooks'
+import { useAppDateFormat } from '@/features/settings/useAppDateFormat'
 import { useAuthStore } from '@/stores/authStore'
-import { formatAppDate, getAppDateLocale } from '@/utils/dateFormat'
+import { formatAppDate } from '@/utils/dateFormat'
 import type { StockCount, StockCountFilters, StockCountStatus } from '@/types/inventory'
 
 const rowsPerPageOptions = [10, 25, 50]
@@ -77,7 +78,7 @@ export default function StockCountsPage() {
   const warehouses = optionsQuery.data?.warehouses ?? []
   const meta = countsQuery.data?.meta
   const canCount = can('inventory.count')
-  const dateLocale = getAppDateLocale(i18n.language)
+  const dateFormat = useAppDateFormat()
 
   const confirmDelete = async () => {
     if (!deletingCount) return
@@ -227,7 +228,7 @@ export default function StockCountsPage() {
                     <TableCell>
                       <Typography variant="subtitle2">{count.reference_no}</Typography>
                     </TableCell>
-                    <TableCell>{formatAppDate(count.date, dateLocale)}</TableCell>
+                    <TableCell>{formatAppDate(count.date, dateFormat, i18n.language)}</TableCell>
                     <TableCell>
                       <Stack spacing={0.25}>
                         <Typography variant="body2">{count.warehouse?.name ?? '-'}</Typography>

@@ -1,47 +1,51 @@
 'use client'
 
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Alert,
-  Avatar,
   Box,
   Button,
+  Card,
+  CardContent,
   Chip,
   CircularProgress,
-  Divider,
   IconButton,
+  InputAdornment,
   Stack,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
   Tooltip,
   Typography,
+  TextField,
 } from '@mui/material'
 import {
   ArrowBack,
   CheckCircleOutlined,
   EditOutlined,
-  Inventory2Outlined,
-  LocalShippingOutlined,
-  WarehouseOutlined,
+  Search,
 } from '@/components/ui/icons'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { TableStateRow } from '@/components/ui/TableStateRow'
+import { useAppDateFormat } from '@/features/settings/useAppDateFormat'
 import { useReceiveStockTransferMutation, useStockTransferQuery } from './hooks'
 import { useAuthStore } from '@/stores/authStore'
-import { formatAppDate, formatAppDateTime, getAppDateLocale } from '@/utils/dateFormat'
+import { formatAppDate, formatAppDateTime } from '@/utils/dateFormat'
 import type { StockTransferItem, StockTransferStatus } from '@/types/inventory'
 
 interface StockTransferDetailPageProps {
   transferId: string
 }
+
+const rowsPerPageOptions = [10, 25, 50]
 
 function formatQuantity(value: string | number | null | undefined) {
   if (value === null || value === undefined || value === '') return '-'
@@ -78,42 +82,6 @@ function DetailItem({ label, value }: { label: string; value: React.ReactNode })
   )
 }
 
-function TimelineItem({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <Box
-      sx={{
-        display: 'grid',
-        gridTemplateColumns: 'max-content minmax(0, 1fr)',
-        columnGap: 1,
-        alignItems: 'baseline',
-        minWidth: 0,
-      }}
-    >
-      <Typography variant="body2" sx={{ color: 'text.secondary', whiteSpace: 'nowrap' }}>
-        {label}:
-      </Typography>
-      <Typography variant="body2" sx={{ fontWeight: 600, overflowWrap: 'anywhere' }}>
-        {value}
-      </Typography>
-    </Box>
-  )
-}
-
-function SectionTitle({ title, subtitle }: { title: string; subtitle?: string }) {
-  return (
-    <Box>
-      <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>
-        {title}
-      </Typography>
-      {subtitle && (
-        <Typography variant="body2" sx={{ mt: 0.25, color: 'text.secondary' }}>
-          {subtitle}
-        </Typography>
-      )}
-    </Box>
-  )
-}
-
 const itemColumnSx = {
   product: { width: 360, minWidth: 360 },
   quantity: { width: 150, minWidth: 150 },
@@ -127,13 +95,36 @@ export function StockTransferDetailPage({ transferId }: StockTransferDetailPageP
   const { enqueueSnackbar } = useSnackbar()
   const can = useAuthStore((state) => state.can)
   const [confirmReceiveOpen, setConfirmReceiveOpen] = useState(false)
+  const [itemSearch, setItemSearch] = useState('')
+  const [itemPage, setItemPage] = useState(0)
+  const [itemPerPage, setItemPerPage] = useState(10)
   const transferQuery = useStockTransferQuery(transferId)
   const receiveTransfer = useReceiveStockTransferMutation()
   const transfer = transferQuery.data
   const canTransfer = can('inventory.transfer')
   const canReceive = canTransfer && transfer?.status === 'in_transit'
   const canEdit = canTransfer && !!transfer && transfer.status !== 'received'
-  const dateLocale = getAppDateLocale(i18n.language)
+  const dateFormat = useAppDateFormat()
+  const filteredItems = useMemo(() => {
+    if (!transfer) return []
+
+    const term = itemSearch.trim().toLowerCase()
+    if (!term) return transfer.items
+
+    return transfer.items.filter((item) =>
+      [
+        getItemLabel(item),
+        getItemCodeLine(item),
+        item.notes,
+        item.quantity,
+        item.unit_cost,
+      ].some((value) => String(value ?? '').toLowerCase().includes(term))
+    )
+  }, [itemSearch, transfer])
+  const paginatedItems = useMemo(
+    () => filteredItems.slice(itemPage * itemPerPage, itemPage * itemPerPage + itemPerPage),
+    [filteredItems, itemPage, itemPerPage]
+  )
 
   const confirmReceive = async () => {
     if (!transfer) return
@@ -144,44 +135,20 @@ export function StockTransferDetailPage({ transferId }: StockTransferDetailPageP
   }
 
   return (
-    <Stack spacing={2.5}>
+    <Stack spacing={3}>
       <Stack
-        direction={{ xs: 'column', md: 'row' }}
+        direction={{ xs: 'column', sm: 'row' }}
         spacing={2}
-        sx={{ alignItems: { xs: 'stretch', md: 'center' }, justifyContent: 'space-between' }}
+        sx={{ justifyContent: 'space-between' }}
       >
-        <Stack direction="row" spacing={2} sx={{ minWidth: 0, alignItems: 'center' }}>
-          <Avatar
-            variant="rounded"
-            sx={{ width: 56, height: 56, borderRadius: 1, bgcolor: 'action.hover', color: 'text.secondary' }}
-          >
-            <LocalShippingOutlined />
-          </Avatar>
-          <Box sx={{ minWidth: 0 }}>
-            <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', alignItems: 'center' }}>
-              <Typography variant="h4" sx={{ overflowWrap: 'anywhere' }}>
-                {transfer?.reference_no ?? t('transfers.detail.title')}
-              </Typography>
-              {transfer && (
-                <Chip
-                  size="small"
-                  label={t(`transfers.status.${transfer.status}`)}
-                  color={statusColor(transfer.status)}
-                  variant="outlined"
-                />
-              )}
-            </Stack>
-            <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
-              {t('transfers.detail.subtitle')}
-            </Typography>
-          </Box>
-        </Stack>
+        <Box>
+          <Typography variant="h4">{transfer?.reference_no ?? t('transfers.detail.title')}</Typography>
+          <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
+            {t('transfers.detail.subtitle')}
+          </Typography>
+        </Box>
 
-        <Stack
-          direction="row"
-          spacing={1.5}
-          sx={{ alignItems: 'center', justifyContent: { xs: 'flex-end', md: 'initial' } }}
-        >
+        <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
           {canEdit && (
             <Button
               variant="outlined"
@@ -224,136 +191,107 @@ export function StockTransferDetailPage({ transferId }: StockTransferDetailPageP
       )}
 
       {transfer && !transferQuery.isLoading && (
-        <Box
-          sx={{
-            bgcolor: 'background.paper',
-            border: 1,
-            borderColor: 'divider',
-            borderRadius: 1,
-            overflow: 'hidden',
-          }}
-        >
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', lg: '300px minmax(0, 1fr)' },
-              minHeight: 420,
-            }}
-          >
-            <Box
-              sx={{
-                borderRight: { xs: 0, lg: 1 },
-                borderBottom: { xs: 1, lg: 0 },
-                borderColor: 'divider',
-                p: 3,
-              }}
-            >
+        <Stack spacing={3}>
+          <Card>
+            <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
               <Stack spacing={2.5}>
-                <Stack spacing={1.5}>
-                  <TimelineItem label={t('transfers.fields.date')} value={formatAppDate(transfer.date, dateLocale)} />
-                  <TimelineItem
-                    label={t('transfers.detail.sentAt')}
-                    value={formatAppDateTime(transfer.sent_at, dateLocale)}
-                  />
-                  <TimelineItem
-                    label={t('transfers.detail.receivedAt')}
-                    value={formatAppDateTime(transfer.received_at, dateLocale)}
-                  />
-                </Stack>
-
-                <Divider />
-
-                <Stack spacing={1.5}>
-                  <TimelineItem label={t('transfers.columns.createdBy')} value={transfer.creator?.name ?? '-'} />
-                  <TimelineItem label={t('transfers.fields.sender')} value={transfer.sender?.name ?? '-'} />
-                  <TimelineItem label={t('transfers.fields.receiver')} value={transfer.receiver?.name ?? '-'} />
-                </Stack>
-              </Stack>
-            </Box>
-
-            <Stack spacing={3} sx={{ p: 3, minWidth: 0 }}>
-              <SectionTitle title={t('transfers.detail.movement')} subtitle={t('transfers.detail.movementHelp')} />
-
-              <Box
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) 48px minmax(0, 1fr)' },
-                  gap: 2,
-                  alignItems: 'stretch',
-                }}
-              >
-                <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 2, minWidth: 0 }}>
-                  <Stack direction="row" spacing={1.5} sx={{ alignItems: 'flex-start' }}>
-                    <Avatar
-                      variant="rounded"
-                      sx={{ width: 40, height: 40, borderRadius: 1, bgcolor: 'action.hover', color: 'text.secondary' }}
-                    >
-                      <WarehouseOutlined />
-                    </Avatar>
-                    <Box sx={{ minWidth: 0 }}>
-                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                        {t('transfers.fields.fromWarehouse')}
-                      </Typography>
-                      <Typography variant="subtitle2" sx={{ overflowWrap: 'anywhere' }}>
-                        {transfer.from_warehouse?.name ?? '-'}
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: 'text.secondary', overflowWrap: 'anywhere' }}>
-                        {transfer.from_warehouse?.branch_name ?? '-'}
-                      </Typography>
-                    </Box>
-                  </Stack>
-                </Box>
-
                 <Box
                   sx={{
-                    display: 'flex',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    color: 'text.secondary',
-                    transform: { xs: 'rotate(90deg)', md: 'none' },
+                    display: 'grid',
+                    gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(4, minmax(0, 1fr))' },
+                    gap: 2,
                   }}
                 >
-                  <LocalShippingOutlined />
-                </Box>
-
-                <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 2, minWidth: 0 }}>
-                  <Stack direction="row" spacing={1.5} sx={{ alignItems: 'flex-start' }}>
-                    <Avatar
-                      variant="rounded"
-                      sx={{ width: 40, height: 40, borderRadius: 1, bgcolor: 'action.hover', color: 'text.secondary' }}
-                    >
-                      <Inventory2Outlined />
-                    </Avatar>
-                    <Box sx={{ minWidth: 0 }}>
-                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                        {t('transfers.fields.toWarehouse')}
+                  <DetailItem
+                    label={t('transfers.fields.date')}
+                    value={formatAppDate(transfer.date, dateFormat, i18n.language)}
+                  />
+                  <Box>
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                      {t('transfers.columns.status')}
+                    </Typography>
+                    <Box sx={{ mt: 0.5 }}>
+                      <Chip
+                        size="small"
+                        label={t(`transfers.status.${transfer.status}`)}
+                        color={statusColor(transfer.status)}
+                        variant="outlined"
+                      />
+                    </Box>
+                  </Box>
+                  <DetailItem label={t('transfers.fields.fromWarehouse')} value={(
+                    <Stack spacing={0.25}>
+                      <span>{transfer.from_warehouse?.name ?? '-'}</span>
+                      <Typography component="span" variant="caption" sx={{ color: 'text.secondary' }}>
+                        {transfer.from_warehouse?.branch_name ?? '-'}
                       </Typography>
-                      <Typography variant="subtitle2" sx={{ overflowWrap: 'anywhere' }}>
-                        {transfer.to_warehouse?.name ?? '-'}
-                      </Typography>
-                      <Typography variant="body2" sx={{ color: 'text.secondary', overflowWrap: 'anywhere' }}>
+                    </Stack>
+                  )} />
+                  <DetailItem label={t('transfers.fields.toWarehouse')} value={(
+                    <Stack spacing={0.25}>
+                      <span>{transfer.to_warehouse?.name ?? '-'}</span>
+                      <Typography component="span" variant="caption" sx={{ color: 'text.secondary' }}>
                         {transfer.to_warehouse?.branch_name ?? '-'}
                       </Typography>
-                    </Box>
-                  </Stack>
+                    </Stack>
+                  )} />
+                  <DetailItem
+                    label={t('transfers.detail.sentAt')}
+                    value={formatAppDateTime(transfer.sent_at, dateFormat, i18n.language)}
+                  />
+                  <DetailItem
+                    label={t('transfers.detail.receivedAt')}
+                    value={formatAppDateTime(transfer.received_at, dateFormat, i18n.language)}
+                  />
+                  <DetailItem label={t('transfers.columns.createdBy')} value={transfer.creator?.name ?? '-'} />
+                  <DetailItem label={t('transfers.fields.sender')} value={transfer.sender?.name ?? '-'} />
+                  <DetailItem label={t('transfers.fields.receiver')} value={transfer.receiver?.name ?? '-'} />
+                  <DetailItem label={t('transfers.columns.items')} value={transfer.items.length} />
                 </Box>
-              </Box>
 
-              <Box
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))' },
-                  gap: 2,
-                }}
-              >
-                <DetailItem label={t('transfers.columns.items')} value={transfer.items.length} />
-                <DetailItem label={t('transfers.fields.notes')} value={transfer.notes || '-'} />
-              </Box>
+                {transfer.notes && (
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                    {transfer.notes}
+                  </Typography>
+                )}
+              </Stack>
+            </CardContent>
+          </Card>
 
-              <Divider />
-
-              <Stack spacing={1.5}>
-                <SectionTitle title={t('transfers.detail.items')} subtitle={t('transfers.detail.itemsHelp')} />
+          <Card>
+            <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+              <Stack spacing={2.5}>
+                <Stack
+                  direction={{ xs: 'column', sm: 'row' }}
+                  spacing={2}
+                  sx={{ alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between' }}
+                >
+                  <Box>
+                    <Typography variant="subtitle2">{t('transfers.detail.items')}</Typography>
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                      {t('transfers.detail.itemsHelp')}
+                    </Typography>
+                  </Box>
+                  <TextField
+                    value={itemSearch}
+                    onChange={(event) => {
+                      setItemSearch(event.target.value)
+                      setItemPage(0)
+                    }}
+                    placeholder={t('transfers.filters.searchItems')}
+                    size="small"
+                    sx={{ width: { xs: '100%', sm: 320 } }}
+                    slotProps={{
+                      input: {
+                        startAdornment: (
+                          <InputAdornment position="start">
+                            <Search fontSize="small" />
+                          </InputAdornment>
+                        ),
+                      },
+                    }}
+                  />
+                </Stack>
 
                 <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1, overflowX: 'auto' }}>
                   <Table size="small" sx={{ minWidth: 940, tableLayout: 'fixed' }}>
@@ -370,7 +308,11 @@ export function StockTransferDetailPage({ transferId }: StockTransferDetailPageP
                         <TableStateRow colSpan={4} message={t('transfers.emptyItems')} />
                       )}
 
-                      {transfer.items.map((item) => (
+                      {transfer.items.length > 0 && filteredItems.length === 0 && (
+                        <TableStateRow colSpan={4} message={t('transfers.emptyFilteredItems')} />
+                      )}
+
+                      {paginatedItems.map((item) => (
                         <TableRow key={item.id} hover>
                           <TableCell sx={itemColumnSx.product}>
                             <Stack spacing={0.25}>
@@ -398,10 +340,23 @@ export function StockTransferDetailPage({ transferId }: StockTransferDetailPageP
                     </TableBody>
                   </Table>
                 </TableContainer>
+
+                <TablePagination
+                  component="div"
+                  count={filteredItems.length}
+                  page={itemPage}
+                  rowsPerPage={itemPerPage}
+                  rowsPerPageOptions={rowsPerPageOptions}
+                  onPageChange={(_, nextPage) => setItemPage(nextPage)}
+                  onRowsPerPageChange={(event) => {
+                    setItemPerPage(Number(event.target.value))
+                    setItemPage(0)
+                  }}
+                />
               </Stack>
-            </Stack>
-          </Box>
-        </Box>
+            </CardContent>
+          </Card>
+        </Stack>
       )}
 
       <ConfirmDialog

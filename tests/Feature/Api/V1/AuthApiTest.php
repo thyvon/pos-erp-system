@@ -7,6 +7,7 @@ use App\Models\Business;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Facades\DB;
 use Laravel\Sanctum\Sanctum;
 use Tests\TestCase;
 
@@ -31,6 +32,12 @@ class AuthApiTest extends TestCase
         $user->assignRole('manager');
         $user->branches()->attach($branch->id);
 
+        DB::table('settings')
+            ->where('business_id', $business->id)
+            ->where('group', 'general')
+            ->where('key', 'date_format')
+            ->update(['value' => 'd/m/Y']);
+
         $loginResponse = $this->postJson('/api/v1/auth/login', [
             'email' => 'manager@example.com',
             'password' => 'password',
@@ -38,7 +45,8 @@ class AuthApiTest extends TestCase
 
         $loginResponse
             ->assertOk()
-            ->assertJsonPath('data.user.id', $user->id);
+            ->assertJsonPath('data.user.id', $user->id)
+            ->assertJsonPath('data.user.business.date_format', 'd/m/Y');
 
         $this->assertDatabaseHas('audit_logs', [
             'business_id' => $business->id,
@@ -48,6 +56,11 @@ class AuthApiTest extends TestCase
         ]);
 
         $token = $loginResponse->json('data.token');
+
+        $this->withHeader('Authorization', 'Bearer '.$token)
+            ->getJson('/api/v1/auth/me')
+            ->assertOk()
+            ->assertJsonPath('data.business.date_format', 'd/m/Y');
 
         $this->withHeader('Authorization', 'Bearer '.$token)
             ->postJson('/api/v1/auth/logout')

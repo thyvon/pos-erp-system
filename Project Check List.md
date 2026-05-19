@@ -51,9 +51,17 @@
 - [x] Stock Count entry page now puts the product picker above the entry row, shows selected product info beside count quantity, and refreshes the entry table immediately after recording.
 - [x] Stock Count entry page now includes a live count item totals table and refreshes it after each recorded entry so counted totals update immediately.
 - [x] Stock Count entry history rows can be edited while in progress, applying the quantity delta back to unique item counted totals, and the entry row clears its selected product after recording.
+- [x] Stock Count detail page now uses separate summary, count-items, and entry-history cards, with the count entry history table available directly on the detail page.
 - [x] Stock Transfer edit loading state now uses valid page-level markup instead of rendering a table row outside a table.
 - [x] Stock Transfer detail page rebuilt into a more standard ERP read-only layout with header actions, transfer summary, warehouse movement, timeline metadata, and fixed transfer-line table.
-- [x] Inventory list/detail read-only dates now use the same locale-aware display format as the shared date picker.
+- [x] Stock Transfer detail page simplified to match the Stock Count detail layout with a header, summary grid, and item table, removing the left-side section.
+- [x] Stock Transfer detail item table now has a local search field like Stock Count detail for filtering transfer items by product, SKU, lot, serial, notes, quantity, or unit cost.
+- [x] Stock Transfer detail item table now uses the Stock Count detail table pattern with local search, rows-per-page options, and pagination.
+- [x] Stock Transfer detail content is split into separate summary and transfer-item cards for cleaner organization.
+- [x] Inventory list/detail read-only dates now use the same setting-aware display format as the shared date picker.
+- [x] System date display and shared date picker now follow the business `general.date_format` setting, with auth payload fallback for users without settings access.
+- [x] Date month display uses abbreviated English month names and full Khmer month names while preserving the configured date order.
+- [x] Date-format alignment verified with focused auth API test, frontend type-check, and frontend lint.
 
 ## Frontend UI Consistency
 

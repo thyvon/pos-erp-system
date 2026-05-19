@@ -33,6 +33,7 @@ import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { TableStateRow } from '@/components/ui/TableStateRow'
+import { useAppDateFormat } from '@/features/settings/useAppDateFormat'
 import { useAuthStore } from '@/stores/authStore'
 import { InventoryProductLookupPicker } from './components/InventoryProductLookupPicker'
 import {
@@ -42,7 +43,7 @@ import {
   useStockCountQuery,
   useUpdateStockCountEntryMutation,
 } from './hooks'
-import { formatAppDateTime, getAppDateLocale } from '@/utils/dateFormat'
+import { formatAppDateTime } from '@/utils/dateFormat'
 import type { InventoryProductLookupItem, StockCountEntry, StockCountItem, StockCountStatus } from '@/types/inventory'
 
 interface StockCountEntryPageProps {
@@ -90,7 +91,7 @@ export function StockCountEntryPage({ countId }: StockCountEntryPageProps) {
   const count = countQuery.data
   const canCount = can('inventory.count')
   const canRecordEntries = canCount && count?.status === 'in_progress'
-  const dateLocale = getAppDateLocale(i18n.language)
+  const dateFormat = useAppDateFormat()
   const selectedItemSearch = selectedItem?.sku ?? selectedItem?.product_name ?? selectedItem?.label ?? undefined
 
   const selectedItemsQuery = useStockCountItemsQuery(countId, {
@@ -503,7 +504,7 @@ export function StockCountEntryPage({ countId }: StockCountEntryPageProps) {
                       <TableCell align="right">{formatQuantity(entry.quantity)}</TableCell>
                       <TableCell align="right">{formatQuantity(entry.unit_cost)}</TableCell>
                       <TableCell>{entry.creator?.name ?? '-'}</TableCell>
-                      <TableCell>{formatAppDateTime(entry.created_at, dateLocale)}</TableCell>
+                      <TableCell>{formatAppDateTime(entry.created_at, dateFormat, i18n.language)}</TableCell>
                       <TableCell align="right">
                         {canRecordEntries ? (
                           <Tooltip title={t('counts.actions.editEntry')}>

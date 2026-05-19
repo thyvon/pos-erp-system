@@ -37,6 +37,7 @@ class UserResource extends JsonResource
                 'currency' => $this->business?->currency,
                 'timezone' => $this->business?->timezone,
                 'locale' => $this->business?->locale,
+                'date_format' => $this->businessSettingValue('date_format', 'Y-m-d'),
             ]),
             'roles' => $this->getRoleNames()->values(),
             'direct_permissions' => $this->permissions->pluck('name')->values(),
@@ -72,5 +73,16 @@ class UserResource extends JsonResource
             ])
             ->values()
             ->all();
+    }
+
+    protected function businessSettingValue(string $key, ?string $default = null): ?string
+    {
+        if (! $this->business?->relationLoaded('settings')) {
+            return $default;
+        }
+
+        return $this->business->settings
+            ->first(fn ($setting) => $setting->group === 'general' && $setting->key === $key)
+            ?->value ?? $default;
     }
 }

@@ -68,6 +68,7 @@ const inventory = {
     subtitle: 'Move stock between warehouses with pending, in-transit, and received states.',
     empty: 'No stock transfers found.',
     emptyItems: 'Scan or search a product from the source warehouse to add the first transfer item.',
+    emptyFilteredItems: 'No transfer items match your search.',
     actions: {
       new: 'New transfer',
       view: 'View transfer',
@@ -77,6 +78,7 @@ const inventory = {
     },
     filters: {
       search: 'Search reference or notes',
+      searchItems: 'Search transfer items',
       warehouse: 'Warehouse',
       allWarehouses: 'All warehouses',
       direction: 'Direction',

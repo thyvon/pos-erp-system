@@ -20,9 +20,9 @@ export const SETTINGS_GROUPS: SettingsGroupDefinition[] = [
         key: 'date_format',
         type: 'select',
         options: [
-          { value: 'Y-m-d', label: 'YYYY-MM-DD' },
-          { value: 'd/m/Y', label: 'DD/MM/YYYY' },
-          { value: 'm/d/Y', label: 'MM/DD/YYYY' },
+          { value: 'Y-m-d', label: 'YYYY MMM DD' },
+          { value: 'd/m/Y', label: 'DD MMM YYYY' },
+          { value: 'm/d/Y', label: 'MMM DD YYYY' },
         ],
       },
       { key: 'decimal_places', type: 'number' },

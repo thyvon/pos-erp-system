@@ -41,6 +41,7 @@ export interface Business {
   currency: string
   timezone: string
   locale: string
+  date_format?: string
   logo_url?: string | null
 }
 
