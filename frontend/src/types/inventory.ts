@@ -389,3 +389,110 @@ export interface StockCountCompletePayload {
     counted_quantity?: number | null
   }>
 }
+
+export type StockLotStatus = 'active' | 'depleted' | 'expired' | 'recalled' | 'quarantine'
+
+export type StockSerialStatus = 'in_stock' | 'sold' | 'returned' | 'transferred' | 'written_off' | 'reserved'
+
+export interface StockTrackedProduct {
+  id: string
+  name: string
+  sku: string | null
+}
+
+export interface StockTrackedVariation {
+  id: string
+  name: string
+  sku: string | null
+}
+
+export interface StockTrackedWarehouse {
+  id: string
+  name: string
+  branch_id: string | null
+  branch_name: string | null
+}
+
+export interface StockTrackedSupplier {
+  id: string
+  name: string
+}
+
+export interface StockLot {
+  id: string
+  business_id: string
+  product_id: string
+  variation_id: string | null
+  warehouse_id: string
+  supplier_id: string | null
+  lot_number: string
+  manufacture_date: string | null
+  expiry_date: string | null
+  received_at: string | null
+  unit_cost: string | number | null
+  qty_received: string | number
+  qty_on_hand: string | number
+  qty_reserved: string | number
+  qty_available: string | number
+  status: StockLotStatus
+  notes: string | null
+  product: StockTrackedProduct | null
+  variation: StockTrackedVariation | null
+  warehouse: StockTrackedWarehouse | null
+  supplier: StockTrackedSupplier | null
+  created_at: string
+  updated_at: string
+}
+
+export interface StockLotFilters {
+  search?: string
+  warehouse_id?: string
+  product_id?: string
+  variation_id?: string
+  status?: StockLotStatus
+  page?: number
+  per_page?: number
+}
+
+export interface StockLotStatusPayload {
+  status: StockLotStatus
+  reason?: string | null
+}
+
+export interface StockSerial {
+  id: string
+  business_id: string
+  product_id: string
+  variation_id: string | null
+  warehouse_id: string | null
+  supplier_id: string | null
+  serial_number: string
+  status: StockSerialStatus
+  purchase_item_id: string | null
+  sale_item_id: string | null
+  unit_cost: string | number | null
+  warranty_expires: string | null
+  received_at: string | null
+  sold_at: string | null
+  notes: string | null
+  product: StockTrackedProduct | null
+  variation: StockTrackedVariation | null
+  warehouse: StockTrackedWarehouse | null
+  supplier: StockTrackedSupplier | null
+  created_at: string
+  updated_at: string
+}
+
+export interface StockSerialFilters {
+  search?: string
+  warehouse_id?: string
+  product_id?: string
+  variation_id?: string
+  status?: StockSerialStatus
+  page?: number
+  per_page?: number
+}
+
+export interface StockSerialWriteOffPayload {
+  reason: string
+}

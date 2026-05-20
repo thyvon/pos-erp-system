@@ -1,7 +1,7 @@
 'use client'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { inventoryApi, stockAdjustmentsApi, stockCountsApi, stockTransfersApi } from './api'
+import { inventoryApi, stockAdjustmentsApi, stockCountsApi, stockLotsApi, stockSerialsApi, stockTransfersApi } from './api'
 import type {
   StockAdjustmentFilters,
   StockAdjustmentPayload,
@@ -13,6 +13,10 @@ import type {
   StockCountItemFilters,
   StockCountItemUpdatePayload,
   StockCountPayload,
+  StockLotFilters,
+  StockLotStatusPayload,
+  StockSerialFilters,
+  StockSerialWriteOffPayload,
   StockTransferFilters,
   StockTransferPayload,
 } from '@/types/inventory'
@@ -42,6 +46,18 @@ export const stockCountKeys = {
   detail: (id: string) => [...stockCountKeys.all, 'detail', id] as const,
   items: (id: string, filters: StockCountItemFilters) => [...stockCountKeys.detail(id), 'items', filters] as const,
   entries: (id: string, filters: StockCountEntryFilters) => [...stockCountKeys.detail(id), 'entries', filters] as const,
+}
+
+export const stockLotKeys = {
+  all: ['stock-lots'] as const,
+  list: (filters: StockLotFilters) => [...stockLotKeys.all, 'list', filters] as const,
+  detail: (id: string) => [...stockLotKeys.all, 'detail', id] as const,
+}
+
+export const stockSerialKeys = {
+  all: ['stock-serials'] as const,
+  list: (filters: StockSerialFilters) => [...stockSerialKeys.all, 'list', filters] as const,
+  detail: (id: string) => [...stockSerialKeys.all, 'detail', id] as const,
 }
 
 export function useInventoryOptionsQuery() {
@@ -292,6 +308,64 @@ export function useDeleteStockCountMutation() {
     mutationFn: (id: string) => stockCountsApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: stockCountKeys.all })
+      queryClient.invalidateQueries({ queryKey: inventoryKeys.all })
+    },
+  })
+}
+
+export function useStockLotsQuery(filters: StockLotFilters) {
+  return useQuery({
+    queryKey: stockLotKeys.list(filters),
+    queryFn: () => stockLotsApi.list(filters),
+  })
+}
+
+export function useStockLotQuery(id: string | null) {
+  return useQuery({
+    queryKey: id ? stockLotKeys.detail(id) : [...stockLotKeys.all, 'detail', 'none'],
+    queryFn: () => stockLotsApi.show(id ?? ''),
+    enabled: !!id,
+  })
+}
+
+export function useUpdateStockLotStatusMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: StockLotStatusPayload }) =>
+      stockLotsApi.updateStatus(id, payload),
+    onSuccess: (lot) => {
+      queryClient.invalidateQueries({ queryKey: stockLotKeys.all })
+      queryClient.invalidateQueries({ queryKey: stockLotKeys.detail(lot.id) })
+      queryClient.invalidateQueries({ queryKey: inventoryKeys.all })
+    },
+  })
+}
+
+export function useStockSerialsQuery(filters: StockSerialFilters) {
+  return useQuery({
+    queryKey: stockSerialKeys.list(filters),
+    queryFn: () => stockSerialsApi.list(filters),
+  })
+}
+
+export function useStockSerialQuery(id: string | null) {
+  return useQuery({
+    queryKey: id ? stockSerialKeys.detail(id) : [...stockSerialKeys.all, 'detail', 'none'],
+    queryFn: () => stockSerialsApi.show(id ?? ''),
+    enabled: !!id,
+  })
+}
+
+export function useWriteOffStockSerialMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: StockSerialWriteOffPayload }) =>
+      stockSerialsApi.writeOff(id, payload),
+    onSuccess: (serial) => {
+      queryClient.invalidateQueries({ queryKey: stockSerialKeys.all })
+      queryClient.invalidateQueries({ queryKey: stockSerialKeys.detail(serial.id) })
       queryClient.invalidateQueries({ queryKey: inventoryKeys.all })
     },
   })

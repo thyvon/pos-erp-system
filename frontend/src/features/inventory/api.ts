@@ -16,6 +16,12 @@ import type {
   StockCountItemFilters,
   StockCountItemUpdatePayload,
   StockCountPayload,
+  StockLot,
+  StockLotFilters,
+  StockLotStatusPayload,
+  StockSerial,
+  StockSerialFilters,
+  StockSerialWriteOffPayload,
   StockTransfer,
   StockTransferFilters,
   StockTransferPayload,
@@ -70,4 +76,20 @@ export const stockCountsApi = {
   complete: (id: string, payload: StockCountCompletePayload = {}) =>
     apiClient.post<StockCount, StockCountCompletePayload>(`/v1/inventory/counts/${id}/complete`, payload),
   delete: (id: string) => apiClient.delete<void>(`/v1/inventory/counts/${id}`),
+}
+
+export const stockLotsApi = {
+  list: (filters: StockLotFilters = {}) =>
+    apiClient.getPaginated<StockLot>('/v1/inventory/lots', filters),
+  show: (id: string) => apiClient.get<StockLot>(`/v1/inventory/lots/${id}`),
+  updateStatus: (id: string, payload: StockLotStatusPayload) =>
+    apiClient.post<StockLot, StockLotStatusPayload>(`/v1/inventory/lots/${id}/status`, payload),
+}
+
+export const stockSerialsApi = {
+  list: (filters: StockSerialFilters = {}) =>
+    apiClient.getPaginated<StockSerial>('/v1/inventory/serials', filters),
+  show: (id: string) => apiClient.get<StockSerial>(`/v1/inventory/serials/${id}`),
+  writeOff: (id: string, payload: StockSerialWriteOffPayload) =>
+    apiClient.post<StockSerial, StockSerialWriteOffPayload>(`/v1/inventory/serials/${id}/write-off`, payload),
 }

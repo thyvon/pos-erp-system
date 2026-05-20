@@ -58,6 +58,8 @@
 - [x] Stock Transfer detail item table now has a local search field like Stock Count detail for filtering transfer items by product, SKU, lot, serial, notes, quantity, or unit cost.
 - [x] Stock Transfer detail item table now uses the Stock Count detail table pattern with local search, rows-per-page options, and pagination.
 - [x] Stock Transfer detail content is split into separate summary and transfer-item cards for cleaner organization.
+- [x] Stock Lots page, API hooks, types, filters, paginated table, detail dialog, status update action, navigation, and translations are present.
+- [x] Stock Serials page, API hooks, types, filters, paginated table, detail dialog, write-off action, navigation, and translations are present.
 - [x] Inventory list/detail read-only dates now use the same setting-aware display format as the shared date picker.
 - [x] System date display and shared date picker now follow the business `general.date_format` setting, with auth payload fallback for users without settings access.
 - [x] Date month display uses abbreviated English month names and full Khmer month names while preserving the configured date order.

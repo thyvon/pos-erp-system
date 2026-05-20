@@ -23,6 +23,8 @@ const BREADCRUMB_KEY_MAP: Record<string, string> = {
   '/price-groups': 'priceGroups',
   '/inventory': 'inventory',
   '/inventory/stock': 'stockLevels',
+  '/inventory/lots': 'stockLots',
+  '/inventory/serials': 'stockSerials',
   '/inventory/transfers': 'transfers',
   '/inventory/adjustments': 'adjustments',
   '/inventory/counts': 'cycleCounts',

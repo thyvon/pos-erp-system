@@ -103,6 +103,8 @@ const NAV_CONFIG: NavSection[] = [
         icon: <WarehouseOutlined />,
         children: [
           { key: 'stockLevels', path: '/inventory/stock' },
+          { key: 'stockLots', path: '/inventory/lots' },
+          { key: 'stockSerials', path: '/inventory/serials' },
           { key: 'transfers', path: '/inventory/transfers' },
           { key: 'adjustments', path: '/inventory/adjustments' },
           { key: 'cycleCounts', path: '/inventory/counts' },
