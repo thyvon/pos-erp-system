@@ -80,6 +80,7 @@ class BranchWarehouseSettingsApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
 
         $firstBranch = Branch::factory()->for($business)->create([
             'name' => 'Old Default',

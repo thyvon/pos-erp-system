@@ -29,6 +29,7 @@ class CustomerApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
         $group = CustomerGroup::factory()->for($business)->create();
 
         DB::table('custom_field_definitions')->insert([
@@ -96,6 +97,7 @@ class CustomerApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
 
         Customer::factory()->for($business)->create([
             'name' => 'Target Customer',
@@ -123,6 +125,7 @@ class CustomerApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
         $customer = Customer::factory()->for($business)->create([
             'credit_limit' => 100,
         ]);
@@ -153,6 +156,7 @@ class CustomerApiTest extends TestCase
         $otherBusiness = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
         $otherGroup = CustomerGroup::factory()->for($otherBusiness)->create();
 
         Sanctum::actingAs($admin);
@@ -171,6 +175,7 @@ class CustomerApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
 
         Sanctum::actingAs($admin);
 

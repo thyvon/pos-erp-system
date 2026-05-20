@@ -29,6 +29,7 @@ class SupplierApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
 
         DB::table('custom_field_definitions')->insert([
             'id' => (string) Str::uuid(),
@@ -113,6 +114,7 @@ class SupplierApiTest extends TestCase
         $otherBusiness = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
 
         Supplier::factory()->for($business)->create([
             'name' => 'Target Supplier',
@@ -152,6 +154,7 @@ class SupplierApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
 
         Sanctum::actingAs($admin);
 

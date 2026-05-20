@@ -11,6 +11,7 @@ import enDashboard from './en/dashboard'
 import enProducts from './en/products'
 import enSales from './en/sales'
 import enInventory from './en/inventory'
+import enAccounting from './en/accounting'
 import enCustomers from './en/customers'
 import enCustomerGroups from './en/customerGroups'
 import enSuppliers from './en/suppliers'
@@ -35,6 +36,7 @@ import kmDashboard from './km/dashboard'
 import kmProducts from './km/products'
 import kmSales from './km/sales'
 import kmInventory from './km/inventory'
+import kmAccounting from './km/accounting'
 import kmCustomers from './km/customers'
 import kmCustomerGroups from './km/customerGroups'
 import kmSuppliers from './km/suppliers'
@@ -61,6 +63,7 @@ const resources = {
     products: enProducts,
     sales: enSales,
     inventory: enInventory,
+    accounting: enAccounting,
     customers: enCustomers,
     customerGroups: enCustomerGroups,
     suppliers: enSuppliers,
@@ -86,6 +89,7 @@ const resources = {
     products: kmProducts,
     sales: kmSales,
     inventory: kmInventory,
+    accounting: kmAccounting,
     customers: kmCustomers,
     customerGroups: kmCustomerGroups,
     suppliers: kmSuppliers,

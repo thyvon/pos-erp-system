@@ -44,6 +44,9 @@ export interface InventoryProductLookupItem {
   expiry_date?: string | null
   serial_number?: string | null
   unit_cost: string | null
+  selling_price?: string | null
+  sub_unit_selling_price?: string | null
+  minimum_selling_price?: string | null
   stock_tracking: 'none' | 'lot' | 'serial' | string | null
   unit: InventoryLookupUnit | null
   sub_unit: InventoryLookupSubUnit | null
@@ -393,6 +396,30 @@ export interface StockCountCompletePayload {
 export type StockLotStatus = 'active' | 'depleted' | 'expired' | 'recalled' | 'quarantine'
 
 export type StockSerialStatus = 'in_stock' | 'sold' | 'returned' | 'transferred' | 'written_off' | 'reserved'
+
+export interface StockLevel {
+  id: string
+  business_id: string
+  product_id: string
+  variation_id: string | null
+  warehouse_id: string
+  quantity: string | number
+  reserved_quantity: string | number
+  available_qty: string | number
+  product: StockTrackedProduct | null
+  variation: StockTrackedVariation | null
+  warehouse: StockTrackedWarehouse | null
+  updated_at: string | null
+}
+
+export interface StockLevelFilters {
+  search?: string
+  warehouse_id?: string
+  product_id?: string
+  variation_id?: string
+  page?: number
+  per_page?: number
+}
 
 export interface StockTrackedProduct {
   id: string

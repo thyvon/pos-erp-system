@@ -27,6 +27,7 @@ class UnitApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
 
         Sanctum::actingAs($admin);
 
@@ -77,6 +78,7 @@ class UnitApiTest extends TestCase
         $otherBusiness = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
 
         Unit::factory()->for($business)->create(['name' => 'Visible Unit']);
         Unit::withoutGlobalScopes()->create([
@@ -103,6 +105,7 @@ class UnitApiTest extends TestCase
         $otherBusiness = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
 
         Unit::factory()->for($business)->create(['name' => 'Visible Unit']);
         Unit::withoutGlobalScopes()->create([
@@ -127,6 +130,7 @@ class UnitApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
         $unit = Unit::factory()->for($business)->create();
 
         Sanctum::actingAs($admin);

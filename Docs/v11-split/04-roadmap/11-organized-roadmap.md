@@ -2,13 +2,13 @@
 
 ### Phase 1 - Stabilize Current Implemented Modules
 
-This is the immediate priority.
+This phase has been completed for the previously known failures and should remain the first stop whenever regressions appear.
 
-- fix failing branch-scope-related tests
-- fix stock count edit/remove/completion delta behavior
-- fix serial quantity invariant behavior
+- keep branch-scope-related tests passing
+- keep stock count edit/remove/completion delta behavior covered
+- keep serial quantity invariant behavior covered
 - align older tests with current branch-access rules where the code is correct
-- remove test-only schema collisions
+- avoid test-only schema collisions
 
 ### Phase 2 - Close Architectural Gaps in Live Modules
 
@@ -49,4 +49,3 @@ Only after the commercial core is stable:
 - notifications and scheduled automation
 
 ---
-

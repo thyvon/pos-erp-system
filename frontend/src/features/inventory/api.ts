@@ -16,6 +16,8 @@ import type {
   StockCountItemFilters,
   StockCountItemUpdatePayload,
   StockCountPayload,
+  StockLevel,
+  StockLevelFilters,
   StockLot,
   StockLotFilters,
   StockLotStatusPayload,
@@ -76,6 +78,12 @@ export const stockCountsApi = {
   complete: (id: string, payload: StockCountCompletePayload = {}) =>
     apiClient.post<StockCount, StockCountCompletePayload>(`/v1/inventory/counts/${id}/complete`, payload),
   delete: (id: string) => apiClient.delete<void>(`/v1/inventory/counts/${id}`),
+}
+
+export const stockLevelsApi = {
+  list: (filters: StockLevelFilters = {}) =>
+    apiClient.getPaginated<StockLevel>('/v1/inventory/stock', filters),
+  show: (id: string) => apiClient.get<StockLevel>(`/v1/inventory/stock/${id}`),
 }
 
 export const stockLotsApi = {

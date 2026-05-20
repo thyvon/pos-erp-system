@@ -27,6 +27,7 @@ class CategoryApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
 
         Sanctum::actingAs($admin);
 
@@ -74,6 +75,7 @@ class CategoryApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
         $root = Category::factory()->for($business)->create([
             'name' => 'Beverages',
             'parent_id' => null,
@@ -101,6 +103,7 @@ class CategoryApiTest extends TestCase
         $otherBusiness = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
 
         Category::factory()->for($business)->create(['name' => 'Visible Category']);
         Category::withoutGlobalScopes()->create([
@@ -129,6 +132,7 @@ class CategoryApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
         $parent = Category::factory()->for($business)->create([
             'name' => 'Beverages',
             'parent_id' => null,

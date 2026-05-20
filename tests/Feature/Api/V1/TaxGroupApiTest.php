@@ -31,6 +31,7 @@ class TaxGroupApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
         $rateA = TaxRate::factory()->for($business)->create(['name' => 'VAT 10']);
         $rateB = TaxRate::factory()->for($business)->create(['name' => 'Service 2']);
 
@@ -72,6 +73,7 @@ class TaxGroupApiTest extends TestCase
         $otherBusiness = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
         $rate = TaxRate::factory()->for($business)->create();
         $otherRate = TaxRate::factory()->for($otherBusiness)->create();
 
@@ -114,6 +116,7 @@ class TaxGroupApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
         $rateA = TaxRate::factory()->for($business)->create(['name' => 'VAT 10']);
         $rateB = TaxRate::factory()->for($business)->create(['name' => 'City 1']);
         $rateC = TaxRate::factory()->for($business)->create(['name' => 'Service 2']);
@@ -148,6 +151,7 @@ class TaxGroupApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
         $rate = TaxRate::factory()->for($business)->create();
         $group = TaxGroup::factory()->for($business)->create();
 
@@ -196,6 +200,7 @@ class TaxGroupApiTest extends TestCase
         $otherBusiness = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
         $otherRate = TaxRate::factory()->for($otherBusiness)->create();
 
         Sanctum::actingAs($admin);

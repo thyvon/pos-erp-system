@@ -68,7 +68,7 @@ Important current behaviors:
 - Transfer receive consumes reservation and posts inbound movement
 - Destination-side visibility behavior is supported in tests
 - Serial write-off updates serial state and stock
-- Count workflow exists, but some edit/remove/delta tests still need stabilization
+- Stock levels can be browsed by product and warehouse with branch-scoped visibility
 
 ### 4.5 Accounting
 

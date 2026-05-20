@@ -10,6 +10,8 @@ export default {
     filter: 'តម្រង',
     export: 'នាំចេញ',
     import: 'នាំចូល',
+    back: 'ត្រឡប់ក្រោយ',
+    close: 'បិទ',
   },
   status: {
     active: 'សកម្ម',

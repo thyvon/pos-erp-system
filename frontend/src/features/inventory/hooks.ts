@@ -1,7 +1,7 @@
 'use client'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { inventoryApi, stockAdjustmentsApi, stockCountsApi, stockLotsApi, stockSerialsApi, stockTransfersApi } from './api'
+import { inventoryApi, stockAdjustmentsApi, stockCountsApi, stockLevelsApi, stockLotsApi, stockSerialsApi, stockTransfersApi } from './api'
 import type {
   StockAdjustmentFilters,
   StockAdjustmentPayload,
@@ -13,6 +13,7 @@ import type {
   StockCountItemFilters,
   StockCountItemUpdatePayload,
   StockCountPayload,
+  StockLevelFilters,
   StockLotFilters,
   StockLotStatusPayload,
   StockSerialFilters,
@@ -46,6 +47,12 @@ export const stockCountKeys = {
   detail: (id: string) => [...stockCountKeys.all, 'detail', id] as const,
   items: (id: string, filters: StockCountItemFilters) => [...stockCountKeys.detail(id), 'items', filters] as const,
   entries: (id: string, filters: StockCountEntryFilters) => [...stockCountKeys.detail(id), 'entries', filters] as const,
+}
+
+export const stockLevelKeys = {
+  all: ['stock-levels'] as const,
+  list: (filters: StockLevelFilters) => [...stockLevelKeys.all, 'list', filters] as const,
+  detail: (id: string) => [...stockLevelKeys.all, 'detail', id] as const,
 }
 
 export const stockLotKeys = {
@@ -310,6 +317,21 @@ export function useDeleteStockCountMutation() {
       queryClient.invalidateQueries({ queryKey: stockCountKeys.all })
       queryClient.invalidateQueries({ queryKey: inventoryKeys.all })
     },
+  })
+}
+
+export function useStockLevelsQuery(filters: StockLevelFilters) {
+  return useQuery({
+    queryKey: stockLevelKeys.list(filters),
+    queryFn: () => stockLevelsApi.list(filters),
+  })
+}
+
+export function useStockLevelQuery(id: string | null) {
+  return useQuery({
+    queryKey: id ? stockLevelKeys.detail(id) : [...stockLevelKeys.all, 'detail', 'none'],
+    queryFn: () => stockLevelsApi.show(id ?? ''),
+    enabled: !!id,
   })
 }
 

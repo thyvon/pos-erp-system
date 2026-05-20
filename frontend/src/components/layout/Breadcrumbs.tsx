@@ -7,6 +7,7 @@ import { NavigateNext } from '@/components/ui/icons'
 import { useTranslation } from 'react-i18next'
 import { useProductQuery } from '@/features/products/hooks'
 import { useStockCountQuery, useStockTransferQuery } from '@/features/inventory/hooks'
+import { useSaleQuery } from '@/features/sales/hooks'
 
 const BREADCRUMB_KEY_MAP: Record<string, string> = {
   '/dashboard': 'dashboard',
@@ -31,6 +32,8 @@ const BREADCRUMB_KEY_MAP: Record<string, string> = {
   '/accounting': 'accounting',
   '/accounting/journals': 'journalEntries',
   '/accounting/coa': 'chartOfAccounts',
+  '/accounting/payment-accounts': 'paymentAccounts',
+  '/accounting/fiscal-years': 'fiscalYears',
   '/expenses': 'expenses',
   '/reports': 'reports',
   '/users': 'users',
@@ -65,6 +68,22 @@ function breadcrumbLabelKey(to: string, pathnames: string[], index: number) {
     }
   }
 
+  if (pathnames[0] === 'accounting' && pathnames[1] === 'journals') {
+    if (pathnames[2] === 'create' && index === 2) {
+      return 'journalCreate'
+    }
+  }
+
+  if (pathnames[0] === 'sales') {
+    if (pathnames[1] === 'create' && index === 1) {
+      return 'saleCreate'
+    }
+
+    if (pathnames[2] === 'edit' && index === 2) {
+      return 'saleEdit'
+    }
+  }
+
   return BREADCRUMB_KEY_MAP[to]
 }
 
@@ -87,6 +106,9 @@ export default function Breadcrumbs() {
   const productQuery = useProductQuery(productId)
   const transferQuery = useStockTransferQuery(transferId)
   const countQuery = useStockCountQuery(countId)
+  const isSaleRouteWithId = pathnames[0] === 'sales' && !!pathnames[1] && pathnames[1] !== 'create'
+  const saleId = isSaleRouteWithId ? pathnames[1] : null
+  const saleQuery = useSaleQuery(saleId)
 
   return (
     <Box sx={{ mb: 3 }}>
@@ -113,6 +135,8 @@ export default function Breadcrumbs() {
             ? (transferQuery.data?.reference_no ?? t('breadcrumbs.transferDetail'))
             : isCountRouteWithId && index === 2
             ? (countQuery.data?.reference_no ?? t('breadcrumbs.countDetail'))
+            : isSaleRouteWithId && index === 1
+            ? (saleQuery.data?.sale_number ?? t('breadcrumbs.saleDetail'))
             : labelKey
             ? t(`breadcrumbs.${labelKey}`)
             : value.charAt(0).toUpperCase() + value.slice(1)
@@ -127,7 +151,8 @@ export default function Breadcrumbs() {
             </Typography>
           ) : (isProductRouteWithId && index === 1)
             || (isTransferRouteWithId && index === 2)
-            || (isCountRouteWithId && index === 2) ? (
+            || (isCountRouteWithId && index === 2)
+            || (isSaleRouteWithId && index === 1) ? (
             <Typography
               key={to}
               variant="body2"

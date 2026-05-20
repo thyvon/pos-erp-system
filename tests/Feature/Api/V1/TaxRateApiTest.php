@@ -30,6 +30,7 @@ class TaxRateApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
 
         Sanctum::actingAs($admin);
 
@@ -69,6 +70,7 @@ class TaxRateApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
 
         Sanctum::actingAs($admin);
 
@@ -88,6 +90,7 @@ class TaxRateApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
         $first = TaxRate::factory()->for($business)->create([
             'name' => 'VAT 5%',
             'is_default' => true,
@@ -117,6 +120,7 @@ class TaxRateApiTest extends TestCase
         $otherBusiness = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
 
         TaxRate::factory()->for($business)->create(['name' => 'Visible VAT']);
         TaxRate::withoutGlobalScopes()->create([
@@ -147,6 +151,7 @@ class TaxRateApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
         $taxRate = TaxRate::factory()->for($business)->create();
 
         Product::factory()->create([
@@ -168,6 +173,7 @@ class TaxRateApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
         $taxRate = TaxRate::factory()->for($business)->create();
         $taxGroup = TaxGroup::factory()->for($business)->create();
 

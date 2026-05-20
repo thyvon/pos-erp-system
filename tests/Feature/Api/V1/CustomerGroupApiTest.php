@@ -29,6 +29,7 @@ class CustomerGroupApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
 
         Sanctum::actingAs($admin);
 
@@ -65,6 +66,7 @@ class CustomerGroupApiTest extends TestCase
         $otherBusiness = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
 
         CustomerGroup::factory()->for($business)->create(['name' => 'Visible Group']);
         CustomerGroup::withoutGlobalScopes()->create([
@@ -90,6 +92,7 @@ class CustomerGroupApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
         $customerGroup = CustomerGroup::factory()->for($business)->create();
         Customer::factory()->for($business)->create([
             'customer_group_id' => $customerGroup->id,
@@ -109,6 +112,7 @@ class CustomerGroupApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
         $priceGroup = PriceGroup::factory()->for($business)->create();
 
         Sanctum::actingAs($admin);
@@ -131,6 +135,7 @@ class CustomerGroupApiTest extends TestCase
         $otherBusiness = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
         $otherPriceGroup = PriceGroup::factory()->for($otherBusiness)->create();
 
         Sanctum::actingAs($admin);

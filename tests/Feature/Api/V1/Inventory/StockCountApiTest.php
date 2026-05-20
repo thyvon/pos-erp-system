@@ -109,11 +109,12 @@ class StockCountApiTest extends TestCase
 
         $entriesResponse = $this->getJson("/api/v1/inventory/counts/{$countId}/entries")
             ->assertOk()
-            ->assertJsonCount(2, 'data')
-            ->assertJsonPath('data.0.quantity', '3.0000')
-            ->assertJsonPath('data.1.quantity', '5.0000');
+            ->assertJsonCount(2, 'data');
 
-        $entryId = $entriesResponse->json('data.0.id');
+        $entryQuantities = collect($entriesResponse->json('data'))->pluck('quantity')->all();
+        $this->assertEqualsCanonicalizing(['3.0000', '5.0000'], $entryQuantities);
+
+        $entryId = collect($entriesResponse->json('data'))->firstWhere('quantity', '3.0000')['id'];
 
         $this->putJson("/api/v1/inventory/counts/{$countId}/entries/{$entryId}", [
             'quantity' => 6,
@@ -121,11 +122,12 @@ class StockCountApiTest extends TestCase
             ->assertJsonPath('data.items.0.counted_quantity', '11.0000')
             ->assertJsonPath('data.items.0.difference', '1.0000');
 
-        $this->getJson("/api/v1/inventory/counts/{$countId}/entries")
+        $updatedEntriesResponse = $this->getJson("/api/v1/inventory/counts/{$countId}/entries")
             ->assertOk()
-            ->assertJsonCount(2, 'data')
-            ->assertJsonPath('data.0.quantity', '6.0000')
-            ->assertJsonPath('data.1.quantity', '5.0000');
+            ->assertJsonCount(2, 'data');
+
+        $updatedEntryQuantities = collect($updatedEntriesResponse->json('data'))->pluck('quantity')->all();
+        $this->assertEqualsCanonicalizing(['5.0000', '6.0000'], $updatedEntryQuantities);
 
         $completeResponse = $this->postJson("/api/v1/inventory/counts/{$countId}/complete", [])
             ->assertOk();

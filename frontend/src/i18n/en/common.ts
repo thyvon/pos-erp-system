@@ -10,6 +10,8 @@ export default {
     filter: 'Filter',
     export: 'Export',
     import: 'Import',
+    back: 'Back',
+    close: 'Close',
   },
   status: {
     active: 'Active',

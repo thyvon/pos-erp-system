@@ -35,6 +35,7 @@ class ProductApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
         $category = Category::factory()->create(['business_id' => $business->id]);
         $brand = Brand::factory()->create(['business_id' => $business->id]);
         $unit = Unit::factory()->create(['business_id' => $business->id]);
@@ -81,6 +82,7 @@ class ProductApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
 
         Sanctum::actingAs($admin);
 
@@ -104,6 +106,7 @@ class ProductApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
 
         CustomFieldDefinition::query()->create([
             'business_id' => $business->id,
@@ -131,6 +134,7 @@ class ProductApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
         $unit = Unit::factory()->create(['business_id' => $business->id]);
         $product = Product::factory()->create([
             'business_id' => $business->id,
@@ -170,6 +174,7 @@ class ProductApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
         $unit = Unit::factory()->create(['business_id' => $business->id]);
         $product = Product::factory()->create([
             'business_id' => $business->id,
@@ -205,6 +210,7 @@ class ProductApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
         $category = Category::factory()->create(['business_id' => $business->id]);
         $unit = Unit::factory()->create(['business_id' => $business->id]);
         $subUnit = SubUnit::factory()->create([
@@ -273,6 +279,7 @@ class ProductApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
         $unit = Unit::factory()->create(['business_id' => $business->id]);
         $childProduct = Product::factory()->create([
             'business_id' => $business->id,
@@ -315,6 +322,7 @@ class ProductApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
 
         Product::factory()->create([
             'business_id' => $business->id,
@@ -336,6 +344,7 @@ class ProductApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
         $unit = Unit::factory()->create(['business_id' => $business->id]);
 
         Sanctum::actingAs($admin);

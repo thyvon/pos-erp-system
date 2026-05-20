@@ -27,6 +27,7 @@ class VariationTemplateApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
 
         Sanctum::actingAs($admin);
 
@@ -74,6 +75,7 @@ class VariationTemplateApiTest extends TestCase
         $otherBusiness = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
 
         VariationTemplate::factory()->for($business)->create(['name' => 'Visible Template']);
         VariationTemplate::withoutGlobalScopes()->create([
@@ -98,6 +100,7 @@ class VariationTemplateApiTest extends TestCase
         $otherBusiness = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
 
         VariationTemplate::factory()->for($business)->create(['name' => 'Visible Template']);
         VariationTemplate::withoutGlobalScopes()->create([
@@ -120,6 +123,7 @@ class VariationTemplateApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
         $template = VariationTemplate::factory()->for($business)->create();
 
         Sanctum::actingAs($admin);

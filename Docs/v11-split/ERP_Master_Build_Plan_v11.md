@@ -67,7 +67,7 @@ These areas exist in permissions, old plans, or placeholders, but are **not full
 | Foundation | Live | End-to-end backend/frontend/tests exist |
 | Contacts and Tax | Live | CRUD and policy coverage exist |
 | Catalog | Live | Product flow is implemented with variations and combo items |
-| Inventory | Live but still stabilizing | Core workflows exist; some count edge-case tests still fail |
+| Inventory | Live | Core workflows and stock-level browsing exist |
 | Accounting | Live | Manual journals, payment accounts, fiscal years implemented |
 | Sales | Live | Sales, quotations, registers, payments, returns implemented |
 | Purchases | Planned | Permissions reserved, no active module yet |
@@ -77,8 +77,8 @@ These areas exist in permissions, old plans, or placeholders, but are **not full
 
 The codebase differs from older v10 planning in important ways:
 
-- `admin` and `super_admin` both bypass branch scope globally.
-- `accountant` bypasses branch-assignment blocking only for accounting routes.
+- `super_admin` bypasses branch scope for platform administration.
+- Tenant roles, including `admin` and `accountant`, require assigned branch access.
 - `AuditService` currently writes directly to `audit_logs` inside a guarded `try/catch`; it is **not queue-dispatched** yet.
 - `BaseRepository` is a thin CRUD abstraction; Redis caching is **not implemented** there yet.
 - There is no shared `Auditable` trait in the current codebase.
@@ -186,9 +186,9 @@ The intended request path in current code is:
 
 - `BranchScopeMiddleware` sets `app('branch_scope')`.
 - `BelongsToBranch` applies `whereIn(branch_id, allowedIds)` globally for branch-scoped models.
-- `admin` and `super_admin` bypass branch scope.
-- `accountant` may bypass branch-assignment blocking for accounting endpoints only.
-- A non-bypass user with zero assigned branches receives `403 No branch access assigned`.
+- `super_admin` bypasses branch scope for platform administration.
+- Tenant roles, including `admin` and `accountant`, use assigned branch access.
+- A tenant user with zero assigned branches receives `403 No branch access assigned`.
 
 ### 3.5 Authorization Model
 
@@ -298,7 +298,7 @@ Important current behaviors:
 - Transfer receive consumes reservation and posts inbound movement
 - Destination-side visibility behavior is supported in tests
 - Serial write-off updates serial state and stock
-- Count workflow exists, but some edit/remove/delta tests still need stabilization
+- Stock levels can be browsed by product and warehouse with branch-scoped visibility
 
 ### 4.5 Accounting
 
@@ -369,7 +369,7 @@ The active frontend has been restacked to Next.js/React. Current implemented fro
 - Protected dashboard layout, sidebar, topbar, breadcrumbs, account popover, settings panel, and notification popover shell
 - No-branch-access blocking page
 
-The backend APIs for foundation, contacts, catalog, inventory, accounting, and sales are live, but their Next.js frontend pages/forms must be rebuilt module by module.
+The backend APIs for foundation, contacts, catalog, inventory, accounting, and sales are live. Their Next.js frontend pages/forms are being rebuilt module by module; Sales currently has list/detail/create/edit coverage while quotations, cash registers, and returns remain follow-up frontend slices.
 
 ### 5.2 Frontend Architecture Rules
 
@@ -414,10 +414,9 @@ The permission seeder includes permissions for both implemented and future modul
 
 Current branch behavior must be documented exactly:
 
-- `super_admin`: global bypass
-- `admin`: business-wide branch bypass
-- `accountant`: still branch-aware generally, but not blocked from accounting routes when unassigned
-- other non-bypass roles: must have at least one assigned branch to use the app
+- `super_admin`: platform administration bypass
+- tenant roles, including `admin` and `accountant`: branch access comes from assigned branches
+- tenant users must have at least one assigned branch to use tenant API routes
 
 ### 6.4 Policy Expectations
 
@@ -519,26 +518,15 @@ Not yet migrated as first-class modules in this repo:
 
 ### 9.1 Test Snapshot
 
-Local `php artisan test` was run on **2026-05-11**.
-
-Observed PHPUnit summary before the shell timeout:
-
-- 122 passing tests
-- 23 failing tests
+Local `php artisan test` was run on **2026-05-11** before stabilization and later passed per `Project Check List.md`.
 
 ### 9.2 Main Failure Themes
 
-The failures indicate real stabilization work still needed in the current implementation:
-
-- some older tests do not yet match newer branch-scope rules
-- some catalog/contact tests assume permissions or branch behavior that changed
-- stock count edit/remove/delta workflows still need correction
-- a serial movement invariant test is failing
-- a few tests create duplicate temporary tables inside the test itself
+Previously failing branch-scope, stock-count, serial movement, and test-schema issues were stabilized. Keep focused tests current as Inventory and Sales continue to evolve.
 
 ### 9.3 What This Means for Planning
 
-The next phase should be **stabilize the current live modules**, not immediately start new large modules.
+The next phase can close remaining architectural gaps in live modules before starting large planned modules.
 
 ---
 

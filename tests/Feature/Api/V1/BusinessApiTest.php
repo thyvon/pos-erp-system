@@ -29,6 +29,7 @@ class BusinessApiTest extends TestCase
         ]);
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
         User::factory()->for($business)->count(2)->create();
 
         Sanctum::actingAs($admin);
@@ -52,6 +53,7 @@ class BusinessApiTest extends TestCase
         ]);
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
 
         Sanctum::actingAs($admin);
 

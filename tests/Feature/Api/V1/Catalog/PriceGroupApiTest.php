@@ -28,6 +28,7 @@ class PriceGroupApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
 
         Sanctum::actingAs($admin);
 
@@ -67,6 +68,7 @@ class PriceGroupApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
 
         Sanctum::actingAs($admin);
 
@@ -84,6 +86,7 @@ class PriceGroupApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
         $first = PriceGroup::factory()->for($business)->create([
             'name' => 'Retail',
             'is_default' => true,
@@ -112,6 +115,7 @@ class PriceGroupApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
         $default = PriceGroup::factory()->for($business)->create([
             'name' => 'Default Group',
             'is_default' => true,
@@ -142,6 +146,7 @@ class PriceGroupApiTest extends TestCase
         $otherBusiness = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
 
         PriceGroup::factory()->for($business)->create(['name' => 'Visible Group']);
         PriceGroup::withoutGlobalScopes()->create([
@@ -167,6 +172,7 @@ class PriceGroupApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
         $priceGroup = PriceGroup::factory()->for($business)->create();
         CustomerGroup::factory()->for($business)->create([
             'price_group_id' => $priceGroup->id,

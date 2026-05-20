@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Inventory\LotController;
 use App\Http\Controllers\Api\V1\Inventory\SerialController;
 use App\Http\Controllers\Api\V1\Inventory\StockAdjustmentController;
 use App\Http\Controllers\Api\V1\Inventory\StockCountController;
+use App\Http\Controllers\Api\V1\Inventory\StockLevelController;
 use App\Http\Controllers\Api\V1\Inventory\StockTransferController;
 use Illuminate\Support\Facades\Route;
 
@@ -17,6 +18,9 @@ return static function (): void {
     Route::post('inventory/adjustments', [StockAdjustmentController::class, 'store'])->middleware('can:inventory.adjust');
     Route::get('inventory/adjustments/{stockAdjustment}', [StockAdjustmentController::class, 'show'])->middleware('can:inventory.index');
     Route::put('inventory/adjustments/{stockAdjustment}', [StockAdjustmentController::class, 'update'])->middleware('can:inventory.adjust');
+
+    Route::get('inventory/stock', [StockLevelController::class, 'index'])->middleware('can:inventory.index');
+    Route::get('inventory/stock/{stockLevel}', [StockLevelController::class, 'show'])->middleware('can:inventory.index');
 
     Route::get('inventory/lots', [LotController::class, 'index'])->middleware('can:inventory.index');
     Route::get('inventory/lots/{stockLot}', [LotController::class, 'show'])->middleware('can:inventory.index');

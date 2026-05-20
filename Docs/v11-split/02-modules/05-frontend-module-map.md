@@ -8,8 +8,9 @@ The active frontend has been restacked to Next.js/React. Current implemented fro
 - Dashboard shell
 - Protected dashboard layout, sidebar, topbar, breadcrumbs, account popover, settings panel, and notification popover shell
 - No-branch-access blocking page
+- Foundation, contacts/tax, catalog, inventory, accounting, and Sales list/detail/create/edit frontend slices
 
-The backend APIs for foundation, contacts, catalog, inventory, accounting, and sales are live, but their Next.js frontend pages/forms must be rebuilt module by module.
+The backend APIs for foundation, contacts, catalog, inventory, accounting, and sales are live. Remaining Sales frontend work should continue module by module against the live backend contracts, especially quotations, cash registers, and sale returns.
 
 ### 5.2 Frontend Architecture Rules
 

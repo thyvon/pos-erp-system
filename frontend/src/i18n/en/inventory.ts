@@ -5,6 +5,32 @@ const inventory = {
     noProducts: 'No inventory products found',
     available: 'Available: {{quantity}}',
   },
+  stockLevels: {
+    title: 'Stock Levels',
+    subtitle: 'Review on-hand, reserved, and available quantities by product and warehouse.',
+    empty: 'No stock levels found.',
+    actions: {
+      view: 'View stock level',
+    },
+    filters: {
+      search: 'Search product, SKU, warehouse, or code',
+      warehouse: 'Warehouse',
+      allWarehouses: 'All warehouses',
+    },
+    columns: {
+      product: 'Product',
+      sku: 'SKU',
+      warehouse: 'Warehouse',
+      onHand: 'On hand',
+      reserved: 'Reserved',
+      available: 'Available',
+      updatedAt: 'Updated at',
+      actions: 'Actions',
+    },
+    detail: {
+      title: 'Stock level detail',
+    },
+  },
   adjustments: {
     title: 'Stock Adjustments',
     subtitle: 'Record manual stock increases and write-offs by warehouse.',

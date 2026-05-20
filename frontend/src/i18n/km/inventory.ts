@@ -5,6 +5,32 @@ const inventory = {
     noProducts: 'រកមិនឃើញផលិតផលស្តុកទេ',
     available: 'មានស្រាប់៖ {{quantity}}',
   },
+  stockLevels: {
+    title: 'កម្រិតស្តុក',
+    subtitle: 'ពិនិត្យបរិមាណមានក្នុងដៃ បានកក់ និងមានស្រាប់តាមផលិតផល និងឃ្លាំង។',
+    empty: 'រកមិនឃើញកម្រិតស្តុកទេ។',
+    actions: {
+      view: 'មើលកម្រិតស្តុក',
+    },
+    filters: {
+      search: 'ស្វែងរកផលិតផល SKU ឃ្លាំង ឬកូដ',
+      warehouse: 'ឃ្លាំង',
+      allWarehouses: 'ឃ្លាំងទាំងអស់',
+    },
+    columns: {
+      product: 'ផលិតផល',
+      sku: 'SKU',
+      warehouse: 'ឃ្លាំង',
+      onHand: 'មានក្នុងដៃ',
+      reserved: 'បានកក់',
+      available: 'មានស្រាប់',
+      updatedAt: 'បានកែចុងក្រោយ',
+      actions: 'សកម្មភាព',
+    },
+    detail: {
+      title: 'ព័ត៌មានលម្អិតកម្រិតស្តុក',
+    },
+  },
   adjustments: {
     title: 'ការកែតម្រូវស្តុក',
     subtitle: 'កត់ត្រាការបន្ថែមស្តុក និងការដកស្តុកដោយដៃតាមឃ្លាំង។',

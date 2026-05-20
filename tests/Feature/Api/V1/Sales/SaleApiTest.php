@@ -427,10 +427,11 @@ class SaleApiTest extends TestCase
 
         $this->postJson("/api/v1/sales/{$saleId}/confirm")->assertOk();
         $this->postJson("/api/v1/sales/{$saleId}/complete")->assertOk();
+        $sale = Sale::withoutGlobalScopes()->findOrFail($saleId);
 
         $this->postJson("/api/v1/sales/{$saleId}/payments", [
             'payment_account_id' => $paymentAccount->id,
-            'amount' => 35,
+            'amount' => round((float) $sale->total_amount + 5, 2),
             'method' => 'cash',
             'payment_date' => now()->toDateString(),
         ])->assertStatus(422);

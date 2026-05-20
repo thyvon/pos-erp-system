@@ -32,6 +32,7 @@ import {
   SettingsOutlined,
   TuneOutlined,
   PercentOutlined,
+  PointOfSaleOutlined,
   CalculateOutlined,
   GroupsOutlined,
   HistoryOutlined,
@@ -66,6 +67,7 @@ const NAV_CONFIG: NavSection[] = [
     key: 'overview',
     items: [
       { key: 'dashboard', path: '/dashboard', icon: <DashboardOutlined /> },
+      { key: 'sales', path: '/sales', icon: <PointOfSaleOutlined /> },
     ],
   },
   {
@@ -121,6 +123,8 @@ const NAV_CONFIG: NavSection[] = [
         children: [
           { key: 'journalEntries', path: '/accounting/journals' },
           { key: 'chartOfAccounts', path: '/accounting/coa' },
+          { key: 'paymentAccounts', path: '/accounting/payment-accounts' },
+          { key: 'fiscalYears', path: '/accounting/fiscal-years' },
         ],
       },
       { key: 'expenses', path: '/expenses', icon: <PaymentsOutlined /> },

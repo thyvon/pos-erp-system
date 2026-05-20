@@ -28,9 +28,34 @@
 - [x] Fixed product-filtered backend test failures by aligning tax tests with the real products schema and inventory lookup test with current branch-access rules.
 - [x] Stabilized full backend test suite for branch access, stock count live edits/removal/completion corrections, serial movement validation, supplier branch setup, and admin branch-bypass behavior.
 - [x] Full backend suite verified with `php artisan test` passing 149 tests and 564 assertions.
+- [x] Full backend suite re-verified after Inventory Stock Levels and branch-scope fixture cleanup with `php artisan test` passing 155 tests and 620 assertions.
+- [x] Frontend production build verified after Inventory Stock Levels with `npm run build`.
+- [x] Accounting UI slice verified with `npm run type-check`, `npm run lint`, and `npm run build`; lint still reports only the existing anonymous-default-export translation warnings.
+- [x] Accounting Payment Accounts and Fiscal Years slice verified with `npm run type-check`, `npm run lint`, and `npm run build`; lint still reports only the existing anonymous-default-export translation warnings.
+
+## Accounting Frontend Rebuild
+
+- [x] Chart of Accounts page, filters, summary cards, CRUD dialog, protected system-account behavior, API hooks, types, breadcrumbs, and translations are present.
+- [x] Journal Entries page, filters, summary cards, detail dialog, reversal dialog, API hooks, types, breadcrumbs, and translations are present.
+- [x] Manual Journal create page uses a dedicated page form with active postable account selection, dynamic lines, debit/credit balance totals, validation, and translated UI.
+- [x] Payment Accounts page, filters, summary cards, CRUD dialog, transfer dialog, chart-account linking, API hooks, navigation, breadcrumbs, and translations are present.
+- [x] Fiscal Years page, filters, summary cards, CRUD dialog, date validation, API hooks, navigation, breadcrumbs, and translations are present.
+- [x] Accounting sidebar now exposes the currently live accounting backend surface: Journals, Chart of Accounts, Payment Accounts, and Fiscal Years.
+- [x] Accounting date inputs now use the shared setting-aware `AppDatePicker`, and accounting money display/inputs now use the active business/settings currency instead of hardcoded USD.
+
+## Sales Frontend Rebuild
+
+- [x] Sales API hooks, types, cancel/payment schemas, and action dialogs are present.
+- [x] Sales list page with search, status/type, branch/warehouse/customer, date filters, setting-aware dates, currency-aware totals, pagination, navigation, and translations is present.
+- [x] Sale detail page with summary cards, lifecycle actions, payment recording, overview, totals, item table, breadcrumbs, and translations is present.
+- [x] Sales list/detail slice verified with `npm run type-check`, `npm run lint`, and `npm run build`; lint still reports only the existing anonymous-default-export translation warnings.
+- [x] Sales create/edit page form, product/lot/serial lookup line entry, sale-level totals, create/edit/delete actions, breadcrumbs, API payloads, hooks, and translations are present.
+- [x] Sales create/edit slice verified with `npm run type-check`, `npm run lint`, and `npm run build`; lint still reports only the existing anonymous-default-export translation warnings.
 
 ## Inventory Frontend Rebuild
 
+- [x] Stock Levels read-only backend endpoint, frontend page, API hooks, types, filters, detail dialog, navigation, branch-scoped tests, and translations are present.
+- [x] Stock Levels verified with focused backend tests, Inventory API tests, Inventory service tests, frontend type-check, and frontend lint.
 - [x] Stock Adjustments page, create form, inventory API hooks, types, product lookup, filters, detail view, and translations are present.
 - [x] Stock Adjustments edit support added with shared form reuse, adjustment update API, and duration-based backend edit-window enforcement.
 - [x] Stock Adjustments frontend type-check and lint verified.

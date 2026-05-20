@@ -26,6 +26,7 @@ class CustomFieldDefinitionApiTest extends TestCase
         $business = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
 
         Sanctum::actingAs($admin);
 
@@ -68,6 +69,7 @@ class CustomFieldDefinitionApiTest extends TestCase
         $otherBusiness = Business::factory()->create();
         $admin = User::factory()->for($business)->create();
         $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
 
         CustomFieldDefinition::query()->create([
             'business_id' => $business->id,
