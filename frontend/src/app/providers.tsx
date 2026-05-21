@@ -16,10 +16,11 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const themeMode = useUIStore((s) => s.themeMode)
   const fontPreset = useUIStore((s) => s.fontPreset)
   const colorPreset = useUIStore((s) => s.colorPreset)
+  const layoutSize = useUIStore((s) => s.layoutSize)
   const [language, setLanguage] = useState(i18n.resolvedLanguage ?? i18n.language ?? 'en')
   const theme = useMemo(
-    () => createAppTheme(themeMode, fontPreset, colorPreset),
-    [colorPreset, fontPreset, themeMode]
+    () => createAppTheme(themeMode, fontPreset, colorPreset, layoutSize),
+    [colorPreset, fontPreset, layoutSize, themeMode]
   )
   const queryClient = useMemo(() => createQueryClient(), [])
 

@@ -150,6 +150,49 @@ class CustomerApiTest extends TestCase
         $this->assertSame($admin->id, $auditLog->user_id);
     }
 
+    public function test_update_can_clear_nullable_customer_fields(): void
+    {
+        $business = Business::factory()->create();
+        $admin = User::factory()->for($business)->create();
+        $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
+        $group = CustomerGroup::factory()->for($business)->create();
+        $customer = Customer::factory()->for($business)->create([
+            'customer_group_id' => $group->id,
+            'email' => 'clear-me@example.com',
+            'phone' => '012345678',
+            'mobile' => '098765432',
+            'tax_id' => 'TAX-001',
+            'date_of_birth' => '1990-01-01',
+            'address' => ['country' => 'Cambodia'],
+            'notes' => 'Clear this note',
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $response = $this->putJson("/api/v1/customers/{$customer->id}", [
+            'customer_group_id' => null,
+            'email' => null,
+            'phone' => null,
+            'mobile' => null,
+            'tax_id' => null,
+            'date_of_birth' => null,
+            'address' => null,
+            'notes' => null,
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('data.customer_group_id', null)
+            ->assertJsonPath('data.email', null)
+            ->assertJsonPath('data.phone', null)
+            ->assertJsonPath('data.mobile', null)
+            ->assertJsonPath('data.tax_id', null)
+            ->assertJsonPath('data.date_of_birth', null)
+            ->assertJsonPath('data.address', null)
+            ->assertJsonPath('data.notes', null);
+    }
+
     public function test_customer_group_from_other_business_is_rejected(): void
     {
         $business = Business::factory()->create();

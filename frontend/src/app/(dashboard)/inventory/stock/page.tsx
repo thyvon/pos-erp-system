@@ -12,7 +12,6 @@ import {
   DialogTitle,
   Divider,
   InputAdornment,
-  MenuItem,
   Stack,
   Table,
   TableBody,
@@ -28,6 +27,7 @@ import { Inventory2Outlined, Search } from '@/components/ui/icons'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { RowActions } from '@/components/ui/RowActions'
+import { SearchableFilterSelect } from '@/components/ui/SearchableFilterSelect'
 import { TableStateRow } from '@/components/ui/TableStateRow'
 import {
   useInventoryOptionsQuery,
@@ -117,24 +117,21 @@ export default function StockLevelsPage() {
                 },
               }}
             />
-            <TextField
-              select
+            <SearchableFilterSelect
               value={warehouseFilter}
-              onChange={(event) => {
-                setWarehouseFilter(event.target.value)
+              options={warehouses}
+              loading={optionsQuery.isLoading}
+              label={t('stockLevels.filters.warehouse')}
+              placeholder={t('stockLevels.filters.allWarehouses')}
+              getOptionValue={(warehouse) => warehouse.id}
+              getOptionLabel={(warehouse) => warehouse.name}
+              getOptionDescription={(warehouse) => [warehouse.code, warehouse.branch_name].filter(Boolean).join(' / ')}
+              onChange={(value) => {
+                setWarehouseFilter(value)
                 setPage(0)
               }}
-              label={t('stockLevels.filters.warehouse')}
               sx={{ minWidth: { xs: '100%', lg: 240 } }}
-            >
-              <MenuItem value="">{t('stockLevels.filters.allWarehouses')}</MenuItem>
-              {warehouses.map((warehouse) => (
-                <MenuItem key={warehouse.id} value={warehouse.id}>
-                  {warehouse.name}
-                  {warehouse.code ? ` (${warehouse.code})` : ''}
-                </MenuItem>
-              ))}
-            </TextField>
+            />
           </Stack>
 
           {stockLevelsQuery.isError && (

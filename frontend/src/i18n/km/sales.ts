@@ -15,6 +15,8 @@ const sales = {
     allBranches: 'សាខាទាំងអស់',
     allWarehouses: 'ឃ្លាំងទាំងអស់',
     allCustomers: 'អតិថិជនទាំងអស់',
+    showAdvanced: 'បង្ហាញតម្រង',
+    hideAdvanced: 'លាក់តម្រង',
   },
   columns: {
     sale: 'ការលក់',

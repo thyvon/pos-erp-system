@@ -15,6 +15,8 @@ const sales = {
     allBranches: 'All branches',
     allWarehouses: 'All warehouses',
     allCustomers: 'All customers',
+    showAdvanced: 'Show filters',
+    hideAdvanced: 'Hide filters',
   },
   columns: {
     sale: 'Sale',

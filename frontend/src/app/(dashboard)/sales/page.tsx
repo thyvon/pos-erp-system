@@ -9,6 +9,7 @@ import {
   Card,
   CardContent,
   Chip,
+  Collapse,
   InputAdornment,
   MenuItem,
   Stack,
@@ -22,13 +23,14 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
-import { Add, PointOfSaleOutlined, Search } from '@/components/ui/icons'
+import { Add, ExpandLess, ExpandMore, PointOfSaleOutlined, Search, TuneOutlined } from '@/components/ui/icons'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { RowActions } from '@/components/ui/RowActions'
+import { SearchableFilterSelect } from '@/components/ui/SearchableFilterSelect'
 import { TableStateRow } from '@/components/ui/TableStateRow'
 import { useBranchesQuery } from '@/features/branches/hooks'
 import { useCustomersQuery } from '@/features/customers/hooks'
@@ -64,6 +66,7 @@ export default function SalesPage() {
   const [customerFilter, setCustomerFilter] = useState('')
   const [dateFrom, setDateFrom] = useState<string | null>(null)
   const [dateTo, setDateTo] = useState<string | null>(null)
+  const [filtersOpen, setFiltersOpen] = useState(false)
   const [page, setPage] = useState(0)
   const [perPage, setPerPage] = useState(10)
   const dateFormat = useAppDateFormat()
@@ -99,6 +102,18 @@ export default function SalesPage() {
   const canCreate = can('sales.create')
   const canEdit = can('sales.edit')
   const canDelete = can('sales.delete')
+  const activeAdvancedFilterCount = [
+    statusFilter,
+    typeFilter,
+    branchFilter,
+    warehouseFilter,
+    customerFilter,
+    dateFrom,
+    dateTo,
+  ].filter(Boolean).length
+  const filterToggleLabel = `${t(filtersOpen ? 'filters.hideAdvanced' : 'filters.showAdvanced')}${
+    activeAdvancedFilterCount > 0 ? ` (${activeAdvancedFilterCount})` : ''
+  }`
 
   const handleDelete = async () => {
     if (!deleteTarget) return
@@ -110,7 +125,11 @@ export default function SalesPage() {
 
   return (
     <Stack spacing={3}>
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ justifyContent: 'space-between' }}>
+      <Stack
+        direction={{ xs: 'column', sm: 'row' }}
+        spacing={2}
+        sx={{ alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between' }}
+      >
         <Box>
           <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
             <PointOfSaleOutlined color="primary" />
@@ -130,7 +149,11 @@ export default function SalesPage() {
       <Card>
         <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
           <Stack spacing={2} sx={{ mb: 2.5 }}>
-            <Stack direction={{ xs: 'column', lg: 'row' }} spacing={2}>
+            <Stack
+              direction={{ xs: 'column', lg: 'row' }}
+              spacing={2}
+              sx={{ alignItems: { xs: 'stretch', lg: 'center' } }}
+            >
               <TextField
                 value={search}
                 onChange={(event) => {
@@ -149,105 +172,127 @@ export default function SalesPage() {
                   },
                 }}
               />
-              <TextField
-                select
-                value={statusFilter}
-                onChange={(event) => {
-                  setStatusFilter(event.target.value as SaleStatus | '')
-                  setPage(0)
-                }}
-                label={t('filters.status')}
-                sx={{ minWidth: { xs: '100%', lg: 180 } }}
+              <Button
+                variant="outlined"
+                startIcon={<TuneOutlined />}
+                endIcon={filtersOpen ? <ExpandLess /> : <ExpandMore />}
+                onClick={() => setFiltersOpen((open) => !open)}
+                sx={{ minWidth: { xs: '100%', lg: 190 }, justifyContent: 'space-between' }}
               >
-                <MenuItem value="">{t('filters.allStatuses')}</MenuItem>
-                {statuses.map((status) => (
-                  <MenuItem key={status} value={status}>{t(`statuses.${status}`)}</MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                select
-                value={typeFilter}
-                onChange={(event) => {
-                  setTypeFilter(event.target.value as SaleType | '')
-                  setPage(0)
-                }}
-                label={t('filters.type')}
-                sx={{ minWidth: { xs: '100%', lg: 160 } }}
-              >
-                <MenuItem value="">{t('filters.allTypes')}</MenuItem>
-                {saleTypes.map((type) => (
-                  <MenuItem key={type} value={type}>{t(`types.${type}`)}</MenuItem>
-                ))}
-              </TextField>
+                {filterToggleLabel}
+              </Button>
             </Stack>
-            <Stack direction={{ xs: 'column', lg: 'row' }} spacing={2}>
-              <TextField
-                select
-                value={branchFilter}
-                onChange={(event) => {
-                  setBranchFilter(event.target.value)
-                  setWarehouseFilter('')
-                  setPage(0)
+            <Collapse in={filtersOpen} timeout="auto">
+              <Stack
+                direction={{ xs: 'column', lg: 'row' }}
+                spacing={2}
+                sx={{
+                  alignItems: { xs: 'stretch', lg: 'center' },
+                  overflowX: { lg: 'auto' },
+                  pt: 0.5,
+                  pb: { lg: 0.5 },
                 }}
-                label={t('filters.branch')}
-                sx={{ minWidth: { xs: '100%', lg: 220 } }}
               >
-                <MenuItem value="">{t('filters.allBranches')}</MenuItem>
-                {branches.map((branch) => (
-                  <MenuItem key={branch.id} value={branch.id}>{branch.name}</MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                select
-                value={warehouseFilter}
-                onChange={(event) => {
-                  setWarehouseFilter(event.target.value)
-                  setPage(0)
-                }}
-                label={t('filters.warehouse')}
-                sx={{ minWidth: { xs: '100%', lg: 220 } }}
-              >
-                <MenuItem value="">{t('filters.allWarehouses')}</MenuItem>
-                {warehouses.map((warehouse) => (
-                  <MenuItem key={warehouse.id} value={warehouse.id}>{warehouse.name}</MenuItem>
-                ))}
-              </TextField>
-              <TextField
-                select
-                value={customerFilter}
-                onChange={(event) => {
-                  setCustomerFilter(event.target.value)
-                  setPage(0)
-                }}
-                label={t('filters.customer')}
-                sx={{ minWidth: { xs: '100%', lg: 240 }, flexGrow: 1 }}
-              >
-                <MenuItem value="">{t('filters.allCustomers')}</MenuItem>
-                {customers.map((customer) => (
-                  <MenuItem key={customer.id} value={customer.id}>{customer.name}</MenuItem>
-                ))}
-              </TextField>
-            </Stack>
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
-              <AppDatePicker
-                label={t('filters.dateFrom')}
-                value={dateFrom}
-                onChange={(value) => {
-                  setDateFrom(value)
-                  setPage(0)
-                }}
-                maxDate={dateTo}
-              />
-              <AppDatePicker
-                label={t('filters.dateTo')}
-                value={dateTo}
-                onChange={(value) => {
-                  setDateTo(value)
-                  setPage(0)
-                }}
-                minDate={dateFrom}
-              />
-            </Stack>
+                <TextField
+                  select
+                  value={statusFilter}
+                  onChange={(event) => {
+                    setStatusFilter(event.target.value as SaleStatus | '')
+                    setPage(0)
+                  }}
+                  label={t('filters.status')}
+                  sx={{ minWidth: { xs: '100%', lg: 170 } }}
+                >
+                  <MenuItem value="">{t('filters.allStatuses')}</MenuItem>
+                  {statuses.map((status) => (
+                    <MenuItem key={status} value={status}>{t(`statuses.${status}`)}</MenuItem>
+                  ))}
+                </TextField>
+                <TextField
+                  select
+                  value={typeFilter}
+                  onChange={(event) => {
+                    setTypeFilter(event.target.value as SaleType | '')
+                    setPage(0)
+                  }}
+                  label={t('filters.type')}
+                  sx={{ minWidth: { xs: '100%', lg: 150 } }}
+                >
+                  <MenuItem value="">{t('filters.allTypes')}</MenuItem>
+                  {saleTypes.map((type) => (
+                    <MenuItem key={type} value={type}>{t(`types.${type}`)}</MenuItem>
+                  ))}
+                </TextField>
+                <SearchableFilterSelect
+                  value={branchFilter}
+                  options={branches}
+                  loading={branchesQuery.isLoading}
+                  label={t('filters.branch')}
+                  placeholder={t('filters.allBranches')}
+                  getOptionValue={(branch) => branch.id}
+                  getOptionLabel={(branch) => branch.name}
+                  getOptionDescription={(branch) => branch.code}
+                  onChange={(value) => {
+                    setBranchFilter(value)
+                    setWarehouseFilter('')
+                    setPage(0)
+                  }}
+                  sx={{ minWidth: { xs: '100%', lg: 190 } }}
+                />
+                <SearchableFilterSelect
+                  value={warehouseFilter}
+                  options={warehouses}
+                  loading={warehousesQuery.isLoading}
+                  label={t('filters.warehouse')}
+                  placeholder={t('filters.allWarehouses')}
+                  getOptionValue={(warehouse) => warehouse.id}
+                  getOptionLabel={(warehouse) => warehouse.name}
+                  getOptionDescription={(warehouse) => [warehouse.code, warehouse.branch?.name].filter(Boolean).join(' / ')}
+                  onChange={(value) => {
+                    setWarehouseFilter(value)
+                    setPage(0)
+                  }}
+                  sx={{ minWidth: { xs: '100%', lg: 190 } }}
+                />
+                <SearchableFilterSelect
+                  value={customerFilter}
+                  options={customers}
+                  loading={customersQuery.isLoading}
+                  label={t('filters.customer')}
+                  placeholder={t('filters.allCustomers')}
+                  getOptionValue={(customer) => customer.id}
+                  getOptionLabel={(customer) => customer.name}
+                  getOptionDescription={(customer) => [customer.code, customer.phone || customer.mobile].filter(Boolean).join(' / ')}
+                  onChange={(value) => {
+                    setCustomerFilter(value)
+                    setPage(0)
+                  }}
+                  sx={{ minWidth: { xs: '100%', lg: 220 } }}
+                />
+                <Box sx={{ minWidth: { xs: '100%', lg: 165 } }}>
+                  <AppDatePicker
+                    label={t('filters.dateFrom')}
+                    value={dateFrom}
+                    onChange={(value) => {
+                      setDateFrom(value)
+                      setPage(0)
+                    }}
+                    maxDate={dateTo}
+                  />
+                </Box>
+                <Box sx={{ minWidth: { xs: '100%', lg: 165 } }}>
+                  <AppDatePicker
+                    label={t('filters.dateTo')}
+                    value={dateTo}
+                    onChange={(value) => {
+                      setDateTo(value)
+                      setPage(0)
+                    }}
+                    minDate={dateFrom}
+                  />
+                </Box>
+              </Stack>
+            </Collapse>
           </Stack>
 
           {salesQuery.isError && (

@@ -61,6 +61,9 @@ export default {
   },
   validation: {
     requiredCustomField: '{{field}} is required',
+    fixForm: 'Please fix the highlighted fields before saving.',
+    fixField: 'Please fix {{field}} before saving. {{message}}',
+    invalidValue: 'Invalid value.',
   },
   messages: {
     created: 'Customer created.',

@@ -27,6 +27,7 @@ import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { RowActions } from '@/components/ui/RowActions'
+import { SearchableFilterSelect } from '@/components/ui/SearchableFilterSelect'
 import { TableStateRow } from '@/components/ui/TableStateRow'
 import { UserFormDialog } from '@/features/users/UserFormDialog'
 import {
@@ -184,23 +185,20 @@ export default function UsersPage() {
                 </MenuItem>
               ))}
             </TextField>
-            <TextField
-              select
-              value={roleFilter}
-              onChange={(event) => {
-                setRoleFilter(event.target.value)
+            <SearchableFilterSelect
+              value={roleFilter ?? ''}
+              options={options?.roles ?? []}
+              loading={optionsQuery.isLoading}
+              label={t('filters.role')}
+              placeholder={t('filters.allRoles')}
+              getOptionValue={(role) => role.name}
+              getOptionLabel={(role) => role.name}
+              onChange={(value) => {
+                setRoleFilter(value)
                 setPage(0)
               }}
-              label={t('filters.role')}
               sx={{ minWidth: { xs: '100%', md: 190 } }}
-            >
-              <MenuItem value="">{t('filters.allRoles')}</MenuItem>
-              {(options?.roles ?? []).map((role) => (
-                <MenuItem key={role.name} value={role.name}>
-                  {role.name}
-                </MenuItem>
-              ))}
-            </TextField>
+            />
           </Stack>
 
           {usersQuery.isError && (

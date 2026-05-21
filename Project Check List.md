@@ -51,6 +51,9 @@
 - [x] Sales list/detail slice verified with `npm run type-check`, `npm run lint`, and `npm run build`; lint still reports only the existing anonymous-default-export translation warnings.
 - [x] Sales create/edit page form, product/lot/serial lookup line entry, sale-level totals, create/edit/delete actions, breadcrumbs, API payloads, hooks, and translations are present.
 - [x] Sales create/edit slice verified with `npm run type-check`, `npm run lint`, and `npm run build`; lint still reports only the existing anonymous-default-export translation warnings.
+- [x] Sales list header button alignment and inline advanced filter toggle now match the shared table page standard.
+- [x] Sales create/edit form now derives the saved branch from the selected warehouse instead of asking users to choose the branch manually.
+- [x] Sales create/edit backend-backed selects now use searchable autocomplete controls for warehouse, customer, price group, and tax rates.
 
 ## Inventory Frontend Rebuild
 
@@ -94,6 +97,20 @@
 
 - [x] Frontend shared and page-level icons now use Solar icons through a single local icon module, including sidebar navigation and common actions.
 - [x] Solar icon frontend change verified with `npm.cmd run type-check`, `npm.cmd run lint`, and `npm.cmd run build`.
+- [x] Shared theme now aligns default button and outlined input heights while preserving compact small controls for dense tables.
+- [x] Layout settings now include persisted Small, Normal, and Large size options, with Normal matching the previous default theme density.
+- [x] Layout settings drawer now uses Solar icon badges for each settings section.
+- [x] Backend-backed table filters now use a shared searchable autocomplete pattern for branch, warehouse, customer, category parent, and role option filters.
+- [x] Searchable autocomplete fields now inherit the same theme-level height standard as normal select and text fields.
+- [x] Date picker fields now inherit the same theme-level height standard as normal input, select, and searchable autocomplete fields.
+- [x] Agent rules now require small reusable shared components/hooks for repeated frontend patterns instead of duplicated page-level code.
+- [x] Customer edit now shows a visible validation message when the form blocks saving.
+- [x] Customer edit validation now accepts cleared nullable fields and names the first invalid field when save is blocked.
+- [x] Customer edit now normalizes empty/null custom fields to an object so customers without custom fields can save.
+
+## Foundation Frontend And API
+
+- [x] Customer update now correctly clears nullable fields such as contact details, customer group, date of birth, address, and notes.
 
 ## Edit Window Policy
 

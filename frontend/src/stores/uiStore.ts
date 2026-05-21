@@ -1,6 +1,6 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
-import type { FontPreset, ThemeColorPreset } from '@/theme'
+import type { FontPreset, LayoutSize, ThemeColorPreset } from '@/theme'
 
 export type LayoutSurfaceTheme = 'inherit' | 'light' | 'dark'
 
@@ -12,6 +12,7 @@ interface UIState {
   language: 'en' | 'km'
   fontPreset: FontPreset
   colorPreset: ThemeColorPreset
+  layoutSize: LayoutSize
   sidebarTheme: LayoutSurfaceTheme
   topbarTheme: LayoutSurfaceTheme
   contentStretch: boolean
@@ -29,6 +30,7 @@ interface UIActions {
   setLanguage: (language: 'en' | 'km') => void
   setFontPreset: (fontPreset: FontPreset) => void
   setColorPreset: (colorPreset: ThemeColorPreset) => void
+  setLayoutSize: (layoutSize: LayoutSize) => void
   setSidebarTheme: (theme: LayoutSurfaceTheme) => void
   setTopbarTheme: (theme: LayoutSurfaceTheme) => void
   setContentStretch: (stretch: boolean) => void
@@ -46,6 +48,7 @@ export const useUIStore = create<UIStore>()(
       language: 'en',
       fontPreset: 'publicSans',
       colorPreset: 'default',
+      layoutSize: 'normal',
       sidebarTheme: 'inherit',
       topbarTheme: 'inherit',
       contentStretch: true,
@@ -61,6 +64,7 @@ export const useUIStore = create<UIStore>()(
       setLanguage: (language) => set({ language }),
       setFontPreset: (fontPreset) => set({ fontPreset }),
       setColorPreset: (colorPreset) => set({ colorPreset }),
+      setLayoutSize: (layoutSize) => set({ layoutSize }),
       setSidebarTheme: (sidebarTheme) => set({ sidebarTheme }),
       setTopbarTheme: (topbarTheme) => set({ topbarTheme }),
       setContentStretch: (contentStretch) => set({ contentStretch }),
@@ -75,6 +79,7 @@ export const useUIStore = create<UIStore>()(
         language: (persistedState as Partial<UIStore>)?.language ?? 'en',
         fontPreset: (persistedState as Partial<UIStore>)?.fontPreset ?? 'publicSans',
         colorPreset: (persistedState as Partial<UIStore>)?.colorPreset ?? 'default',
+        layoutSize: (persistedState as Partial<UIStore>)?.layoutSize ?? 'normal',
         sidebarTheme: (persistedState as Partial<UIStore>)?.sidebarTheme ?? 'inherit',
         topbarTheme: (persistedState as Partial<UIStore>)?.topbarTheme ?? 'inherit',
       }),

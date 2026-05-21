@@ -1,5 +1,6 @@
 'use client'
 
+import type { ReactNode } from 'react'
 import {
   Box,
   Button,
@@ -14,10 +15,44 @@ import {
   alpha,
   useTheme,
 } from '@mui/material'
-import { Close, DarkModeOutlined, LightModeOutlined, ViewSidebarOutlined } from '@/components/ui/icons'
+import {
+  Close,
+  DarkModeOutlined,
+  LanguageOutlined,
+  LightModeOutlined,
+  MonitorOutlined,
+  PaletteOutlined,
+  SettingsOutlined,
+  StraightenOutlined,
+  TextFieldsOutlined,
+  TuneOutlined,
+  ViewSidebarOutlined,
+} from '@/components/ui/icons'
 import { useTranslation } from 'react-i18next'
 import { useUIStore } from '@/stores/uiStore'
-import { ENGLISH_FONT_OPTIONS, THEME_COLOR_PRESETS } from '@/theme'
+import { ENGLISH_FONT_OPTIONS, LAYOUT_SIZE_OPTIONS, THEME_COLOR_PRESETS } from '@/theme'
+
+function SectionTitle({ icon, label }: { icon: ReactNode; label: string }) {
+  return (
+    <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 1.5 }}>
+      <Box
+        sx={{
+          width: 28,
+          height: 28,
+          borderRadius: 1,
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          color: 'primary.main',
+          bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
+        }}
+      >
+        {icon}
+      </Box>
+      <Typography variant="subtitle2">{label}</Typography>
+    </Stack>
+  )
+}
 
 export default function LayoutSettings() {
   const { t } = useTranslation('common')
@@ -33,6 +68,8 @@ export default function LayoutSettings() {
     setFontPreset,
     colorPreset,
     setColorPreset,
+    layoutSize,
+    setLayoutSize,
     sidebarTheme,
     setSidebarTheme,
     topbarTheme,
@@ -67,12 +104,28 @@ export default function LayoutSettings() {
             py: 2,
           }}
         >
-          <Box>
-            <Typography variant="subtitle1">{t('layoutSettings.title')}</Typography>
-            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-              {t('layoutSettings.subtitle')}
-            </Typography>
-          </Box>
+          <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', minWidth: 0 }}>
+            <Box
+              sx={{
+                width: 42,
+                height: 42,
+                borderRadius: 1.25,
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                color: 'primary.main',
+                bgcolor: alpha(theme.palette.primary.main, 0.1),
+              }}
+            >
+              <SettingsOutlined />
+            </Box>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography variant="subtitle1">{t('layoutSettings.title')}</Typography>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                {t('layoutSettings.subtitle')}
+              </Typography>
+            </Box>
+          </Stack>
           <Button
             variant="text"
             color="inherit"
@@ -87,9 +140,10 @@ export default function LayoutSettings() {
 
         <Stack spacing={3} sx={{ p: 2.5 }}>
           <Box>
-            <Typography variant="subtitle2" sx={{ mb: 1.5 }}>
-              {t('layoutSettings.themeMode')}
-            </Typography>
+            <SectionTitle
+              icon={<LightModeOutlined fontSize="small" />}
+              label={t('layoutSettings.themeMode')}
+            />
             <ToggleButtonGroup
               exclusive
               fullWidth
@@ -113,9 +167,10 @@ export default function LayoutSettings() {
           </Box>
 
           <Box>
-            <Typography variant="subtitle2" sx={{ mb: 1.5 }}>
-              {t('layoutSettings.language')}
-            </Typography>
+            <SectionTitle
+              icon={<LanguageOutlined fontSize="small" />}
+              label={t('layoutSettings.language')}
+            />
             <ToggleButtonGroup
               exclusive
               fullWidth
@@ -129,9 +184,10 @@ export default function LayoutSettings() {
           </Box>
 
           <Box>
-            <Typography variant="subtitle2" sx={{ mb: 1.5 }}>
-              {t('layoutSettings.themeColor')}
-            </Typography>
+            <SectionTitle
+              icon={<PaletteOutlined fontSize="small" />}
+              label={t('layoutSettings.themeColor')}
+            />
             <Box
               sx={{
                 display: 'grid',
@@ -178,9 +234,10 @@ export default function LayoutSettings() {
           </Box>
 
           <Box>
-            <Typography variant="subtitle2" sx={{ mb: 1 }}>
-              {t('layoutSettings.fontFamily')}
-            </Typography>
+            <SectionTitle
+              icon={<TextFieldsOutlined fontSize="small" />}
+              label={t('layoutSettings.fontFamily')}
+            />
             <Stack spacing={1}>
               {ENGLISH_FONT_OPTIONS.map((option) => (
                 <Button
@@ -200,9 +257,30 @@ export default function LayoutSettings() {
           </Box>
 
           <Box>
-            <Typography variant="subtitle2" sx={{ mb: 1.5 }}>
-              {t('layoutSettings.navigation')}
-            </Typography>
+            <SectionTitle
+              icon={<StraightenOutlined fontSize="small" />}
+              label={t('layoutSettings.size')}
+            />
+            <ToggleButtonGroup
+              exclusive
+              fullWidth
+              value={layoutSize}
+              onChange={(_, value) => value && setLayoutSize(value)}
+              size="small"
+            >
+              {LAYOUT_SIZE_OPTIONS.map((option) => (
+                <ToggleButton key={option.value} value={option.value}>
+                  {t(option.labelKey)}
+                </ToggleButton>
+              ))}
+            </ToggleButtonGroup>
+          </Box>
+
+          <Box>
+            <SectionTitle
+              icon={<ViewSidebarOutlined fontSize="small" />}
+              label={t('layoutSettings.navigation')}
+            />
             <Stack
               direction="row"
               spacing={1}
@@ -225,6 +303,7 @@ export default function LayoutSettings() {
                 fullWidth
                 variant={!sidebarOpen ? 'contained' : 'outlined'}
                 onClick={() => setSidebarOpen(false)}
+                startIcon={<ViewSidebarOutlined />}
               >
                 {t('layoutSettings.mini')}
               </Button>
@@ -232,9 +311,10 @@ export default function LayoutSettings() {
           </Box>
 
           <Box>
-            <Typography variant="subtitle2" sx={{ mb: 1.5 }}>
-              {t('layoutSettings.sidebarTheme')}
-            </Typography>
+            <SectionTitle
+              icon={<ViewSidebarOutlined fontSize="small" />}
+              label={t('layoutSettings.sidebarTheme')}
+            />
             <ToggleButtonGroup
               exclusive
               fullWidth
@@ -249,9 +329,10 @@ export default function LayoutSettings() {
           </Box>
 
           <Box>
-            <Typography variant="subtitle2" sx={{ mb: 1.5 }}>
-              {t('layoutSettings.topbarTheme')}
-            </Typography>
+            <SectionTitle
+              icon={<MonitorOutlined fontSize="small" />}
+              label={t('layoutSettings.topbarTheme')}
+            />
             <ToggleButtonGroup
               exclusive
               fullWidth
@@ -266,9 +347,10 @@ export default function LayoutSettings() {
           </Box>
 
           <Box>
-            <Typography variant="subtitle2" sx={{ mb: 1 }}>
-              {t('layoutSettings.content')}
-            </Typography>
+            <SectionTitle
+              icon={<TuneOutlined fontSize="small" />}
+              label={t('layoutSettings.content')}
+            />
             <FormControlLabel
               control={
                 <Switch

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Controller, useForm } from 'react-hook-form'
+import { Controller, useForm, type FieldErrors, type SubmitErrorHandler } from 'react-hook-form'
 import {
   Alert,
   Box,
@@ -100,6 +100,8 @@ function buildAddress(values: CustomerFormValues) {
 
 function customerToFormValues(customer: Customer | null): CustomerFormInput {
   if (!customer) return defaultValues
+  const customFields =
+    customer.custom_fields && !Array.isArray(customer.custom_fields) ? customer.custom_fields : {}
 
   return {
     customer_group_id: customer.customer_group_id ?? '',
@@ -121,7 +123,7 @@ function customerToFormValues(customer: Customer | null): CustomerFormInput {
     status: customer.status,
     notes: customer.notes ?? '',
     documents_text: customer.documents?.join('\n') ?? '',
-    custom_fields: customer.custom_fields ?? {},
+    custom_fields: customFields,
   }
 }
 
@@ -151,6 +153,25 @@ function normalizeCustomFieldValue(definition: CustomFieldDefinition, value: unk
   return value === '' || value === undefined ? null : value
 }
 
+function getFirstErrorPath(errors: FieldErrors<CustomerFormInput>, prefix = ''): { path: string; message?: string } | null {
+  for (const [key, value] of Object.entries(errors)) {
+    if (!value) continue
+
+    const path = prefix ? `${prefix}.${key}` : key
+
+    if ('message' in value && typeof value.message === 'string') {
+      return { path, message: value.message }
+    }
+
+    if (typeof value === 'object') {
+      const nested = getFirstErrorPath(value as FieldErrors<CustomerFormInput>, path)
+      if (nested) return nested
+    }
+  }
+
+  return null
+}
+
 export function CustomerFormDialog({
   open,
   customer,
@@ -164,6 +185,7 @@ export function CustomerFormDialog({
 }: CustomerFormDialogProps) {
   const { t } = useTranslation(['customers', 'common'])
   const [serverError, setServerError] = useState('')
+  const [clientError, setClientError] = useState('')
   const title = customer ? t('form.editTitle') : t('form.createTitle')
   const values = useMemo(() => customerToFormValues(customer), [customer])
 
@@ -178,6 +200,37 @@ export function CustomerFormDialog({
     defaultValues,
   })
 
+  const getFieldLabel = (path: string) => {
+    if (path.startsWith('custom_fields.')) {
+      const fieldName = path.replace('custom_fields.', '')
+      return customFields.find((definition) => definition.field_name === fieldName)?.field_label ?? fieldName
+    }
+
+    const fieldLabels: Record<string, string> = {
+      customer_group_id: t('fields.customerGroup'),
+      name: t('fields.name'),
+      type: t('fields.type'),
+      email: t('fields.email'),
+      phone: t('fields.phone'),
+      mobile: t('fields.mobile'),
+      tax_id: t('fields.taxId'),
+      date_of_birth: t('fields.dateOfBirth'),
+      village: t('fields.village'),
+      commune: t('fields.commune'),
+      district: t('fields.district'),
+      province_city: t('fields.provinceCity'),
+      country: t('fields.country'),
+      credit_limit: t('fields.creditLimit'),
+      pay_term: t('fields.payTerm'),
+      opening_balance: t('fields.openingBalance'),
+      status: t('fields.status'),
+      notes: t('fields.notes'),
+      documents_text: t('fields.documents'),
+    }
+
+    return fieldLabels[path] ?? path
+  }
+
   useEffect(() => {
     if (open) {
       reset(values)
@@ -186,9 +239,14 @@ export function CustomerFormDialog({
 
   const submitForm = async (formValues: CustomerFormValues) => {
     setServerError('')
+    setClientError('')
 
     const customFieldValues: Record<string, unknown> = {}
-    let hasCustomFieldErrors = false
+    const firstMissingCustomField =
+      customFields.find((definition) => {
+        const value = formValues.custom_fields?.[definition.field_name]
+        return definition.is_required && isMissingRequiredCustomValue(definition, value)
+      }) ?? null
 
     customFields.forEach((definition) => {
       const value = formValues.custom_fields?.[definition.field_name]
@@ -197,13 +255,20 @@ export function CustomerFormDialog({
           type: 'manual',
           message: t('validation.requiredCustomField', { field: definition.field_label }),
         })
-        hasCustomFieldErrors = true
       }
 
       customFieldValues[definition.field_name] = normalizeCustomFieldValue(definition, value)
     })
 
-    if (hasCustomFieldErrors) return
+    if (firstMissingCustomField) {
+      setClientError(
+        t('validation.fixField', {
+          field: firstMissingCustomField.field_label,
+          message: t('validation.requiredCustomField', { field: firstMissingCustomField.field_label }),
+        })
+      )
+      return
+    }
 
     try {
       await onSubmit({
@@ -227,12 +292,29 @@ export function CustomerFormDialog({
     }
   }
 
+  const handleInvalidSubmit: SubmitErrorHandler<CustomerFormInput> = (invalidErrors) => {
+    const firstError = getFirstErrorPath(invalidErrors)
+
+    if (!firstError) {
+      setClientError(t('validation.fixForm'))
+      return
+    }
+
+    setClientError(
+      t('validation.fixField', {
+        field: getFieldLabel(firstError.path),
+        message: firstError.message ?? t('validation.invalidValue'),
+      })
+    )
+  }
+
   return (
     <Dialog open={open} onClose={isSaving ? undefined : onClose} fullWidth maxWidth="md">
-      <Box component="form" noValidate onSubmit={handleSubmit(submitForm)}>
+      <Box component="form" noValidate onSubmit={handleSubmit(submitForm, handleInvalidSubmit)}>
         <DialogTitle>{title}</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2.5} sx={{ pt: 0.5 }}>
+            {clientError && <Alert severity="warning">{clientError}</Alert>}
             {serverError && <Alert severity="error">{serverError}</Alert>}
 
             <Box

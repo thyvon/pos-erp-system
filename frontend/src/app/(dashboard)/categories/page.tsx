@@ -9,7 +9,6 @@ import {
   CardContent,
   Chip,
   InputAdornment,
-  MenuItem,
   Stack,
   Table,
   TableBody,
@@ -27,6 +26,7 @@ import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { RowActions } from '@/components/ui/RowActions'
+import { SearchableFilterSelect } from '@/components/ui/SearchableFilterSelect'
 import { TableStateRow } from '@/components/ui/TableStateRow'
 import { CategoryFormDialog } from '@/features/categories/CategoryFormDialog'
 import {
@@ -159,24 +159,21 @@ export default function CategoriesPage() {
                 },
               }}
             />
-            <TextField
-              select
+            <SearchableFilterSelect
               value={parentId}
-              onChange={(event) => {
-                setParentId(event.target.value)
+              options={parentOptions}
+              loading={parentOptionsQuery.isLoading}
+              label={t('filters.parent')}
+              placeholder={t('filters.allParents')}
+              getOptionValue={(category) => category.id}
+              getOptionLabel={(category) => category.name}
+              getOptionDescription={(category) => category.short_code}
+              onChange={(value) => {
+                setParentId(value)
                 setPage(0)
               }}
-              label={t('filters.parent')}
               sx={{ minWidth: { xs: '100%', md: 240 } }}
-              disabled={parentOptionsQuery.isLoading}
-            >
-              <MenuItem value="">{t('filters.allParents')}</MenuItem>
-              {parentOptions.map((category) => (
-                <MenuItem key={category.id} value={category.id}>
-                  {category.name}
-                </MenuItem>
-              ))}
-            </TextField>
+            />
           </Stack>
 
           {categoriesQuery.isError && (

@@ -14,7 +14,6 @@ import {
   DialogTitle,
   Divider,
   InputAdornment,
-  MenuItem,
   Stack,
   Table,
   TableBody,
@@ -32,6 +31,7 @@ import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
 import { RowActions } from '@/components/ui/RowActions'
+import { SearchableFilterSelect } from '@/components/ui/SearchableFilterSelect'
 import { TableStateRow } from '@/components/ui/TableStateRow'
 import { StockAdjustmentFormDialog } from '@/features/inventory/StockAdjustmentFormDialog'
 import {
@@ -172,24 +172,21 @@ export default function StockAdjustmentsPage() {
                 },
               }}
             />
-            <TextField
-              select
+            <SearchableFilterSelect
               value={warehouseFilter}
-              onChange={(event) => {
-                setWarehouseFilter(event.target.value)
+              options={warehouses}
+              loading={optionsQuery.isLoading}
+              label={t('adjustments.filters.warehouse')}
+              placeholder={t('adjustments.filters.allWarehouses')}
+              getOptionValue={(warehouse) => warehouse.id}
+              getOptionLabel={(warehouse) => warehouse.name}
+              getOptionDescription={(warehouse) => [warehouse.code, warehouse.branch_name].filter(Boolean).join(' / ')}
+              onChange={(value) => {
+                setWarehouseFilter(value)
                 setPage(0)
               }}
-              label={t('adjustments.filters.warehouse')}
               sx={{ minWidth: { xs: '100%', lg: 240 } }}
-            >
-              <MenuItem value="">{t('adjustments.filters.allWarehouses')}</MenuItem>
-              {warehouses.map((warehouse) => (
-                <MenuItem key={warehouse.id} value={warehouse.id}>
-                  {warehouse.name}
-                  {warehouse.code ? ` (${warehouse.code})` : ''}
-                </MenuItem>
-              ))}
-            </TextField>
+            />
             <Box sx={{ minWidth: { xs: '100%', lg: 170 } }}>
               <AppDatePicker
               value={dateFrom}

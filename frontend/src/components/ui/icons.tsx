@@ -28,6 +28,7 @@ import {
   EyeClosed,
   FolderWithFiles,
   Gallery,
+  Global,
   GraphNewUp,
   HamburgerMenu,
   History,
@@ -47,6 +48,7 @@ import {
   SidebarMinimalistic,
   Sun2,
   TagPrice,
+  Text,
   TrashBinMinimalistic,
   Tuning,
   UploadMinimalistic,
@@ -55,6 +57,7 @@ import {
   UsersGroupRounded,
   WalletMoney,
   Widget5,
+  Monitor,
 } from '@solar-icons/react/ssr'
 
 type AppIconColor = NonNullable<SvgIconProps['color']>
@@ -164,6 +167,7 @@ export const EditOutlined = createIcon(Pen2)
 export const ExpandLess = createIcon(AltArrowUp)
 export const ExpandMore = createIcon(AltArrowDown)
 export const FactCheckOutlined = createIcon(CheckRead)
+export const LanguageOutlined = createIcon(Global)
 export const GroupsOutlined = createIcon(UsersGroupRounded)
 export const HistoryOutlined = createIcon(History)
 export const ImageOutlined = createIcon(Gallery)
@@ -189,6 +193,7 @@ export const SaveOutlined = createIcon(Diskette)
 export const Search = createIcon(MinimalisticMagnifier)
 export const SettingsOutlined = createIcon(SettingsMinimalistic)
 export const StraightenOutlined = createIcon(Ruler)
+export const TextFieldsOutlined = createIcon(Text)
 export const TrendingUpOutlined = createIcon(GraphNewUp)
 export const TuneOutlined = createIcon(Tuning)
 export const UploadOutlined = createIcon(UploadMinimalistic)
@@ -197,3 +202,4 @@ export const Visibility = createIcon(Eye)
 export const VisibilityOff = createIcon(EyeClosed)
 export const VisibilityOutlined = createIcon(Eye)
 export const WarehouseOutlined = createIcon(Buildings2)
+export const MonitorOutlined = createIcon(Monitor)

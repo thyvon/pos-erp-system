@@ -6,6 +6,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form'
 import {
   Alert,
+  Autocomplete,
   Box,
   Button,
   Card,
@@ -35,7 +36,6 @@ import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
-import { useBranchesQuery } from '@/features/branches/hooks'
 import { useCustomersQuery } from '@/features/customers/hooks'
 import { InventoryProductLookupPicker } from '@/features/inventory/components/InventoryProductLookupPicker'
 import { usePriceGroupsQuery } from '@/features/price-groups/hooks'
@@ -46,6 +46,10 @@ import { useCreateSaleMutation, useSaleQuery, useUpdateSaleMutation } from './ho
 import { saleFormSchema, type SaleFormInput, type SaleFormValues } from './schema'
 import type { InventoryProductLookupItem } from '@/types/inventory'
 import type { Sale, SaleItem, SalePayload } from '@/types/sales'
+import type { Warehouse } from '@/types/warehouse'
+import type { Customer } from '@/types/customer'
+import type { PriceGroup } from '@/types/priceGroup'
+import type { TaxRate } from '@/types/taxRate'
 
 interface SaleFormPageProps {
   saleId?: string
@@ -103,6 +107,22 @@ function emptyValues(): SaleFormInput {
 
 function itemName(item: SaleItem) {
   return [item.product?.name, item.variation?.name].filter(Boolean).join(' / ') || item.product_id
+}
+
+function warehouseLabel(warehouse: Warehouse) {
+  return [warehouse.name, warehouse.code, warehouse.branch?.name].filter(Boolean).join(' / ')
+}
+
+function customerLabel(customer: Customer) {
+  return [customer.name, customer.code, customer.phone || customer.mobile].filter(Boolean).join(' / ')
+}
+
+function priceGroupLabel(group: PriceGroup) {
+  return group.name
+}
+
+function taxRateLabel(rate: TaxRate) {
+  return `${rate.name} (${rate.rate}${rate.type === 'percentage' ? '%' : ''})`
 }
 
 function valuesFromSale(sale: Sale | null | undefined): SaleFormInput {
@@ -233,7 +253,6 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
   const currencyFormatter = useCurrencyFormatter()
 
   const saleQuery = useSaleQuery(saleId ?? null)
-  const branchesQuery = useBranchesQuery({ is_active: true, per_page: 100 })
   const customersQuery = useCustomersQuery({ status: 'active', per_page: 100 })
   const priceGroupsQuery = usePriceGroupsQuery({ per_page: 100 })
   const taxRatesQuery = useTaxRatesQuery({ is_active: true, per_page: 100 })
@@ -265,10 +284,9 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
   const saleTaxRateType = useWatch({ control, name: 'tax_rate_type' })
   const saleTaxRate = useWatch({ control, name: 'tax_rate' })
   const shippingCharges = useWatch({ control, name: 'shipping_charges' })
-  const warehousesQuery = useWarehousesQuery({ branch_id: branchId || undefined, per_page: 100 })
+  const warehousesQuery = useWarehousesQuery({ per_page: 100 })
 
-  const branches = branchesQuery.data?.data ?? []
-  const warehouses = warehousesQuery.data?.data ?? []
+  const warehouses = useMemo(() => warehousesQuery.data?.data ?? [], [warehousesQuery.data?.data])
   const customers = customersQuery.data?.data ?? []
   const priceGroups = priceGroupsQuery.data?.data ?? []
   const taxRates = taxRatesQuery.data?.data ?? []
@@ -293,6 +311,15 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
   useEffect(() => {
     if (saleQuery.data) reset(valuesFromSale(saleQuery.data))
   }, [reset, saleQuery.data])
+
+  useEffect(() => {
+    const selectedWarehouse = warehouses.find((warehouse) => warehouse.id === warehouseId)
+    const nextBranchId = selectedWarehouse?.branch_id ?? ''
+
+    if (warehouseId && nextBranchId && branchId !== nextBranchId) {
+      setValue('branch_id', nextBranchId, { shouldDirty: true, shouldValidate: true })
+    }
+  }, [branchId, setValue, warehouseId, warehouses])
 
   const addLookupItem = (item: InventoryProductLookupItem) => {
     append({
@@ -382,34 +409,45 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
           <Box component="form" noValidate onSubmit={handleSubmit(submitForm)}>
             <Stack spacing={2.5}>
               {serverError && <Alert severity="error">{serverError}</Alert>}
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 180px' }, gap: 2 }}>
-                <Controller
-                  name="branch_id"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      select
-                      label={t('fields.branch')}
-                      error={!!errors.branch_id}
-                      helperText={errors.branch_id?.message}
-                      required
-                      onChange={(event) => {
-                        field.onChange(event)
-                        setValue('warehouse_id', '')
-                      }}
-                    >
-                      {branches.map((branch) => <MenuItem key={branch.id} value={branch.id}>{branch.name}</MenuItem>)}
-                    </TextField>
-                  )}
-                />
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 180px' }, gap: 2 }}>
                 <Controller
                   name="warehouse_id"
                   control={control}
                   render={({ field }) => (
-                    <TextField {...field} select label={t('fields.warehouse')} error={!!errors.warehouse_id} helperText={errors.warehouse_id?.message} required>
-                      {warehouses.map((warehouse) => <MenuItem key={warehouse.id} value={warehouse.id}>{warehouse.name}</MenuItem>)}
-                    </TextField>
+                    <Autocomplete
+                      options={warehouses}
+                      value={warehouses.find((warehouse) => warehouse.id === field.value) ?? null}
+                      loading={warehousesQuery.isLoading}
+                      getOptionLabel={warehouseLabel}
+                      isOptionEqualToValue={(option, value) => option.id === value.id}
+                      onBlur={field.onBlur}
+                      onChange={(_, selectedWarehouse) => {
+                        field.onChange(selectedWarehouse?.id ?? '')
+                        setValue('branch_id', selectedWarehouse?.branch_id ?? '', {
+                          shouldDirty: true,
+                          shouldValidate: true,
+                        })
+                      }}
+                      renderOption={(props, warehouse) => (
+                        <Box component="li" {...props} key={warehouse.id}>
+                          <Box>
+                            <Typography variant="body2">{warehouse.name}</Typography>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              {[warehouse.code, warehouse.branch?.name].filter(Boolean).join(' / ')}
+                            </Typography>
+                          </Box>
+                        </Box>
+                      )}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label={t('fields.warehouse')}
+                          error={!!errors.warehouse_id || !!errors.branch_id}
+                          helperText={errors.warehouse_id?.message || errors.branch_id?.message}
+                          required
+                        />
+                      )}
+                    />
                   )}
                 />
                 <Controller
@@ -428,10 +466,23 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
                   name="customer_id"
                   control={control}
                   render={({ field }) => (
-                    <TextField {...field} value={field.value ?? ''} select label={t('fields.customer')} error={!!errors.customer_id} helperText={errors.customer_id?.message}>
-                      <MenuItem value="">{t('labels.walkInCustomer')}</MenuItem>
-                      {customers.map((customer) => <MenuItem key={customer.id} value={customer.id}>{customer.name}</MenuItem>)}
-                    </TextField>
+                    <Autocomplete
+                      options={customers}
+                      value={customers.find((customer) => customer.id === field.value) ?? null}
+                      loading={customersQuery.isLoading}
+                      getOptionLabel={customerLabel}
+                      isOptionEqualToValue={(option, value) => option.id === value.id}
+                      onBlur={field.onBlur}
+                      onChange={(_, customer) => field.onChange(customer?.id ?? '')}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label={t('fields.customer')}
+                          error={!!errors.customer_id}
+                          helperText={errors.customer_id?.message || t('labels.walkInCustomer')}
+                        />
+                      )}
+                    />
                   )}
                 />
                 <Controller
@@ -448,10 +499,23 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
                   name="price_group_id"
                   control={control}
                   render={({ field }) => (
-                    <TextField {...field} value={field.value ?? ''} select label={t('fields.priceGroup')} error={!!errors.price_group_id} helperText={errors.price_group_id?.message}>
-                      <MenuItem value="">{t('form.noPriceGroup')}</MenuItem>
-                      {priceGroups.map((group) => <MenuItem key={group.id} value={group.id}>{group.name}</MenuItem>)}
-                    </TextField>
+                    <Autocomplete
+                      options={priceGroups}
+                      value={priceGroups.find((group) => group.id === field.value) ?? null}
+                      loading={priceGroupsQuery.isLoading}
+                      getOptionLabel={priceGroupLabel}
+                      isOptionEqualToValue={(option, value) => option.id === value.id}
+                      onBlur={field.onBlur}
+                      onChange={(_, group) => field.onChange(group?.id ?? '')}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label={t('fields.priceGroup')}
+                          error={!!errors.price_group_id}
+                          helperText={errors.price_group_id?.message || t('form.noPriceGroup')}
+                        />
+                      )}
+                    />
                   )}
                 />
               </Box>
@@ -532,19 +596,24 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
                           </TableCell>
                           <TableCell sx={itemColumnSx.tax}>
                             <Controller name={`items.${index}.tax_rate_id`} control={control} render={({ field }) => (
-                              <TextField
-                                {...field}
-                                value={field.value ?? ''}
+                              <Autocomplete
+                                options={taxRates}
+                                value={taxRates.find((rate) => rate.id === field.value) ?? null}
+                                loading={taxRatesQuery.isLoading}
+                                getOptionLabel={taxRateLabel}
+                                isOptionEqualToValue={(option, value) => option.id === value.id}
                                 size="small"
-                                select
                                 disabled={taxScope !== 'line'}
-                                error={!!errors.items?.[index]?.tax_rate_id}
-                                helperText={errors.items?.[index]?.tax_rate_id?.message}
-                                onChange={(event) => applyTaxRate(index, event.target.value)}
-                              >
-                                <MenuItem value="">{t('form.noTax')}</MenuItem>
-                                {taxRates.map((rate) => <MenuItem key={rate.id} value={rate.id}>{rate.name}</MenuItem>)}
-                              </TextField>
+                                onBlur={field.onBlur}
+                                onChange={(_, rate) => applyTaxRate(index, rate?.id ?? '')}
+                                renderInput={(params) => (
+                                  <TextField
+                                    {...params}
+                                    error={!!errors.items?.[index]?.tax_rate_id}
+                                    helperText={errors.items?.[index]?.tax_rate_id?.message || t('form.noTax')}
+                                  />
+                                )}
+                              />
                             )} />
                           </TableCell>
                           <TableCell sx={itemColumnSx.notes}>
@@ -596,23 +665,27 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
               {taxScope === 'sale' && (
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
                   <Controller name="tax_rate_id" control={control} render={({ field }) => (
-                    <TextField
-                      {...field}
-                      value={field.value ?? ''}
-                      select
-                      label={t('fields.tax')}
-                      error={!!errors.tax_rate_id}
-                      helperText={errors.tax_rate_id?.message}
-                      onChange={(event) => {
-                        const taxRate = taxRates.find((item) => item.id === event.target.value)
-                        field.onChange(event)
+                    <Autocomplete
+                      options={taxRates}
+                      value={taxRates.find((rate) => rate.id === field.value) ?? null}
+                      loading={taxRatesQuery.isLoading}
+                      getOptionLabel={taxRateLabel}
+                      isOptionEqualToValue={(option, value) => option.id === value.id}
+                      onBlur={field.onBlur}
+                      onChange={(_, taxRate) => {
+                        field.onChange(taxRate?.id ?? '')
                         setValue('tax_rate_type', taxRate?.type ?? null)
                         setValue('tax_rate', taxRate?.rate ?? 0)
                       }}
-                    >
-                      <MenuItem value="">{t('form.noTax')}</MenuItem>
-                      {taxRates.map((rate) => <MenuItem key={rate.id} value={rate.id}>{rate.name}</MenuItem>)}
-                    </TextField>
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label={t('fields.tax')}
+                          error={!!errors.tax_rate_id}
+                          helperText={errors.tax_rate_id?.message || t('form.noTax')}
+                        />
+                      )}
+                    />
                   )} />
                   <Controller name="tax_type" control={control} render={({ field }) => (
                     <TextField {...field} value={field.value ?? 'exclusive'} select label={t('fields.taxType')} error={!!errors.tax_type} helperText={errors.tax_type?.message}>

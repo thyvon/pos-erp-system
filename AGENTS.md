@@ -46,6 +46,9 @@ Keep this file short. Use the plan docs for detail.
 - Keep shared types in `frontend/src/types/*`.
 - Page components must not call Axios directly. Use React Query for server state.
 - Reuse existing shared components for loading, empty states, row actions, confirmations, toasts, filters, selects, status displays, and branch-aware behavior.
+- Before adding repeated UI or data-entry patterns, check for an existing reusable component or hook first. If the same pattern is needed in more than one place, create or extend a small typed shared component/hook instead of duplicating page-level code.
+- Keep shared frontend components small, composable, option-driven, and aligned through the theme so one implementation can work across modules without copy/paste.
+- Keep form controls, filter controls, and table actions on shared sizing/style standards; fix mismatches in the shared component or theme instead of one-off page overrides.
 - Keep button styling consistent across the system: primary create/save/confirm actions use filled buttons, secondary navigation/cancel actions use outlined buttons, destructive actions use error styling, and table row view/edit/delete actions use the shared row action pattern.
 - Keep button sizing consistent: primary page/header actions, form footer actions, and dialog actions use the default MUI button size; secondary page-header navigation such as Back uses a small icon-only `IconButton` with a tooltip; dense table inline actions and icon-only row controls use `size="small"`.
 - New pages need loading, empty, validation, error, create, edit, and delete states where backend supports them.

@@ -61,6 +61,9 @@ export default {
   },
   validation: {
     requiredCustomField: 'ត្រូវបំពេញ {{field}}',
+    fixForm: 'សូមកែវាលដែលបានសម្គាល់មុនពេលរក្សាទុក។',
+    fixField: 'សូមកែ {{field}} មុនពេលរក្សាទុក។ {{message}}',
+    invalidValue: 'តម្លៃមិនត្រឹមត្រូវ។',
   },
   messages: {
     created: 'បានបង្កើតអតិថិជន។',

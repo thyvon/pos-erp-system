@@ -31,6 +31,7 @@ import { toAppApiError } from '@/api/errors'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { RowActions } from '@/components/ui/RowActions'
+import { SearchableFilterSelect } from '@/components/ui/SearchableFilterSelect'
 import { TableStateRow } from '@/components/ui/TableStateRow'
 import { useDeleteStockCountMutation, useInventoryOptionsQuery, useStockCountsQuery } from '@/features/inventory/hooks'
 import { useAppDateFormat } from '@/features/settings/useAppDateFormat'
@@ -136,24 +137,21 @@ export default function StockCountsPage() {
                 },
               }}
             />
-            <TextField
-              select
+            <SearchableFilterSelect
               value={warehouseFilter}
-              onChange={(event) => {
-                setWarehouseFilter(event.target.value)
+              options={warehouses}
+              loading={optionsQuery.isLoading}
+              label={t('counts.filters.warehouse')}
+              placeholder={t('counts.filters.allWarehouses')}
+              getOptionValue={(warehouse) => warehouse.id}
+              getOptionLabel={(warehouse) => warehouse.name}
+              getOptionDescription={(warehouse) => [warehouse.code, warehouse.branch_name].filter(Boolean).join(' / ')}
+              onChange={(value) => {
+                setWarehouseFilter(value)
                 setPage(0)
               }}
-              label={t('counts.filters.warehouse')}
               sx={{ minWidth: { xs: '100%', lg: 220 } }}
-            >
-              <MenuItem value="">{t('counts.filters.allWarehouses')}</MenuItem>
-              {warehouses.map((warehouse) => (
-                <MenuItem key={warehouse.id} value={warehouse.id}>
-                  {warehouse.name}
-                  {warehouse.code ? ` (${warehouse.code})` : ''}
-                </MenuItem>
-              ))}
-            </TextField>
+            />
             <TextField
               select
               value={statusFilter}

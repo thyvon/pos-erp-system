@@ -133,14 +133,14 @@ class CustomerService
             'business_id' => $businessId,
             'customer_group_id' => filled($customerGroupId) ? (string) $customerGroupId : null,
             'code' => $customer?->code,
-            'name' => $data['name'] ?? $customer?->name,
-            'type' => $data['type'] ?? $customer?->type ?? 'individual',
-            'email' => $data['email'] ?? $customer?->email,
-            'phone' => $data['phone'] ?? $customer?->phone,
-            'mobile' => $data['mobile'] ?? $customer?->mobile,
-            'tax_id' => $data['tax_id'] ?? $customer?->tax_id,
-            'date_of_birth' => $data['date_of_birth'] ?? $customer?->date_of_birth,
-            'address' => $data['address'] ?? $customer?->address,
+            'name' => array_key_exists('name', $data) ? $data['name'] : $customer?->name,
+            'type' => array_key_exists('type', $data) ? $data['type'] : ($customer?->type ?? 'individual'),
+            'email' => array_key_exists('email', $data) ? $data['email'] : $customer?->email,
+            'phone' => array_key_exists('phone', $data) ? $data['phone'] : $customer?->phone,
+            'mobile' => array_key_exists('mobile', $data) ? $data['mobile'] : $customer?->mobile,
+            'tax_id' => array_key_exists('tax_id', $data) ? $data['tax_id'] : $customer?->tax_id,
+            'date_of_birth' => array_key_exists('date_of_birth', $data) ? $data['date_of_birth'] : $customer?->date_of_birth,
+            'address' => array_key_exists('address', $data) ? $data['address'] : $customer?->address,
             'credit_limit' => array_key_exists('credit_limit', $data)
                 ? round((float) $data['credit_limit'], 2)
                 : $customer?->credit_limit ?? 0,
@@ -150,8 +150,8 @@ class CustomerService
             'opening_balance' => array_key_exists('opening_balance', $data)
                 ? round((float) $data['opening_balance'], 2)
                 : $customer?->opening_balance ?? 0,
-            'status' => $data['status'] ?? $customer?->status ?? 'active',
-            'notes' => $data['notes'] ?? $customer?->notes,
+            'status' => array_key_exists('status', $data) ? ($data['status'] ?? 'active') : ($customer?->status ?? 'active'),
+            'notes' => array_key_exists('notes', $data) ? $data['notes'] : $customer?->notes,
             'custom_fields' => $customFields,
             'documents' => $this->normalizeDocuments($data['documents'] ?? ($customer?->documents ?? [])),
         ];

@@ -8,7 +8,6 @@ import {
   Card,
   CardContent,
   InputAdornment,
-  MenuItem,
   Stack,
   Table,
   TableBody,
@@ -26,6 +25,7 @@ import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { RowActions } from '@/components/ui/RowActions'
+import { SearchableFilterSelect } from '@/components/ui/SearchableFilterSelect'
 import { TableStateRow } from '@/components/ui/TableStateRow'
 import { RackLocationFormDialog } from '@/features/rack-locations/RackLocationFormDialog'
 import {
@@ -166,24 +166,21 @@ export default function RackLocationsPage() {
                 },
               }}
             />
-            <TextField
-              select
+            <SearchableFilterSelect
               value={warehouseFilter}
-              onChange={(event) => {
-                setWarehouseFilter(event.target.value)
+              options={warehouses}
+              loading={warehousesQuery.isLoading}
+              label={t('filters.warehouse')}
+              placeholder={t('filters.allWarehouses')}
+              getOptionValue={(warehouse) => warehouse.id}
+              getOptionLabel={(warehouse) => warehouse.name}
+              getOptionDescription={(warehouse) => [warehouse.code, warehouse.branch?.name].filter(Boolean).join(' / ')}
+              onChange={(value) => {
+                setWarehouseFilter(value)
                 setPage(0)
               }}
-              label={t('filters.warehouse')}
               sx={{ minWidth: { xs: '100%', md: 260 } }}
-            >
-              <MenuItem value="">{t('filters.allWarehouses')}</MenuItem>
-              {warehouses.map((warehouse) => (
-                <MenuItem key={warehouse.id} value={warehouse.id}>
-                  {warehouse.name}
-                  {warehouse.code ? ` (${warehouse.code})` : ''}
-                </MenuItem>
-              ))}
-            </TextField>
+            />
           </Stack>
 
           {rackLocationsQuery.isError && (

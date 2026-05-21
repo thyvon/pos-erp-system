@@ -27,6 +27,7 @@ import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { RowActions } from '@/components/ui/RowActions'
+import { SearchableFilterSelect } from '@/components/ui/SearchableFilterSelect'
 import { TableStateRow } from '@/components/ui/TableStateRow'
 import { useBranchesQuery } from '@/features/branches/hooks'
 import { WarehouseFormDialog } from '@/features/warehouses/WarehouseFormDialog'
@@ -197,20 +198,18 @@ export default function WarehousesPage() {
                 </MenuItem>
               ))}
             </TextField>
-            <TextField
-              select
-              value={branchFilter}
-              onChange={(event) => handleBranchFilterChange(event.target.value)}
+            <SearchableFilterSelect
+              value={branchFilter ?? ''}
+              options={branches}
+              loading={branchesQuery.isLoading}
               label={t('filters.branch')}
+              placeholder={t('filters.allBranches')}
+              getOptionValue={(branch) => branch.id}
+              getOptionLabel={(branch) => branch.name}
+              getOptionDescription={(branch) => branch.code}
+              onChange={handleBranchFilterChange}
               sx={{ minWidth: { xs: '100%', md: 220 } }}
-            >
-              <MenuItem value="">{t('filters.allBranches')}</MenuItem>
-              {branches.map((branch) => (
-                <MenuItem key={branch.id} value={branch.id}>
-                  {branch.name}
-                </MenuItem>
-              ))}
-            </TextField>
+            />
           </Stack>
 
           {warehousesQuery.isError && (
