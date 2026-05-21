@@ -26,6 +26,7 @@ import {
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
+import { CambodiaAddressFields } from '@/components/ui/CambodiaAddressFields'
 import { customerSchema, type CustomerFormInput, type CustomerFormValues } from './schema'
 import type { CustomFieldDefinition } from '@/types/customField'
 import type { Customer, CustomerPayload } from '@/types/customer'
@@ -194,6 +195,7 @@ export function CustomerFormDialog({
     handleSubmit,
     reset,
     setError,
+    setValue,
     formState: { errors },
   } = useForm<CustomerFormInput, unknown, CustomerFormValues>({
     resolver: zodResolver(customerSchema),
@@ -512,87 +514,18 @@ export function CustomerFormDialog({
               />
             </Box>
 
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: {
-                  xs: '1fr',
-                  sm: 'repeat(2, minmax(0, 1fr))',
-                  md: 'repeat(5, minmax(0, 1fr))',
-                },
-                gap: 1.5,
+            <CambodiaAddressFields
+              control={control}
+              errors={errors}
+              setValue={setValue}
+              labels={{
+                country: t('fields.country'),
+                province_city: t('fields.provinceCity'),
+                district: t('fields.district'),
+                commune: t('fields.commune'),
+                village: t('fields.village'),
               }}
-            >
-              <Controller
-                name="village"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    value={field.value ?? ''}
-                    label={t('fields.village')}
-                    error={!!errors.village}
-                    helperText={errors.village?.message}
-                  />
-                )}
-              />
-
-              <Controller
-                name="commune"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    value={field.value ?? ''}
-                    label={t('fields.commune')}
-                    error={!!errors.commune}
-                    helperText={errors.commune?.message}
-                  />
-                )}
-              />
-
-              <Controller
-                name="district"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    value={field.value ?? ''}
-                    label={t('fields.district')}
-                    error={!!errors.district}
-                    helperText={errors.district?.message}
-                  />
-                )}
-              />
-
-              <Controller
-                name="province_city"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    value={field.value ?? ''}
-                    label={t('fields.provinceCity')}
-                    error={!!errors.province_city}
-                    helperText={errors.province_city?.message}
-                  />
-                )}
-              />
-
-              <Controller
-                name="country"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    value={field.value ?? ''}
-                    label={t('fields.country')}
-                    error={!!errors.country}
-                    helperText={errors.country?.message}
-                  />
-                )}
-              />
-            </Box>
+            />
 
             <Controller
               name="notes"

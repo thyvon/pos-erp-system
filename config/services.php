@@ -35,4 +35,8 @@ return [
         ],
     ],
 
+    'pumi' => [
+        'url' => env('PUMI_API_URL', 'https://pumi.onrender.com/pumi'),
+    ],
+
 ];

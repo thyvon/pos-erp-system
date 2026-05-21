@@ -170,6 +170,45 @@ class SupplierApiTest extends TestCase
             ->assertJsonPath('message', 'Custom field undefined_key is not defined for suppliers.');
     }
 
+    public function test_update_can_clear_nullable_supplier_fields(): void
+    {
+        $business = Business::factory()->create();
+        $admin = User::factory()->for($business)->create();
+        $admin->assignRole('admin');
+        $this->assignBranchAccess($admin);
+        $supplier = Supplier::factory()->for($business)->create([
+            'company' => 'Clear Company',
+            'email' => 'clear-supplier@example.com',
+            'phone' => '012345678',
+            'mobile' => '098765432',
+            'tax_id' => 'SUP-TAX-001',
+            'address' => ['country' => 'Cambodia'],
+            'notes' => 'Clear this note',
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $response = $this->putJson("/api/v1/suppliers/{$supplier->id}", [
+            'company' => null,
+            'email' => null,
+            'phone' => null,
+            'mobile' => null,
+            'tax_id' => null,
+            'address' => null,
+            'notes' => null,
+        ]);
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('data.company', null)
+            ->assertJsonPath('data.email', null)
+            ->assertJsonPath('data.phone', null)
+            ->assertJsonPath('data.mobile', null)
+            ->assertJsonPath('data.tax_id', null)
+            ->assertJsonPath('data.address', null)
+            ->assertJsonPath('data.notes', null);
+    }
+
     public function test_manager_cannot_delete_supplier(): void
     {
         $business = Business::factory()->create();

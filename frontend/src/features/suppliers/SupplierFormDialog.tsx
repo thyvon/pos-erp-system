@@ -26,6 +26,7 @@ import {
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
+import { CambodiaAddressFields } from '@/components/ui/CambodiaAddressFields'
 import { supplierSchema, type SupplierFormInput, type SupplierFormValues } from './schema'
 import type { CustomFieldDefinition } from '@/types/customField'
 import type { Supplier, SupplierPayload } from '@/types/supplier'
@@ -184,6 +185,7 @@ export function SupplierFormDialog({
     reset,
     setError,
     setFocus,
+    setValue,
     formState: { errors },
   } = useForm<SupplierFormInput, unknown, SupplierFormValues>({
     resolver: zodResolver(supplierSchema),
@@ -462,34 +464,18 @@ export function SupplierFormDialog({
               />
             </Box>
 
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: {
-                  xs: '1fr',
-                  sm: 'repeat(2, minmax(0, 1fr))',
-                  md: 'repeat(5, minmax(0, 1fr))',
-                },
-                gap: 1.5,
+            <CambodiaAddressFields
+              control={control}
+              errors={errors}
+              setValue={setValue}
+              labels={{
+                country: t('fields.country'),
+                province_city: t('fields.province_city'),
+                district: t('fields.district'),
+                commune: t('fields.commune'),
+                village: t('fields.village'),
               }}
-            >
-              {(['village', 'commune', 'district', 'province_city', 'country'] as const).map((fieldName) => (
-                <Controller
-                  key={fieldName}
-                  name={fieldName}
-                  control={control}
-                  render={({ field }) => (
-                    <TextField
-                      {...field}
-                      value={field.value ?? ''}
-                      label={t(`fields.${fieldName}`)}
-                      error={!!errors[fieldName]}
-                      helperText={errors[fieldName]?.message}
-                    />
-                  )}
-                />
-              ))}
-            </Box>
+            />
 
             <Controller
               name="notes"

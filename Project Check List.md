@@ -107,10 +107,13 @@
 - [x] Customer edit now shows a visible validation message when the form blocks saving.
 - [x] Customer edit validation now accepts cleared nullable fields and names the first invalid field when save is blocked.
 - [x] Customer edit now normalizes empty/null custom fields to an object so customers without custom fields can save.
+- [x] Customer and supplier forms now share a reusable Cambodia cascading address component ordered Country, Province/City, District, Commune, Village.
 
 ## Foundation Frontend And API
 
 - [x] Customer update now correctly clears nullable fields such as contact details, customer group, date of birth, address, and notes.
+- [x] Cambodia address lookup API proxy added with cached provinces, districts, communes, and villages from Pumi.
+- [x] Supplier update now correctly clears nullable contact and address fields.
 
 ## Edit Window Policy
 

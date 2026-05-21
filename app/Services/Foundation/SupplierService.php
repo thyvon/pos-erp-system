@@ -100,21 +100,21 @@ class SupplierService
             : ($supplier?->custom_fields ?? []);
 
         return [
-            'name' => $data['name'] ?? $supplier?->name,
-            'company' => $data['company'] ?? $supplier?->company,
-            'email' => $data['email'] ?? $supplier?->email,
-            'phone' => $data['phone'] ?? $supplier?->phone,
-            'mobile' => $data['mobile'] ?? $supplier?->mobile,
-            'tax_id' => $data['tax_id'] ?? $supplier?->tax_id,
-            'address' => $data['address'] ?? $supplier?->address,
+            'name' => array_key_exists('name', $data) ? $data['name'] : $supplier?->name,
+            'company' => array_key_exists('company', $data) ? $data['company'] : $supplier?->company,
+            'email' => array_key_exists('email', $data) ? $data['email'] : $supplier?->email,
+            'phone' => array_key_exists('phone', $data) ? $data['phone'] : $supplier?->phone,
+            'mobile' => array_key_exists('mobile', $data) ? $data['mobile'] : $supplier?->mobile,
+            'tax_id' => array_key_exists('tax_id', $data) ? $data['tax_id'] : $supplier?->tax_id,
+            'address' => array_key_exists('address', $data) ? $data['address'] : $supplier?->address,
             'pay_term' => array_key_exists('pay_term', $data)
                 ? (int) $data['pay_term']
                 : $supplier?->pay_term ?? 0,
             'opening_balance' => array_key_exists('opening_balance', $data)
                 ? round((float) $data['opening_balance'], 2)
                 : $supplier?->opening_balance ?? 0,
-            'status' => $data['status'] ?? $supplier?->status ?? 'active',
-            'notes' => $data['notes'] ?? $supplier?->notes,
+            'status' => array_key_exists('status', $data) ? ($data['status'] ?? 'active') : ($supplier?->status ?? 'active'),
+            'notes' => array_key_exists('notes', $data) ? $data['notes'] : $supplier?->notes,
             'custom_fields' => $customFields,
             'documents' => $this->normalizeDocuments($data['documents'] ?? ($supplier?->documents ?? [])),
         ];

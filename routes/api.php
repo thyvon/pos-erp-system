@@ -11,6 +11,7 @@ use App\Http\Controllers\Api\V1\Foundation\TaxRateController;
 use App\Http\Controllers\Api\V1\Foundation\TaxGroupController;
 use App\Http\Controllers\Api\V1\Foundation\CustomerGroupController;
 use App\Http\Controllers\Api\V1\Foundation\CustomerController;
+use App\Http\Controllers\Api\V1\Foundation\CambodiaAddressController;
 use App\Http\Controllers\Api\V1\Foundation\SupplierController;
 use App\Http\Controllers\Api\V1\Foundation\UserController;
 use App\Http\Controllers\Api\V1\Foundation\WarehouseController;
@@ -44,6 +45,13 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'throttle:300,1'])->group(funct
 
     Route::get('business', [BusinessController::class, 'show'])->middleware('can:businesses.index');
     Route::put('business', [BusinessController::class, 'update'])->middleware('can:businesses.edit');
+
+    Route::prefix('locations/cambodia')->group(function () {
+        Route::get('provinces', [CambodiaAddressController::class, 'provinces']);
+        Route::get('districts', [CambodiaAddressController::class, 'districts']);
+        Route::get('communes', [CambodiaAddressController::class, 'communes']);
+        Route::get('villages', [CambodiaAddressController::class, 'villages']);
+    });
 
     Route::get('custom-field-definitions', [CustomFieldDefinitionController::class, 'index'])->middleware('can:custom_fields.index');
     Route::post('custom-field-definitions', [CustomFieldDefinitionController::class, 'store'])->middleware('can:custom_fields.create');
