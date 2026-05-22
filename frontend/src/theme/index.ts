@@ -127,6 +127,7 @@ export function createAppTheme(
     palette.primary && 'main' in palette.primary ? palette.primary.main : '#00A76F'
   const fontFamily = resolveFontFamily(fontPreset)
   const sizePreset = LAYOUT_SIZE_PRESETS[layoutSize]
+  const isSmallLayout = layoutSize === 'small'
 
   return createTheme({
     palette,
@@ -304,6 +305,52 @@ export function createAppTheme(
         styleOverrides: {
           root: {
             backgroundImage: 'none',
+          },
+        },
+      },
+      MuiTable: {
+        defaultProps: {
+          size: isSmallLayout ? 'small' : 'medium',
+        },
+      },
+      MuiTableRow: {
+        styleOverrides: {
+          root: {
+            ...(isSmallLayout
+              ? {
+                  '& .MuiTableCell-root': {
+                    paddingTop: 6,
+                    paddingBottom: 6,
+                  },
+                }
+              : {}),
+          },
+        },
+      },
+      MuiTableCell: {
+        styleOverrides: {
+          root: {
+            ...(isSmallLayout
+              ? {
+                  padding: '6px 12px',
+                }
+              : {}),
+          },
+          head: {
+            ...(isSmallLayout
+              ? {
+                  paddingTop: 8,
+                  paddingBottom: 8,
+                  fontSize: sizePreset.typography.caption,
+                }
+              : {}),
+          },
+          body: {
+            ...(isSmallLayout
+              ? {
+                  fontSize: sizePreset.typography.body2,
+                }
+              : {}),
           },
         },
       },

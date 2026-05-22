@@ -38,7 +38,7 @@ import {
   useRecordSalePaymentMutation,
   useSaleQuery,
 } from './hooks'
-import { usePaymentAccountsQuery } from '@/features/accounting/hooks'
+import { useDefaultExchangeRateQuery, usePaymentAccountsQuery } from '@/features/accounting/hooks'
 import { useAppDateFormat } from '@/features/settings/useAppDateFormat'
 import { useCurrencyFormatter } from '@/features/settings/useAppCurrency'
 import { useAuthStore } from '@/stores/authStore'
@@ -80,6 +80,7 @@ export function SaleDetailPage({ saleId }: SaleDetailPageProps) {
   const [paymentOpen, setPaymentOpen] = useState(false)
   const saleQuery = useSaleQuery(saleId)
   const paymentAccountsQuery = usePaymentAccountsQuery({ status: 'active', per_page: 100 })
+  const defaultExchangeRateQuery = useDefaultExchangeRateQuery('USD', 'KHR')
   const confirmSale = useConfirmSaleMutation()
   const completeSale = useCompleteSaleMutation()
   const cancelSale = useCancelSaleMutation()
@@ -156,220 +157,196 @@ export function SaleDetailPage({ saleId }: SaleDetailPageProps) {
 
   return (
     <Stack spacing={3}>
-      <Stack
-        direction={{ xs: 'column', md: 'row' }}
-        spacing={2}
-        sx={{ alignItems: { xs: 'stretch', md: 'center' }, justifyContent: 'space-between' }}
-      >
-        <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-          <Tooltip title={t('common:buttons.back')}>
-            <IconButton component={NextLink} href="/sales" size="small" aria-label={t('common:buttons.back')}>
-              <ArrowBack />
-            </IconButton>
-          </Tooltip>
-          <Box>
-            <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-              <PointOfSaleOutlined color="primary" />
-              <Typography variant="h4">{sale.sale_number}</Typography>
-            </Stack>
-            <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
-              {t('detail.subtitle', {
-                customer: sale.customer?.name ?? t('labels.walkInCustomer'),
-                date: formatAppDate(sale.sale_date, dateFormat, i18n.language),
-              })}
-            </Typography>
-          </Box>
-        </Stack>
-        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-          {canEdit && (
-            <Button component={NextLink} href={`/sales/${sale.id}/edit`} startIcon={<EditOutlined />} variant="outlined">
-              {t('common:buttons.edit')}
-            </Button>
-          )}
-          {canPay && (
-            <Button startIcon={<PaymentsOutlined />} variant="contained" onClick={() => setPaymentOpen(true)}>
-              {t('actions.recordPayment')}
-            </Button>
-          )}
-          {canConfirm && (
-            <Button startIcon={<CheckCircleOutlined />} variant="outlined" onClick={() => setConfirmOpen(true)}>
-              {t('actions.confirm')}
-            </Button>
-          )}
-          {canComplete && (
-            <Button startIcon={<CheckCircleOutlined />} variant="contained" color="success" onClick={() => setCompleteOpen(true)}>
-              {t('actions.complete')}
-            </Button>
-          )}
-          {canCancel && (
-            <Button startIcon={<Close />} variant="outlined" color="warning" onClick={() => setCancelOpen(true)}>
-              {t('actions.cancelSale')}
-            </Button>
-          )}
-          {canDelete && (
-            <Button startIcon={<DeleteOutlined />} variant="outlined" color="error" onClick={() => setDeleteOpen(true)}>
-              {t('common:buttons.delete')}
-            </Button>
-          )}
-        </Stack>
-      </Stack>
-
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', md: 'repeat(4, minmax(0, 1fr))' },
-          gap: 2,
-        }}
-      >
-        {[
-          ['total', formatMoney(sale.total_amount, currencyFormatter)],
-          ['paid', formatMoney(sale.paid_amount, currencyFormatter)],
-          ['due', formatMoney(outstandingAmount(sale), currencyFormatter)],
-          ['items', sale.items?.length ?? 0],
-        ].map(([key, value]) => (
-          <Card key={key}>
-            <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
-              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                {t(`detail.summary.${key}`)}
-              </Typography>
-              <Typography variant="h5" sx={{ mt: 0.75 }}>
-                {value}
-              </Typography>
-            </CardContent>
-          </Card>
-        ))}
-      </Box>
-
       <Card>
         <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
-          <Stack spacing={2.5}>
-            <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ justifyContent: 'space-between' }}>
-              <Box>
-                <Typography variant="h6">{t('detail.overview')}</Typography>
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                  {sale.notes || t('detail.noNotes')}
-                </Typography>
-              </Box>
-              <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', justifyContent: { md: 'flex-end' } }}>
-                <Chip label={t(`statuses.${sale.status}`, { defaultValue: sale.status })} variant="outlined" />
-                <Chip label={t(`paymentStatuses.${sale.payment_status}`, { defaultValue: sale.payment_status })} variant="outlined" />
-                {sale.delivery_status && (
-                  <Chip label={t(`deliveryStatuses.${sale.delivery_status}`, { defaultValue: sale.delivery_status })} variant="outlined" />
-                )}
+          <Stack spacing={3}>
+            <Box>
+              <Stack
+                direction={{ xs: 'column', md: 'row' }}
+                spacing={2}
+                sx={{ alignItems: { xs: 'stretch', md: 'center' }, justifyContent: 'space-between' }}
+              >
+                <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+                  <Tooltip title={t('common:buttons.back')}>
+                    <IconButton component={NextLink} href="/sales" size="small" aria-label={t('common:buttons.back')}>
+                      <ArrowBack />
+                    </IconButton>
+                  </Tooltip>
+                  <Box>
+                    <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+                      <PointOfSaleOutlined color="primary" />
+                      <Typography variant="h4">{sale.sale_number}</Typography>
+                    </Stack>
+                    <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
+                      {t('detail.subtitle', {
+                        customer: sale.customer?.name ?? t('labels.walkInCustomer'),
+                        date: formatAppDate(sale.sale_date, dateFormat, i18n.language),
+                      })}
+                    </Typography>
+                  </Box>
+                </Stack>
+                <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+                  {canEdit && (
+                    <Button component={NextLink} href={`/sales/${sale.id}/edit`} startIcon={<EditOutlined />} variant="outlined">
+                      {t('common:buttons.edit')}
+                    </Button>
+                  )}
+                  {canPay && (
+                    <Button startIcon={<PaymentsOutlined />} variant="contained" onClick={() => setPaymentOpen(true)}>
+                      {t('actions.recordPayment')}
+                    </Button>
+                  )}
+                  {canConfirm && (
+                    <Button startIcon={<CheckCircleOutlined />} variant="outlined" onClick={() => setConfirmOpen(true)}>
+                      {t('actions.confirm')}
+                    </Button>
+                  )}
+                  {canComplete && (
+                    <Button startIcon={<CheckCircleOutlined />} variant="contained" color="success" onClick={() => setCompleteOpen(true)}>
+                      {t('actions.complete')}
+                    </Button>
+                  )}
+                  {canCancel && (
+                    <Button startIcon={<Close />} variant="outlined" color="warning" onClick={() => setCancelOpen(true)}>
+                      {t('actions.cancelSale')}
+                    </Button>
+                  )}
+                  {canDelete && (
+                    <Button startIcon={<DeleteOutlined />} variant="outlined" color="error" onClick={() => setDeleteOpen(true)}>
+                      {t('common:buttons.delete')}
+                    </Button>
+                  )}
+                </Stack>
               </Stack>
-            </Stack>
+
+              <Stack direction={{ xs: 'column', md: 'row' }} spacing={2} sx={{ justifyContent: 'space-between', mt: 2.5 }}>
+                <Box>
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                    {sale.notes || t('detail.noNotes')}
+                  </Typography>
+                </Box>
+                <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', justifyContent: { md: 'flex-end' } }}>
+                  <Chip label={t(`statuses.${sale.status}`, { defaultValue: sale.status })} variant="outlined" />
+                  <Chip label={t(`paymentStatuses.${sale.payment_status}`, { defaultValue: sale.payment_status })} variant="outlined" />
+                  {sale.delivery_status && (
+                    <Chip label={t(`deliveryStatuses.${sale.delivery_status}`, { defaultValue: sale.delivery_status })} variant="outlined" />
+                  )}
+                </Stack>
+              </Stack>
+
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(4, minmax(0, 1fr))' },
+                  gap: 2,
+                  mt: 2.5,
+                }}
+              >
+                {[
+                  [t('fields.customer'), sale.customer?.name ?? t('labels.walkInCustomer')],
+                  [t('fields.branch'), sale.branch?.name ?? '-'],
+                  [t('fields.warehouse'), sale.warehouse?.name ?? '-'],
+                  [t('fields.createdBy'), sale.creator?.name ?? '-'],
+                  [t('fields.saleDate'), formatAppDate(sale.sale_date, dateFormat, i18n.language)],
+                  [t('fields.dueDate'), formatAppDate(sale.due_date, dateFormat, i18n.language)],
+                  [t('fields.cashRegister'), sale.cash_register_session?.cash_register?.name ?? '-'],
+                  [t('fields.createdAt'), formatAppDateTime(sale.created_at, dateFormat, i18n.language)],
+                ].map(([label, value]) => (
+                  <Box key={label}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                      {label}
+                    </Typography>
+                    <Typography variant="body2">{value}</Typography>
+                  </Box>
+                ))}
+              </Box>
+            </Box>
 
             <Divider />
 
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(4, minmax(0, 1fr))' },
-                gap: 2,
-              }}
-            >
-              {[
-                [t('fields.customer'), sale.customer?.name ?? t('labels.walkInCustomer')],
-                [t('fields.branch'), sale.branch?.name ?? '-'],
-                [t('fields.warehouse'), sale.warehouse?.name ?? '-'],
-                [t('fields.createdBy'), sale.creator?.name ?? '-'],
-                [t('fields.saleDate'), formatAppDate(sale.sale_date, dateFormat, i18n.language)],
-                [t('fields.dueDate'), formatAppDate(sale.due_date, dateFormat, i18n.language)],
-                [t('fields.cashRegister'), sale.cash_register_session?.cash_register?.name ?? '-'],
-                [t('fields.createdAt'), formatAppDateTime(sale.created_at, dateFormat, i18n.language)],
-              ].map(([label, value]) => (
-                <Box key={label}>
-                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                    {label}
-                  </Typography>
-                  <Typography variant="body2">{value}</Typography>
-                </Box>
-              ))}
+            <Box>
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                {t('detail.items')}
+              </Typography>
+              <TableContainer>
+                <Table>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell>{t('items.product')}</TableCell>
+                      <TableCell align="right">{t('items.quantity')}</TableCell>
+                      <TableCell>{t('items.unit')}</TableCell>
+                      <TableCell align="right">{t('items.unitPrice')}</TableCell>
+                      <TableCell align="right">{t('items.discount')}</TableCell>
+                      <TableCell align="right">{t('items.tax')}</TableCell>
+                      <TableCell align="right">{t('items.total')}</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {(sale.items ?? []).map((item) => (
+                      <TableRow key={item.id} hover>
+                        <TableCell>
+                          <Stack spacing={0.25}>
+                            <Typography variant="subtitle2">{itemLabel(item)}</Typography>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              {item.variation?.sku ?? item.product?.sku ?? '-'}
+                            </Typography>
+                          </Stack>
+                        </TableCell>
+                        <TableCell align="right">{formatQuantity(item.quantity)}</TableCell>
+                        <TableCell>{item.sub_unit?.short_name ?? item.product?.unit?.short_name ?? '-'}</TableCell>
+                        <TableCell align="right">{formatMoney(item.unit_price, currencyFormatter)}</TableCell>
+                        <TableCell align="right">{formatMoney(item.discount_amount, currencyFormatter)}</TableCell>
+                        <TableCell align="right">{formatMoney(item.tax_amount, currencyFormatter)}</TableCell>
+                        <TableCell align="right">{formatMoney(item.total_amount, currencyFormatter)}</TableCell>
+                      </TableRow>
+                    ))}
+                    {(sale.items ?? []).length === 0 && (
+                      <TableRow>
+                        <TableCell colSpan={7} align="center">
+                          {t('detail.noItems')}
+                        </TableCell>
+                      </TableRow>
+                    )}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Box>
+
+            <Divider />
+
+            <Box>
+              <Typography variant="h6" sx={{ mb: 2 }}>
+                {t('detail.totals')}
+              </Typography>
+              <Box
+                sx={{
+                  display: 'grid',
+                  gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(4, minmax(0, 1fr))' },
+                  gap: 2,
+                }}
+              >
+                {[
+                  [t('fields.subtotal'), formatMoney(sale.subtotal, currencyFormatter)],
+                  [t('fields.discount'), formatMoney(sale.discount_amount, currencyFormatter)],
+                  [t('fields.tax'), formatMoney(sale.tax_amount, currencyFormatter)],
+                  [t('fields.shipping'), formatMoney(sale.shipping_charges, currencyFormatter)],
+                  [t('fields.total'), formatMoney(sale.total_amount, currencyFormatter)],
+                  [t('fields.paid'), formatMoney(sale.paid_amount, currencyFormatter)],
+                  [t('detail.summary.due'), formatMoney(outstandingAmount(sale), currencyFormatter)],
+                  [t('fields.change'), formatMoney(sale.change_amount, currencyFormatter)],
+                  [t('fields.returns'), sale.returns_count],
+                  [t('detail.summary.items'), sale.items?.length ?? 0],
+                ].map(([label, value]) => (
+                  <Box key={label}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                      {label}
+                    </Typography>
+                    <Typography variant="body2">{value}</Typography>
+                  </Box>
+                ))}
+              </Box>
             </Box>
           </Stack>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
-          <Typography variant="h6" sx={{ mb: 2 }}>
-            {t('detail.items')}
-          </Typography>
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('items.product')}</TableCell>
-                  <TableCell align="right">{t('items.quantity')}</TableCell>
-                  <TableCell>{t('items.unit')}</TableCell>
-                  <TableCell align="right">{t('items.unitPrice')}</TableCell>
-                  <TableCell align="right">{t('items.discount')}</TableCell>
-                  <TableCell align="right">{t('items.tax')}</TableCell>
-                  <TableCell align="right">{t('items.total')}</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {(sale.items ?? []).map((item) => (
-                  <TableRow key={item.id} hover>
-                    <TableCell>
-                      <Stack spacing={0.25}>
-                        <Typography variant="subtitle2">{itemLabel(item)}</Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {item.variation?.sku ?? item.product?.sku ?? '-'}
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-                    <TableCell align="right">{formatQuantity(item.quantity)}</TableCell>
-                    <TableCell>{item.sub_unit?.short_name ?? item.product?.unit?.short_name ?? '-'}</TableCell>
-                    <TableCell align="right">{formatMoney(item.unit_price, currencyFormatter)}</TableCell>
-                    <TableCell align="right">{formatMoney(item.discount_amount, currencyFormatter)}</TableCell>
-                    <TableCell align="right">{formatMoney(item.tax_amount, currencyFormatter)}</TableCell>
-                    <TableCell align="right">{formatMoney(item.total_amount, currencyFormatter)}</TableCell>
-                  </TableRow>
-                ))}
-                {(sale.items ?? []).length === 0 && (
-                  <TableRow>
-                    <TableCell colSpan={7} align="center">
-                      {t('detail.noItems')}
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
-          <Typography variant="h6" sx={{ mb: 2 }}>
-            {t('detail.totals')}
-          </Typography>
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(4, minmax(0, 1fr))' },
-              gap: 2,
-            }}
-          >
-            {[
-              [t('fields.subtotal'), formatMoney(sale.subtotal, currencyFormatter)],
-              [t('fields.discount'), formatMoney(sale.discount_amount, currencyFormatter)],
-              [t('fields.tax'), formatMoney(sale.tax_amount, currencyFormatter)],
-              [t('fields.shipping'), formatMoney(sale.shipping_charges, currencyFormatter)],
-              [t('fields.total'), formatMoney(sale.total_amount, currencyFormatter)],
-              [t('fields.paid'), formatMoney(sale.paid_amount, currencyFormatter)],
-              [t('fields.change'), formatMoney(sale.change_amount, currencyFormatter)],
-              [t('fields.returns'), sale.returns_count],
-            ].map(([label, value]) => (
-              <Box key={label}>
-                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                  {label}
-                </Typography>
-                <Typography variant="body2">{value}</Typography>
-              </Box>
-            ))}
-          </Box>
         </CardContent>
       </Card>
 
@@ -406,6 +383,8 @@ export function SaleDetailPage({ saleId }: SaleDetailPageProps) {
         open={paymentOpen}
         sale={sale}
         paymentAccounts={paymentAccounts}
+        defaultExchangeRate={defaultExchangeRateQuery.data ?? null}
+        isExchangeRateLoading={defaultExchangeRateQuery.isLoading}
         isSaving={recordPayment.isPending}
         onClose={() => setPaymentOpen(false)}
         onSubmit={handlePayment}

@@ -20,6 +20,10 @@ import type {
   FiscalYearFilters,
   FiscalYearPayload,
   FiscalYearSummary,
+  ExchangeRate,
+  ExchangeRateFilters,
+  ExchangeRatePayload,
+  ExchangeRateSummary,
 } from '@/types/accounting'
 
 export const chartOfAccountsApi = {
@@ -73,4 +77,22 @@ export const fiscalYearsApi = {
   update: (id: string, payload: FiscalYearPayload) =>
     apiClient.put<FiscalYear, FiscalYearPayload>(`/v1/accounting/fiscal-years/${id}`, payload),
   delete: (id: string) => apiClient.delete<void>(`/v1/accounting/fiscal-years/${id}`),
+}
+
+export const exchangeRatesApi = {
+  list: (filters: ExchangeRateFilters = {}) =>
+    apiClient.getPaginated<ExchangeRate>('/v1/accounting/exchange-rates', filters) as Promise<
+      AccountingPaginatedResponse<ExchangeRate, ExchangeRateSummary>
+    >,
+  default: (fromCurrency = 'USD', toCurrency = 'KHR') =>
+    apiClient.get<ExchangeRate | null>('/v1/accounting/exchange-rates/default', {
+      from_currency: fromCurrency,
+      to_currency: toCurrency,
+    }),
+  show: (id: string) => apiClient.get<ExchangeRate>(`/v1/accounting/exchange-rates/${id}`),
+  create: (payload: ExchangeRatePayload) =>
+    apiClient.post<ExchangeRate, ExchangeRatePayload>('/v1/accounting/exchange-rates', payload),
+  update: (id: string, payload: ExchangeRatePayload) =>
+    apiClient.put<ExchangeRate, ExchangeRatePayload>(`/v1/accounting/exchange-rates/${id}`, payload),
+  delete: (id: string) => apiClient.delete<void>(`/v1/accounting/exchange-rates/${id}`),
 }

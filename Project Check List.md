@@ -40,7 +40,9 @@
 - [x] Manual Journal create page uses a dedicated page form with active postable account selection, dynamic lines, debit/credit balance totals, validation, and translated UI.
 - [x] Payment Accounts page, filters, summary cards, CRUD dialog, transfer dialog, chart-account linking, API hooks, navigation, breadcrumbs, and translations are present.
 - [x] Fiscal Years page, filters, summary cards, CRUD dialog, date validation, API hooks, navigation, breadcrumbs, and translations are present.
-- [x] Accounting sidebar now exposes the currently live accounting backend surface: Journals, Chart of Accounts, Payment Accounts, and Fiscal Years.
+- [x] Exchange Rates page and backend CRUD added for USD/KHR rates, enforcing one default current rate while keeping historical rates.
+- [x] Sale payment recording now supports USD and KHR tender amounts, stores the entered currency/amount and exchange rate used, and converts KHR to the USD accounting amount for journals and balances.
+- [x] Accounting sidebar now exposes the currently live accounting backend surface: Journals, Chart of Accounts, Payment Accounts, Exchange Rates, and Fiscal Years.
 - [x] Accounting date inputs now use the shared setting-aware `AppDatePicker`, and accounting money display/inputs now use the active business/settings currency instead of hardcoded USD.
 
 ## Sales Frontend Rebuild
@@ -54,6 +56,10 @@
 - [x] Sales list header button alignment and inline advanced filter toggle now match the shared table page standard.
 - [x] Sales create/edit form now derives the saved branch from the selected warehouse instead of asking users to choose the branch manually.
 - [x] Sales create/edit backend-backed selects now use searchable autocomplete controls for warehouse, customer, price group, and tax rates.
+- [x] Sales create/edit product selection no longer crashes when the field array row appears before watched item values are hydrated; frontend type-check and lint verified.
+- [x] Sales create/edit item table inputs now use default-size form controls while preserving the full product detail column; frontend type-check and lint verified.
+- [x] Sale detail page now uses one main card with divider-separated header, sale items table, and sale summary, removing the top summary-card row; frontend type-check and lint verified.
+- [x] Sale payment recording now supports split payments with multiple table input lines, searchable payment account selection, backend multi-line posting, and focused Sales API/frontend verification.
 
 ## Inventory Frontend Rebuild
 
@@ -86,6 +92,7 @@
 - [x] Stock Transfer detail item table now has a local search field like Stock Count detail for filtering transfer items by product, SKU, lot, serial, notes, quantity, or unit cost.
 - [x] Stock Transfer detail item table now uses the Stock Count detail table pattern with local search, rows-per-page options, and pagination.
 - [x] Stock Transfer detail content is split into separate summary and transfer-item cards for cleaner organization.
+- [x] Inventory create/edit forms now use searchable backend-backed warehouse autocompletes for adjustments, transfers, and counts, and editable inventory item tables use default-size form controls; frontend type-check and lint verified.
 - [x] Stock Lots page, API hooks, types, filters, paginated table, detail dialog, status update action, navigation, and translations are present.
 - [x] Stock Serials page, API hooks, types, filters, paginated table, detail dialog, write-off action, navigation, and translations are present.
 - [x] Inventory list/detail read-only dates now use the same setting-aware display format as the shared date picker.
@@ -99,6 +106,7 @@
 - [x] Solar icon frontend change verified with `npm.cmd run type-check`, `npm.cmd run lint`, and `npm.cmd run build`.
 - [x] Shared theme now aligns default button and outlined input heights while preserving compact small controls for dense tables.
 - [x] Layout settings now include persisted Small, Normal, and Large size options, with Normal matching the previous default theme density.
+- [x] Small layout setting now globally applies dense table rows and compact table-cell padding across MUI tables; frontend type-check and lint verified.
 - [x] Layout settings drawer now uses Solar icon badges for each settings section.
 - [x] Backend-backed table filters now use a shared searchable autocomplete pattern for branch, warehouse, customer, category parent, and role option filters.
 - [x] Searchable autocomplete fields now inherit the same theme-level height standard as normal select and text fields.

@@ -196,7 +196,9 @@ function round(value: number) {
   return Math.round(value * 100) / 100
 }
 
-function lineTotal(item: SaleFormInput['items'][number], taxScope: string) {
+function lineTotal(item: Partial<SaleFormInput['items'][number]> | null | undefined, taxScope: string) {
+  if (!item) return 0
+
   const gross = round(toNumber(item.quantity) * toNumber(item.unit_price))
   const afterDiscount = Math.max(0, round(gross - discountAmount(item.discount_type, item.discount_amount, gross)))
   return taxScope === 'line'
@@ -534,7 +536,7 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
                 {typeof errors.items?.message === 'string' && <Alert severity="error">{errors.items.message}</Alert>}
 
                 <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1, overflowX: 'auto' }}>
-                  <Table size="small" sx={{ minWidth: 1460, tableLayout: 'fixed' }}>
+                  <Table sx={{ minWidth: 1460, tableLayout: 'fixed' }}>
                     <TableHead>
                       <TableRow>
                         <TableCell sx={itemColumnSx.product}>{t('items.product')}</TableCell>
@@ -557,81 +559,81 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
                         </TableRow>
                       )}
                       {fields.map((field, index) => (
-                        <TableRow key={field.fieldId}>
-                          <TableCell sx={itemColumnSx.product}>
-                            <Stack spacing={0.25}>
-                              <Typography variant="body2">{field.product_label || field.product_id}</Typography>
-                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                {[field.sku, field.lot_number, field.serial_number, field.unit_label].filter(Boolean).join(' / ') || '-'}
-                              </Typography>
-                              {field.available_quantity !== undefined && (
+                          <TableRow key={field.fieldId}>
+                            <TableCell sx={itemColumnSx.product}>
+                              <Stack spacing={0.25}>
+                                <Typography variant="body2">{field.product_label || field.product_id}</Typography>
                                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                  {t('form.available', { quantity: field.available_quantity ?? '-' })}
+                                  {[field.sku, field.lot_number, field.serial_number, field.unit_label].filter(Boolean).join(' / ') || '-'}
                                 </Typography>
-                              )}
-                            </Stack>
-                          </TableCell>
-                          <TableCell align="right" sx={itemColumnSx.quantity}>
-                            <Controller name={`items.${index}.quantity`} control={control} render={({ field }) => (
-                              <TextField {...field} size="small" type="number" error={!!errors.items?.[index]?.quantity} helperText={errors.items?.[index]?.quantity?.message} required slotProps={{ htmlInput: { min: 0.0001, step: 0.0001 } }} />
-                            )} />
-                          </TableCell>
-                          <TableCell align="right" sx={itemColumnSx.price}>
-                            <Controller name={`items.${index}.unit_price`} control={control} render={({ field }) => (
-                              <TextField {...field} size="small" type="number" error={!!errors.items?.[index]?.unit_price} helperText={errors.items?.[index]?.unit_price?.message} required slotProps={{ htmlInput: { min: 0, step: 0.01 }, input: { startAdornment: <InputAdornment position="start">{currency}</InputAdornment> } }} />
-                            )} />
-                          </TableCell>
-                          <TableCell sx={itemColumnSx.discountType}>
-                            <Controller name={`items.${index}.discount_type`} control={control} render={({ field }) => (
-                              <TextField {...field} value={field.value ?? ''} size="small" select error={!!errors.items?.[index]?.discount_type} helperText={errors.items?.[index]?.discount_type?.message}>
-                                <MenuItem value="">{t('form.noDiscount')}</MenuItem>
-                                {discountTypes.map((type) => <MenuItem key={type} value={type}>{t(`discountTypes.${type}`)}</MenuItem>)}
-                              </TextField>
-                            )} />
-                          </TableCell>
-                          <TableCell align="right" sx={itemColumnSx.discount}>
-                            <Controller name={`items.${index}.discount_amount`} control={control} render={({ field }) => (
-                              <TextField {...field} value={field.value ?? ''} size="small" type="number" error={!!errors.items?.[index]?.discount_amount} helperText={errors.items?.[index]?.discount_amount?.message} slotProps={{ htmlInput: { min: 0, step: 0.01 } }} />
-                            )} />
-                          </TableCell>
-                          <TableCell sx={itemColumnSx.tax}>
-                            <Controller name={`items.${index}.tax_rate_id`} control={control} render={({ field }) => (
-                              <Autocomplete
-                                options={taxRates}
-                                value={taxRates.find((rate) => rate.id === field.value) ?? null}
-                                loading={taxRatesQuery.isLoading}
-                                getOptionLabel={taxRateLabel}
-                                isOptionEqualToValue={(option, value) => option.id === value.id}
-                                size="small"
-                                disabled={taxScope !== 'line'}
-                                onBlur={field.onBlur}
-                                onChange={(_, rate) => applyTaxRate(index, rate?.id ?? '')}
-                                renderInput={(params) => (
-                                  <TextField
-                                    {...params}
-                                    error={!!errors.items?.[index]?.tax_rate_id}
-                                    helperText={errors.items?.[index]?.tax_rate_id?.message || t('form.noTax')}
-                                  />
+                                {field.available_quantity !== undefined && (
+                                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                    {t('form.available', { quantity: field.available_quantity ?? '-' })}
+                                  </Typography>
                                 )}
-                              />
-                            )} />
-                          </TableCell>
-                          <TableCell sx={itemColumnSx.notes}>
-                            <Controller name={`items.${index}.notes`} control={control} render={({ field }) => (
-                              <TextField {...field} value={field.value ?? ''} size="small" error={!!errors.items?.[index]?.notes} helperText={errors.items?.[index]?.notes?.message} />
-                            )} />
-                          </TableCell>
-                          <TableCell align="right" sx={itemColumnSx.total}>{currencyFormatter.format(lineTotal(watchedItems[index], taxScope))}</TableCell>
-                          <TableCell align="right" sx={itemColumnSx.actions}>
-                            <Tooltip title={t('actions.removeItem')}>
-                              <span>
-                                <IconButton size="small" color="error" disabled={isSaving} onClick={() => remove(index)}>
-                                  <DeleteOutlined />
-                                </IconButton>
-                              </span>
-                            </Tooltip>
-                          </TableCell>
-                        </TableRow>
+                              </Stack>
+                            </TableCell>
+                            <TableCell align="right" sx={itemColumnSx.quantity}>
+                              <Controller name={`items.${index}.quantity`} control={control} render={({ field }) => (
+                                <TextField {...field} fullWidth type="number" error={!!errors.items?.[index]?.quantity} helperText={errors.items?.[index]?.quantity?.message} required slotProps={{ htmlInput: { min: 0.0001, step: 0.0001 } }} />
+                              )} />
+                            </TableCell>
+                            <TableCell align="right" sx={itemColumnSx.price}>
+                              <Controller name={`items.${index}.unit_price`} control={control} render={({ field }) => (
+                                <TextField {...field} fullWidth type="number" error={!!errors.items?.[index]?.unit_price} helperText={errors.items?.[index]?.unit_price?.message} required slotProps={{ htmlInput: { min: 0, step: 0.01 }, input: { startAdornment: <InputAdornment position="start">{currency}</InputAdornment> } }} />
+                              )} />
+                            </TableCell>
+                            <TableCell sx={itemColumnSx.discountType}>
+                              <Controller name={`items.${index}.discount_type`} control={control} render={({ field }) => (
+                                <TextField {...field} fullWidth value={field.value ?? ''} select error={!!errors.items?.[index]?.discount_type} helperText={errors.items?.[index]?.discount_type?.message}>
+                                  <MenuItem value="">{t('form.noDiscount')}</MenuItem>
+                                  {discountTypes.map((type) => <MenuItem key={type} value={type}>{t(`discountTypes.${type}`)}</MenuItem>)}
+                                </TextField>
+                              )} />
+                            </TableCell>
+                            <TableCell align="right" sx={itemColumnSx.discount}>
+                              <Controller name={`items.${index}.discount_amount`} control={control} render={({ field }) => (
+                                <TextField {...field} fullWidth value={field.value ?? ''} type="number" error={!!errors.items?.[index]?.discount_amount} helperText={errors.items?.[index]?.discount_amount?.message} slotProps={{ htmlInput: { min: 0, step: 0.01 } }} />
+                              )} />
+                            </TableCell>
+                            <TableCell sx={itemColumnSx.tax}>
+                              <Controller name={`items.${index}.tax_rate_id`} control={control} render={({ field }) => (
+                                <Autocomplete
+                                  fullWidth
+                                  options={taxRates}
+                                  value={taxRates.find((rate) => rate.id === field.value) ?? null}
+                                  loading={taxRatesQuery.isLoading}
+                                  getOptionLabel={taxRateLabel}
+                                  isOptionEqualToValue={(option, value) => option.id === value.id}
+                                  disabled={taxScope !== 'line'}
+                                  onBlur={field.onBlur}
+                                  onChange={(_, rate) => applyTaxRate(index, rate?.id ?? '')}
+                                  renderInput={(params) => (
+                                    <TextField
+                                      {...params}
+                                      error={!!errors.items?.[index]?.tax_rate_id}
+                                      helperText={errors.items?.[index]?.tax_rate_id?.message}
+                                    />
+                                  )}
+                                />
+                              )} />
+                            </TableCell>
+                            <TableCell sx={itemColumnSx.notes}>
+                              <Controller name={`items.${index}.notes`} control={control} render={({ field }) => (
+                                <TextField {...field} fullWidth value={field.value ?? ''} error={!!errors.items?.[index]?.notes} helperText={errors.items?.[index]?.notes?.message} />
+                              )} />
+                            </TableCell>
+                            <TableCell align="right" sx={itemColumnSx.total}>{currencyFormatter.format(lineTotal(watchedItems[index] ?? field, taxScope))}</TableCell>
+                            <TableCell align="right" sx={itemColumnSx.actions}>
+                              <Tooltip title={t('actions.removeItem')}>
+                                <span>
+                                  <IconButton size="small" color="error" disabled={isSaving} onClick={() => remove(index)}>
+                                    <DeleteOutlined />
+                                  </IconButton>
+                                </span>
+                              </Tooltip>
+                            </TableCell>
+                          </TableRow>
                       ))}
                     </TableBody>
                   </Table>

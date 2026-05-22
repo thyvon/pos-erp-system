@@ -21,6 +21,10 @@ class SalePayment extends Model
         'sale_id',
         'payment_account_id',
         'amount',
+        'payment_currency',
+        'payment_amount',
+        'exchange_rate_id',
+        'exchange_rate',
         'method',
         'gift_card_id',
         'reference',
@@ -33,6 +37,8 @@ class SalePayment extends Model
     {
         return [
             'amount' => 'decimal:2',
+            'payment_amount' => 'decimal:2',
+            'exchange_rate' => 'decimal:6',
             'payment_date' => 'date',
         ];
     }
@@ -45,6 +51,11 @@ class SalePayment extends Model
     public function paymentAccount(): BelongsTo
     {
         return $this->belongsTo(PaymentAccount::class);
+    }
+
+    public function exchangeRate(): BelongsTo
+    {
+        return $this->belongsTo(ExchangeRate::class);
     }
 
     public function creator(): BelongsTo

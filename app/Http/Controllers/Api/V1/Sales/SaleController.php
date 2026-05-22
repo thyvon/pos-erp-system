@@ -136,7 +136,9 @@ class SaleController extends BaseApiController
         return $this->success([
             'sale' => new SaleResource($result['sale']),
             'payment' => new SalePaymentResource($result['payment']),
+            'payments' => SalePaymentResource::collection($result['payments']),
             'journal' => new JournalResource($result['journal']),
+            'journals' => JournalResource::collection($result['journals']),
         ], 'Sale payment recorded successfully.', 201);
     }
 }

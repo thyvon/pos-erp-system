@@ -6,19 +6,15 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form'
 import {
   Alert,
+  Autocomplete,
   Box,
   Button,
   Card,
   CardContent,
   Checkbox,
   CircularProgress,
-  FormControl,
   FormControlLabel,
-  FormHelperText,
   IconButton,
-  InputLabel,
-  MenuItem,
-  Select,
   Stack,
   Table,
   TableBody,
@@ -45,6 +41,7 @@ import {
 import { stockTransferSchema, type StockTransferFormInput, type StockTransferFormValues } from './schema'
 import type {
   InventoryProductLookupItem,
+  InventoryWarehouseOption,
   StockTransfer,
   StockTransferItem,
   StockTransferPayload,
@@ -82,6 +79,10 @@ function toNumber(value: string | number | null | undefined, fallback = 0) {
 
 function getItemLabel(item: StockTransferItem) {
   return [item.product?.name, item.variation?.name].filter(Boolean).join(' / ') || item.product_id
+}
+
+function warehouseLabel(warehouse: InventoryWarehouseOption) {
+  return [warehouse.name, warehouse.code, warehouse.branch_name].filter(Boolean).join(' / ')
 }
 
 function getTransferValues(transfer: StockTransfer | null | undefined): StockTransferFormInput {
@@ -259,57 +260,57 @@ export function StockTransferFormPage({ transferId }: StockTransferFormPageProps
               )}
 
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 220px' }, gap: 2 }}>
-                <FormControl error={!!errors.from_warehouse_id}>
-                  <InputLabel id="transfer-page-from-warehouse-label">{t('transfers.fields.fromWarehouse')}</InputLabel>
-                  <Controller
-                    name="from_warehouse_id"
-                    control={control}
-                    render={({ field }) => (
-                      <Select
-                        {...field}
-                        value={field.value ?? ''}
-                        labelId="transfer-page-from-warehouse-label"
-                        label={t('transfers.fields.fromWarehouse')}
-                        disabled={optionsQuery.isLoading || isReceived}
-                        required
-                      >
-                        {fromWarehouseOptions.map((warehouse) => (
-                          <MenuItem key={warehouse.id} value={warehouse.id}>
-                            {warehouse.name}
-                            {warehouse.code ? ` (${warehouse.code})` : ''}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    )}
-                  />
-                  <FormHelperText>{errors.from_warehouse_id?.message}</FormHelperText>
-                </FormControl>
+                <Controller
+                  name="from_warehouse_id"
+                  control={control}
+                  render={({ field }) => (
+                    <Autocomplete
+                      options={fromWarehouseOptions}
+                      value={fromWarehouseOptions.find((warehouse) => warehouse.id === field.value) ?? null}
+                      loading={optionsQuery.isLoading}
+                      getOptionLabel={warehouseLabel}
+                      isOptionEqualToValue={(option, value) => option.id === value.id}
+                      disabled={optionsQuery.isLoading || isReceived}
+                      onBlur={field.onBlur}
+                      onChange={(_, warehouse) => field.onChange(warehouse?.id ?? '')}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label={t('transfers.fields.fromWarehouse')}
+                          error={!!errors.from_warehouse_id}
+                          helperText={errors.from_warehouse_id?.message}
+                          required
+                        />
+                      )}
+                    />
+                  )}
+                />
 
-                <FormControl error={!!errors.to_warehouse_id}>
-                  <InputLabel id="transfer-page-to-warehouse-label">{t('transfers.fields.toWarehouse')}</InputLabel>
-                  <Controller
-                    name="to_warehouse_id"
-                    control={control}
-                    render={({ field }) => (
-                      <Select
-                        {...field}
-                        value={field.value ?? ''}
-                        labelId="transfer-page-to-warehouse-label"
-                        label={t('transfers.fields.toWarehouse')}
-                        disabled={optionsQuery.isLoading}
-                        required
-                      >
-                        {toWarehouseOptions.map((warehouse) => (
-                          <MenuItem key={warehouse.id} value={warehouse.id}>
-                            {warehouse.name}
-                            {warehouse.code ? ` (${warehouse.code})` : ''}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    )}
-                  />
-                  <FormHelperText>{errors.to_warehouse_id?.message}</FormHelperText>
-                </FormControl>
+                <Controller
+                  name="to_warehouse_id"
+                  control={control}
+                  render={({ field }) => (
+                    <Autocomplete
+                      options={toWarehouseOptions}
+                      value={toWarehouseOptions.find((warehouse) => warehouse.id === field.value) ?? null}
+                      loading={optionsQuery.isLoading}
+                      getOptionLabel={warehouseLabel}
+                      isOptionEqualToValue={(option, value) => option.id === value.id}
+                      disabled={optionsQuery.isLoading}
+                      onBlur={field.onBlur}
+                      onChange={(_, warehouse) => field.onChange(warehouse?.id ?? '')}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label={t('transfers.fields.toWarehouse')}
+                          error={!!errors.to_warehouse_id}
+                          helperText={errors.to_warehouse_id?.message}
+                          required
+                        />
+                      )}
+                    />
+                  )}
+                />
 
                 <Controller
                   name="date"
@@ -379,7 +380,7 @@ export function StockTransferFormPage({ transferId }: StockTransferFormPageProps
                 )}
 
                 <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1, overflowX: 'auto' }}>
-                  <Table size="small" sx={{ minWidth: 1008, tableLayout: 'fixed' }}>
+                  <Table sx={{ minWidth: 1008, tableLayout: 'fixed' }}>
                     <TableHead>
                       <TableRow>
                         <TableCell sx={itemColumnSx.product}>{t('transfers.fields.product')}</TableCell>
@@ -422,7 +423,7 @@ export function StockTransferFormPage({ transferId }: StockTransferFormPageProps
                               render={({ field }) => (
                                 <TextField
                                   {...field}
-                                  size="small"
+                                  fullWidth
                                   type="number"
                                   disabled={isReceived}
                                   error={!!errors.items?.[index]?.quantity}
@@ -441,7 +442,7 @@ export function StockTransferFormPage({ transferId }: StockTransferFormPageProps
                                 <TextField
                                   {...field}
                                   value={field.value ?? ''}
-                                  size="small"
+                                  fullWidth
                                   type="number"
                                   disabled={isReceived}
                                   error={!!errors.items?.[index]?.unit_cost}
@@ -459,7 +460,7 @@ export function StockTransferFormPage({ transferId }: StockTransferFormPageProps
                                 <TextField
                                   {...field}
                                   value={field.value ?? ''}
-                                  size="small"
+                                  fullWidth
                                   error={!!errors.items?.[index]?.notes}
                                   helperText={errors.items?.[index]?.notes?.message}
                                 />

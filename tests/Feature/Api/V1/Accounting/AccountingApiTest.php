@@ -5,6 +5,7 @@ namespace Tests\Feature\Api\V1\Accounting;
 use App\Models\Business;
 use App\Models\Branch;
 use App\Models\ChartOfAccount;
+use App\Models\ExchangeRate;
 use App\Models\PaymentAccount;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
@@ -192,5 +193,48 @@ class AccountingApiTest extends TestCase
             'end_date' => '2027-12-31',
             'status' => 'active',
         ])->assertStatus(422);
+    }
+
+    public function test_exchange_rates_keep_single_default_and_promote_latest_after_delete(): void
+    {
+        $business = Business::factory()->create();
+        $branch = Branch::factory()->for($business)->create();
+        $user = User::factory()->for($business)->create();
+        $user->assignRole('accountant');
+        $user->branches()->sync([$branch->id]);
+        $user->forceFill(['default_branch_id' => $branch->id])->save();
+
+        Sanctum::actingAs($user);
+
+        $firstId = $this->postJson('/api/v1/accounting/exchange-rates', [
+            'from_currency' => 'USD',
+            'to_currency' => 'KHR',
+            'rate' => 4100,
+            'effective_date' => '2026-05-01',
+        ])->assertCreated()
+            ->assertJsonPath('data.is_default', true)
+            ->json('data.id');
+
+        $secondId = $this->postJson('/api/v1/accounting/exchange-rates', [
+            'from_currency' => 'USD',
+            'to_currency' => 'KHR',
+            'rate' => 4120,
+            'effective_date' => '2026-05-20',
+            'is_default' => true,
+        ])->assertCreated()
+            ->assertJsonPath('data.is_default', true)
+            ->json('data.id');
+
+        $this->assertFalse((bool) ExchangeRate::withoutGlobalScopes()->findOrFail($firstId)->is_default);
+        $this->assertTrue((bool) ExchangeRate::withoutGlobalScopes()->findOrFail($secondId)->is_default);
+
+        $this->getJson('/api/v1/accounting/exchange-rates/default?from_currency=USD&to_currency=KHR')
+            ->assertOk()
+            ->assertJsonPath('data.id', $secondId)
+            ->assertJsonPath('data.rate', '4120.000000');
+
+        $this->deleteJson("/api/v1/accounting/exchange-rates/{$secondId}")->assertOk();
+
+        $this->assertTrue((bool) ExchangeRate::withoutGlobalScopes()->findOrFail($firstId)->is_default);
     }
 }

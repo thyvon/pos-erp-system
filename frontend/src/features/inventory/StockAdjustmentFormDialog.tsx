@@ -5,6 +5,7 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form'
 import {
   Alert,
+  Autocomplete,
   Box,
   Button,
   CircularProgress,
@@ -12,12 +13,8 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
-  FormControl,
-  FormHelperText,
   IconButton,
-  InputLabel,
   MenuItem,
-  Select,
   Stack,
   Table,
   TableBody,
@@ -76,6 +73,10 @@ function toNumber(value: string | number | null | undefined, fallback = 0) {
 
 function getItemLabel(item: StockAdjustmentItem) {
   return [item.product?.name, item.variation?.name].filter(Boolean).join(' / ') || item.product_id
+}
+
+function warehouseLabel(warehouse: InventoryWarehouseOption) {
+  return [warehouse.name, warehouse.code, warehouse.branch_name].filter(Boolean).join(' / ')
 }
 
 function getAdjustmentValues(adjustment: StockAdjustment | null | undefined): StockAdjustmentFormInput {
@@ -218,31 +219,31 @@ export function StockAdjustmentFormDialog({
                 gap: 2,
               }}
             >
-              <FormControl error={!!errors.warehouse_id}>
-                <InputLabel id="adjustment-warehouse-label">{t('adjustments.fields.warehouse')}</InputLabel>
-                <Controller
-                  name="warehouse_id"
-                  control={control}
-                  render={({ field }) => (
-                    <Select
-                      {...field}
-                      value={field.value ?? ''}
-                      labelId="adjustment-warehouse-label"
-                      label={t('adjustments.fields.warehouse')}
-                      disabled={isLoadingOptions}
-                      required
-                    >
-                      {warehouseOptions.map((warehouse) => (
-                        <MenuItem key={warehouse.id} value={warehouse.id}>
-                          {warehouse.name}
-                          {warehouse.code ? ` (${warehouse.code})` : ''}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  )}
-                />
-                <FormHelperText>{errors.warehouse_id?.message}</FormHelperText>
-              </FormControl>
+              <Controller
+                name="warehouse_id"
+                control={control}
+                render={({ field }) => (
+                  <Autocomplete
+                    options={warehouseOptions}
+                    value={warehouseOptions.find((warehouse) => warehouse.id === field.value) ?? null}
+                    loading={isLoadingOptions}
+                    getOptionLabel={warehouseLabel}
+                    isOptionEqualToValue={(option, value) => option.id === value.id}
+                    disabled={isLoadingOptions}
+                    onBlur={field.onBlur}
+                    onChange={(_, warehouse) => field.onChange(warehouse?.id ?? '')}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label={t('adjustments.fields.warehouse')}
+                        error={!!errors.warehouse_id}
+                        helperText={errors.warehouse_id?.message}
+                        required
+                      />
+                    )}
+                  />
+                )}
+              />
 
               <Controller
                 name="date"
@@ -316,7 +317,7 @@ export function StockAdjustmentFormDialog({
               )}
 
               <TableContainer>
-                <Table size="small">
+                <Table>
                   <TableHead>
                     <TableRow>
                       <TableCell>{t('adjustments.fields.product')}</TableCell>
@@ -358,7 +359,7 @@ export function StockAdjustmentFormDialog({
                             name={`items.${index}.direction`}
                             control={control}
                             render={({ field }) => (
-                              <TextField {...field} select size="small" required>
+                              <TextField {...field} fullWidth select required>
                                 <MenuItem value="in">{t('adjustments.directions.in')}</MenuItem>
                                 <MenuItem value="out">{t('adjustments.directions.out')}</MenuItem>
                               </TextField>
@@ -372,7 +373,7 @@ export function StockAdjustmentFormDialog({
                             render={({ field }) => (
                               <TextField
                                 {...field}
-                                size="small"
+                                fullWidth
                                 type="number"
                                 error={!!errors.items?.[index]?.quantity}
                                 helperText={errors.items?.[index]?.quantity?.message}
@@ -390,7 +391,7 @@ export function StockAdjustmentFormDialog({
                               <TextField
                                 {...field}
                                 value={field.value ?? ''}
-                                size="small"
+                                fullWidth
                                 type="number"
                                 error={!!errors.items?.[index]?.unit_cost}
                                 helperText={errors.items?.[index]?.unit_cost?.message}
@@ -407,7 +408,7 @@ export function StockAdjustmentFormDialog({
                               <TextField
                                 {...field}
                                 value={field.value ?? ''}
-                                size="small"
+                                fullWidth
                                 error={!!errors.items?.[index]?.notes}
                                 helperText={errors.items?.[index]?.notes?.message}
                               />

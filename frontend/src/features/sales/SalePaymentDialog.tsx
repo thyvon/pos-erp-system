@@ -2,9 +2,10 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Controller, useForm } from 'react-hook-form'
+import { Controller, useFieldArray, useForm, useWatch, type FieldPath } from 'react-hook-form'
 import {
   Alert,
+  Autocomplete,
   Box,
   Button,
   CircularProgress,
@@ -12,24 +13,37 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Divider,
+  IconButton,
   InputAdornment,
   MenuItem,
   Stack,
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   TextField,
+  Tooltip,
+  Typography,
 } from '@mui/material'
 import dayjs from 'dayjs'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
+import { Add, DeleteOutlined } from '@/components/ui/icons'
 import { useAppCurrency } from '@/features/settings/useAppCurrency'
 import { salePaymentSchema, type SalePaymentFormInput, type SalePaymentFormValues } from './schema'
-import type { PaymentAccount } from '@/types/accounting'
+import type { ExchangeRate, PaymentAccount } from '@/types/accounting'
 import type { Sale, SalePaymentMethod, SalePaymentPayload } from '@/types/sales'
 
 interface SalePaymentDialogProps {
   open: boolean
   sale: Sale | null
   paymentAccounts: PaymentAccount[]
+  defaultExchangeRate: ExchangeRate | null
+  isExchangeRateLoading?: boolean
   isSaving: boolean
   onClose: () => void
   onSubmit: (payload: SalePaymentPayload) => Promise<void>
@@ -37,21 +51,61 @@ interface SalePaymentDialogProps {
 
 const paymentMethods: SalePaymentMethod[] = ['cash', 'card', 'bank_transfer', 'cheque', 'reward_points', 'gift_card', 'other']
 
-function toNumber(value: string | number | null | undefined) {
+const paymentColumnSx = {
+  account: { width: 260 },
+  currency: { width: 120 },
+  amount: { width: 180 },
+  method: { width: 180 },
+  reference: { width: 220 },
+  converted: { width: 160 },
+  actions: { width: 72 },
+}
+
+function toNumber(value: unknown) {
   const numeric = Number(value ?? 0)
   return Number.isFinite(numeric) ? numeric : 0
 }
 
-function defaultValues(sale: Sale | null): SalePaymentFormInput {
+function exchangeRateValue(exchangeRate: ExchangeRate | null) {
+  return toNumber(exchangeRate?.rate)
+}
+
+function baseAmount(line: Partial<SalePaymentFormInput['payments'][number]> | null | undefined, exchangeRate: ExchangeRate | null) {
+  const paymentAmount = toNumber(line?.payment_amount)
+  const rate = exchangeRateValue(exchangeRate)
+
+  if (line?.payment_currency === 'KHR') {
+    return rate > 0 ? Math.round((paymentAmount / rate) * 100) / 100 : 0
+  }
+
+  return Math.round(paymentAmount * 100) / 100
+}
+
+function newPaymentLine(paymentAccounts: PaymentAccount[]): SalePaymentFormInput['payments'][number] {
+  return {
+    payment_account_id: paymentAccounts.find((account) => account.is_active)?.id ?? '',
+    payment_currency: 'USD',
+    payment_amount: 0,
+    amount: 0,
+    exchange_rate_id: null,
+    method: 'cash',
+    reference: '',
+  }
+}
+
+function defaultValues(sale: Sale | null, paymentAccounts: PaymentAccount[]): SalePaymentFormInput {
   const due = Math.max(toNumber(sale?.total_amount) - toNumber(sale?.paid_amount), 0)
 
   return {
-    payment_account_id: '',
-    amount: due,
-    method: 'cash',
-    reference: '',
     payment_date: dayjs().format('YYYY-MM-DD'),
     note: '',
+    payments: [
+      {
+        ...newPaymentLine(paymentAccounts),
+        amount: due,
+        payment_amount: due,
+      },
+    ],
   }
 }
 
@@ -59,6 +113,8 @@ export function SalePaymentDialog({
   open,
   sale,
   paymentAccounts,
+  defaultExchangeRate,
+  isExchangeRateLoading = false,
   isSaving,
   onClose,
   onSubmit,
@@ -66,18 +122,31 @@ export function SalePaymentDialog({
   const { t } = useTranslation(['sales', 'common'])
   const currency = useAppCurrency()
   const [serverError, setServerError] = useState('')
-  const values = useMemo(() => defaultValues(sale), [sale])
-  const activeAccounts = paymentAccounts.filter((account) => account.is_active)
+  const activeAccounts = useMemo(
+    () => paymentAccounts.filter((account) => account.is_active),
+    [paymentAccounts],
+  )
+  const values = useMemo(() => defaultValues(sale, activeAccounts), [sale, activeAccounts])
   const {
     control,
     handleSubmit,
     reset,
+    setValue,
     setError,
     formState: { errors },
   } = useForm<SalePaymentFormInput, unknown, SalePaymentFormValues>({
     resolver: zodResolver(salePaymentSchema),
     defaultValues: values,
   })
+  const { fields, append, remove } = useFieldArray({
+    control,
+    name: 'payments',
+    keyName: 'fieldId',
+  })
+  const watchedPayments = useWatch({ control, name: 'payments' })
+  const due = Math.max(toNumber(sale?.total_amount) - toNumber(sale?.paid_amount), 0)
+  const enteredTotal = (watchedPayments ?? []).reduce((total, line) => total + baseAmount(line, defaultExchangeRate), 0)
+  const remaining = Math.max(due - enteredTotal, 0)
 
   useEffect(() => {
     if (open) {
@@ -85,21 +154,57 @@ export function SalePaymentDialog({
     }
   }, [open, reset, values])
 
+  const closeDialog = () => {
+    setServerError('')
+    onClose()
+  }
+
+  const changePaymentCurrency = (index: number, nextCurrency: 'USD' | 'KHR') => {
+    const currentLine = watchedPayments?.[index]
+    const currentBaseAmount = baseAmount(currentLine, defaultExchangeRate)
+    const rate = exchangeRateValue(defaultExchangeRate)
+    const nextPaymentAmount = nextCurrency === 'KHR' && rate > 0
+      ? Math.round(currentBaseAmount * rate * 100) / 100
+      : currentBaseAmount
+
+    setValue(`payments.${index}.payment_currency`, nextCurrency, { shouldDirty: true, shouldValidate: true })
+    setValue(`payments.${index}.payment_amount`, nextPaymentAmount, { shouldDirty: true, shouldValidate: true })
+    setValue(`payments.${index}.amount`, currentBaseAmount, { shouldDirty: true, shouldValidate: true })
+    setValue(`payments.${index}.exchange_rate_id`, nextCurrency === 'KHR' ? defaultExchangeRate?.id ?? null : null, {
+      shouldDirty: true,
+      shouldValidate: true,
+    })
+  }
+
   const submitForm = async (formValues: SalePaymentFormValues) => {
     setServerError('')
 
     try {
       await onSubmit({
-        ...formValues,
-        reference: formValues.reference || null,
+        payment_date: formValues.payment_date,
         note: formValues.note || null,
+        payments: formValues.payments.map((line) => {
+          const convertedAmount = baseAmount(line, defaultExchangeRate)
+
+          return {
+            payment_account_id: line.payment_account_id,
+            amount: convertedAmount,
+            payment_currency: line.payment_currency,
+            payment_amount: line.payment_amount,
+            exchange_rate_id: line.payment_currency === 'KHR' ? defaultExchangeRate?.id ?? null : null,
+            method: line.method,
+            reference: line.reference || null,
+            payment_date: formValues.payment_date,
+            note: formValues.note || null,
+          }
+        }),
       })
-      onClose()
+      closeDialog()
     } catch (error) {
       const apiError = toAppApiError(error)
       if (apiError.fieldErrors) {
         Object.entries(apiError.fieldErrors).forEach(([field, messages]) => {
-          setError(field as keyof SalePaymentFormInput, {
+          setError(field as FieldPath<SalePaymentFormInput>, {
             type: 'server',
             message: messages[0],
           })
@@ -110,7 +215,7 @@ export function SalePaymentDialog({
   }
 
   return (
-    <Dialog open={open} onClose={isSaving ? undefined : onClose} fullWidth maxWidth="sm">
+    <Dialog open={open} onClose={isSaving ? undefined : closeDialog} fullWidth maxWidth="md">
       <Box component="form" noValidate onSubmit={handleSubmit(submitForm)}>
         <DialogTitle>{t('payment.title')}</DialogTitle>
         <DialogContent dividers>
@@ -119,26 +224,10 @@ export function SalePaymentDialog({
             {activeAccounts.length === 0 && (
               <Alert severity="warning">{t('payment.noAccounts')}</Alert>
             )}
-            <Controller
-              name="payment_account_id"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  select
-                  label={t('payment.account')}
-                  error={!!errors.payment_account_id}
-                  helperText={errors.payment_account_id?.message}
-                  required
-                >
-                  {activeAccounts.map((account) => (
-                    <MenuItem key={account.id} value={account.id}>
-                      {account.name}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              )}
-            />
+            {!isExchangeRateLoading && !defaultExchangeRate && (
+              <Alert severity="info">{t('payment.noExchangeRate')}</Alert>
+            )}
+
             <Box
               sx={{
                 display: 'grid',
@@ -147,92 +236,213 @@ export function SalePaymentDialog({
               }}
             >
               <Controller
-                name="amount"
+                name="payment_date"
                 control={control}
                 render={({ field }) => (
-                  <TextField
-                    {...field}
-                    type="number"
-                    label={t('payment.amount')}
-                    error={!!errors.amount}
-                    helperText={errors.amount?.message}
+                  <AppDatePicker
+                    label={t('payment.date')}
+                    value={field.value}
+                    onChange={field.onChange}
+                    error={!!errors.payment_date}
+                    helperText={errors.payment_date?.message}
                     required
-                    slotProps={{
-                      htmlInput: { min: 0.01, step: 0.01 },
-                      input: {
-                        startAdornment: <InputAdornment position="start">{currency}</InputAdornment>,
-                      },
-                    }}
                   />
                 )}
               />
               <Controller
-                name="method"
+                name="note"
                 control={control}
                 render={({ field }) => (
                   <TextField
                     {...field}
-                    select
-                    label={t('payment.method')}
-                    error={!!errors.method}
-                    helperText={errors.method?.message}
-                    required
-                  >
-                    {paymentMethods.map((method) => (
-                      <MenuItem key={method} value={method}>
-                        {t(`paymentMethods.${method}`)}
-                      </MenuItem>
-                    ))}
-                  </TextField>
+                    value={field.value ?? ''}
+                    label={t('payment.note')}
+                    error={!!errors.note}
+                    helperText={errors.note?.message}
+                  />
                 )}
               />
             </Box>
-            <Controller
-              name="payment_date"
-              control={control}
-              render={({ field }) => (
-                <AppDatePicker
-                  label={t('payment.date')}
-                  value={field.value}
-                  onChange={field.onChange}
-                  error={!!errors.payment_date}
-                  helperText={errors.payment_date?.message}
-                  required
-                />
-              )}
-            />
-            <Controller
-              name="reference"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  value={field.value ?? ''}
-                  label={t('payment.reference')}
-                  error={!!errors.reference}
-                  helperText={errors.reference?.message}
-                />
-              )}
-            />
-            <Controller
-              name="note"
-              control={control}
-              render={({ field }) => (
-                <TextField
-                  {...field}
-                  value={field.value ?? ''}
-                  label={t('payment.note')}
-                  error={!!errors.note}
-                  helperText={errors.note?.message}
-                  multiline
-                  minRows={3}
-                />
-              )}
-            />
+
+            <Divider />
+
+            <Stack spacing={1.5}>
+              <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                spacing={1.5}
+                sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}
+              >
+                <Box>
+                  <Typography variant="subtitle2">{t('payment.lines')}</Typography>
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    {t('payment.totalEntered')}: {currency} {enteredTotal.toFixed(2)} | {t('payment.remaining')}: {currency} {remaining.toFixed(2)}
+                  </Typography>
+                </Box>
+                <Button
+                  type="button"
+                  variant="outlined"
+                  startIcon={<Add />}
+                  onClick={() => append(newPaymentLine(activeAccounts))}
+                  disabled={isSaving || activeAccounts.length === 0}
+                >
+                  {t('payment.addLine')}
+                </Button>
+              </Stack>
+
+              <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1, overflowX: 'auto' }}>
+                <Table sx={{ minWidth: 1218, tableLayout: 'fixed' }}>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={paymentColumnSx.account}>{t('payment.account')}</TableCell>
+                      <TableCell sx={paymentColumnSx.currency}>{t('payment.currency')}</TableCell>
+                      <TableCell sx={paymentColumnSx.amount} align="right">{t('payment.amount')}</TableCell>
+                      <TableCell sx={paymentColumnSx.method}>{t('payment.method')}</TableCell>
+                      <TableCell sx={paymentColumnSx.reference}>{t('payment.reference')}</TableCell>
+                      <TableCell sx={paymentColumnSx.converted} align="right">{t('payment.converted')}</TableCell>
+                      <TableCell sx={paymentColumnSx.actions} align="right">{t('columns.actions')}</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {fields.map((field, index) => (
+                      <TableRow key={field.fieldId}>
+                        <TableCell sx={paymentColumnSx.account}>
+                          <Controller
+                            name={`payments.${index}.payment_account_id`}
+                            control={control}
+                            render={({ field }) => (
+                              <Autocomplete
+                                fullWidth
+                                options={activeAccounts}
+                                value={activeAccounts.find((account) => account.id === field.value) ?? null}
+                                getOptionLabel={(account) => account.name}
+                                isOptionEqualToValue={(option, value) => option.id === value.id}
+                                onBlur={field.onBlur}
+                                onChange={(_, account) => field.onChange(account?.id ?? '')}
+                                renderInput={(params) => (
+                                  <TextField
+                                    {...params}
+                                    error={!!errors.payments?.[index]?.payment_account_id}
+                                    helperText={errors.payments?.[index]?.payment_account_id?.message}
+                                    required
+                                  />
+                                )}
+                              />
+                            )}
+                          />
+                        </TableCell>
+                        <TableCell sx={paymentColumnSx.currency}>
+                          <Controller
+                            name={`payments.${index}.payment_currency`}
+                            control={control}
+                            render={({ field }) => (
+                              <TextField
+                                {...field}
+                                fullWidth
+                                select
+                                error={!!errors.payments?.[index]?.payment_currency}
+                                helperText={errors.payments?.[index]?.payment_currency?.message}
+                                required
+                                onChange={(event) => changePaymentCurrency(index, event.target.value as 'USD' | 'KHR')}
+                              >
+                                <MenuItem value="USD">USD</MenuItem>
+                                <MenuItem value="KHR" disabled={!defaultExchangeRate}>KHR</MenuItem>
+                              </TextField>
+                            )}
+                          />
+                        </TableCell>
+                        <TableCell align="right" sx={paymentColumnSx.amount}>
+                          <Controller
+                            name={`payments.${index}.payment_amount`}
+                            control={control}
+                            render={({ field }) => (
+                              <TextField
+                                {...field}
+                                fullWidth
+                                type="number"
+                                error={!!errors.payments?.[index]?.payment_amount}
+                                helperText={errors.payments?.[index]?.payment_amount?.message}
+                                required
+                                slotProps={{
+                                  htmlInput: { min: 0.01, step: 0.01 },
+                                  input: {
+                                    startAdornment: <InputAdornment position="start">{watchedPayments?.[index]?.payment_currency ?? 'USD'}</InputAdornment>,
+                                  },
+                                }}
+                              />
+                            )}
+                          />
+                        </TableCell>
+                        <TableCell sx={paymentColumnSx.method}>
+                          <Controller
+                            name={`payments.${index}.method`}
+                            control={control}
+                            render={({ field }) => (
+                              <TextField
+                                {...field}
+                                fullWidth
+                                select
+                                error={!!errors.payments?.[index]?.method}
+                                helperText={errors.payments?.[index]?.method?.message}
+                                required
+                              >
+                                {paymentMethods.map((method) => (
+                                  <MenuItem key={method} value={method}>
+                                    {t(`paymentMethods.${method}`)}
+                                  </MenuItem>
+                                ))}
+                              </TextField>
+                            )}
+                          />
+                        </TableCell>
+                        <TableCell sx={paymentColumnSx.reference}>
+                          <Controller
+                            name={`payments.${index}.reference`}
+                            control={control}
+                            render={({ field }) => (
+                              <TextField
+                                {...field}
+                                value={field.value ?? ''}
+                                fullWidth
+                                error={!!errors.payments?.[index]?.reference}
+                                helperText={errors.payments?.[index]?.reference?.message}
+                              />
+                            )}
+                          />
+                        </TableCell>
+                        <TableCell align="right" sx={paymentColumnSx.converted}>
+                          <Typography variant="body2">
+                            {currency} {baseAmount(watchedPayments?.[index], defaultExchangeRate).toFixed(2)}
+                          </Typography>
+                          {watchedPayments?.[index]?.payment_currency === 'KHR' && defaultExchangeRate && (
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              1 USD = {Number(defaultExchangeRate.rate ?? 0).toLocaleString()} KHR
+                            </Typography>
+                          )}
+                        </TableCell>
+                        <TableCell align="right" sx={paymentColumnSx.actions}>
+                          <Tooltip title={t('payment.removeLine')}>
+                            <span>
+                              <IconButton
+                                size="small"
+                                color="error"
+                                disabled={isSaving || fields.length === 1}
+                                onClick={() => remove(index)}
+                              >
+                                <DeleteOutlined />
+                              </IconButton>
+                            </span>
+                          </Tooltip>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Stack>
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button variant="outlined" onClick={onClose} disabled={isSaving}>
+          <Button variant="outlined" onClick={closeDialog} disabled={isSaving}>
             {t('common:buttons.cancel')}
           </Button>
           <Button type="submit" variant="contained" disabled={isSaving || activeAccounts.length === 0}>

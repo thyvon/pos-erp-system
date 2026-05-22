@@ -1,10 +1,12 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Accounting\ChartOfAccountController;
+use App\Http\Controllers\Api\V1\Accounting\ExchangeRateController;
 use App\Http\Controllers\Api\V1\Accounting\FiscalYearController;
 use App\Http\Controllers\Api\V1\Accounting\JournalController;
 use App\Http\Controllers\Api\V1\Accounting\PaymentAccountController;
 use App\Models\ChartOfAccount;
+use App\Models\ExchangeRate;
 use App\Models\FiscalYear;
 use App\Models\Journal;
 use App\Models\PaymentAccount;
@@ -28,6 +30,13 @@ return static function (): void {
     Route::put('accounting/payment-accounts/{paymentAccount}', [PaymentAccountController::class, 'update'])->middleware('can:update,paymentAccount');
     Route::delete('accounting/payment-accounts/{paymentAccount}', [PaymentAccountController::class, 'destroy'])->middleware('can:delete,paymentAccount');
     Route::post('accounting/payment-accounts/transfer', [PaymentAccountController::class, 'transfer'])->middleware('can:transfer,'.PaymentAccount::class);
+
+    Route::get('accounting/exchange-rates/default', [ExchangeRateController::class, 'current'])->middleware('can:viewAny,'.ExchangeRate::class);
+    Route::get('accounting/exchange-rates', [ExchangeRateController::class, 'index'])->middleware('can:viewAny,'.ExchangeRate::class);
+    Route::post('accounting/exchange-rates', [ExchangeRateController::class, 'store'])->middleware('can:create,'.ExchangeRate::class);
+    Route::get('accounting/exchange-rates/{exchangeRate}', [ExchangeRateController::class, 'show'])->middleware('can:view,exchangeRate');
+    Route::put('accounting/exchange-rates/{exchangeRate}', [ExchangeRateController::class, 'update'])->middleware('can:update,exchangeRate');
+    Route::delete('accounting/exchange-rates/{exchangeRate}', [ExchangeRateController::class, 'destroy'])->middleware('can:delete,exchangeRate');
 
     Route::get('accounting/fiscal-years', [FiscalYearController::class, 'index'])->middleware('can:viewAny,'.FiscalYear::class);
     Route::post('accounting/fiscal-years', [FiscalYearController::class, 'store'])->middleware('can:create,'.FiscalYear::class);

@@ -8,6 +8,7 @@ export type JournalType = 'manual' | 'reversal' | string
 export type JournalEntryType = 'debit' | 'credit'
 export type PaymentAccountType = 'cash' | 'bank' | 'other'
 export type FiscalYearStatus = 'active' | 'closed'
+export type ExchangeCurrency = 'USD' | 'KHR'
 
 export interface AccountingPaginatedResponse<T, TSummary> extends PaginatedResponse<T> {
   summary?: TSummary
@@ -237,6 +238,42 @@ export interface FiscalYearPayload {
 export interface FiscalYearFilters {
   search?: string
   status?: FiscalYearStatus | ''
+  page?: number
+  per_page?: number
+}
+
+export interface ExchangeRateSummary {
+  total_rates: number
+  default_rates: number
+}
+
+export interface ExchangeRate {
+  id: string
+  business_id: string
+  from_currency: ExchangeCurrency
+  to_currency: ExchangeCurrency
+  rate: string | null
+  effective_date: string
+  is_default: boolean
+  note: string | null
+  created_at: string
+  updated_at: string
+}
+
+export interface ExchangeRatePayload {
+  from_currency: ExchangeCurrency
+  to_currency: ExchangeCurrency
+  rate: number
+  effective_date: string
+  is_default?: boolean
+  note?: string | null
+}
+
+export interface ExchangeRateFilters {
+  search?: string
+  from_currency?: ExchangeCurrency | ''
+  to_currency?: ExchangeCurrency | ''
+  is_default?: boolean | ''
   page?: number
   per_page?: number
 }

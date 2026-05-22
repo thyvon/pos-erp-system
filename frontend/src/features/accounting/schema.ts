@@ -98,3 +98,15 @@ export const fiscalYearSchema = z.object({
 
 export type FiscalYearFormInput = z.input<typeof fiscalYearSchema>
 export type FiscalYearFormValues = z.output<typeof fiscalYearSchema>
+
+export const exchangeRateSchema = z.object({
+  from_currency: z.enum(['USD']),
+  to_currency: z.enum(['KHR']),
+  rate: z.coerce.number().gt(0, 'Rate must be greater than zero'),
+  effective_date: z.string().min(1, 'Effective date is required'),
+  is_default: z.boolean(),
+  note: z.string().trim().nullable().optional(),
+})
+
+export type ExchangeRateFormInput = z.input<typeof exchangeRateSchema>
+export type ExchangeRateFormValues = z.output<typeof exchangeRateSchema>

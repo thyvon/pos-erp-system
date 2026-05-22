@@ -6,17 +6,13 @@ import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useForm } from 'react-hook-form'
 import {
   Alert,
+  Autocomplete,
   Box,
   Button,
   Card,
   CardContent,
   CircularProgress,
-  FormControl,
-  FormHelperText,
   IconButton,
-  InputLabel,
-  MenuItem,
-  Select,
   Stack,
   TextField,
   Tooltip,
@@ -29,7 +25,7 @@ import { toAppApiError } from '@/api/errors'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
 import { useCreateStockCountMutation, useInventoryOptionsQuery } from './hooks'
 import { stockCountSchema, type StockCountFormInput, type StockCountFormValues } from './schema'
-import type { StockCountPayload } from '@/types/inventory'
+import type { InventoryWarehouseOption, StockCountPayload } from '@/types/inventory'
 
 const today = () => new Date().toISOString().slice(0, 10)
 
@@ -47,6 +43,10 @@ function buildPayload(values: StockCountFormValues): StockCountPayload {
     date: values.date,
     notes: values.notes ?? null,
   }
+}
+
+function warehouseLabel(warehouse: InventoryWarehouseOption) {
+  return [warehouse.name, warehouse.code, warehouse.branch_name].filter(Boolean).join(' / ')
 }
 
 export function StockCountFormPage() {
@@ -123,31 +123,31 @@ export function StockCountFormPage() {
               <Alert severity="info">{t('counts.form.autoSeedNotice')}</Alert>
 
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 220px' }, gap: 2 }}>
-                <FormControl error={!!errors.warehouse_id}>
-                  <InputLabel id="count-page-warehouse-label">{t('counts.fields.warehouse')}</InputLabel>
-                  <Controller
-                    name="warehouse_id"
-                    control={control}
-                    render={({ field }) => (
-                      <Select
-                        {...field}
-                        value={field.value ?? ''}
-                        labelId="count-page-warehouse-label"
-                        label={t('counts.fields.warehouse')}
-                        disabled={optionsQuery.isLoading}
-                        required
-                      >
-                        {warehouseOptions.map((warehouse) => (
-                          <MenuItem key={warehouse.id} value={warehouse.id}>
-                            {warehouse.name}
-                            {warehouse.code ? ` (${warehouse.code})` : ''}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    )}
-                  />
-                  <FormHelperText>{errors.warehouse_id?.message}</FormHelperText>
-                </FormControl>
+                <Controller
+                  name="warehouse_id"
+                  control={control}
+                  render={({ field }) => (
+                    <Autocomplete
+                      options={warehouseOptions}
+                      value={warehouseOptions.find((warehouse) => warehouse.id === field.value) ?? null}
+                      loading={optionsQuery.isLoading}
+                      getOptionLabel={warehouseLabel}
+                      isOptionEqualToValue={(option, value) => option.id === value.id}
+                      disabled={optionsQuery.isLoading}
+                      onBlur={field.onBlur}
+                      onChange={(_, warehouse) => field.onChange(warehouse?.id ?? '')}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          label={t('counts.fields.warehouse')}
+                          error={!!errors.warehouse_id}
+                          helperText={errors.warehouse_id?.message}
+                          required
+                        />
+                      )}
+                    />
+                  )}
+                />
 
                 <Controller
                   name="date"

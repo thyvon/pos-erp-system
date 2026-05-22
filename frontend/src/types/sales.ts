@@ -224,13 +224,29 @@ export interface Sale {
   updated_at: string
 }
 
-export interface SalePaymentPayload {
+export interface SalePaymentLinePayload {
   payment_account_id: string
   amount: number
+  payment_currency?: 'USD' | 'KHR'
+  payment_amount?: number
+  exchange_rate_id?: string | null
   method: SalePaymentMethod
+  reference?: string | null
+  payment_date?: string
+  note?: string | null
+}
+
+export interface SalePaymentPayload {
+  payment_account_id?: string
+  amount?: number
+  payment_currency?: 'USD' | 'KHR'
+  payment_amount?: number
+  exchange_rate_id?: string | null
+  method?: SalePaymentMethod
   reference?: string | null
   payment_date: string
   note?: string | null
+  payments?: SalePaymentLinePayload[]
 }
 
 export interface SaleCancelPayload {
@@ -243,6 +259,10 @@ export interface SalePayment {
   sale_id: string
   payment_account_id: string
   amount: string | null
+  payment_currency: 'USD' | 'KHR'
+  payment_amount: string | null
+  exchange_rate_id: string | null
+  exchange_rate: string | null
   method: SalePaymentMethod
   gift_card_id: string | null
   reference: string | null
@@ -260,7 +280,9 @@ export interface SalePayment {
 export interface SalePaymentResult {
   sale: Sale
   payment: SalePayment
+  payments?: SalePayment[]
   journal: unknown
+  journals?: unknown[]
 }
 
 export type SalesPaginatedResponse = PaginatedResponse<Sale>

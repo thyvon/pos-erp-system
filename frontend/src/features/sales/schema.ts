@@ -61,13 +61,20 @@ export const saleCancelSchema = z.object({
 export type SaleCancelFormInput = z.input<typeof saleCancelSchema>
 export type SaleCancelFormValues = z.output<typeof saleCancelSchema>
 
-export const salePaymentSchema = z.object({
+const salePaymentLineSchema = z.object({
   payment_account_id: z.string().min(1, 'Payment account is required'),
-  amount: z.coerce.number().gt(0, 'Amount must be greater than zero'),
+  payment_currency: z.enum(['USD', 'KHR']),
+  payment_amount: z.coerce.number().gt(0, 'Amount must be greater than zero'),
+  amount: z.coerce.number().gt(0, 'Amount must be greater than zero').optional(),
+  exchange_rate_id: z.string().nullable().optional(),
   method: z.enum(['cash', 'card', 'bank_transfer', 'cheque', 'reward_points', 'gift_card', 'other']),
   reference: z.string().trim().max(120, 'Reference must be 120 characters or less').nullable().optional(),
+})
+
+export const salePaymentSchema = z.object({
   payment_date: z.string().min(1, 'Payment date is required'),
   note: z.string().trim().nullable().optional(),
+  payments: z.array(salePaymentLineSchema).min(1, 'Add at least one payment line'),
 })
 
 export type SalePaymentFormInput = z.input<typeof salePaymentSchema>

@@ -33,6 +33,7 @@ const BREADCRUMB_KEY_MAP: Record<string, string> = {
   '/accounting/journals': 'journalEntries',
   '/accounting/coa': 'chartOfAccounts',
   '/accounting/payment-accounts': 'paymentAccounts',
+  '/accounting/exchange-rates': 'exchangeRates',
   '/accounting/fiscal-years': 'fiscalYears',
   '/expenses': 'expenses',
   '/reports': 'reports',

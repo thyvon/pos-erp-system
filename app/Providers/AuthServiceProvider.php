@@ -25,6 +25,7 @@ use App\Models\StockSerial;
 use App\Models\StockTransfer;
 use App\Models\Supplier;
 use App\Models\ChartOfAccount;
+use App\Models\ExchangeRate;
 use App\Models\FiscalYear;
 use App\Models\Journal;
 use App\Models\PaymentAccount;
@@ -63,6 +64,7 @@ use App\Policies\StockCountPolicy;
 use App\Policies\StockTransferPolicy;
 use App\Policies\SupplierPolicy;
 use App\Policies\ChartOfAccountPolicy;
+use App\Policies\ExchangeRatePolicy;
 use App\Policies\FiscalYearPolicy;
 use App\Policies\JournalPolicy;
 use App\Policies\PaymentAccountPolicy;
@@ -101,6 +103,7 @@ class AuthServiceProvider extends ServiceProvider
         StockTransfer::class => StockTransferPolicy::class,
         Supplier::class => SupplierPolicy::class,
         ChartOfAccount::class => ChartOfAccountPolicy::class,
+        ExchangeRate::class => ExchangeRatePolicy::class,
         FiscalYear::class => FiscalYearPolicy::class,
         Journal::class => JournalPolicy::class,
         PaymentAccount::class => PaymentAccountPolicy::class,

@@ -228,6 +228,59 @@ const accounting = {
     },
     empty: 'No payment accounts found.',
   },
+  exchangeRates: {
+    title: 'Exchange Rates',
+    subtitle: 'Maintain USD to KHR rates used for mixed-currency payments.',
+    summary: {
+      total: 'Total rates',
+      default: 'Default rates',
+    },
+    filters: {
+      search: 'Search by currency or note',
+    },
+    actions: {
+      new: 'New exchange rate',
+    },
+    columns: {
+      pair: 'Currency pair',
+      rate: 'Rate',
+      effectiveDate: 'Effective date',
+      status: 'Status',
+      updatedAt: 'Updated at',
+      actions: 'Actions',
+    },
+    fields: {
+      fromCurrency: 'From currency',
+      toCurrency: 'To currency',
+      rate: 'Rate',
+      effectiveDate: 'Effective date',
+      default: 'Use as current default rate',
+      note: 'Note',
+    },
+    statuses: {
+      default: 'Default',
+      history: 'History',
+    },
+    labels: {
+      rateText: '1 {{from}} = {{rate}} {{to}}',
+    },
+    form: {
+      createTitle: 'Create exchange rate',
+      editTitle: 'Edit exchange rate',
+      rateHelp: 'For Cambodia payments, enter how many KHR equal 1 USD.',
+    },
+    deleteDialog: {
+      title: 'Delete exchange rate',
+      message: 'Delete {{pair}} exchange rate? If it is the default, the latest remaining rate becomes default.',
+      confirm: 'Delete exchange rate',
+    },
+    messages: {
+      created: 'Exchange rate created.',
+      updated: 'Exchange rate updated.',
+      deleted: 'Exchange rate deleted.',
+    },
+    empty: 'No exchange rates found.',
+  },
   fiscalYears: {
     title: 'Fiscal Years',
     subtitle: 'Maintain accounting periods for journal posting and year-close control.',

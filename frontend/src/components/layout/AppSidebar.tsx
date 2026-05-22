@@ -124,6 +124,7 @@ const NAV_CONFIG: NavSection[] = [
           { key: 'journalEntries', path: '/accounting/journals' },
           { key: 'chartOfAccounts', path: '/accounting/coa' },
           { key: 'paymentAccounts', path: '/accounting/payment-accounts' },
+          { key: 'exchangeRates', path: '/accounting/exchange-rates' },
           { key: 'fiscalYears', path: '/accounting/fiscal-years' },
         ],
       },

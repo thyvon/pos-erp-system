@@ -1,10 +1,12 @@
 'use client'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { chartOfAccountsApi, fiscalYearsApi, journalsApi, paymentAccountsApi } from './api'
+import { chartOfAccountsApi, exchangeRatesApi, fiscalYearsApi, journalsApi, paymentAccountsApi } from './api'
 import type {
   ChartOfAccountFilters,
   ChartOfAccountPayload,
+  ExchangeRateFilters,
+  ExchangeRatePayload,
   JournalFilters,
   JournalPayload,
   JournalReversePayload,
@@ -37,6 +39,13 @@ export const fiscalYearKeys = {
   all: ['fiscal-years'] as const,
   list: (filters: FiscalYearFilters) => [...fiscalYearKeys.all, 'list', filters] as const,
   detail: (id: string) => [...fiscalYearKeys.all, 'detail', id] as const,
+}
+
+export const exchangeRateKeys = {
+  all: ['exchange-rates'] as const,
+  list: (filters: ExchangeRateFilters) => [...exchangeRateKeys.all, 'list', filters] as const,
+  detail: (id: string) => [...exchangeRateKeys.all, 'detail', id] as const,
+  default: (fromCurrency: string, toCurrency: string) => [...exchangeRateKeys.all, 'default', fromCurrency, toCurrency] as const,
 }
 
 export function useChartOfAccountsQuery(filters: ChartOfAccountFilters) {
@@ -237,6 +246,63 @@ export function useDeleteFiscalYearMutation() {
     mutationFn: (id: string) => fiscalYearsApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: fiscalYearKeys.all })
+    },
+  })
+}
+
+export function useExchangeRatesQuery(filters: ExchangeRateFilters) {
+  return useQuery({
+    queryKey: exchangeRateKeys.list(filters),
+    queryFn: () => exchangeRatesApi.list(filters),
+  })
+}
+
+export function useDefaultExchangeRateQuery(fromCurrency = 'USD', toCurrency = 'KHR') {
+  return useQuery({
+    queryKey: exchangeRateKeys.default(fromCurrency, toCurrency),
+    queryFn: () => exchangeRatesApi.default(fromCurrency, toCurrency),
+  })
+}
+
+export function useExchangeRateQuery(id: string | null) {
+  return useQuery({
+    queryKey: id ? exchangeRateKeys.detail(id) : [...exchangeRateKeys.all, 'detail', 'none'],
+    queryFn: () => exchangeRatesApi.show(id ?? ''),
+    enabled: !!id,
+  })
+}
+
+export function useCreateExchangeRateMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (payload: ExchangeRatePayload) => exchangeRatesApi.create(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: exchangeRateKeys.all })
+    },
+  })
+}
+
+export function useUpdateExchangeRateMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: ExchangeRatePayload }) =>
+      exchangeRatesApi.update(id, payload),
+    onSuccess: (rate) => {
+      queryClient.invalidateQueries({ queryKey: exchangeRateKeys.all })
+      queryClient.invalidateQueries({ queryKey: exchangeRateKeys.detail(rate.id) })
+    },
+  })
+}
+
+export function useDeleteExchangeRateMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: string) => exchangeRatesApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: exchangeRateKeys.all })
     },
   })
 }
