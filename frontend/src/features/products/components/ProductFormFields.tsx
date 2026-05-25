@@ -45,15 +45,17 @@ interface SelectFieldProps {
   label: string
   error?: string
   required?: boolean
+  size?: 'small' | 'medium'
   children: React.ReactNode
 }
 
-export function SelectField({ name, control, label, error, required, children }: SelectFieldProps) {
+export function SelectField({ name, control, label, error, required, size = 'medium', children }: SelectFieldProps) {
   const isMultiple = name === 'variation_template_ids'
+  const hasLabel = Boolean(label)
 
   return (
-    <FormControl error={!!error} required={required}>
-      <InputLabel required={required}>{label}</InputLabel>
+    <FormControl error={!!error} required={required} fullWidth size={size}>
+      {hasLabel && <InputLabel required={required}>{label}</InputLabel>}
       <Controller
         name={name}
         control={control}
@@ -62,7 +64,7 @@ export function SelectField({ name, control, label, error, required, children }:
             {...field}
             multiple={isMultiple}
             value={field.value ?? (isMultiple ? [] : '')}
-            label={label}
+            label={hasLabel ? label : undefined}
           >
             {children}
           </Select>
@@ -79,9 +81,10 @@ interface FieldProps {
   label?: string
   error?: string
   required?: boolean
+  size?: 'small' | 'medium'
 }
 
-export function NumberField({ name, control, label, error, required }: FieldProps) {
+export function NumberField({ name, control, label, error, required, size = 'medium' }: FieldProps) {
   return (
     <Controller
       name={name}
@@ -94,7 +97,8 @@ export function NumberField({ name, control, label, error, required }: FieldProp
           label={label}
           error={!!error}
           helperText={error}
-          size={label ? 'medium' : 'small'}
+          size={size}
+          fullWidth
           required={required}
         />
       )}
@@ -102,12 +106,12 @@ export function NumberField({ name, control, label, error, required }: FieldProp
   )
 }
 
-export function TextInput({ name, control }: FieldProps) {
+export function TextInput({ name, control, size = 'medium' }: FieldProps) {
   return (
     <Controller
       name={name}
       control={control}
-      render={({ field }) => <TextField {...field} value={field.value ?? ''} size="small" />}
+      render={({ field }) => <TextField {...field} value={field.value ?? ''} size={size} fullWidth />}
     />
   )
 }

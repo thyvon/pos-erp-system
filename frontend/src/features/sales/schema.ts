@@ -3,6 +3,16 @@ import { z } from 'zod'
 const nullableText = () =>
   z.string().trim().transform((value) => value || null)
 
+const paymentMethods = ['cash', 'card', 'bank_transfer', 'cheque', 'reward_points', 'gift_card', 'other'] as const
+
+const saleDirectPaymentLineSchema = z.object({
+  payment_account_id: z.string().min(1, 'Payment account is required'),
+  payment_currency: z.enum(['USD', 'KHR']),
+  payment_amount: z.coerce.number().gt(0, 'Amount must be greater than zero'),
+  method: z.enum(paymentMethods),
+  reference: z.string().trim().max(120, 'Reference must be 120 characters or less').nullable().optional(),
+})
+
 export const saleItemSchema = z.object({
   product_id: z.string().min(1, 'Product is required'),
   variation_id: z.string().nullable().optional(),
@@ -43,12 +53,24 @@ export const saleFormSchema = z.object({
   tax_rate: z.coerce.number().min(0, 'Tax cannot be negative').nullable().optional(),
   tax_type: z.enum(['inclusive', 'exclusive']).nullable().optional(),
   shipping_charges: z.coerce.number().min(0, 'Shipping cannot be negative').nullable().optional(),
+  direct_payment_enabled: z.boolean().optional(),
+  direct_payments: z.array(saleDirectPaymentLineSchema).optional(),
   notes: nullableText().optional(),
   staff_note: nullableText().optional(),
   items: z.array(saleItemSchema).min(1, 'Add at least one sale item'),
 }).refine((values) => !values.due_date || values.due_date >= values.sale_date, {
   path: ['due_date'],
   message: 'Due date must be on or after the sale date',
+}).superRefine((values, context) => {
+  if (!values.direct_payment_enabled) return
+
+  if (!values.direct_payments?.length) {
+    context.addIssue({
+      code: 'custom',
+      path: ['direct_payments'],
+      message: 'Add at least one payment line',
+    })
+  }
 })
 
 export type SaleFormInput = z.input<typeof saleFormSchema>
@@ -67,7 +89,7 @@ const salePaymentLineSchema = z.object({
   payment_amount: z.coerce.number().gt(0, 'Amount must be greater than zero'),
   amount: z.coerce.number().gt(0, 'Amount must be greater than zero').optional(),
   exchange_rate_id: z.string().nullable().optional(),
-  method: z.enum(['cash', 'card', 'bank_transfer', 'cheque', 'reward_points', 'gift_card', 'other']),
+  method: z.enum(paymentMethods),
   reference: z.string().trim().max(120, 'Reference must be 120 characters or less').nullable().optional(),
 })
 

@@ -10,6 +10,7 @@ use App\Models\Branch;
 use App\Models\CashRegisterSession;
 use App\Models\ChartOfAccount;
 use App\Models\Customer;
+use App\Models\Journal;
 use App\Models\PriceGroup;
 use App\Models\Product;
 use App\Models\ProductVariation;
@@ -150,13 +151,14 @@ class SaleService
         return DB::transaction(function () use ($businessId, $sale, $data, $actor): Sale {
             /** @var Sale $lockedSale */
             $lockedSale = Sale::withoutGlobalScopes()
-                ->with(['items.lots', 'items.serials'])
+                ->with(['items.lots', 'items.serials', 'returns'])
                 ->where('business_id', $businessId)
                 ->whereKey($sale->id)
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            $this->assertSaleIsEditable($lockedSale);
+            $this->assertSaleWithinEditWindow($lockedSale);
+            $this->assertSaleHasNoReturnDocuments($lockedSale);
 
             $previousSnapshot = [
                 'type' => $lockedSale->type,
@@ -169,6 +171,8 @@ class SaleService
 
             if ($lockedSale->status === 'confirmed') {
                 $this->releaseReservedInventory($businessId, $lockedSale);
+            } elseif ($lockedSale->status === 'completed') {
+                $this->reverseCompletedSaleEffects($businessId, $lockedSale, $actor);
             }
 
             $branch = $this->resolveBranch($businessId, $data['branch_id']);
@@ -184,7 +188,6 @@ class SaleService
                 $type,
                 $actor
             );
-            $status = $this->initialStatus($type);
             $saleTaxContext = $this->resolveSaleTaxContext($businessId, $data);
             $linePayloads = $this->buildLinePayloads($businessId, $warehouse, collect($data['items']), $taxScope);
             $totals = $this->calculateSaleTotals(
@@ -197,6 +200,7 @@ class SaleService
             );
 
             $quotationStateChanged = ($lockedSale->type === 'quotation') !== ($type === 'quotation');
+            $status = $this->statusAfterEdit($lockedSale, $type);
 
             $lockedSale->fill([
                 'branch_id' => $branch->id,
@@ -208,6 +212,7 @@ class SaleService
                 'sale_number' => $quotationStateChanged ? $this->generateSaleNumber($businessId, $type) : $lockedSale->sale_number,
                 'type' => $type,
                 'status' => $status,
+                'payment_status' => $this->paymentStatusForTotal((float) $lockedSale->paid_amount, $totals['total_amount']),
                 'sale_date' => $data['sale_date'],
                 'due_date' => $data['due_date'] ?? null,
                 'subtotal' => $totals['subtotal'],
@@ -245,6 +250,18 @@ class SaleService
                         'serial_id' => $serialId,
                     ]);
                 }
+            }
+
+            if ($status === 'confirmed') {
+                $lockedSale->load(['items.lots', 'items.serials', 'warehouse', 'customer']);
+                $this->validateSaleBusinessRules($lockedSale, $actor);
+                $this->reserveTrackedInventory($businessId, $lockedSale);
+            } elseif ($status === 'completed') {
+                $lockedSale->load(['items.lots', 'items.serials', 'warehouse', 'customer']);
+                $this->validateSaleBusinessRules($lockedSale, $actor);
+                $this->reserveTrackedInventory($businessId, $lockedSale);
+                $this->consumeReservedInventory($businessId, $lockedSale, $actor);
+                $this->postCompletionJournal($businessId, $lockedSale, $actor);
             }
 
             $lockedSale = $this->loadSale($lockedSale->fresh());
@@ -699,6 +716,84 @@ class SaleService
         }
     }
 
+    protected function reverseCompletedSaleEffects(string $businessId, Sale $sale, ?User $actor): void
+    {
+        $this->reverseCompletedSaleInventory($businessId, $sale, $actor);
+        $this->reverseCompletionJournals($businessId, $sale, $actor);
+    }
+
+    protected function reverseCompletedSaleInventory(string $businessId, Sale $sale, ?User $actor): void
+    {
+        foreach ($sale->items as $item) {
+            if ($item->serials->isNotEmpty()) {
+                foreach ($item->serials as $serialLink) {
+                    $this->postSaleInventoryReversal($businessId, $sale, [
+                        'product_id' => $item->product_id,
+                        'variation_id' => $item->variation_id,
+                        'serial_id' => $serialLink->serial_id,
+                        'quantity' => 1,
+                        'unit_cost' => $item->unit_cost,
+                    ], $actor);
+                }
+
+                continue;
+            }
+
+            if ($item->lots->isNotEmpty()) {
+                foreach ($item->lots as $lotLink) {
+                    $this->postSaleInventoryReversal($businessId, $sale, [
+                        'product_id' => $item->product_id,
+                        'variation_id' => $item->variation_id,
+                        'lot_id' => $lotLink->lot_id,
+                        'quantity' => $lotLink->quantity,
+                        'unit_cost' => $lotLink->unit_cost,
+                    ], $actor);
+                }
+
+                continue;
+            }
+
+            $this->postSaleInventoryReversal($businessId, $sale, [
+                'product_id' => $item->product_id,
+                'variation_id' => $item->variation_id,
+                'quantity' => $this->inventoryQuantityFromSaleItem($item),
+                'unit_cost' => $item->unit_cost,
+            ], $actor);
+        }
+    }
+
+    protected function postSaleInventoryReversal(string $businessId, Sale $sale, array $data, ?User $actor): void
+    {
+        $this->stockMovementService->record($businessId, array_merge($data, [
+            'warehouse_id' => $sale->warehouse_id,
+            'type' => 'adjustment_in',
+            'reference_type' => Sale::class,
+            'reference_id' => $sale->id,
+            'notes' => 'Reversal for sale edit',
+        ]), $actor);
+    }
+
+    protected function reverseCompletionJournals(string $businessId, Sale $sale, ?User $actor): void
+    {
+        $journals = Journal::withoutGlobalScopes()
+            ->where('business_id', $businessId)
+            ->where('type', 'sale')
+            ->where('reference_type', Sale::class)
+            ->where('reference_id', $sale->id)
+            ->whereNull('reversed_by_id')
+            ->orderBy('posted_at')
+            ->get();
+
+        foreach ($journals as $journal) {
+            $this->accountingService->reverseJournal(
+                $businessId,
+                $journal,
+                'Reversal for sale edit',
+                $actor
+            );
+        }
+    }
+
     protected function postCompletionJournal(string $businessId, Sale $sale, ?User $actor): void
     {
         $revenueAccount = $this->resolveAccountByCode($businessId, '4100');
@@ -776,6 +871,28 @@ class SaleService
             'suspended' => 'suspended',
             default => 'draft',
         };
+    }
+
+    protected function statusAfterEdit(Sale $sale, string $type): string
+    {
+        if (in_array($sale->status, ['draft', 'quotation', 'suspended'], true)) {
+            return $this->initialStatus($type);
+        }
+
+        return $sale->status;
+    }
+
+    protected function paymentStatusForTotal(float $paidAmount, float $totalAmount): string
+    {
+        if ($paidAmount <= 0) {
+            return 'unpaid';
+        }
+
+        if ($paidAmount >= $totalAmount) {
+            return 'paid';
+        }
+
+        return 'partial';
     }
 
     protected function generateSaleNumber(string $businessId, string $type): string
@@ -1228,12 +1345,24 @@ class SaleService
             throw new InvalidStateTransitionException('This sale can no longer be edited.');
         }
 
+        $this->assertSaleWithinEditWindow($sale);
+    }
+
+    protected function assertSaleWithinEditWindow(Sale $sale): void
+    {
         $this->editWindow->assertWithinWindow(
             $sale->sale_date ?? $sale->created_at,
             'sales',
             'edit_lifetime_days',
             'This sale is outside the allowed edit lifetime.',
         );
+    }
+
+    protected function assertSaleHasNoReturnDocuments(Sale $sale): void
+    {
+        if ($sale->returns->isNotEmpty()) {
+            throw new DomainException('Sales with return documents cannot be edited because return lines reference the original sale items.', 422);
+        }
     }
 
     protected function failValidation(string $message): never

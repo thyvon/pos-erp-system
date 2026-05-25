@@ -112,6 +112,7 @@ class SaleResource extends JsonResource
                 'rate' => (float) $this->taxRate->rate,
             ] : null,
             'items' => SaleItemResource::collection($this->whenLoaded('items')),
+            'payments' => SalePaymentResource::collection($this->whenLoaded('payments')),
             'payments_count' => (int) ($this->payments_count ?? $this->payments->count()),
             'returns_count' => (int) ($this->returns_count ?? $this->returns->count()),
             'created_at' => $this->created_at,

@@ -218,6 +218,7 @@ export interface Sale {
   price_group?: SaleRelation | null
   tax_rate_record?: SaleTaxRateRecord | null
   items?: SaleItem[]
+  payments?: SalePayment[]
   payments_count: number
   returns_count: number
   created_at: string

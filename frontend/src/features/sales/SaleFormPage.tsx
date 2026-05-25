@@ -13,6 +13,7 @@ import {
   CardContent,
   CircularProgress,
   FormControl,
+  FormControlLabel,
   FormHelperText,
   IconButton,
   InputAdornment,
@@ -20,6 +21,7 @@ import {
   MenuItem,
   Select,
   Stack,
+  Switch,
   Table,
   TableBody,
   TableCell,
@@ -31,21 +33,25 @@ import {
   Typography,
 } from '@mui/material'
 import dayjs from 'dayjs'
-import { ArrowBack, DeleteOutlined, SaveOutlined } from '@/components/ui/icons'
+import { Add, ArrowBack, DangerCircleOutlined, DeleteOutlined, SaveOutlined } from '@/components/ui/icons'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
+import { useDefaultExchangeRateQuery, usePaymentAccountsQuery } from '@/features/accounting/hooks'
 import { useCustomersQuery } from '@/features/customers/hooks'
 import { InventoryProductLookupPicker } from '@/features/inventory/components/InventoryProductLookupPicker'
 import { usePriceGroupsQuery } from '@/features/price-groups/hooks'
 import { useAppCurrency, useCurrencyFormatter } from '@/features/settings/useAppCurrency'
+import { useAppDateFormat } from '@/features/settings/useAppDateFormat'
 import { useTaxRatesQuery } from '@/features/tax-rates/hooks'
 import { useWarehousesQuery } from '@/features/warehouses/hooks'
-import { useCreateSaleMutation, useSaleQuery, useUpdateSaleMutation } from './hooks'
+import { useCompleteSaleMutation, useCreateSaleMutation, useRecordSalePaymentMutation, useSaleQuery, useUpdateSaleMutation } from './hooks'
 import { saleFormSchema, type SaleFormInput, type SaleFormValues } from './schema'
+import { formatAppDate } from '@/utils/dateFormat'
+import type { PaymentAccount } from '@/types/accounting'
 import type { InventoryProductLookupItem } from '@/types/inventory'
-import type { Sale, SaleItem, SalePayload } from '@/types/sales'
+import type { Sale, SaleItem, SalePayload, SalePayment } from '@/types/sales'
 import type { Warehouse } from '@/types/warehouse'
 import type { Customer } from '@/types/customer'
 import type { PriceGroup } from '@/types/priceGroup'
@@ -67,10 +73,21 @@ const itemColumnSx = {
   actions: { width: 80, minWidth: 80 },
 } as const
 
+const directPaymentColumnSx = {
+  account: { width: 260, minWidth: 260 },
+  currency: { width: 120, minWidth: 120 },
+  amount: { width: 180, minWidth: 180 },
+  method: { width: 180, minWidth: 180 },
+  reference: { width: 220, minWidth: 220 },
+  converted: { width: 160, minWidth: 160 },
+  actions: { width: 72, minWidth: 72 },
+} as const
+
 const saleTypes = ['invoice', 'pos_sale', 'draft', 'suspended', 'quotation'] as const
 const discountTypes = ['fixed', 'percentage'] as const
 const taxScopes = ['line', 'sale'] as const
 const taxTypes = ['exclusive', 'inclusive'] as const
+const paymentMethods = ['cash', 'card', 'bank_transfer', 'cheque', 'reward_points', 'gift_card', 'other'] as const
 
 function today() {
   return dayjs().format('YYYY-MM-DD')
@@ -99,6 +116,8 @@ function emptyValues(): SaleFormInput {
     tax_rate: 0,
     tax_type: 'exclusive',
     shipping_charges: 0,
+    direct_payment_enabled: false,
+    direct_payments: [newDirectPaymentLine()],
     notes: '',
     staff_note: '',
     items: [],
@@ -125,6 +144,24 @@ function taxRateLabel(rate: TaxRate) {
   return `${rate.name} (${rate.rate}${rate.type === 'percentage' ? '%' : ''})`
 }
 
+function paymentAccountLabel(account: PaymentAccount) {
+  return [account.name, account.type].filter(Boolean).join(' / ')
+}
+
+function salePaymentAccountLabel(payment: SalePayment) {
+  return payment.payment_account
+    ? [payment.payment_account.name, payment.payment_account.type].filter(Boolean).join(' / ')
+    : payment.payment_account_id
+}
+
+function paymentEnteredAmount(payment: SalePayment) {
+  if (payment.payment_currency === 'KHR' && payment.payment_amount) {
+    return `KHR ${Number(payment.payment_amount).toLocaleString()}`
+  }
+
+  return `USD ${Number(payment.payment_amount ?? payment.amount ?? 0).toFixed(2)}`
+}
+
 function valuesFromSale(sale: Sale | null | undefined): SaleFormInput {
   if (!sale) return emptyValues()
 
@@ -144,6 +181,8 @@ function valuesFromSale(sale: Sale | null | undefined): SaleFormInput {
     tax_rate: toNumber(sale.tax_rate),
     tax_type: sale.tax_type === 'inclusive' ? 'inclusive' : 'exclusive',
     shipping_charges: toNumber(sale.shipping_charges),
+    direct_payment_enabled: false,
+    direct_payments: [newDirectPaymentLine()],
     notes: sale.notes ?? '',
     staff_note: sale.staff_note ?? '',
     items: (sale.items ?? []).map((item) => ({
@@ -196,6 +235,85 @@ function round(value: number) {
   return Math.round(value * 100) / 100
 }
 
+type DirectPaymentLineInput = NonNullable<SaleFormInput['direct_payments']>[number]
+
+function newDirectPaymentLine(paymentAccounts: PaymentAccount[] = []): DirectPaymentLineInput {
+  return {
+    payment_account_id: paymentAccounts.find((account) => account.is_active)?.id ?? '',
+    payment_currency: 'USD',
+    payment_amount: 0,
+    method: 'cash',
+    reference: '',
+  }
+}
+
+function directPaymentLineBaseAmount(
+  line: Partial<DirectPaymentLineInput> | null | undefined,
+  exchangeRate: number,
+) {
+  const amount = round(toNumber(line?.payment_amount))
+
+  if (line?.payment_currency === 'KHR') {
+    return exchangeRate > 0 ? round(amount / exchangeRate) : 0
+  }
+
+  return amount
+}
+
+function buildDirectPaymentLines(values: SaleFormValues, exchangeRate: number, exchangeRateId: string | null, saleTotal: number) {
+  let remaining = round(saleTotal)
+
+  return (values.direct_payments ?? []).flatMap((line) => {
+    if (remaining <= 0) return []
+
+    const lineBaseAmount = directPaymentLineBaseAmount(line, exchangeRate)
+    if (lineBaseAmount <= 0) return []
+
+    const appliedAmount = Math.min(lineBaseAmount, remaining)
+    remaining = round(remaining - appliedAmount)
+
+    return [{
+      payment_account_id: line.payment_account_id,
+      amount: appliedAmount,
+      payment_currency: line.payment_currency,
+      payment_amount: line.payment_currency === 'KHR'
+        ? round(appliedAmount * exchangeRate)
+        : appliedAmount,
+      exchange_rate_id: line.payment_currency === 'KHR' ? exchangeRateId : null,
+      method: line.method,
+      reference: line.reference || null,
+      payment_date: values.sale_date,
+      note: null,
+    }]
+  })
+}
+
+function outstandingAmount(sale: Sale | null | undefined, fallbackTotal: number) {
+  const total = toNumber(sale?.total_amount, fallbackTotal)
+  const paid = toNumber(sale?.paid_amount)
+
+  return Math.max(0, round(total - paid))
+}
+
+function formatUsdKhrAmount(amount: number, exchangeRate: number) {
+  const usd = `USD ${amount.toFixed(2)}`
+  const khr = exchangeRate > 0
+    ? `KHR ${Math.round(amount * exchangeRate).toLocaleString()}`
+    : 'KHR -'
+
+  return { usd, khr }
+}
+
+function InstructionTooltip({ title }: { title: string }) {
+  return (
+    <Tooltip title={title}>
+      <IconButton size="small" color="warning" sx={{ ml: 0.5 }} aria-label={title}>
+        <DangerCircleOutlined fontSize="small" />
+      </IconButton>
+    </Tooltip>
+  )
+}
+
 function lineTotal(item: Partial<SaleFormInput['items'][number]> | null | undefined, taxScope: string) {
   if (!item) return 0
 
@@ -246,13 +364,14 @@ function buildPayload(values: SaleFormValues): SalePayload {
 }
 
 export function SaleFormPage({ saleId }: SaleFormPageProps) {
-  const { t } = useTranslation(['sales', 'common'])
+  const { t, i18n } = useTranslation(['sales', 'common'])
   const router = useRouter()
   const { enqueueSnackbar } = useSnackbar()
   const [serverError, setServerError] = useState('')
   const isEdit = !!saleId
   const currency = useAppCurrency()
   const currencyFormatter = useCurrencyFormatter()
+  const dateFormat = useAppDateFormat()
 
   const saleQuery = useSaleQuery(saleId ?? null)
   const customersQuery = useCustomersQuery({ status: 'active', per_page: 100 })
@@ -260,7 +379,9 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
   const taxRatesQuery = useTaxRatesQuery({ is_active: true, per_page: 100 })
   const createSale = useCreateSaleMutation()
   const updateSale = useUpdateSaleMutation()
-  const isSaving = createSale.isPending || updateSale.isPending
+  const completeSale = useCompleteSaleMutation()
+  const recordPayment = useRecordSalePaymentMutation()
+  const isSaving = createSale.isPending || updateSale.isPending || completeSale.isPending || recordPayment.isPending
 
   const {
     control,
@@ -274,7 +395,12 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
     defaultValues: emptyValues(),
   })
 
-  const { fields, append, remove } = useFieldArray({ control, name: 'items', keyName: 'fieldId' })
+  const { fields: itemFields, append, remove } = useFieldArray({ control, name: 'items', keyName: 'fieldId' })
+  const {
+    fields: directPaymentFields,
+    append: appendDirectPayment,
+    remove: removeDirectPayment,
+  } = useFieldArray({ control, name: 'direct_payments', keyName: 'fieldId' })
   const branchId = useWatch({ control, name: 'branch_id' })
   const warehouseId = useWatch({ control, name: 'warehouse_id' })
   const taxScope = useWatch({ control, name: 'tax_scope' })
@@ -286,12 +412,24 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
   const saleTaxRateType = useWatch({ control, name: 'tax_rate_type' })
   const saleTaxRate = useWatch({ control, name: 'tax_rate' })
   const shippingCharges = useWatch({ control, name: 'shipping_charges' })
+  const saleType = useWatch({ control, name: 'type' })
+  const directPaymentEnabled = useWatch({ control, name: 'direct_payment_enabled' })
+  const watchedDirectPaymentsValue = useWatch({ control, name: 'direct_payments' })
+  const watchedDirectPayments = useMemo(() => watchedDirectPaymentsValue ?? [], [watchedDirectPaymentsValue])
   const warehousesQuery = useWarehousesQuery({ per_page: 100 })
+  const paymentAccountsQuery = usePaymentAccountsQuery({ status: 'active', per_page: 100 })
+  const defaultExchangeRateQuery = useDefaultExchangeRateQuery('USD', 'KHR')
 
   const warehouses = useMemo(() => warehousesQuery.data?.data ?? [], [warehousesQuery.data?.data])
   const customers = customersQuery.data?.data ?? []
   const priceGroups = priceGroupsQuery.data?.data ?? []
   const taxRates = taxRatesQuery.data?.data ?? []
+  const paymentAccounts = useMemo(
+    () => (paymentAccountsQuery.data?.data ?? []).filter((account) => account.is_active),
+    [paymentAccountsQuery.data?.data],
+  )
+  const defaultExchangeRate = defaultExchangeRateQuery.data ?? null
+  const defaultExchangeRateValue = toNumber(defaultExchangeRate?.rate)
 
   const totals = useMemo(() => {
     const subtotal = round(watchedItems.reduce((sum, item) => sum + lineTotal(item, taxScope), 0))
@@ -309,6 +447,26 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
       total: round(discounted + saleTax + toNumber(shippingCharges)),
     }
   }, [saleDiscountType, saleDiscountValue, saleTaxRate, saleTaxRateType, saleTaxType, shippingCharges, taxScope, watchedItems])
+  const directPaymentBase = round(
+    watchedDirectPayments.reduce((total, line) => total + directPaymentLineBaseAmount(line, defaultExchangeRateValue), 0),
+  )
+  const directPaymentBaseDisplay = formatUsdKhrAmount(directPaymentBase, defaultExchangeRateValue)
+  const currentSale = saleQuery.data ?? null
+  const currentSaleStatus = currentSale?.status
+  const existingPayments = currentSale?.payments ?? []
+  const editPaymentLimit = isEdit
+    ? Math.max(0, round(totals.total - toNumber(currentSale?.paid_amount)))
+    : totals.total
+  const canTakeDirectPayment = (saleType === 'invoice' || saleType === 'pos_sale')
+    && (!isEdit || (
+      editPaymentLimit > 0
+      && ['draft', 'suspended', 'confirmed', 'completed'].includes(String(currentSaleStatus ?? ''))
+    ))
+  const directPaymentRemaining = Math.max(0, round(editPaymentLimit - directPaymentBase))
+  const directPaymentChange = Math.max(0, round(directPaymentBase - editPaymentLimit))
+  const directPaymentRemainingDisplay = formatUsdKhrAmount(directPaymentRemaining, defaultExchangeRateValue)
+  const directPaymentChangeDisplay = formatUsdKhrAmount(directPaymentChange, defaultExchangeRateValue)
+  const showPaymentSection = canTakeDirectPayment || (isEdit && existingPayments.length > 0)
 
   useEffect(() => {
     if (saleQuery.data) reset(valuesFromSale(saleQuery.data))
@@ -322,6 +480,48 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
       setValue('branch_id', nextBranchId, { shouldDirty: true, shouldValidate: true })
     }
   }, [branchId, setValue, warehouseId, warehouses])
+
+  useEffect(() => {
+    if (!canTakeDirectPayment && directPaymentEnabled) {
+      setValue('direct_payment_enabled', false, { shouldDirty: true, shouldValidate: true })
+    }
+  }, [canTakeDirectPayment, directPaymentEnabled, setValue])
+
+  useEffect(() => {
+    if (!directPaymentEnabled || paymentAccounts.length === 0) return
+
+    watchedDirectPayments.forEach((line, index) => {
+      if (!line?.payment_account_id) {
+        setValue(`direct_payments.${index}.payment_account_id`, paymentAccounts[0].id, {
+          shouldDirty: true,
+          shouldValidate: true,
+        })
+      }
+    })
+  }, [directPaymentEnabled, paymentAccounts, setValue, watchedDirectPayments])
+
+  useEffect(() => {
+    if (!defaultExchangeRate) {
+      watchedDirectPayments.forEach((line, index) => {
+        if (line?.payment_currency === 'KHR') {
+          setValue(`direct_payments.${index}.payment_currency`, 'USD', {
+            shouldDirty: true,
+            shouldValidate: true,
+          })
+        }
+      })
+    }
+  }, [defaultExchangeRate, setValue, watchedDirectPayments])
+
+  const changeDirectPaymentCurrency = (index: number, nextCurrency: 'USD' | 'KHR') => {
+    const currentBaseAmount = directPaymentLineBaseAmount(watchedDirectPayments[index], defaultExchangeRateValue)
+    const nextPaymentAmount = nextCurrency === 'KHR' && defaultExchangeRateValue > 0
+      ? round(currentBaseAmount * defaultExchangeRateValue)
+      : currentBaseAmount
+
+    setValue(`direct_payments.${index}.payment_currency`, nextCurrency, { shouldDirty: true, shouldValidate: true })
+    setValue(`direct_payments.${index}.payment_amount`, nextPaymentAmount, { shouldDirty: true, shouldValidate: true })
+  }
 
   const addLookupItem = (item: InventoryProductLookupItem) => {
     append({
@@ -361,12 +561,55 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
 
     try {
       if (saleId) {
+        const shouldRecordDirectPayment = values.direct_payment_enabled && canTakeDirectPayment
         const sale = await updateSale.mutateAsync({ id: saleId, payload: buildPayload(values) })
-        enqueueSnackbar(t('messages.updated'), { variant: 'success' })
+        const payableSale = shouldRecordDirectPayment && sale.status !== 'completed'
+          ? await completeSale.mutateAsync(sale.id)
+          : sale
+        const directPaymentLines = shouldRecordDirectPayment
+          ? buildDirectPaymentLines(
+            values,
+            defaultExchangeRateValue,
+            defaultExchangeRate?.id ?? null,
+            outstandingAmount(payableSale, totals.total),
+          )
+          : []
+
+        if (shouldRecordDirectPayment && directPaymentLines.length > 0) {
+          await recordPayment.mutateAsync({
+            id: payableSale.id,
+            payload: {
+              payment_date: values.sale_date,
+              note: null,
+              payments: directPaymentLines,
+            },
+          })
+          enqueueSnackbar(t('messages.updatedAndPaid'), { variant: 'success' })
+        } else {
+          enqueueSnackbar(t('messages.updated'), { variant: 'success' })
+        }
         router.push(`/sales/${sale.id}`)
       } else {
+        const shouldRecordDirectPayment = values.direct_payment_enabled && canTakeDirectPayment
+        const directPaymentLines = shouldRecordDirectPayment
+          ? buildDirectPaymentLines(values, defaultExchangeRateValue, defaultExchangeRate?.id ?? null, totals.total)
+          : []
+
         const sale = await createSale.mutateAsync(buildPayload(values))
-        enqueueSnackbar(t('messages.created'), { variant: 'success' })
+        if (shouldRecordDirectPayment && directPaymentLines.length > 0) {
+          await completeSale.mutateAsync(sale.id)
+          await recordPayment.mutateAsync({
+            id: sale.id,
+            payload: {
+              payment_date: values.sale_date,
+              note: null,
+              payments: directPaymentLines,
+            },
+          })
+          enqueueSnackbar(t('messages.createdAndPaid'), { variant: 'success' })
+        } else {
+          enqueueSnackbar(t('messages.created'), { variant: 'success' })
+        }
         router.push(`/sales/${sale.id}`)
       }
     } catch (error) {
@@ -392,10 +635,10 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
     <Stack spacing={3}>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ justifyContent: 'space-between' }}>
         <Box>
-          <Typography variant="h4">{t(isEdit ? 'form.editTitle' : 'form.createTitle')}</Typography>
-          <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
-            {t('form.subtitle')}
-          </Typography>
+          <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+            <Typography variant="h4">{t(isEdit ? 'form.editTitle' : 'form.createTitle')}</Typography>
+            <InstructionTooltip title={t('form.subtitle')} />
+          </Stack>
         </Box>
         <Tooltip title={t('actions.backToSales')}>
           <IconButton size="small" aria-label={t('actions.backToSales')} onClick={() => router.push(isEdit && saleId ? `/sales/${saleId}` : '/sales')}>
@@ -406,12 +649,14 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
 
       {saleQuery.isError && <Alert severity="error">{toAppApiError(saleQuery.error).message}</Alert>}
 
-      <Card>
-        <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
-          <Box component="form" noValidate onSubmit={handleSubmit(submitForm)}>
-            <Stack spacing={2.5}>
-              {serverError && <Alert severity="error">{serverError}</Alert>}
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 180px' }, gap: 2 }}>
+      <Box component="form" noValidate onSubmit={handleSubmit(submitForm)}>
+        <Stack spacing={3}>
+          {serverError && <Alert severity="error">{serverError}</Alert>}
+
+          <Card>
+            <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+              <Stack spacing={2.5}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1.3fr) minmax(0, 1fr) 180px 180px' }, gap: 2 }}>
                 <Controller
                   name="warehouse_id"
                   control={control}
@@ -453,18 +698,6 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
                   )}
                 />
                 <Controller
-                  name="type"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField {...field} select label={t('fields.type')} error={!!errors.type} helperText={errors.type?.message} required>
-                      {saleTypes.map((type) => <MenuItem key={type} value={type}>{t(`types.${type}`)}</MenuItem>)}
-                    </TextField>
-                  )}
-                />
-              </Box>
-
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr 1fr' }, gap: 2 }}>
-                <Controller
                   name="customer_id"
                   control={control}
                   render={({ field }) => (
@@ -492,6 +725,18 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
                   control={control}
                   render={({ field }) => <AppDatePicker label={t('fields.saleDate')} value={field.value} onChange={(value) => field.onChange(value ?? '')} error={!!errors.sale_date} helperText={errors.sale_date?.message} required />}
                 />
+                <Controller
+                  name="type"
+                  control={control}
+                  render={({ field }) => (
+                    <TextField {...field} select label={t('fields.type')} error={!!errors.type} helperText={errors.type?.message} required>
+                      {saleTypes.map((type) => <MenuItem key={type} value={type}>{t(`types.${type}`)}</MenuItem>)}
+                    </TextField>
+                  )}
+                />
+              </Box>
+
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
                 <Controller
                   name="due_date"
                   control={control}
@@ -524,15 +769,20 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
 
               <Stack spacing={1.5}>
                 <Box>
-                  <Typography variant="subtitle2">{t('form.items')}</Typography>
-                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>{t('form.itemsHelp')}</Typography>
+                  <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+                    <Typography variant="subtitle2">{t('form.items')}</Typography>
+                    <InstructionTooltip title={t('form.itemsHelp')} />
+                  </Stack>
                 </Box>
                 <InventoryProductLookupPicker
                   warehouseId={warehouseId || undefined}
                   disabled={!warehouseId || isSaving}
-                  helperText={warehouseId ? t('form.pickerHelp') : t('form.selectWarehouseFirst')}
+                  helperText={undefined}
                   onSelect={addLookupItem}
                 />
+                <Box sx={{ mt: -1 }}>
+                  <InstructionTooltip title={warehouseId ? t('form.pickerHelp') : t('form.selectWarehouseFirst')} />
+                </Box>
                 {typeof errors.items?.message === 'string' && <Alert severity="error">{errors.items.message}</Alert>}
 
                 <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1, overflowX: 'auto' }}>
@@ -551,14 +801,14 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
                       </TableRow>
                     </TableHead>
                     <TableBody>
-                      {fields.length === 0 && (
+                      {itemFields.length === 0 && (
                         <TableRow>
                           <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
                             <Typography variant="body2" sx={{ color: 'text.secondary' }}>{t('form.emptyItems')}</Typography>
                           </TableCell>
                         </TableRow>
                       )}
-                      {fields.map((field, index) => (
+                      {itemFields.map((field, index) => (
                           <TableRow key={field.fieldId}>
                             <TableCell sx={itemColumnSx.product}>
                               <Stack spacing={0.25}>
@@ -697,15 +947,6 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
                 </Box>
               )}
 
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
-                <Controller name="notes" control={control} render={({ field }) => (
-                  <TextField {...field} value={field.value ?? ''} label={t('fields.notes')} error={!!errors.notes} helperText={errors.notes?.message} multiline minRows={3} />
-                )} />
-                <Controller name="staff_note" control={control} render={({ field }) => (
-                  <TextField {...field} value={field.value ?? ''} label={t('fields.staffNote')} error={!!errors.staff_note} helperText={errors.staff_note?.message} multiline minRows={3} />
-                )} />
-              </Box>
-
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(5, 1fr)' }, gap: 2 }}>
                 {[
                   ['subtotal', totals.subtotal],
@@ -713,26 +954,376 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
                   ['tax', totals.tax],
                   ['shipping', totals.shipping],
                   ['total', totals.total],
-                ].map(([key, value]) => (
-                  <Box key={key}>
-                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>{t(`fields.${key}`)}</Typography>
-                    <Typography variant="subtitle1">{currencyFormatter.format(Number(value))}</Typography>
-                  </Box>
-                ))}
+                ].map(([key, value]) => {
+                  const display = formatUsdKhrAmount(Number(value), defaultExchangeRateValue)
+                  const isTotal = key === 'total'
+
+                  return (
+                    <Box key={key}>
+                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>{t(`fields.${key}`)}</Typography>
+                      <Typography variant={isTotal ? 'h6' : 'subtitle1'} sx={{ fontWeight: isTotal ? 800 : 600 }}>
+                        {display.usd}
+                      </Typography>
+                      <Typography variant="body2" sx={{ color: isTotal ? 'text.primary' : 'text.secondary', fontWeight: isTotal ? 700 : 400 }}>
+                        {display.khr}
+                      </Typography>
+                    </Box>
+                  )
+                })}
               </Box>
 
-              <Stack direction="row" spacing={1.5} sx={{ justifyContent: 'flex-end' }}>
-                <Button variant="outlined" onClick={() => router.push(isEdit && saleId ? `/sales/${saleId}` : '/sales')} disabled={isSaving}>
-                  {t('common:buttons.cancel')}
-                </Button>
-                <Button type="submit" variant="contained" startIcon={isSaving ? undefined : <SaveOutlined />} disabled={isSaving}>
-                  {isSaving ? <CircularProgress size={20} color="inherit" /> : t('common:buttons.save')}
-                </Button>
               </Stack>
-            </Stack>
+            </CardContent>
+          </Card>
+
+          {showPaymentSection && (
+            <Card>
+              <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+                <Stack spacing={1.5}>
+                  {isEdit && (
+                    <Stack spacing={1.5}>
+                      <Typography variant="subtitle2">{t('payment.existingTitle')}</Typography>
+                      {existingPayments.length === 0 ? (
+                        <Alert severity="info">{t('payment.noRecords')}</Alert>
+                      ) : (
+                        <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1, overflowX: 'auto' }}>
+                          <Table sx={{ minWidth: 900, tableLayout: 'fixed' }}>
+                            <TableHead>
+                              <TableRow>
+                                <TableCell sx={{ width: 140 }}>{t('payment.date')}</TableCell>
+                                <TableCell sx={{ width: 240 }}>{t('payment.account')}</TableCell>
+                                <TableCell sx={{ width: 150 }}>{t('payment.method')}</TableCell>
+                                <TableCell sx={{ width: 170 }} align="right">{t('payment.amount')}</TableCell>
+                                <TableCell sx={{ width: 170 }} align="right">{t('payment.converted')}</TableCell>
+                                <TableCell sx={{ width: 160 }}>{t('payment.reference')}</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {existingPayments.map((payment) => (
+                                <TableRow key={payment.id}>
+                                  <TableCell>{payment.payment_date ? formatAppDate(payment.payment_date, dateFormat, i18n.language) : '-'}</TableCell>
+                                  <TableCell>{salePaymentAccountLabel(payment)}</TableCell>
+                                  <TableCell>{t(`paymentMethods.${payment.method}`, { defaultValue: payment.method })}</TableCell>
+                                  <TableCell align="right">{paymentEnteredAmount(payment)}</TableCell>
+                                  <TableCell align="right">{currencyFormatter.format(toNumber(payment.amount))}</TableCell>
+                                  <TableCell>{payment.reference || '-'}</TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
+                      )}
+                    </Stack>
+                  )}
+
+                  {canTakeDirectPayment && (
+                    <>
+                    <Stack
+                      direction={{ xs: 'column', sm: 'row' }}
+                      spacing={1.5}
+                      sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}
+                    >
+                      <Box>
+                        <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+                          <Typography variant="subtitle2">{t('payment.directTitle')}</Typography>
+                          <InstructionTooltip title={t('payment.directHelp')} />
+                        </Stack>
+                      </Box>
+                      <Controller
+                        name="direct_payment_enabled"
+                        control={control}
+                        render={({ field }) => (
+                          <FormControlLabel
+                            control={
+                              <Switch
+                                checked={!!field.value}
+                                onChange={(event) => field.onChange(event.target.checked)}
+                              />
+                            }
+                            label={t('payment.takeNow')}
+                          />
+                        )}
+                      />
+                    </Stack>
+
+                    {directPaymentEnabled && paymentAccounts.length === 0 && (
+                      <Alert severity="warning">{t('payment.noAccounts')}</Alert>
+                    )}
+                    {directPaymentEnabled && !defaultExchangeRateQuery.isLoading && !defaultExchangeRate && (
+                      <Alert severity="info">{t('payment.noExchangeRate')}</Alert>
+                    )}
+
+                    {directPaymentEnabled && (
+                      <>
+                        {typeof errors.direct_payments?.message === 'string' && (
+                          <Alert severity="error">{errors.direct_payments.message}</Alert>
+                        )}
+                        <Stack
+                          direction={{ xs: 'column', sm: 'row' }}
+                          spacing={1.5}
+                          sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}
+                        >
+                          <Typography variant="subtitle2">{t('payment.lines')}</Typography>
+                          <Button
+                            type="button"
+                            variant="outlined"
+                            startIcon={<Add />}
+                            onClick={() => appendDirectPayment(newDirectPaymentLine(paymentAccounts))}
+                            disabled={isSaving || paymentAccounts.length === 0}
+                          >
+                            {t('payment.addLine')}
+                          </Button>
+                        </Stack>
+
+                        <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1, overflowX: 'auto' }}>
+                          <Table sx={{ minWidth: 1214, tableLayout: 'fixed' }}>
+                            <TableHead>
+                              <TableRow>
+                                <TableCell sx={directPaymentColumnSx.account}>{t('payment.account')}</TableCell>
+                                <TableCell sx={directPaymentColumnSx.currency}>{t('payment.currency')}</TableCell>
+                                <TableCell sx={directPaymentColumnSx.amount} align="right">{t('payment.amount')}</TableCell>
+                                <TableCell sx={directPaymentColumnSx.method}>{t('payment.method')}</TableCell>
+                                <TableCell sx={directPaymentColumnSx.reference}>{t('payment.reference')}</TableCell>
+                                <TableCell sx={directPaymentColumnSx.converted} align="right">{t('payment.converted')}</TableCell>
+                                <TableCell sx={directPaymentColumnSx.actions} align="right">{t('columns.actions')}</TableCell>
+                              </TableRow>
+                            </TableHead>
+                            <TableBody>
+                              {directPaymentFields.map((field, index) => (
+                                <TableRow key={field.fieldId}>
+                                  <TableCell sx={directPaymentColumnSx.account}>
+                                    <Controller
+                                      name={`direct_payments.${index}.payment_account_id`}
+                                      control={control}
+                                      render={({ field }) => (
+                                        <Autocomplete
+                                          fullWidth
+                                          options={paymentAccounts}
+                                          value={paymentAccounts.find((account) => account.id === field.value) ?? null}
+                                          loading={paymentAccountsQuery.isLoading}
+                                          getOptionLabel={paymentAccountLabel}
+                                          isOptionEqualToValue={(option, value) => option.id === value.id}
+                                          onBlur={field.onBlur}
+                                          onChange={(_, account) => field.onChange(account?.id ?? '')}
+                                          renderInput={(params) => (
+                                            <TextField
+                                              {...params}
+                                              error={!!errors.direct_payments?.[index]?.payment_account_id}
+                                              helperText={errors.direct_payments?.[index]?.payment_account_id?.message}
+                                              required
+                                            />
+                                          )}
+                                        />
+                                      )}
+                                    />
+                                  </TableCell>
+                                  <TableCell sx={directPaymentColumnSx.currency}>
+                                    <Controller
+                                      name={`direct_payments.${index}.payment_currency`}
+                                      control={control}
+                                      render={({ field }) => (
+                                        <TextField
+                                          {...field}
+                                          value={field.value ?? 'USD'}
+                                          fullWidth
+                                          select
+                                          error={!!errors.direct_payments?.[index]?.payment_currency}
+                                          helperText={errors.direct_payments?.[index]?.payment_currency?.message}
+                                          required
+                                          onChange={(event) => changeDirectPaymentCurrency(index, event.target.value as 'USD' | 'KHR')}
+                                        >
+                                          <MenuItem value="USD">USD</MenuItem>
+                                          <MenuItem value="KHR" disabled={!defaultExchangeRate}>KHR</MenuItem>
+                                        </TextField>
+                                      )}
+                                    />
+                                  </TableCell>
+                                  <TableCell align="right" sx={directPaymentColumnSx.amount}>
+                                    <Controller
+                                      name={`direct_payments.${index}.payment_amount`}
+                                      control={control}
+                                      render={({ field }) => (
+                                        <TextField
+                                          {...field}
+                                          value={field.value ?? ''}
+                                          fullWidth
+                                          type="number"
+                                          error={!!errors.direct_payments?.[index]?.payment_amount}
+                                          helperText={errors.direct_payments?.[index]?.payment_amount?.message}
+                                          required
+                                          slotProps={{
+                                            htmlInput: { min: 0.01, step: 0.01 },
+                                            input: {
+                                              startAdornment: <InputAdornment position="start">{watchedDirectPayments[index]?.payment_currency ?? 'USD'}</InputAdornment>,
+                                            },
+                                          }}
+                                        />
+                                      )}
+                                    />
+                                  </TableCell>
+                                  <TableCell sx={directPaymentColumnSx.method}>
+                                    <Controller
+                                      name={`direct_payments.${index}.method`}
+                                      control={control}
+                                      render={({ field }) => (
+                                        <TextField
+                                          {...field}
+                                          value={field.value ?? 'cash'}
+                                          fullWidth
+                                          select
+                                          error={!!errors.direct_payments?.[index]?.method}
+                                          helperText={errors.direct_payments?.[index]?.method?.message}
+                                          required
+                                        >
+                                          {paymentMethods.map((method) => (
+                                            <MenuItem key={method} value={method}>
+                                              {t(`paymentMethods.${method}`)}
+                                            </MenuItem>
+                                          ))}
+                                        </TextField>
+                                      )}
+                                    />
+                                  </TableCell>
+                                  <TableCell sx={directPaymentColumnSx.reference}>
+                                    <Controller
+                                      name={`direct_payments.${index}.reference`}
+                                      control={control}
+                                      render={({ field }) => (
+                                        <TextField
+                                          {...field}
+                                          value={field.value ?? ''}
+                                          fullWidth
+                                          error={!!errors.direct_payments?.[index]?.reference}
+                                          helperText={errors.direct_payments?.[index]?.reference?.message}
+                                        />
+                                      )}
+                                    />
+                                  </TableCell>
+                                  <TableCell align="right" sx={directPaymentColumnSx.converted}>
+                                    <Typography variant="body2">
+                                      {currencyFormatter.format(directPaymentLineBaseAmount(watchedDirectPayments[index], defaultExchangeRateValue))}
+                                    </Typography>
+                                    {watchedDirectPayments[index]?.payment_currency === 'KHR' && defaultExchangeRate && (
+                                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                        1 USD = {Number(defaultExchangeRate.rate ?? 0).toLocaleString()} KHR
+                                      </Typography>
+                                    )}
+                                  </TableCell>
+                                  <TableCell align="right" sx={directPaymentColumnSx.actions}>
+                                    <Tooltip title={t('payment.removeLine')}>
+                                      <span>
+                                        <IconButton
+                                          size="small"
+                                          color="error"
+                                          disabled={isSaving || directPaymentFields.length === 1}
+                                          onClick={() => removeDirectPayment(index)}
+                                        >
+                                          <DeleteOutlined />
+                                        </IconButton>
+                                      </span>
+                                    </Tooltip>
+                                  </TableCell>
+                                </TableRow>
+                              ))}
+                            </TableBody>
+                          </Table>
+                        </TableContainer>
+
+                        <Box
+                          sx={{
+                            display: 'grid',
+                            gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, minmax(0, 1fr))' },
+                            gap: 2,
+                            border: 1,
+                            borderColor: 'divider',
+                            borderRadius: 1,
+                            p: 2,
+                            bgcolor: 'action.hover',
+                          }}
+                        >
+                          {[
+                            {
+                              label: t('payment.totalEntered'),
+                              amount: directPaymentBaseDisplay,
+                              color: 'text.primary',
+                            },
+                            {
+                              label: t('payment.remaining'),
+                              amount: directPaymentRemainingDisplay,
+                              color: 'text.primary',
+                            },
+                            {
+                              label: t('payment.changeBack'),
+                              amount: directPaymentChangeDisplay,
+                              color: directPaymentChange > 0 ? 'success.main' : 'text.primary',
+                            },
+                          ].map((item) => (
+                            <Box key={item.label}>
+                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                {item.label}
+                              </Typography>
+                              <Typography variant="subtitle2" sx={{ color: item.color }}>
+                                {item.amount.usd}
+                              </Typography>
+                              <Typography variant="body2" sx={{ color: item.color }}>
+                                {item.amount.khr}
+                              </Typography>
+                            </Box>
+                          ))}
+                        </Box>
+
+                        <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ justifyContent: 'flex-end' }}>
+                          <Button
+                            type="button"
+                            variant="outlined"
+                            onClick={() => {
+                              const currentLine = watchedDirectPayments[0]
+                              const nextCurrency = currentLine?.payment_currency ?? 'USD'
+                              const nextAmount = nextCurrency === 'KHR' && defaultExchangeRateValue > 0
+                                ? round(editPaymentLimit * defaultExchangeRateValue)
+                                : editPaymentLimit
+
+                              setValue('direct_payments', [{
+                                ...newDirectPaymentLine(paymentAccounts),
+                                payment_account_id: currentLine?.payment_account_id || paymentAccounts[0]?.id || '',
+                                payment_currency: nextCurrency,
+                                payment_amount: nextAmount,
+                                method: currentLine?.method ?? 'cash',
+                                reference: currentLine?.reference ?? '',
+                              }], { shouldDirty: true, shouldValidate: true })
+                            }}
+                          >
+                            {t(isEdit ? 'payment.useRemaining' : 'payment.useTotal')}
+                          </Button>
+                        </Stack>
+                      </>
+                    )}
+                    </>
+                  )}
+                </Stack>
+              </CardContent>
+            </Card>
+          )}
+
+          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+            <Controller name="notes" control={control} render={({ field }) => (
+              <TextField {...field} value={field.value ?? ''} label={t('fields.notes')} error={!!errors.notes} helperText={errors.notes?.message} multiline minRows={3} />
+            )} />
+            <Controller name="staff_note" control={control} render={({ field }) => (
+              <TextField {...field} value={field.value ?? ''} label={t('fields.staffNote')} error={!!errors.staff_note} helperText={errors.staff_note?.message} multiline minRows={3} />
+            )} />
           </Box>
-        </CardContent>
-      </Card>
+
+          <Stack direction="row" spacing={1.5} sx={{ justifyContent: 'flex-end' }}>
+            <Button variant="outlined" onClick={() => router.push(isEdit && saleId ? `/sales/${saleId}` : '/sales')} disabled={isSaving}>
+              {t('common:buttons.cancel')}
+            </Button>
+            <Button type="submit" variant="contained" startIcon={isSaving ? undefined : <SaveOutlined />} disabled={isSaving}>
+              {isSaving ? <CircularProgress size={20} color="inherit" /> : t('common:buttons.save')}
+            </Button>
+          </Stack>
+        </Stack>
+      </Box>
     </Stack>
   )
 }

@@ -45,7 +45,7 @@ import type { Sale, SaleFilters, SaleStatus, SaleType } from '@/types/sales'
 const rowsPerPageOptions = [10, 25, 50]
 const statuses: SaleStatus[] = ['draft', 'quotation', 'suspended', 'confirmed', 'completed', 'cancelled', 'returned']
 const saleTypes: SaleType[] = ['invoice', 'pos_sale', 'draft', 'quotation', 'suspended']
-const editableStatuses = ['draft', 'quotation', 'suspended', 'confirmed']
+const deletableStatuses = ['draft', 'quotation', 'suspended', 'confirmed']
 
 function formatMoney(value: number | string | null | undefined, formatter: Intl.NumberFormat) {
   const numeric = Number(value ?? 0)
@@ -346,8 +346,8 @@ export default function SalesPage() {
                         editLabel={t('common:buttons.edit')}
                         deleteLabel={t('common:buttons.delete')}
                         showView
-                        showEdit={canEdit && editableStatuses.includes(sale.status)}
-                        showDelete={canDelete && editableStatuses.includes(sale.status)}
+                        showEdit={canEdit}
+                        showDelete={canDelete && deletableStatuses.includes(sale.status)}
                         onView={() => {
                           router.push(`/sales/${sale.id}`)
                         }}

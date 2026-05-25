@@ -6,10 +6,12 @@ use App\Models\Branch;
 use App\Models\Business;
 use App\Models\ChartOfAccount;
 use App\Models\ExchangeRate;
+use App\Models\Journal;
 use App\Models\PaymentAccount;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\SalePayment;
+use App\Models\Setting;
 use App\Models\StockLevel;
 use App\Models\Unit;
 use App\Models\User;
@@ -158,6 +160,100 @@ class SaleApiTest extends TestCase
             'reference_type' => Sale::class,
             'reference_id' => $saleId,
             'type' => 'sale',
+        ]);
+    }
+
+    public function test_completed_sale_can_be_edited_within_sale_edit_window(): void
+    {
+        [$business, $branch, $warehouse, $product] = $this->saleEditFixtures(stockQuantity: 6);
+
+        $saleId = $this->postJson('/api/v1/sales', $this->salePayload($branch, $warehouse, $product, quantity: 3))
+            ->assertCreated()
+            ->json('data.id');
+
+        $this->postJson("/api/v1/sales/{$saleId}/confirm")->assertOk();
+        $this->postJson("/api/v1/sales/{$saleId}/complete")->assertOk();
+
+        $this->putJson("/api/v1/sales/{$saleId}", $this->salePayload($branch, $warehouse, $product, quantity: 2))
+            ->assertOk()
+            ->assertJsonPath('data.status', 'completed')
+            ->assertJsonPath('data.payment_status', 'unpaid')
+            ->assertJsonPath('data.items.0.quantity', '2.0000');
+
+        $this->assertDatabaseHas('stock_levels', [
+            'product_id' => $product->id,
+            'warehouse_id' => $warehouse->id,
+            'quantity' => '4.0000',
+            'reserved_quantity' => '0.0000',
+        ]);
+
+        $this->assertSame(1, Journal::withoutGlobalScopes()
+            ->where('business_id', $business->id)
+            ->where('type', 'sale')
+            ->where('reference_type', Sale::class)
+            ->where('reference_id', $saleId)
+            ->whereNull('reversed_by_id')
+            ->count());
+    }
+
+    public function test_sale_edit_respects_sale_edit_lifetime_setting_without_status_gate(): void
+    {
+        [$business, $branch, $warehouse, $product] = $this->saleEditFixtures(stockQuantity: 6);
+
+        Setting::withoutGlobalScopes()->updateOrCreate([
+            'business_id' => $business->id,
+            'group' => 'sales',
+            'key' => 'edit_lifetime_days',
+        ], [
+            'value' => '1',
+            'type' => 'integer',
+            'is_encrypted' => false,
+        ]);
+
+        $saleId = $this->postJson('/api/v1/sales', $this->salePayload(
+            $branch,
+            $warehouse,
+            $product,
+            quantity: 2,
+            saleDate: now()->subDays(5)->toDateString()
+        ))
+            ->assertCreated()
+            ->json('data.id');
+
+        $this->putJson("/api/v1/sales/{$saleId}", $this->salePayload($branch, $warehouse, $product, quantity: 1))
+            ->assertForbidden();
+    }
+
+    public function test_sale_with_return_documents_cannot_be_edited_even_inside_edit_window(): void
+    {
+        [$business, $branch, $warehouse, $product] = $this->saleEditFixtures(stockQuantity: 6);
+
+        $saleId = $this->postJson('/api/v1/sales', $this->salePayload($branch, $warehouse, $product, quantity: 2))
+            ->assertCreated()
+            ->json('data.id');
+
+        $this->postJson("/api/v1/sales/{$saleId}/confirm")->assertOk();
+        $this->postJson("/api/v1/sales/{$saleId}/complete")->assertOk();
+
+        $sale = Sale::withoutGlobalScopes()->with('items')->findOrFail($saleId);
+
+        $this->postJson("/api/v1/sales/{$saleId}/returns", [
+            'return_date' => now()->toDateString(),
+            'refund_method' => 'cash',
+            'items' => [[
+                'sale_item_id' => $sale->items->first()->id,
+                'quantity' => 1,
+            ]],
+        ])->assertCreated();
+
+        $this->putJson("/api/v1/sales/{$saleId}", $this->salePayload($branch, $warehouse, $product, quantity: 1))
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'Sales with return documents cannot be edited because return lines reference the original sale items.');
+
+        $this->assertDatabaseHas('sales', [
+            'id' => $saleId,
+            'business_id' => $business->id,
+            'status' => 'returned',
         ]);
     }
 
@@ -663,5 +759,59 @@ class SaleApiTest extends TestCase
             'method' => 'cash',
             'payment_date' => now()->toDateString(),
         ])->assertStatus(422);
+    }
+
+    protected function saleEditFixtures(float $stockQuantity = 6): array
+    {
+        $business = Business::factory()->create();
+        $branch = Branch::factory()->create(['business_id' => $business->id]);
+        $warehouse = Warehouse::factory()->forBranch($branch)->create();
+        $unit = Unit::factory()->create(['business_id' => $business->id]);
+        $product = Product::factory()->create([
+            'business_id' => $business->id,
+            'unit_id' => $unit->id,
+            'track_inventory' => true,
+            'stock_tracking' => 'none',
+            'selling_price' => 15,
+            'minimum_selling_price' => 10,
+            'purchase_price' => 4,
+        ]);
+
+        StockLevel::withoutGlobalScopes()->create([
+            'business_id' => $business->id,
+            'product_id' => $product->id,
+            'warehouse_id' => $warehouse->id,
+            'quantity' => $stockQuantity,
+            'reserved_quantity' => 0,
+        ]);
+
+        $user = User::factory()->for($business)->create();
+        $user->assignRole('manager');
+        $user->branches()->attach($branch->id);
+
+        Sanctum::actingAs($user);
+
+        return [$business, $branch, $warehouse, $product, $user];
+    }
+
+    protected function salePayload(
+        Branch $branch,
+        Warehouse $warehouse,
+        Product $product,
+        float $quantity = 2,
+        ?string $saleDate = null,
+    ): array {
+        return [
+            'branch_id' => $branch->id,
+            'warehouse_id' => $warehouse->id,
+            'type' => 'invoice',
+            'sale_date' => $saleDate ?? now()->toDateString(),
+            'items' => [[
+                'product_id' => $product->id,
+                'quantity' => $quantity,
+                'unit_price' => 15,
+                'unit_cost' => 4,
+            ]],
+        ];
     }
 }

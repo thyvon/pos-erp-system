@@ -93,7 +93,7 @@ export function SaleDetailPage({ saleId }: SaleDetailPageProps) {
   const isMutating = confirmSale.isPending || completeSale.isPending || cancelSale.isPending || deleteSale.isPending || recordPayment.isPending
 
   const isEditableStatus = !!sale && ['draft', 'quotation', 'suspended', 'confirmed'].includes(sale.status)
-  const canEdit = !!sale && can('sales.edit') && isEditableStatus
+  const canEdit = !!sale && can('sales.edit')
   const canDelete = !!sale && can('sales.delete') && isEditableStatus
   const canConfirm = !!sale && can('sales.confirm') && ['draft', 'suspended'].includes(sale.status)
   const canComplete = !!sale && can('sales.complete') && ['draft', 'suspended', 'confirmed'].includes(sale.status)

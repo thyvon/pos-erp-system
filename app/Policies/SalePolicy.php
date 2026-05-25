@@ -34,7 +34,7 @@ class SalePolicy
         return $user->can('sales.edit')
             && $this->belongsToSameBusiness($user, $sale)
             && $user->hasBranchAccess($sale->branch_id)
-            && $this->isEditableSale($sale);
+            && $this->isWithinEditWindow($sale);
     }
 
     public function delete(User $user, Sale $sale): bool
@@ -92,6 +92,11 @@ class SalePolicy
             return false;
         }
 
+        return $this->isWithinEditWindow($sale);
+    }
+
+    protected function isWithinEditWindow(Sale $sale): bool
+    {
         $referenceDate = $sale->sale_date instanceof CarbonInterface
             ? $sale->sale_date->copy()->startOfDay()
             : $sale->created_at?->copy()->startOfDay();

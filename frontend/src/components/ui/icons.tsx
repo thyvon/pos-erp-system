@@ -8,6 +8,7 @@ import type { SxProps, Theme } from '@mui/material/styles'
 import type { IconWeight } from '@solar-icons/react'
 import {
   AddCircle,
+  DangerCircle,
   AltArrowDown,
   AltArrowLeft,
   AltArrowRight,
@@ -161,6 +162,7 @@ export const Close = createIcon(CloseCircle)
 export const CompareArrowsOutlined = createIcon(Reorder2)
 export const DarkModeOutlined = createIcon(MoonStars)
 export const DashboardOutlined = createIcon(Widget5)
+export const DangerCircleOutlined = createIcon(DangerCircle)
 export const DeleteOutlined = createIcon(TrashBinMinimalistic)
 export const DoneAll = createIcon(CheckRead)
 export const EditOutlined = createIcon(Pen2)
