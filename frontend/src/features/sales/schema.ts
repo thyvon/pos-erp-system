@@ -13,6 +13,14 @@ const saleDirectPaymentLineSchema = z.object({
   reference: z.string().trim().max(120, 'Reference must be 120 characters or less').nullable().optional(),
 })
 
+const saleDirectPaymentDraftLineSchema = z.object({
+  payment_account_id: z.string().optional(),
+  payment_currency: z.enum(['USD', 'KHR']).optional(),
+  payment_amount: z.coerce.number().optional(),
+  method: z.enum(paymentMethods).optional(),
+  reference: z.string().trim().max(120, 'Reference must be 120 characters or less').nullable().optional(),
+})
+
 export const saleItemSchema = z.object({
   product_id: z.string().min(1, 'Product is required'),
   variation_id: z.string().nullable().optional(),
@@ -54,7 +62,7 @@ export const saleFormSchema = z.object({
   tax_type: z.enum(['inclusive', 'exclusive']).nullable().optional(),
   shipping_charges: z.coerce.number().min(0, 'Shipping cannot be negative').nullable().optional(),
   direct_payment_enabled: z.boolean().optional(),
-  direct_payments: z.array(saleDirectPaymentLineSchema).optional(),
+  direct_payments: z.array(saleDirectPaymentDraftLineSchema).optional(),
   notes: nullableText().optional(),
   staff_note: nullableText().optional(),
   items: z.array(saleItemSchema).min(1, 'Add at least one sale item'),
@@ -70,7 +78,23 @@ export const saleFormSchema = z.object({
       path: ['direct_payments'],
       message: 'Add at least one payment line',
     })
+
+    return
   }
+
+  values.direct_payments.forEach((line, index) => {
+    const result = saleDirectPaymentLineSchema.safeParse(line)
+
+    if (!result.success) {
+      result.error.issues.forEach((issue) => {
+        context.addIssue({
+          code: 'custom',
+          path: ['direct_payments', index, ...(issue.path ?? [])],
+          message: issue.message,
+        })
+      })
+    }
+  })
 })
 
 export type SaleFormInput = z.input<typeof saleFormSchema>

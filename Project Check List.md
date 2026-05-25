@@ -62,6 +62,8 @@
 - [x] Sale detail page now uses one main card with divider-separated header, sale items table, and sale summary, removing the top summary-card row; frontend type-check and lint verified.
 - [x] Sale payment recording now supports split payments with multiple table input lines, searchable payment account selection, backend multi-line posting, and focused Sales API/frontend verification.
 - [x] Existing completed sale payments can now be corrected safely through reversal-and-recreate flow, sale edit shows payment correction actions, sale detail has a payment-history toggle, and focused Sales API/frontend type-check verification passed.
+- [x] Sales edit actions now follow the backend sales.edit authorization/edit-lifetime policy so completed sales can be opened for customer corrections when allowed.
+- [x] Sales edit save no longer requires entering a new direct-payment line when users only update the sale itself; direct-payment validation now runs only when Take payment now is enabled.
 
 ## Inventory Frontend Rebuild
 

@@ -268,6 +268,12 @@ function buildDirectPaymentLines(values: SaleFormValues, exchangeRate: number, e
   return (values.direct_payments ?? []).flatMap((line) => {
     if (remaining <= 0) return []
 
+    const paymentAccountId = line.payment_account_id
+    const paymentCurrency = line.payment_currency ?? 'USD'
+    const paymentMethod = line.method ?? 'cash'
+
+    if (!paymentAccountId) return []
+
     const lineBaseAmount = directPaymentLineBaseAmount(line, exchangeRate)
     if (lineBaseAmount <= 0) return []
 
@@ -275,14 +281,14 @@ function buildDirectPaymentLines(values: SaleFormValues, exchangeRate: number, e
     remaining = round(remaining - appliedAmount)
 
     return [{
-      payment_account_id: line.payment_account_id,
+      payment_account_id: paymentAccountId,
       amount: appliedAmount,
-      payment_currency: line.payment_currency,
-      payment_amount: line.payment_currency === 'KHR'
+      payment_currency: paymentCurrency,
+      payment_amount: paymentCurrency === 'KHR'
         ? round(appliedAmount * exchangeRate)
         : appliedAmount,
-      exchange_rate_id: line.payment_currency === 'KHR' ? exchangeRateId : null,
-      method: line.method,
+      exchange_rate_id: paymentCurrency === 'KHR' ? exchangeRateId : null,
+      method: paymentMethod,
       reference: line.reference || null,
       payment_date: values.sale_date,
       note: null,
