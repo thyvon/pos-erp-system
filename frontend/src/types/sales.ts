@@ -237,6 +237,11 @@ export interface SalePaymentLinePayload {
   note?: string | null
 }
 
+export interface SalePaymentCorrectionPayload extends SalePaymentLinePayload {
+  payment_date: string
+  reason: string
+}
+
 export interface SalePaymentPayload {
   payment_account_id?: string
   amount?: number
@@ -269,10 +274,23 @@ export interface SalePayment {
   reference: string | null
   payment_date: string | null
   note: string | null
+  status: 'completed' | 'reversed'
+  replaces_payment_id: string | null
+  reversed_by?: {
+    id: string
+    name: string
+  } | null
+  reversed_at: string | null
+  reversal_reason: string | null
   payment_account?: {
     id: string
     name: string
     type: string
+  } | null
+  replaced_payment?: {
+    id: string
+    reference: string | null
+    payment_date: string | null
   } | null
   creator?: SaleUserRelation | null
   created_at: string
@@ -284,6 +302,14 @@ export interface SalePaymentResult {
   payments?: SalePayment[]
   journal: unknown
   journals?: unknown[]
+}
+
+export interface SalePaymentCorrectionResult {
+  sale: Sale
+  payment: SalePayment
+  reversed_payment: SalePayment
+  journal: unknown
+  reversal_journal: unknown
 }
 
 export type SalesPaginatedResponse = PaginatedResponse<Sale>

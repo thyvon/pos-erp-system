@@ -30,6 +30,11 @@ class SalePayment extends Model
         'reference',
         'payment_date',
         'note',
+        'status',
+        'replaces_payment_id',
+        'reversed_by',
+        'reversed_at',
+        'reversal_reason',
         'created_by',
     ];
 
@@ -40,6 +45,7 @@ class SalePayment extends Model
             'payment_amount' => 'decimal:2',
             'exchange_rate' => 'decimal:6',
             'payment_date' => 'date',
+            'reversed_at' => 'datetime',
         ];
     }
 
@@ -61,5 +67,15 @@ class SalePayment extends Model
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function replacedPayment(): BelongsTo
+    {
+        return $this->belongsTo(self::class, 'replaces_payment_id');
+    }
+
+    public function reverser(): BelongsTo
+    {
+        return $this->belongsTo(User::class, 'reversed_by');
     }
 }

@@ -33,7 +33,7 @@ import {
   Typography,
 } from '@mui/material'
 import dayjs from 'dayjs'
-import { Add, ArrowBack, DangerCircleOutlined, DeleteOutlined, SaveOutlined } from '@/components/ui/icons'
+import { Add, ArrowBack, DangerCircleOutlined, DeleteOutlined, EditOutlined, SaveOutlined } from '@/components/ui/icons'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
@@ -46,12 +46,14 @@ import { useAppCurrency, useCurrencyFormatter } from '@/features/settings/useApp
 import { useAppDateFormat } from '@/features/settings/useAppDateFormat'
 import { useTaxRatesQuery } from '@/features/tax-rates/hooks'
 import { useWarehousesQuery } from '@/features/warehouses/hooks'
-import { useCompleteSaleMutation, useCreateSaleMutation, useRecordSalePaymentMutation, useSaleQuery, useUpdateSaleMutation } from './hooks'
+import { useAuthStore } from '@/stores/authStore'
+import { useCompleteSaleMutation, useCreateSaleMutation, useRecordSalePaymentMutation, useSaleQuery, useUpdateSaleMutation, useUpdateSalePaymentMutation } from './hooks'
 import { saleFormSchema, type SaleFormInput, type SaleFormValues } from './schema'
+import { SalePaymentCorrectionDialog } from './SalePaymentCorrectionDialog'
 import { formatAppDate } from '@/utils/dateFormat'
 import type { PaymentAccount } from '@/types/accounting'
 import type { InventoryProductLookupItem } from '@/types/inventory'
-import type { Sale, SaleItem, SalePayload, SalePayment } from '@/types/sales'
+import type { Sale, SaleItem, SalePayload, SalePayment, SalePaymentCorrectionPayload } from '@/types/sales'
 import type { Warehouse } from '@/types/warehouse'
 import type { Customer } from '@/types/customer'
 import type { PriceGroup } from '@/types/priceGroup'
@@ -367,7 +369,9 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
   const { t, i18n } = useTranslation(['sales', 'common'])
   const router = useRouter()
   const { enqueueSnackbar } = useSnackbar()
+  const can = useAuthStore((state) => state.can)
   const [serverError, setServerError] = useState('')
+  const [editingPayment, setEditingPayment] = useState<SalePayment | null>(null)
   const isEdit = !!saleId
   const currency = useAppCurrency()
   const currencyFormatter = useCurrencyFormatter()
@@ -381,7 +385,8 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
   const updateSale = useUpdateSaleMutation()
   const completeSale = useCompleteSaleMutation()
   const recordPayment = useRecordSalePaymentMutation()
-  const isSaving = createSale.isPending || updateSale.isPending || completeSale.isPending || recordPayment.isPending
+  const updatePayment = useUpdateSalePaymentMutation()
+  const isSaving = createSale.isPending || updateSale.isPending || completeSale.isPending || recordPayment.isPending || updatePayment.isPending
 
   const {
     control,
@@ -454,6 +459,7 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
   const currentSale = saleQuery.data ?? null
   const currentSaleStatus = currentSale?.status
   const existingPayments = currentSale?.payments ?? []
+  const canEditExistingPayments = isEdit && can('payments.edit') && currentSaleStatus === 'completed'
   const editPaymentLimit = isEdit
     ? Math.max(0, round(totals.total - toNumber(currentSale?.paid_amount)))
     : totals.total
@@ -621,6 +627,18 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
       }
       setServerError(apiError.message)
     }
+  }
+
+  const submitPaymentCorrection = async (paymentId: string, payload: SalePaymentCorrectionPayload) => {
+    if (!saleId) return
+
+    await updatePayment.mutateAsync({
+      saleId,
+      paymentId,
+      payload,
+    })
+
+    enqueueSnackbar(t('messages.paymentUpdated'), { variant: 'success' })
   }
 
   if (isEdit && saleQuery.isLoading) {
@@ -987,7 +1005,7 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
                         <Alert severity="info">{t('payment.noRecords')}</Alert>
                       ) : (
                         <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1, overflowX: 'auto' }}>
-                          <Table sx={{ minWidth: 900, tableLayout: 'fixed' }}>
+                          <Table sx={{ minWidth: 1080, tableLayout: 'fixed' }}>
                             <TableHead>
                               <TableRow>
                                 <TableCell sx={{ width: 140 }}>{t('payment.date')}</TableCell>
@@ -996,6 +1014,8 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
                                 <TableCell sx={{ width: 170 }} align="right">{t('payment.amount')}</TableCell>
                                 <TableCell sx={{ width: 170 }} align="right">{t('payment.converted')}</TableCell>
                                 <TableCell sx={{ width: 160 }}>{t('payment.reference')}</TableCell>
+                                <TableCell sx={{ width: 130 }}>{t('payment.status')}</TableCell>
+                                <TableCell sx={{ width: 120 }} align="right">{t('columns.actions')}</TableCell>
                               </TableRow>
                             </TableHead>
                             <TableBody>
@@ -1007,6 +1027,18 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
                                   <TableCell align="right">{paymentEnteredAmount(payment)}</TableCell>
                                   <TableCell align="right">{currencyFormatter.format(toNumber(payment.amount))}</TableCell>
                                   <TableCell>{payment.reference || '-'}</TableCell>
+                                  <TableCell>{t(`payment.${payment.status}`, { defaultValue: payment.status })}</TableCell>
+                                  <TableCell align="right">
+                                    {canEditExistingPayments && payment.status === 'completed' ? (
+                                          <Tooltip title={t('payment.editAction')}>
+                                        <span>
+                                          <IconButton size="small" onClick={() => setEditingPayment(payment)} disabled={isSaving}>
+                                            <EditOutlined />
+                                          </IconButton>
+                                        </span>
+                                      </Tooltip>
+                                    ) : null}
+                                  </TableCell>
                                 </TableRow>
                               ))}
                             </TableBody>
@@ -1324,6 +1356,15 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
           </Stack>
         </Stack>
       </Box>
+      <SalePaymentCorrectionDialog
+        open={!!editingPayment}
+        payment={editingPayment}
+        paymentAccounts={paymentAccounts}
+        defaultExchangeRate={defaultExchangeRate}
+        isSaving={updatePayment.isPending}
+        onClose={() => setEditingPayment(null)}
+        onSubmit={(payload) => editingPayment ? submitPaymentCorrection(editingPayment.id, payload) : Promise.resolve()}
+      />
     </Stack>
   )
 }

@@ -316,6 +316,18 @@ export function createAppTheme(
       MuiTableRow: {
         styleOverrides: {
           root: {
+            '.MuiTableBody-root &:nth-of-type(odd)': {
+              backgroundColor:
+                palette.mode === 'light'
+                  ? alpha(primaryMain, 0.03)
+                  : alpha('#ffffff', 0.03),
+            },
+            '.MuiTableBody-root &:nth-of-type(odd):hover': {
+              backgroundColor:
+                palette.mode === 'light'
+                  ? alpha(primaryMain, 0.06)
+                  : alpha('#ffffff', 0.06),
+            },
             ...(isSmallLayout
               ? {
                   '& .MuiTableCell-root': {

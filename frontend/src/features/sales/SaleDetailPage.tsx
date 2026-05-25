@@ -10,6 +10,7 @@ import {
   Card,
   CardContent,
   Chip,
+  Collapse,
   CircularProgress,
   Divider,
   IconButton,
@@ -43,7 +44,7 @@ import { useAppDateFormat } from '@/features/settings/useAppDateFormat'
 import { useCurrencyFormatter } from '@/features/settings/useAppCurrency'
 import { useAuthStore } from '@/stores/authStore'
 import { formatAppDate, formatAppDateTime } from '@/utils/dateFormat'
-import type { Sale, SaleCancelPayload, SaleItem, SalePaymentPayload } from '@/types/sales'
+import type { Sale, SaleCancelPayload, SaleItem, SalePayment, SalePaymentPayload } from '@/types/sales'
 
 interface SaleDetailPageProps {
   saleId: string
@@ -68,6 +69,20 @@ function outstandingAmount(sale: Sale) {
   return Math.max(Number(sale.total_amount ?? 0) - Number(sale.paid_amount ?? 0), 0)
 }
 
+function paymentAccountLabel(payment: SalePayment) {
+  return payment.payment_account
+    ? [payment.payment_account.name, payment.payment_account.type].filter(Boolean).join(' / ')
+    : payment.payment_account_id
+}
+
+function paymentEnteredAmount(payment: SalePayment) {
+  if (payment.payment_currency === 'KHR' && payment.payment_amount) {
+    return `KHR ${Number(payment.payment_amount).toLocaleString()}`
+  }
+
+  return `USD ${Number(payment.payment_amount ?? payment.amount ?? 0).toFixed(2)}`
+}
+
 export function SaleDetailPage({ saleId }: SaleDetailPageProps) {
   const { t, i18n } = useTranslation(['sales', 'common'])
   const router = useRouter()
@@ -78,6 +93,7 @@ export function SaleDetailPage({ saleId }: SaleDetailPageProps) {
   const [cancelOpen, setCancelOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [paymentOpen, setPaymentOpen] = useState(false)
+  const [historyOpen, setHistoryOpen] = useState(false)
   const saleQuery = useSaleQuery(saleId)
   const paymentAccountsQuery = usePaymentAccountsQuery({ status: 'active', per_page: 100 })
   const defaultExchangeRateQuery = useDefaultExchangeRateQuery('USD', 'KHR')
@@ -310,6 +326,62 @@ export function SaleDetailPage({ saleId }: SaleDetailPageProps) {
                   </TableBody>
                 </Table>
               </TableContainer>
+            </Box>
+
+            <Divider />
+
+            <Box>
+              <Stack
+                direction={{ xs: 'column', sm: 'row' }}
+                spacing={1.5}
+                sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between', mb: 2 }}
+              >
+                <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                  <Typography variant="h6">{t('payment.historyTitle')}</Typography>
+                  <Tooltip title={t(historyOpen ? 'payment.hideHistory' : 'payment.showHistory')}>
+                    <IconButton size="small" onClick={() => setHistoryOpen((open) => !open)}>
+                      <PaymentsOutlined />
+                    </IconButton>
+                  </Tooltip>
+                </Stack>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  {(sale.payments?.length ?? 0).toLocaleString()} {t('columns.payment').toLowerCase()}
+                </Typography>
+              </Stack>
+              <Collapse in={historyOpen}>
+                {(sale.payments?.length ?? 0) === 0 ? (
+                  <Alert severity="info">{t('payment.noHistory')}</Alert>
+                ) : (
+                  <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1, overflowX: 'auto' }}>
+                    <Table sx={{ minWidth: 1100, tableLayout: 'fixed' }}>
+                      <TableHead>
+                        <TableRow>
+                          <TableCell sx={{ width: 140 }}>{t('payment.date')}</TableCell>
+                          <TableCell sx={{ width: 220 }}>{t('payment.account')}</TableCell>
+                          <TableCell sx={{ width: 140 }}>{t('payment.method')}</TableCell>
+                          <TableCell sx={{ width: 170 }} align="right">{t('payment.amount')}</TableCell>
+                          <TableCell sx={{ width: 170 }} align="right">{t('payment.converted')}</TableCell>
+                          <TableCell sx={{ width: 140 }}>{t('payment.status')}</TableCell>
+                          <TableCell sx={{ width: 170 }}>{t('payment.reference')}</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {(sale.payments ?? []).map((payment) => (
+                          <TableRow key={payment.id}>
+                            <TableCell>{payment.payment_date ? formatAppDate(payment.payment_date, dateFormat, i18n.language) : '-'}</TableCell>
+                            <TableCell>{paymentAccountLabel(payment)}</TableCell>
+                            <TableCell>{t(`paymentMethods.${payment.method}`, { defaultValue: payment.method })}</TableCell>
+                            <TableCell align="right">{paymentEnteredAmount(payment)}</TableCell>
+                            <TableCell align="right">{formatMoney(payment.amount, currencyFormatter)}</TableCell>
+                            <TableCell>{t(`payment.${payment.status}`, { defaultValue: payment.status })}</TableCell>
+                            <TableCell>{payment.reference || '-'}</TableCell>
+                          </TableRow>
+                        ))}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                )}
+              </Collapse>
             </Box>
 
             <Divider />

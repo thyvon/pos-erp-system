@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { salesApi } from './api'
-import type { SaleCancelPayload, SaleFilters, SalePayload, SalePaymentPayload } from '@/types/sales'
+import type { SaleCancelPayload, SaleFilters, SalePayload, SalePaymentCorrectionPayload, SalePaymentPayload } from '@/types/sales'
 
 export const saleKeys = {
   all: ['sales'] as const,
@@ -100,6 +100,26 @@ export function useRecordSalePaymentMutation() {
 
   return useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: SalePaymentPayload }) => salesApi.recordPayment(id, payload),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: saleKeys.all })
+      queryClient.invalidateQueries({ queryKey: saleKeys.detail(result.sale.id) })
+    },
+  })
+}
+
+export function useUpdateSalePaymentMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({
+      saleId,
+      paymentId,
+      payload,
+    }: {
+      saleId: string
+      paymentId: string
+      payload: SalePaymentCorrectionPayload
+    }) => salesApi.updatePayment(saleId, paymentId, payload),
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: saleKeys.all })
       queryClient.invalidateQueries({ queryKey: saleKeys.detail(result.sale.id) })

@@ -61,6 +61,7 @@
 - [x] Sales create form now supports optional multi-line direct payments with live remaining and change-back calculation before completing and recording payment after save.
 - [x] Sale detail page now uses one main card with divider-separated header, sale items table, and sale summary, removing the top summary-card row; frontend type-check and lint verified.
 - [x] Sale payment recording now supports split payments with multiple table input lines, searchable payment account selection, backend multi-line posting, and focused Sales API/frontend verification.
+- [x] Existing completed sale payments can now be corrected safely through reversal-and-recreate flow, sale edit shows payment correction actions, sale detail has a payment-history toggle, and focused Sales API/frontend type-check verification passed.
 
 ## Inventory Frontend Rebuild
 
@@ -113,6 +114,7 @@
 - [x] Searchable autocomplete fields now inherit the same theme-level height standard as normal select and text fields.
 - [x] Date picker fields now inherit the same theme-level height standard as normal input, select, and searchable autocomplete fields.
 - [x] Product variation and combo table inputs now use the shared default-height, full-width product form controls.
+- [x] Shared MUI table rows now use a global striped body-row style so standard system tables inherit consistent alternating row backgrounds without page-level duplication.
 - [x] Agent rules now require small reusable shared components/hooks for repeated frontend patterns instead of duplicated page-level code.
 - [x] Customer edit now shows a visible validation message when the form blocks saving.
 - [x] Customer edit validation now accepts cleared nullable fields and names the first invalid field when save is blocked.

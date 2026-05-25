@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\Sales\SaleReturnController;
 use App\Http\Controllers\Api\V1\Sales\SaleController;
 use App\Models\CashRegister;
 use App\Models\Sale;
+use App\Models\SalePayment;
 use Illuminate\Support\Facades\Route;
 
 return static function (): void {
@@ -18,6 +19,7 @@ return static function (): void {
     Route::post('sales/{sale}/complete', [SaleController::class, 'complete'])->middleware('can:complete,sale');
     Route::post('sales/{sale}/cancel', [SaleController::class, 'cancel'])->middleware('can:cancel,sale');
     Route::post('sales/{sale}/payments', [SaleController::class, 'recordPayment'])->middleware('can:recordPayment,sale');
+    Route::put('sales/{sale}/payments/{salePayment}', [SaleController::class, 'updatePayment'])->middleware('can:updatePayment,sale');
     Route::post('sales/{sale}/returns', [SaleReturnController::class, 'store'])->middleware('can:recordReturn,sale');
 
     Route::get('sale-returns', [SaleReturnController::class, 'index'])->middleware('can:viewAny,'.\App\Models\SaleReturn::class);

@@ -8,11 +8,13 @@ use App\Http\Requests\Sales\CompleteSaleRequest;
 use App\Http\Requests\Sales\ConfirmSaleRequest;
 use App\Http\Requests\Sales\StoreSalePaymentRequest;
 use App\Http\Requests\Sales\StoreSaleRequest;
+use App\Http\Requests\Sales\UpdateSalePaymentRequest;
 use App\Http\Requests\Sales\UpdateSaleRequest;
 use App\Http\Resources\Accounting\JournalResource;
 use App\Http\Resources\Sales\SalePaymentResource;
 use App\Http\Resources\Sales\SaleResource;
 use App\Models\Sale;
+use App\Models\SalePayment;
 use App\Services\Sales\SalePaymentService;
 use App\Services\Sales\SaleService;
 use Illuminate\Http\JsonResponse;
@@ -140,5 +142,30 @@ class SaleController extends BaseApiController
             'journal' => new JournalResource($result['journal']),
             'journals' => JournalResource::collection($result['journals']),
         ], 'Sale payment recorded successfully.', 201);
+    }
+
+    public function updatePayment(
+        UpdateSalePaymentRequest $request,
+        Sale $sale,
+        SalePayment $salePayment,
+        SalePaymentService $salePayments
+    ): JsonResponse {
+        $this->authorize('updatePayment', $sale);
+
+        $result = $salePayments->correct(
+            $request->user()->business_id,
+            $sale,
+            $salePayment,
+            $request->validated(),
+            $request->user()
+        );
+
+        return $this->success([
+            'sale' => new SaleResource($result['sale']),
+            'payment' => new SalePaymentResource($result['payment']),
+            'reversed_payment' => new SalePaymentResource($result['reversed_payment']),
+            'journal' => new JournalResource($result['journal']),
+            'reversal_journal' => new JournalResource($result['reversal_journal']),
+        ], 'Sale payment updated successfully.');
     }
 }

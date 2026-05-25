@@ -2,6 +2,8 @@ import { apiClient } from '@/api/client'
 import type {
   Sale,
   SaleCancelPayload,
+  SalePaymentCorrectionPayload,
+  SalePaymentCorrectionResult,
   SaleFilters,
   SalePayload,
   SalePaymentPayload,
@@ -20,4 +22,6 @@ export const salesApi = {
     apiClient.post<Sale, SaleCancelPayload>(`/v1/sales/${id}/cancel`, payload),
   recordPayment: (id: string, payload: SalePaymentPayload) =>
     apiClient.post<SalePaymentResult, SalePaymentPayload>(`/v1/sales/${id}/payments`, payload),
+  updatePayment: (saleId: string, paymentId: string, payload: SalePaymentCorrectionPayload) =>
+    apiClient.put<SalePaymentCorrectionResult, SalePaymentCorrectionPayload>(`/v1/sales/${saleId}/payments/${paymentId}`, payload),
 }

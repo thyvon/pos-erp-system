@@ -78,6 +78,15 @@ class SalePolicy
             && in_array($sale->payment_status, ['unpaid', 'partial'], true);
     }
 
+    public function updatePayment(User $user, Sale $sale): bool
+    {
+        return $user->can('payments.edit')
+            && $this->belongsToSameBusiness($user, $sale)
+            && $user->hasBranchAccess($sale->branch_id)
+            && $sale->status === 'completed'
+            && in_array($sale->payment_status, ['partial', 'paid'], true);
+    }
+
     public function recordReturn(User $user, Sale $sale): bool
     {
         return $user->can('sales.return')
