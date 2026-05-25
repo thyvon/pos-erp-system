@@ -834,9 +834,9 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
                                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                                   {[field.sku, field.lot_number, field.serial_number, field.unit_label].filter(Boolean).join(' / ') || '-'}
                                 </Typography>
-                                {field.available_quantity !== undefined && (
+                                {field.available_quantity !== null && field.available_quantity !== undefined && (
                                   <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                    {t('form.available', { quantity: field.available_quantity ?? '-' })}
+                                    {t('form.available', { quantity: field.available_quantity })}
                                   </Typography>
                                 )}
                               </Stack>

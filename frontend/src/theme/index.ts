@@ -366,6 +366,31 @@ export function createAppTheme(
           },
         },
       },
+      MuiChip: {
+        styleOverrides: {
+          outlined: ({ ownerState, theme }) => {
+            const color = ownerState.color ?? 'default'
+
+            if (color === 'default') {
+              return {
+                borderColor: 'transparent',
+                backgroundColor: theme.palette.mode === 'light'
+                  ? alpha(theme.palette.grey[500], 0.16)
+                  : alpha(theme.palette.grey[500], 0.28),
+                color: theme.palette.text.primary,
+              }
+            }
+
+            const paletteColor = theme.palette[color]
+
+            return {
+              borderColor: 'transparent',
+              backgroundColor: alpha(paletteColor.main, theme.palette.mode === 'light' ? 0.18 : 0.28),
+              color: theme.palette.mode === 'light' ? paletteColor.dark : paletteColor.light,
+            }
+          },
+        },
+      },
       MuiIconButton: {
         styleOverrides: {
           root: {

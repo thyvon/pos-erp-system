@@ -409,9 +409,9 @@ export function StockTransferFormPage({ transferId }: StockTransferFormPageProps
                               <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                                 {[field.sku, field.lot_number, field.serial_number].filter(Boolean).join(' / ') || '-'}
                               </Typography>
-                              {field.available_quantity !== undefined && (
+                              {field.available_quantity !== null && field.available_quantity !== undefined && (
                                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                  {t('lookup.available', { quantity: field.available_quantity ?? '-' })}
+                                  {t('lookup.available', { quantity: field.available_quantity })}
                                 </Typography>
                               )}
                             </Stack>
