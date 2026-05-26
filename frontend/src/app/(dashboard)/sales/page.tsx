@@ -352,7 +352,7 @@ export default function SalesPage() {
                           router.push(`/sales/${sale.id}`)
                         }}
                         onEdit={() => {
-                          router.push(`/sales/${sale.id}/edit`)
+                          router.push(sale.type === 'pos_sale' ? `/pos/${sale.id}/edit` : `/sales/${sale.id}/edit`)
                         }}
                         onDelete={() => setDeleteTarget(sale)}
                       />

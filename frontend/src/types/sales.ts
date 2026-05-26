@@ -19,6 +19,67 @@ export interface SaleFilters {
   per_page?: number
 }
 
+export interface CashRegisterFilters {
+  search?: string
+  branch_id?: string
+  status?: 'active' | 'inactive' | ''
+  page?: number
+  per_page?: number
+}
+
+export interface CashRegisterSession {
+  id: string
+  cash_register_id: string
+  user_id: string
+  opening_float: string | null
+  closing_float: string | null
+  denominations_at_close?: unknown
+  total_sales: string | null
+  status: 'open' | 'closed' | string
+  opened_at: string | null
+  closed_at: string | null
+  notes: string | null
+  cash_register?: {
+    id: string
+    name: string
+    branch_id: string
+    branch?: SaleRelation | null
+  } | null
+  user?: {
+    id: string
+    name: string
+    email: string
+  } | null
+  created_at: string
+  updated_at: string
+}
+
+export interface CashRegister {
+  id: string
+  business_id: string
+  branch_id: string
+  name: string
+  is_active: boolean
+  status: 'active' | 'inactive' | string
+  branch?: SaleRelation | null
+  sessions_count: number
+  current_open_session?: CashRegisterSession | null
+  recent_sessions?: CashRegisterSession[]
+  created_at: string
+  updated_at: string
+}
+
+export interface OpenCashRegisterSessionPayload {
+  opening_float?: number | null
+  notes?: string | null
+}
+
+export interface CreateCashRegisterPayload {
+  branch_id: string
+  name: string
+  is_active?: boolean
+}
+
 export interface SaleItemPayload {
   product_id: string
   variation_id?: string | null
@@ -46,6 +107,7 @@ export interface SalePayload {
   customer_id?: string | null
   cash_register_session_id?: string | null
   commission_agent_id?: string | null
+  client_request_id?: string | null
   type?: SaleType | null
   sale_date: string
   due_date?: string | null
@@ -61,6 +123,9 @@ export interface SalePayload {
   notes?: string | null
   staff_note?: string | null
   items: SaleItemPayload[]
+  payment_date?: string | null
+  payment_note?: string | null
+  payments?: SalePaymentLinePayload[]
 }
 
 export interface SaleRelation {
@@ -242,6 +307,10 @@ export interface SalePaymentCorrectionPayload extends SalePaymentLinePayload {
   reason: string
 }
 
+export interface SalePaymentDeletePayload {
+  reason?: string | null
+}
+
 export interface SalePaymentPayload {
   payment_account_id?: string
   amount?: number
@@ -309,6 +378,12 @@ export interface SalePaymentCorrectionResult {
   payment: SalePayment
   reversed_payment: SalePayment
   journal: unknown
+  reversal_journal: unknown
+}
+
+export interface SalePaymentDeleteResult {
+  sale: Sale
+  reversed_payment: SalePayment
   reversal_journal: unknown
 }
 

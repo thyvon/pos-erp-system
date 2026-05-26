@@ -9,8 +9,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Sale extends BaseModel
 {
-    use HasFactory;
     use BelongsToBranch;
+    use HasFactory;
 
     protected $fillable = [
         'business_id',
@@ -22,6 +22,7 @@ class Sale extends BaseModel
         'parent_sale_id',
         'created_by',
         'sale_number',
+        'client_request_id',
         'type',
         'status',
         'payment_status',

@@ -5,6 +5,7 @@ namespace App\Services\Foundation;
 use App\Models\FileAsset;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 
 class FileAssetService
@@ -96,7 +97,13 @@ class FileAssetService
             && ! str_starts_with($path, '/')
             && Storage::disk($asset->disk ?: 'public')->exists($path)
         ) {
-            Storage::disk($asset->disk ?: 'public')->delete($path);
+            $disk = $asset->disk ?: 'public';
+
+            if (DB::transactionLevel() > 0) {
+                DB::afterCommit(fn () => Storage::disk($disk)->delete($path));
+            } else {
+                Storage::disk($disk)->delete($path);
+            }
         }
 
         $asset->delete();

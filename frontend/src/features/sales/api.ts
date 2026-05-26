@@ -1,9 +1,16 @@
 import { apiClient } from '@/api/client'
 import type {
+  CashRegister,
+  CashRegisterFilters,
+  CashRegisterSession,
+  CreateCashRegisterPayload,
+  OpenCashRegisterSessionPayload,
   Sale,
   SaleCancelPayload,
   SalePaymentCorrectionPayload,
   SalePaymentCorrectionResult,
+  SalePaymentDeletePayload,
+  SalePaymentDeleteResult,
   SaleFilters,
   SalePayload,
   SalePaymentPayload,
@@ -24,4 +31,14 @@ export const salesApi = {
     apiClient.post<SalePaymentResult, SalePaymentPayload>(`/v1/sales/${id}/payments`, payload),
   updatePayment: (saleId: string, paymentId: string, payload: SalePaymentCorrectionPayload) =>
     apiClient.put<SalePaymentCorrectionResult, SalePaymentCorrectionPayload>(`/v1/sales/${saleId}/payments/${paymentId}`, payload),
+  deletePayment: (saleId: string, paymentId: string, payload: SalePaymentDeletePayload = {}) =>
+    apiClient.delete<SalePaymentDeleteResult>(`/v1/sales/${saleId}/payments/${paymentId}`, { data: payload }),
+}
+
+export const cashRegistersApi = {
+  list: (filters: CashRegisterFilters = {}) => apiClient.getPaginated<CashRegister>('/v1/cash-registers', filters),
+  create: (payload: CreateCashRegisterPayload) =>
+    apiClient.post<CashRegister, CreateCashRegisterPayload>('/v1/cash-registers', payload),
+  openSession: (id: string, payload: OpenCashRegisterSessionPayload) =>
+    apiClient.post<CashRegisterSession, OpenCashRegisterSessionPayload>(`/v1/cash-registers/${id}/open-session`, payload),
 }

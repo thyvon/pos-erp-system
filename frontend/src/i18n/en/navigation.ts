@@ -9,6 +9,7 @@ export default {
   },
   items: {
     dashboard: 'Dashboard',
+    pos: 'POS',
     sales: 'Sales',
     branches: 'Branches',
     warehouses: 'Warehouses',
@@ -46,6 +47,7 @@ export default {
   },
   breadcrumbs: {
     dashboard: 'Dashboard',
+    pos: 'Point of Sale',
     sales: 'Sales Management',
     saleCreate: 'Create Sale',
     saleEdit: 'Edit Sale',

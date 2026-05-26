@@ -467,6 +467,78 @@ class SaleApiTest extends TestCase
         ]);
     }
 
+    public function test_sale_create_with_inline_payment_rolls_back_when_payment_fails(): void
+    {
+        $business = Business::factory()->create();
+        $branch = Branch::factory()->create(['business_id' => $business->id]);
+        $warehouse = Warehouse::factory()->forBranch($branch)->create();
+        $unit = Unit::factory()->create(['business_id' => $business->id]);
+        $product = Product::factory()->create([
+            'business_id' => $business->id,
+            'unit_id' => $unit->id,
+            'track_inventory' => true,
+            'stock_tracking' => 'none',
+            'selling_price' => 15,
+            'minimum_selling_price' => 10,
+            'purchase_price' => 4,
+        ]);
+        StockLevel::withoutGlobalScopes()->create([
+            'business_id' => $business->id,
+            'product_id' => $product->id,
+            'warehouse_id' => $warehouse->id,
+            'quantity' => 6,
+            'reserved_quantity' => 0,
+        ]);
+
+        $cashAccount = ChartOfAccount::withoutGlobalScopes()
+            ->where('business_id', $business->id)
+            ->where('code', '1110')
+            ->firstOrFail();
+
+        $paymentAccount = PaymentAccount::withoutGlobalScopes()->create([
+            'business_id' => $business->id,
+            'name' => 'Inactive Cash Drawer',
+            'account_type' => 'cash',
+            'opening_balance' => 0,
+            'coa_account_id' => $cashAccount->id,
+            'is_active' => false,
+        ]);
+
+        $user = User::factory()->for($business)->create();
+        $user->assignRole('manager');
+        $user->branches()->attach($branch->id);
+
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/v1/sales', [
+            'branch_id' => $branch->id,
+            'warehouse_id' => $warehouse->id,
+            'type' => 'invoice',
+            'sale_date' => now()->toDateString(),
+            'items' => [[
+                'product_id' => $product->id,
+                'quantity' => 2,
+                'unit_price' => 15,
+                'unit_cost' => 4,
+            ]],
+            'payment_date' => now()->toDateString(),
+            'payments' => [[
+                'payment_account_id' => $paymentAccount->id,
+                'amount' => 30,
+                'method' => 'cash',
+            ]],
+        ])->assertStatus(422);
+
+        $this->assertSame(0, Sale::withoutGlobalScopes()->where('business_id', $business->id)->count());
+        $this->assertSame(0, SalePayment::withoutGlobalScopes()->where('business_id', $business->id)->count());
+        $this->assertDatabaseHas('stock_levels', [
+            'product_id' => $product->id,
+            'warehouse_id' => $warehouse->id,
+            'quantity' => '6.0000',
+            'reserved_quantity' => '0.0000',
+        ]);
+    }
+
     public function test_completed_sale_can_record_split_payments(): void
     {
         $business = Business::factory()->create();
@@ -823,6 +895,108 @@ class SaleApiTest extends TestCase
             'event' => 'updated',
             'auditable_type' => 'App\\Models\\SalePayment',
             'auditable_id' => $originalPaymentId,
+        ]);
+    }
+
+    public function test_completed_sale_payment_can_be_deleted_with_reversal(): void
+    {
+        $business = Business::factory()->create();
+        $branch = Branch::factory()->create(['business_id' => $business->id]);
+        $warehouse = Warehouse::factory()->forBranch($branch)->create();
+        $unit = Unit::factory()->create(['business_id' => $business->id]);
+        $product = Product::factory()->create([
+            'business_id' => $business->id,
+            'unit_id' => $unit->id,
+            'track_inventory' => true,
+            'stock_tracking' => 'none',
+            'selling_price' => 15,
+            'minimum_selling_price' => 10,
+            'purchase_price' => 4,
+        ]);
+        StockLevel::withoutGlobalScopes()->create([
+            'business_id' => $business->id,
+            'product_id' => $product->id,
+            'warehouse_id' => $warehouse->id,
+            'quantity' => 6,
+            'reserved_quantity' => 0,
+        ]);
+
+        $cashAccount = ChartOfAccount::withoutGlobalScopes()
+            ->where('business_id', $business->id)
+            ->where('code', '1110')
+            ->firstOrFail();
+
+        $cashPaymentAccount = PaymentAccount::withoutGlobalScopes()->create([
+            'business_id' => $business->id,
+            'name' => 'Main Cash Drawer',
+            'account_type' => 'cash',
+            'opening_balance' => 0,
+            'coa_account_id' => $cashAccount->id,
+            'is_active' => true,
+        ]);
+
+        $user = User::factory()->for($business)->create();
+        $user->assignRole('manager');
+        $user->branches()->attach($branch->id);
+
+        Sanctum::actingAs($user);
+
+        $saleId = $this->postJson('/api/v1/sales', [
+            'branch_id' => $branch->id,
+            'warehouse_id' => $warehouse->id,
+            'type' => 'invoice',
+            'sale_date' => now()->toDateString(),
+            'items' => [[
+                'product_id' => $product->id,
+                'quantity' => 2,
+                'unit_price' => 15,
+                'unit_cost' => 4,
+            ]],
+        ])->assertCreated()->json('data.id');
+
+        $this->postJson("/api/v1/sales/{$saleId}/confirm")->assertOk();
+        $this->postJson("/api/v1/sales/{$saleId}/complete")->assertOk();
+
+        $paymentResponse = $this->postJson("/api/v1/sales/{$saleId}/payments", [
+            'payment_account_id' => $cashPaymentAccount->id,
+            'amount' => 20,
+            'method' => 'cash',
+            'payment_date' => now()->toDateString(),
+            'reference' => 'CASH-DELETE',
+        ])->assertCreated();
+
+        $paymentId = $paymentResponse->json('data.payment.id');
+
+        $accountant = User::factory()->for($business)->create();
+        $accountant->assignRole('accountant');
+        $accountant->branches()->attach($branch->id);
+
+        Sanctum::actingAs($accountant);
+
+        $this->deleteJson("/api/v1/sales/{$saleId}/payments/{$paymentId}", [
+            'reason' => 'Customer changed tender',
+        ])->assertOk()
+            ->assertJsonPath('data.reversed_payment.status', 'reversed')
+            ->assertJsonPath('data.sale.payment_status', 'unpaid')
+            ->assertJsonPath('data.sale.paid_amount', '0.00');
+
+        $this->assertDatabaseHas('sale_payments', [
+            'id' => $paymentId,
+            'status' => 'reversed',
+            'reversal_reason' => 'Customer changed tender',
+        ]);
+        $this->assertDatabaseHas('account_transactions', [
+            'payment_account_id' => $cashPaymentAccount->id,
+            'reference_type' => 'App\\Models\\SalePayment',
+            'reference_id' => $paymentId,
+            'type' => 'debit',
+            'amount' => '20.00',
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'business_id' => $business->id,
+            'event' => 'deleted',
+            'auditable_type' => 'App\\Models\\SalePayment',
+            'auditable_id' => $paymentId,
         ]);
     }
 

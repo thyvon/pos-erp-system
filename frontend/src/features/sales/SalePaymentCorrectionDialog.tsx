@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Controller, useForm, type FieldPath } from 'react-hook-form'
+import { Controller, useForm, useWatch, type FieldPath } from 'react-hook-form'
 import { z } from 'zod'
 import {
   Alert,
@@ -23,6 +23,7 @@ import {
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
+import { PaymentsOutlined } from '@/components/ui/icons'
 import type { ExchangeRate, PaymentAccount } from '@/types/accounting'
 import type { SalePayment, SalePaymentCorrectionPayload, SalePaymentMethod } from '@/types/sales'
 
@@ -61,6 +62,10 @@ function exchangeRateValue(exchangeRate: ExchangeRate | null) {
   return toNumber(exchangeRate?.rate)
 }
 
+function paymentAccountLabel(account: PaymentAccount) {
+  return [account.name, account.type].filter(Boolean).join(' / ')
+}
+
 function valuesFromPayment(payment: SalePayment | null, paymentAccounts: PaymentAccount[]): FormInput {
   const defaultAccountId = paymentAccounts.find((account) => account.is_active)?.id ?? ''
 
@@ -95,15 +100,14 @@ export function SalePaymentCorrectionDialog({
     reset,
     setValue,
     setError,
-    watch,
     formState: { errors },
   } = useForm<FormInput, unknown, FormValues>({
     resolver: zodResolver(schema),
     defaultValues: values,
   })
 
-  const paymentCurrency = watch('payment_currency')
-  const paymentAmount = watch('payment_amount')
+  const paymentCurrency = useWatch({ control, name: 'payment_currency' }) ?? 'USD'
+  const paymentAmount = useWatch({ control, name: 'payment_amount' })
 
   useEffect(() => {
     if (open) reset(values)
@@ -158,120 +162,188 @@ export function SalePaymentCorrectionDialog({
     }
   }
 
-  const convertedAmount = paymentCurrency === 'KHR' && exchangeRateValue(defaultExchangeRate) > 0
-    ? Math.round((toNumber(paymentAmount) / exchangeRateValue(defaultExchangeRate)) * 100) / 100
+  const exchangeRate = exchangeRateValue(defaultExchangeRate)
+  const convertedAmount = paymentCurrency === 'KHR' && exchangeRate > 0
+    ? Math.round((toNumber(paymentAmount) / exchangeRate) * 100) / 100
     : Math.round(toNumber(paymentAmount) * 100) / 100
 
   return (
-    <Dialog open={open} onClose={isSaving ? undefined : closeDialog} fullWidth maxWidth="sm">
+    <Dialog open={open} onClose={isSaving ? undefined : closeDialog} fullWidth maxWidth="md">
       <Box component="form" noValidate onSubmit={handleSubmit(submitForm)}>
-        <DialogTitle>{t('payment.editTitle')}</DialogTitle>
-        <DialogContent dividers>
-          <Stack spacing={2.5} sx={{ pt: 0.5 }}>
-            {serverError && <Alert severity="error">{serverError}</Alert>}
-            <Alert severity="info">{t('payment.updateHelp')}</Alert>
-            <Controller
-              name="payment_account_id"
-              control={control}
-              render={({ field }) => (
-                <Autocomplete
-                  options={activeAccounts}
-                  value={activeAccounts.find((account) => account.id === field.value) ?? null}
-                  getOptionLabel={(account) => account.name}
-                  isOptionEqualToValue={(option, value) => option.id === value.id}
-                  onBlur={field.onBlur}
-                  onChange={(_, account) => field.onChange(account?.id ?? '')}
-                  renderInput={(params) => (
-                    <TextField {...params} label={t('payment.account')} error={!!errors.payment_account_id} helperText={errors.payment_account_id?.message} required />
-                  )}
-                />
-              )}
-            />
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '140px minmax(0, 1fr)' }, gap: 2 }}>
-              <Controller
-                name="payment_currency"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label={t('payment.currency')}
-                    fullWidth
-                    select
-                    error={!!errors.payment_currency}
-                    helperText={errors.payment_currency?.message}
-                    required
-                    onChange={(event) => changePaymentCurrency(event.target.value as 'USD' | 'KHR')}
-                  >
-                    <MenuItem value="USD">USD</MenuItem>
-                    <MenuItem value="KHR" disabled={!defaultExchangeRate}>KHR</MenuItem>
-                  </TextField>
-                )}
-              />
-              <Controller
-                name="payment_amount"
-                control={control}
-                render={({ field }) => (
-                  <TextField
-                    {...field}
-                    label={t('payment.amount')}
-                    fullWidth
-                    type="number"
-                    error={!!errors.payment_amount}
-                    helperText={errors.payment_amount?.message}
-                    required
-                    slotProps={{
-                      htmlInput: { min: 0.01, step: 0.01 },
-                      input: { startAdornment: <InputAdornment position="start">{paymentCurrency}</InputAdornment> },
-                    }}
-                  />
-                )}
-              />
+        <DialogTitle sx={{ p: 0 }}>
+          <Box
+            sx={{
+              px: 3,
+              py: 2.25,
+              display: 'flex',
+              gap: 1.5,
+              alignItems: 'center',
+              borderBottom: 1,
+              borderColor: 'divider',
+              bgcolor: 'background.paper',
+            }}
+          >
+            <Box
+              sx={{
+                width: 42,
+                height: 42,
+                borderRadius: 1,
+                display: 'grid',
+                placeItems: 'center',
+                bgcolor: 'primary.main',
+                color: 'primary.contrastText',
+                flex: '0 0 auto',
+              }}
+            >
+              <PaymentsOutlined />
             </Box>
-            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-              {t('payment.converted')}: USD {convertedAmount.toFixed(2)}
-            </Typography>
-            <Controller
-              name="method"
-              control={control}
-              render={({ field }) => (
-                <TextField {...field} label={t('payment.method')} fullWidth select error={!!errors.method} helperText={errors.method?.message} required>
-                  {paymentMethods.map((method) => (
-                    <MenuItem key={method} value={method}>
-                      {t(`paymentMethods.${method}`)}
-                    </MenuItem>
-                  ))}
-                </TextField>
-              )}
-            />
-            <Controller
-              name="reference"
-              control={control}
-              render={({ field }) => (
-                <TextField {...field} value={field.value ?? ''} label={t('payment.reference')} fullWidth error={!!errors.reference} helperText={errors.reference?.message} />
-              )}
-            />
-            <Controller
-              name="payment_date"
-              control={control}
-              render={({ field }) => (
-                <AppDatePicker label={t('payment.date')} value={field.value} onChange={field.onChange} error={!!errors.payment_date} helperText={errors.payment_date?.message} required />
-              )}
-            />
-            <Controller
-              name="note"
-              control={control}
-              render={({ field }) => (
-                <TextField {...field} value={field.value ?? ''} label={t('payment.note')} fullWidth error={!!errors.note} helperText={errors.note?.message} />
-              )}
-            />
-            <Controller
-              name="reason"
-              control={control}
-              render={({ field }) => (
-                <TextField {...field} value={field.value ?? ''} label={t('payment.reason')} fullWidth required multiline minRows={2} error={!!errors.reason} helperText={errors.reason?.message} />
-              )}
-            />
-          </Stack>
+            <Box sx={{ minWidth: 0 }}>
+              <Typography variant="h6" sx={{ fontWeight: 800 }}>{t('payment.editTitle')}</Typography>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>{t('payment.updateHelp')}</Typography>
+            </Box>
+          </Box>
+        </DialogTitle>
+        <DialogContent dividers sx={{ p: 0, bgcolor: 'background.default' }}>
+          <Box sx={{ p: 3 }}>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', md: '240px minmax(0, 1fr)' },
+                gap: 2,
+                alignItems: 'start',
+              }}
+            >
+              <Stack
+                spacing={1.25}
+                sx={{
+                  p: 2,
+                  border: 1,
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                  bgcolor: 'success.lighter',
+                }}
+              >
+                <Typography variant="caption" sx={{ color: 'success.dark', fontWeight: 800, textTransform: 'uppercase' }}>
+                  {t('payment.amount')}
+                </Typography>
+                <Typography variant="h4" sx={{ color: 'success.dark', fontWeight: 900 }}>
+                  {paymentCurrency} {toNumber(paymentAmount).toLocaleString(undefined, { maximumFractionDigits: 2 })}
+                </Typography>
+                <Typography variant="body2" sx={{ color: 'success.dark' }}>
+                  {t('payment.converted')}: USD {convertedAmount.toFixed(2)}
+                </Typography>
+                {paymentCurrency === 'KHR' && defaultExchangeRate && (
+                  <Typography variant="caption" sx={{ color: 'success.dark' }}>
+                    USD 1 = KHR {toNumber(defaultExchangeRate.rate).toLocaleString()}
+                  </Typography>
+                )}
+              </Stack>
+
+              <Stack spacing={2}>
+                {serverError && <Alert severity="error">{serverError}</Alert>}
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(220px, 1fr) 120px 170px' }, gap: 1.5 }}>
+                  <Controller
+                    name="payment_account_id"
+                    control={control}
+                    render={({ field }) => (
+                      <Autocomplete
+                        options={activeAccounts}
+                        value={activeAccounts.find((account) => account.id === field.value) ?? null}
+                        getOptionLabel={paymentAccountLabel}
+                        isOptionEqualToValue={(option, value) => option.id === value.id}
+                        onBlur={field.onBlur}
+                        onChange={(_, account) => field.onChange(account?.id ?? '')}
+                        renderInput={(params) => (
+                          <TextField {...params} label={t('payment.account')} error={!!errors.payment_account_id} helperText={errors.payment_account_id?.message} required />
+                        )}
+                      />
+                    )}
+                  />
+                  <Controller
+                    name="payment_currency"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        label={t('payment.currency')}
+                        select
+                        error={!!errors.payment_currency}
+                        helperText={errors.payment_currency?.message}
+                        required
+                        onChange={(event) => changePaymentCurrency(event.target.value as 'USD' | 'KHR')}
+                      >
+                        <MenuItem value="USD">USD</MenuItem>
+                        <MenuItem value="KHR" disabled={!defaultExchangeRate}>KHR</MenuItem>
+                      </TextField>
+                    )}
+                  />
+                  <Controller
+                    name="payment_amount"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField
+                        {...field}
+                        label={t('payment.amount')}
+                        type="number"
+                        error={!!errors.payment_amount}
+                        helperText={errors.payment_amount?.message}
+                        required
+                        slotProps={{
+                          htmlInput: { min: 0.01, step: 0.01 },
+                          input: { startAdornment: <InputAdornment position="start">{paymentCurrency}</InputAdornment> },
+                        }}
+                      />
+                    )}
+                  />
+                </Box>
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '180px minmax(180px, 1fr) 180px' }, gap: 1.5 }}>
+                  <Controller
+                    name="method"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField {...field} label={t('payment.method')} select error={!!errors.method} helperText={errors.method?.message} required>
+                        {paymentMethods.map((method) => (
+                          <MenuItem key={method} value={method}>
+                            {t(`paymentMethods.${method}`)}
+                          </MenuItem>
+                        ))}
+                      </TextField>
+                    )}
+                  />
+                  <Controller
+                    name="reference"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField {...field} value={field.value ?? ''} label={t('payment.reference')} error={!!errors.reference} helperText={errors.reference?.message} />
+                    )}
+                  />
+                  <Controller
+                    name="payment_date"
+                    control={control}
+                    render={({ field }) => (
+                      <AppDatePicker label={t('payment.date')} value={field.value} onChange={field.onChange} error={!!errors.payment_date} helperText={errors.payment_date?.message} required />
+                    )}
+                  />
+                </Box>
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 1.5 }}>
+                  <Controller
+                    name="note"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField {...field} value={field.value ?? ''} label={t('payment.note')} multiline minRows={3} error={!!errors.note} helperText={errors.note?.message} />
+                    )}
+                  />
+                  <Controller
+                    name="reason"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField {...field} value={field.value ?? ''} label={t('payment.reason')} required multiline minRows={3} error={!!errors.reason} helperText={errors.reason?.message} />
+                    )}
+                  />
+                </Box>
+              </Stack>
+            </Box>
+          </Box>
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
           <Button variant="outlined" onClick={closeDialog} disabled={isSaving}>

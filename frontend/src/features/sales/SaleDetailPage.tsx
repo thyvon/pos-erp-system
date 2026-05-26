@@ -203,7 +203,12 @@ export function SaleDetailPage({ saleId }: SaleDetailPageProps) {
                 </Stack>
                 <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
                   {canEdit && (
-                    <Button component={NextLink} href={`/sales/${sale.id}/edit`} startIcon={<EditOutlined />} variant="outlined">
+                    <Button
+                      component={NextLink}
+                      href={sale.type === 'pos_sale' ? `/pos/${sale.id}/edit` : `/sales/${sale.id}/edit`}
+                      startIcon={<EditOutlined />}
+                      variant="outlined"
+                    >
                       {t('common:buttons.edit')}
                     </Button>
                   )}

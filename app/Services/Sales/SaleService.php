@@ -15,17 +15,20 @@ use App\Models\PriceGroup;
 use App\Models\Product;
 use App\Models\ProductVariation;
 use App\Models\Sale;
+use App\Models\StockLot;
+use App\Models\StockSerial;
 use App\Models\SubUnit;
 use App\Models\TaxRate;
 use App\Models\User;
 use App\Models\Warehouse;
 use App\Repositories\Sales\SaleRepository;
 use App\Services\Accounting\AccountingService;
+use App\Services\AuditService;
 use App\Services\Foundation\EditWindowService;
 use App\Services\Foundation\SettingsService;
-use App\Services\AuditService;
 use App\Services\Inventory\StockMovementService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\QueryException;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -35,11 +38,11 @@ class SaleService
         protected SaleRepository $sales,
         protected SettingsService $settings,
         protected EditWindowService $editWindow,
+        protected SalePaymentService $salePayments,
         protected StockMovementService $stockMovementService,
         protected AccountingService $accountingService,
         protected AuditService $auditService,
-    ) {
-    }
+    ) {}
 
     public function paginate(array $filters): LengthAwarePaginator
     {
@@ -48,102 +51,125 @@ class SaleService
 
     public function create(string $businessId, array $data, ?User $actor = null): Sale
     {
-        return DB::transaction(function () use ($businessId, $data, $actor): Sale {
-            $branch = $this->resolveBranch($businessId, $data['branch_id']);
-            $warehouse = $this->resolveWarehouse($businessId, $data['warehouse_id'], $branch);
-            $customer = $this->resolveCustomer($businessId, $data['customer_id'] ?? null);
-            $priceGroup = $this->resolvePriceGroup($businessId, $data['price_group_id'] ?? null);
-            $parentSale = $this->resolveParentSale($businessId, $data['parent_sale_id'] ?? null);
-            $type = (string) ($data['type'] ?? 'draft');
-            $taxScope = (string) ($data['tax_scope'] ?? 'line');
-            $cashRegisterSession = $this->resolveCashRegisterSession(
-                $data['cash_register_session_id'] ?? null,
-                $branch,
-                $type,
-                $actor
-            );
-            $status = $this->initialStatus($type);
-            $saleTaxContext = $this->resolveSaleTaxContext($businessId, $data);
-            $linePayloads = $this->buildLinePayloads($businessId, $warehouse, collect($data['items']), $taxScope);
-            $totals = $this->calculateSaleTotals(
-                $linePayloads,
-                $data['discount_type'] ?? null,
-                (float) ($data['discount_amount'] ?? 0),
-                (float) ($data['shipping_charges'] ?? 0),
-                $taxScope,
-                $saleTaxContext,
-            );
+        $clientRequestId = $this->normalizeClientRequestId($data['client_request_id'] ?? null);
 
-            /** @var Sale $sale */
-            $sale = $this->sales->create([
-                'business_id' => $businessId,
-                'branch_id' => $branch->id,
-                'warehouse_id' => $warehouse->id,
-                'customer_id' => $customer?->id,
-                'cash_register_session_id' => $cashRegisterSession?->id,
-                'commission_agent_id' => $this->resolveCommissionAgentId($businessId, $data['commission_agent_id'] ?? null),
-                'parent_sale_id' => $parentSale?->id,
-                'created_by' => $actor?->id ?? ($data['created_by'] ?? null),
-                'sale_number' => $this->generateSaleNumber($businessId, $type),
-                'type' => $type,
-                'status' => $status,
-                'payment_status' => 'unpaid',
-                'delivery_status' => null,
-                'is_recurring' => false,
-                'sale_date' => $data['sale_date'],
-                'due_date' => $data['due_date'] ?? null,
-                'subtotal' => $totals['subtotal'],
-                'discount_type' => $data['discount_type'] ?? null,
-                'discount_amount' => $totals['sale_discount_amount'],
-                'tax_scope' => $taxScope,
-                'tax_rate_id' => $saleTaxContext['tax_rate_id'],
-                'tax_rate_type' => $saleTaxContext['tax_rate_type'],
-                'tax_rate' => $saleTaxContext['tax_rate'],
-                'tax_type' => $saleTaxContext['tax_type'],
-                'tax_amount' => $totals['tax_amount'],
-                'shipping_charges' => $totals['shipping_charges'],
-                'total_amount' => $totals['total_amount'],
-                'paid_amount' => 0,
-                'change_amount' => 0,
-                'price_group_id' => $priceGroup?->id,
-                'notes' => $data['notes'] ?? null,
-                'staff_note' => $data['staff_note'] ?? null,
-            ]);
+        if ($clientRequestId) {
+            $existingSale = $this->findByClientRequestId($businessId, $clientRequestId);
 
-            foreach ($linePayloads as $linePayload) {
-                $item = $sale->items()->create($linePayload['item']);
+            if ($existingSale) {
+                return $existingSale;
+            }
+        }
 
-                foreach ($linePayload['lots'] as $lotPayload) {
-                    $item->lots()->create($lotPayload);
+        try {
+            return DB::transaction(function () use ($businessId, $data, $actor, $clientRequestId): Sale {
+                $branch = $this->resolveBranch($businessId, $data['branch_id']);
+                $warehouse = $this->resolveWarehouse($businessId, $data['warehouse_id'], $branch);
+                $customer = $this->resolveCustomer($businessId, $data['customer_id'] ?? null);
+                $priceGroup = $this->resolvePriceGroup($businessId, $data['price_group_id'] ?? null);
+                $parentSale = $this->resolveParentSale($businessId, $data['parent_sale_id'] ?? null);
+                $type = (string) ($data['type'] ?? 'draft');
+                $taxScope = (string) ($data['tax_scope'] ?? 'line');
+                $cashRegisterSession = $this->resolveCashRegisterSession(
+                    $data['cash_register_session_id'] ?? null,
+                    $branch,
+                    $type,
+                    $actor
+                );
+                $status = $this->initialStatus($type);
+                $saleTaxContext = $this->resolveSaleTaxContext($businessId, $data);
+                $linePayloads = $this->buildLinePayloads($businessId, $warehouse, collect($data['items']), $taxScope);
+                $totals = $this->calculateSaleTotals(
+                    $linePayloads,
+                    $data['discount_type'] ?? null,
+                    (float) ($data['discount_amount'] ?? 0),
+                    (float) ($data['shipping_charges'] ?? 0),
+                    $taxScope,
+                    $saleTaxContext,
+                );
+
+                /** @var Sale $sale */
+                $sale = $this->sales->create([
+                    'business_id' => $businessId,
+                    'branch_id' => $branch->id,
+                    'warehouse_id' => $warehouse->id,
+                    'customer_id' => $customer?->id,
+                    'cash_register_session_id' => $cashRegisterSession?->id,
+                    'commission_agent_id' => $this->resolveCommissionAgentId($businessId, $data['commission_agent_id'] ?? null),
+                    'parent_sale_id' => $parentSale?->id,
+                    'created_by' => $actor?->id ?? ($data['created_by'] ?? null),
+                    'sale_number' => $this->generateSaleNumber($businessId, $type),
+                    'client_request_id' => $clientRequestId,
+                    'type' => $type,
+                    'status' => $status,
+                    'payment_status' => 'unpaid',
+                    'delivery_status' => null,
+                    'is_recurring' => false,
+                    'sale_date' => $data['sale_date'],
+                    'due_date' => $data['due_date'] ?? null,
+                    'subtotal' => $totals['subtotal'],
+                    'discount_type' => $data['discount_type'] ?? null,
+                    'discount_amount' => $totals['sale_discount_amount'],
+                    'tax_scope' => $taxScope,
+                    'tax_rate_id' => $saleTaxContext['tax_rate_id'],
+                    'tax_rate_type' => $saleTaxContext['tax_rate_type'],
+                    'tax_rate' => $saleTaxContext['tax_rate'],
+                    'tax_type' => $saleTaxContext['tax_type'],
+                    'tax_amount' => $totals['tax_amount'],
+                    'shipping_charges' => $totals['shipping_charges'],
+                    'total_amount' => $totals['total_amount'],
+                    'paid_amount' => 0,
+                    'change_amount' => 0,
+                    'price_group_id' => $priceGroup?->id,
+                    'notes' => $data['notes'] ?? null,
+                    'staff_note' => $data['staff_note'] ?? null,
+                ]);
+
+                foreach ($linePayloads as $linePayload) {
+                    $item = $sale->items()->create($linePayload['item']);
+
+                    foreach ($linePayload['lots'] as $lotPayload) {
+                        $item->lots()->create($lotPayload);
+                    }
+
+                    foreach ($linePayload['serials'] as $serialId) {
+                        $item->serials()->create([
+                            'serial_id' => $serialId,
+                        ]);
+                    }
                 }
 
-                foreach ($linePayload['serials'] as $serialId) {
-                    $item->serials()->create([
-                        'serial_id' => $serialId,
-                    ]);
+                $sale = $this->loadSale($sale);
+
+                $this->auditService->log(
+                    'created',
+                    Sale::class,
+                    $sale->id,
+                    $actor,
+                    $businessId,
+                    null,
+                    [
+                        'sale_number' => $sale->sale_number,
+                        'status' => $sale->status,
+                        'type' => $sale->type,
+                        'branch_id' => $sale->branch_id,
+                        'total_amount' => (string) $sale->total_amount,
+                    ]
+                );
+
+                return $this->applyInlinePayments($businessId, $sale, $data, $actor);
+            });
+        } catch (QueryException $exception) {
+            if ($clientRequestId && $this->isDuplicateClientRequest($exception)) {
+                $existingSale = $this->findByClientRequestId($businessId, $clientRequestId);
+
+                if ($existingSale) {
+                    return $existingSale;
                 }
             }
 
-            $sale = $this->loadSale($sale);
-
-            $this->auditService->log(
-                'created',
-                Sale::class,
-                $sale->id,
-                $actor,
-                $businessId,
-                null,
-                [
-                    'sale_number' => $sale->sale_number,
-                    'status' => $sale->status,
-                    'type' => $sale->type,
-                    'branch_id' => $sale->branch_id,
-                    'total_amount' => (string) $sale->total_amount,
-                ]
-            );
-
-            return $sale;
-        });
+            throw $exception;
+        }
     }
 
     public function update(string $businessId, Sale $sale, array $data, ?User $actor = null): Sale
@@ -284,8 +310,55 @@ class SaleService
                 ]
             );
 
-            return $lockedSale;
+            return $this->applyInlinePayments($businessId, $lockedSale, $data, $actor);
         });
+    }
+
+    protected function applyInlinePayments(string $businessId, Sale $sale, array $data, ?User $actor = null): Sale
+    {
+        if (empty($data['payments']) || ! is_array($data['payments'])) {
+            return $sale;
+        }
+
+        if (! in_array($sale->type, ['invoice', 'pos_sale'], true)) {
+            throw new DomainException('Payments can only be recorded while saving invoice or POS sales.', 422);
+        }
+
+        $payableSale = $sale->status === 'completed'
+            ? $sale
+            : $this->complete($businessId, $sale, $actor);
+
+        $result = $this->salePayments->record($businessId, $payableSale, [
+            'payment_date' => $data['payment_date'] ?? $payableSale->sale_date,
+            'note' => $data['payment_note'] ?? null,
+            'payments' => $data['payments'],
+        ], $actor);
+
+        return $result['sale'];
+    }
+
+    protected function normalizeClientRequestId(?string $clientRequestId): ?string
+    {
+        $clientRequestId = trim((string) $clientRequestId);
+
+        return $clientRequestId !== '' ? $clientRequestId : null;
+    }
+
+    protected function findByClientRequestId(string $businessId, string $clientRequestId): ?Sale
+    {
+        /** @var Sale|null $sale */
+        $sale = Sale::withoutGlobalScopes()
+            ->where('business_id', $businessId)
+            ->where('client_request_id', $clientRequestId)
+            ->first();
+
+        return $sale ? $this->loadSale($sale) : null;
+    }
+
+    protected function isDuplicateClientRequest(QueryException $exception): bool
+    {
+        return (string) $exception->getCode() === '23000'
+            && str_contains($exception->getMessage(), 'sales_business_client_request_unique');
     }
 
     public function confirm(string $businessId, Sale $sale, ?User $actor = null): Sale
@@ -517,8 +590,7 @@ class SaleService
         float $shippingCharges,
         string $taxScope = 'line',
         array $saleTaxContext = [],
-    ): array
-    {
+    ): array {
         $subtotal = round((float) $linePayloads->sum(fn (array $line) => $line['meta']['base_amount']), 2);
         $resolvedSaleDiscount = $this->resolveDiscountAmount($discountType, $discountAmount, $subtotal);
         $taxableAfterSaleDiscount = max(0, round($subtotal - $resolvedSaleDiscount, 2));
@@ -991,8 +1063,7 @@ class SaleService
         Branch $branch,
         string $type,
         ?User $actor
-    ): ?CashRegisterSession
-    {
+    ): ?CashRegisterSession {
         if (! filled($sessionId)) {
             if ($type === 'pos_sale' && $this->requiresCashRegisterSession()) {
                 $this->failValidation('An open cash register session is required for this sale.');
@@ -1101,8 +1172,7 @@ class SaleService
         Product $product,
         ?ProductVariation $variation,
         ?string $subUnitId
-    ): ?SubUnit
-    {
+    ): ?SubUnit {
         if (! filled($subUnitId)) {
             return null;
         }
@@ -1127,8 +1197,8 @@ class SaleService
 
     protected function resolveLot(string $businessId, Warehouse $warehouse, Product $product, ?ProductVariation $variation, string $lotId)
     {
-        /** @var \App\Models\StockLot|null $lot */
-        $lot = \App\Models\StockLot::withoutGlobalScopes()
+        /** @var StockLot|null $lot */
+        $lot = StockLot::withoutGlobalScopes()
             ->where('business_id', $businessId)
             ->where('warehouse_id', $warehouse->id)
             ->where('product_id', $product->id)
@@ -1144,8 +1214,8 @@ class SaleService
 
     protected function resolveSerial(string $businessId, Warehouse $warehouse, Product $product, ?ProductVariation $variation, string $serialId)
     {
-        /** @var \App\Models\StockSerial|null $serial */
-        $serial = \App\Models\StockSerial::withoutGlobalScopes()
+        /** @var StockSerial|null $serial */
+        $serial = StockSerial::withoutGlobalScopes()
             ->where('business_id', $businessId)
             ->where('warehouse_id', $warehouse->id)
             ->where('product_id', $product->id)
@@ -1265,13 +1335,13 @@ class SaleService
         $taxRateRecord = null;
 
         if (filled($taxRateId)) {
-          $taxRateRecord = TaxRate::withoutGlobalScopes()
-              ->where('business_id', $businessId)
-              ->find($taxRateId);
+            $taxRateRecord = TaxRate::withoutGlobalScopes()
+                ->where('business_id', $businessId)
+                ->find($taxRateId);
 
-          if (! $taxRateRecord) {
-              $this->failValidation('Selected sale tax rate is invalid for this business.');
-          }
+            if (! $taxRateRecord) {
+                $this->failValidation('Selected sale tax rate is invalid for this business.');
+            }
         }
 
         return [
@@ -1287,8 +1357,7 @@ class SaleService
         float $taxRate,
         ?string $taxType,
         ?string $taxRateType,
-    ): array
-    {
+    ): array {
         if ($taxRate <= 0 || $grossAfterDiscount <= 0) {
             return [
                 'base_amount' => round($grossAfterDiscount, 2),

@@ -20,6 +20,7 @@ return static function (): void {
     Route::post('sales/{sale}/cancel', [SaleController::class, 'cancel'])->middleware('can:cancel,sale');
     Route::post('sales/{sale}/payments', [SaleController::class, 'recordPayment'])->middleware('can:recordPayment,sale');
     Route::put('sales/{sale}/payments/{salePayment}', [SaleController::class, 'updatePayment'])->middleware('can:updatePayment,sale');
+    Route::delete('sales/{sale}/payments/{salePayment}', [SaleController::class, 'deletePayment'])->middleware('can:deletePayment,sale');
     Route::post('sales/{sale}/returns', [SaleReturnController::class, 'store'])->middleware('can:recordReturn,sale');
 
     Route::get('sale-returns', [SaleReturnController::class, 'index'])->middleware('can:viewAny,'.\App\Models\SaleReturn::class);

@@ -5,14 +5,13 @@ namespace App\Services\Auth;
 use App\Exceptions\Domain\DomainException;
 use App\Models\User;
 use App\Services\AuditService;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Validation\ValidationException;
 
 class AuthService
 {
-    public function __construct(protected AuditService $auditService)
-    {
-    }
+    public function __construct(protected AuditService $auditService) {}
 
     public function authenticate(string $email, string $password): User
     {
@@ -46,17 +45,19 @@ class AuthService
             throw new DomainException(__('This business is not active.'), 403);
         }
 
-        $user->forceFill([
-            'last_login_at' => now(),
-        ])->save();
+        DB::transaction(function () use ($user): void {
+            $user->forceFill([
+                'last_login_at' => now(),
+            ])->save();
 
-        $this->auditService->log(
-            'login',
-            User::class,
-            $user->id,
-            $user,
-            $user->business_id
-        );
+            $this->auditService->log(
+                'login',
+                User::class,
+                $user->id,
+                $user,
+                $user->business_id
+            );
+        });
 
         return $user->fresh(['business', 'roles', 'permissions', 'branches', 'defaultBranch']);
     }
@@ -84,17 +85,19 @@ class AuthService
             ]);
         }
 
-        $user->forceFill([
-            'password' => $newPassword,
-        ])->save();
+        DB::transaction(function () use ($user, $newPassword): void {
+            $user->forceFill([
+                'password' => $newPassword,
+            ])->save();
 
-        $this->auditService->log(
-            'password_changed',
-            User::class,
-            $user->id,
-            $user,
-            $user->business_id
-        );
+            $this->auditService->log(
+                'password_changed',
+                User::class,
+                $user->id,
+                $user,
+                $user->business_id
+            );
+        });
 
         return $user->fresh(['business', 'roles', 'permissions', 'branches', 'defaultBranch']);
     }

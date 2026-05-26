@@ -17,8 +17,7 @@ class CustomerGroupService
     public function __construct(
         protected CustomerGroupRepository $customerGroups,
         protected AuditLogger $auditLogger,
-    ) {
-    }
+    ) {}
 
     public function paginate(array $filters): LengthAwarePaginator
     {
@@ -27,63 +26,69 @@ class CustomerGroupService
 
     public function create(string $businessId, array $data, ?User $actor = null): CustomerGroup
     {
-        $payload = $this->normalizePayload($businessId, $data);
+        return DB::transaction(function () use ($businessId, $data, $actor): CustomerGroup {
+            $payload = $this->normalizePayload($businessId, $data);
 
-        /** @var CustomerGroup $customerGroup */
-        $customerGroup = $this->customerGroups->create($payload);
+            /** @var CustomerGroup $customerGroup */
+            $customerGroup = $this->customerGroups->create($payload);
 
-        $this->auditLogger->log(
-            'created',
-            CustomerGroup::class,
-            $customerGroup->id,
-            $actor,
-            $businessId,
-            null,
-            $this->auditPayload($customerGroup)
-        );
+            $this->auditLogger->log(
+                'created',
+                CustomerGroup::class,
+                $customerGroup->id,
+                $actor,
+                $businessId,
+                null,
+                $this->auditPayload($customerGroup)
+            );
 
-        return $customerGroup;
+            return $customerGroup;
+        });
     }
 
     public function update(string $businessId, CustomerGroup $customerGroup, array $data, ?User $actor = null): CustomerGroup
     {
-        $this->ensureBelongsToBusiness($businessId, $customerGroup);
-        $before = $this->auditPayload($customerGroup);
-        $payload = $this->normalizePayload($businessId, $data, $customerGroup);
+        return DB::transaction(function () use ($businessId, $customerGroup, $data, $actor): CustomerGroup {
+            $this->ensureBelongsToBusiness($businessId, $customerGroup);
+            $before = $this->auditPayload($customerGroup);
+            $payload = $this->normalizePayload($businessId, $data, $customerGroup);
 
-        /** @var CustomerGroup $updatedCustomerGroup */
-        $updatedCustomerGroup = $this->customerGroups->update($customerGroup, $payload);
+            /** @var CustomerGroup $updatedCustomerGroup */
+            $updatedCustomerGroup = $this->customerGroups->update($customerGroup, $payload);
 
-        $this->auditLogger->log(
-            'updated',
-            CustomerGroup::class,
-            $updatedCustomerGroup->id,
-            $actor,
-            $businessId,
-            $before,
-            $this->auditPayload($updatedCustomerGroup)
-        );
+            $this->auditLogger->log(
+                'updated',
+                CustomerGroup::class,
+                $updatedCustomerGroup->id,
+                $actor,
+                $businessId,
+                $before,
+                $this->auditPayload($updatedCustomerGroup)
+            );
 
-        return $updatedCustomerGroup;
+            return $updatedCustomerGroup;
+        });
     }
 
     public function delete(string $businessId, CustomerGroup $customerGroup, ?User $actor = null): void
     {
-        $this->ensureBelongsToBusiness($businessId, $customerGroup);
-        $this->ensureCustomerGroupCanBeDeleted($customerGroup);
-        $before = $this->auditPayload($customerGroup);
+        DB::transaction(function () use ($businessId, $customerGroup, $actor): void {
+            $this->ensureBelongsToBusiness($businessId, $customerGroup);
+            $this->ensureCustomerGroupCanBeDeleted($customerGroup);
+            $before = $this->auditPayload($customerGroup);
 
-        $this->customerGroups->delete($customerGroup);
+            $this->customerGroups->delete($customerGroup);
 
-        $this->auditLogger->log(
-            'deleted',
-            CustomerGroup::class,
-            $customerGroup->id,
-            $actor,
-            $businessId,
-            $before,
-            null
-        );
+            $this->auditLogger->log(
+                'deleted',
+                CustomerGroup::class,
+                $customerGroup->id,
+                $actor,
+                $businessId,
+                $before,
+                null
+            );
+        });
     }
 
     protected function normalizePayload(string $businessId, array $data, ?CustomerGroup $customerGroup = null): array

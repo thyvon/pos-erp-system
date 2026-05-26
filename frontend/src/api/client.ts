@@ -1,3 +1,4 @@
+import type { AxiosRequestConfig } from 'axios'
 import api from './axios'
 import { toAppApiError } from './errors'
 import type { ApiResponse, PaginatedResponse } from '@/types/api'
@@ -26,5 +27,5 @@ export const apiClient = {
     unwrapApiResponse<T>(api.post(url, payload)),
   put: <T, TPayload = unknown>(url: string, payload?: TPayload) =>
     unwrapApiResponse<T>(api.put(url, payload)),
-  delete: <T>(url: string) => unwrapApiResponse<T>(api.delete(url)),
+  delete: <T>(url: string, config?: AxiosRequestConfig) => unwrapApiResponse<T>(api.delete(url, config)),
 }

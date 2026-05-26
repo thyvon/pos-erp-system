@@ -67,6 +67,7 @@ const NAV_CONFIG: NavSection[] = [
     key: 'overview',
     items: [
       { key: 'dashboard', path: '/dashboard', icon: <DashboardOutlined /> },
+      { key: 'pos', path: '/pos', icon: <PointOfSaleOutlined /> },
       { key: 'sales', path: '/sales', icon: <PointOfSaleOutlined /> },
     ],
   },

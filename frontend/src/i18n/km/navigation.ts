@@ -9,6 +9,7 @@ export default {
   },
   items: {
     dashboard: 'ផ្ទាំងគ្រប់គ្រង',
+    pos: 'POS',
     sales: 'ការលក់',
     branches: 'សាខា',
     warehouses: 'ឃ្លាំង',
@@ -46,6 +47,7 @@ export default {
   },
   breadcrumbs: {
     dashboard: 'ផ្ទាំងគ្រប់គ្រង',
+    pos: 'ចំណុចលក់',
     sales: 'ការគ្រប់គ្រងការលក់',
     saleCreate: 'បង្កើតការលក់',
     saleEdit: 'កែប្រែការលក់',

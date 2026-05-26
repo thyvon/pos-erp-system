@@ -6,6 +6,7 @@ const nullableText = () =>
 const paymentMethods = ['cash', 'card', 'bank_transfer', 'cheque', 'reward_points', 'gift_card', 'other'] as const
 
 const saleDirectPaymentLineSchema = z.object({
+  sale_payment_id: z.string().optional(),
   payment_account_id: z.string().min(1, 'Payment account is required'),
   payment_currency: z.enum(['USD', 'KHR']),
   payment_amount: z.coerce.number().gt(0, 'Amount must be greater than zero'),
@@ -14,6 +15,7 @@ const saleDirectPaymentLineSchema = z.object({
 })
 
 const saleDirectPaymentDraftLineSchema = z.object({
+  sale_payment_id: z.string().optional(),
   payment_account_id: z.string().optional(),
   payment_currency: z.enum(['USD', 'KHR']).optional(),
   payment_amount: z.coerce.number().optional(),
@@ -49,6 +51,7 @@ export const saleFormSchema = z.object({
   branch_id: z.string().min(1, 'Branch is required'),
   warehouse_id: z.string().min(1, 'Warehouse is required'),
   customer_id: z.string().nullable().optional(),
+  cash_register_session_id: z.string().nullable().optional(),
   type: z.enum(['invoice', 'pos_sale', 'draft', 'suspended', 'quotation']),
   sale_date: z.string().min(1, 'Sale date is required'),
   due_date: z.string().nullable().optional(),

@@ -47,7 +47,7 @@ import { useAppDateFormat } from '@/features/settings/useAppDateFormat'
 import { useTaxRatesQuery } from '@/features/tax-rates/hooks'
 import { useWarehousesQuery } from '@/features/warehouses/hooks'
 import { useAuthStore } from '@/stores/authStore'
-import { useCompleteSaleMutation, useCreateSaleMutation, useRecordSalePaymentMutation, useSaleQuery, useUpdateSaleMutation, useUpdateSalePaymentMutation } from './hooks'
+import { useCreateSaleMutation, useSaleQuery, useUpdateSaleMutation, useUpdateSalePaymentMutation } from './hooks'
 import { saleFormSchema, type SaleFormInput, type SaleFormValues } from './schema'
 import { SalePaymentCorrectionDialog } from './SalePaymentCorrectionDialog'
 import { formatAppDate } from '@/utils/dateFormat'
@@ -237,6 +237,10 @@ function round(value: number) {
   return Math.round(value * 100) / 100
 }
 
+function createClientRequestId() {
+  return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
+
 type DirectPaymentLineInput = NonNullable<SaleFormInput['direct_payments']>[number]
 
 function newDirectPaymentLine(paymentAccounts: PaymentAccount[] = []): DirectPaymentLineInput {
@@ -378,6 +382,7 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
   const can = useAuthStore((state) => state.can)
   const [serverError, setServerError] = useState('')
   const [editingPayment, setEditingPayment] = useState<SalePayment | null>(null)
+  const [clientRequestId, setClientRequestId] = useState(() => createClientRequestId())
   const isEdit = !!saleId
   const currency = useAppCurrency()
   const currencyFormatter = useCurrencyFormatter()
@@ -389,10 +394,9 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
   const taxRatesQuery = useTaxRatesQuery({ is_active: true, per_page: 100 })
   const createSale = useCreateSaleMutation()
   const updateSale = useUpdateSaleMutation()
-  const completeSale = useCompleteSaleMutation()
-  const recordPayment = useRecordSalePaymentMutation()
   const updatePayment = useUpdateSalePaymentMutation()
-  const isSaving = createSale.isPending || updateSale.isPending || completeSale.isPending || recordPayment.isPending || updatePayment.isPending
+  const [isSubmittingSale, setIsSubmittingSale] = useState(false)
+  const isSaving = isSubmittingSale || createSale.isPending || updateSale.isPending || updatePayment.isPending
 
   const {
     control,
@@ -569,33 +573,33 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
   }
 
   const submitForm = async (values: SaleFormValues) => {
+    if (isSubmittingSale) return
+
+    setIsSubmittingSale(true)
     setServerError('')
 
     try {
       if (saleId) {
         const shouldRecordDirectPayment = values.direct_payment_enabled && canTakeDirectPayment
-        const sale = await updateSale.mutateAsync({ id: saleId, payload: buildPayload(values) })
-        const payableSale = shouldRecordDirectPayment && sale.status !== 'completed'
-          ? await completeSale.mutateAsync(sale.id)
-          : sale
         const directPaymentLines = shouldRecordDirectPayment
           ? buildDirectPaymentLines(
             values,
             defaultExchangeRateValue,
             defaultExchangeRate?.id ?? null,
-            outstandingAmount(payableSale, totals.total),
+            outstandingAmount(currentSale, totals.total),
           )
           : []
+        const sale = await updateSale.mutateAsync({
+          id: saleId,
+          payload: {
+            ...buildPayload(values),
+            ...(shouldRecordDirectPayment && directPaymentLines.length > 0
+              ? { payment_date: values.sale_date, payment_note: null, payments: directPaymentLines }
+              : {}),
+          },
+        })
 
         if (shouldRecordDirectPayment && directPaymentLines.length > 0) {
-          await recordPayment.mutateAsync({
-            id: payableSale.id,
-            payload: {
-              payment_date: values.sale_date,
-              note: null,
-              payments: directPaymentLines,
-            },
-          })
           enqueueSnackbar(t('messages.updatedAndPaid'), { variant: 'success' })
         } else {
           enqueueSnackbar(t('messages.updated'), { variant: 'success' })
@@ -607,21 +611,19 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
           ? buildDirectPaymentLines(values, defaultExchangeRateValue, defaultExchangeRate?.id ?? null, totals.total)
           : []
 
-        const sale = await createSale.mutateAsync(buildPayload(values))
+        const sale = await createSale.mutateAsync({
+          ...buildPayload(values),
+          client_request_id: clientRequestId,
+          ...(shouldRecordDirectPayment && directPaymentLines.length > 0
+            ? { payment_date: values.sale_date, payment_note: null, payments: directPaymentLines }
+            : {}),
+        })
         if (shouldRecordDirectPayment && directPaymentLines.length > 0) {
-          await completeSale.mutateAsync(sale.id)
-          await recordPayment.mutateAsync({
-            id: sale.id,
-            payload: {
-              payment_date: values.sale_date,
-              note: null,
-              payments: directPaymentLines,
-            },
-          })
           enqueueSnackbar(t('messages.createdAndPaid'), { variant: 'success' })
         } else {
           enqueueSnackbar(t('messages.created'), { variant: 'success' })
         }
+        setClientRequestId(createClientRequestId())
         router.push(`/sales/${sale.id}`)
       }
     } catch (error) {
@@ -632,6 +634,8 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
         })
       }
       setServerError(apiError.message)
+    } finally {
+      setIsSubmittingSale(false)
     }
   }
 

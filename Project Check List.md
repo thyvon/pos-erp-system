@@ -64,6 +64,20 @@
 - [x] Existing completed sale payments can now be corrected safely through reversal-and-recreate flow, sale edit shows payment correction actions, sale detail has a payment-history toggle, and focused Sales API/frontend type-check verification passed.
 - [x] Sales edit actions now follow the backend sales.edit authorization/edit-lifetime policy so completed sales can be opened for customer corrections when allowed.
 - [x] Sales edit save no longer requires entering a new direct-payment line when users only update the sale itself; direct-payment validation now runs only when Take payment now is enabled.
+- [x] Full-screen POS route added outside the dashboard layout with warehouse/customer/date/price group/items/tax/discount/shipping/notes, sample-inspired product category/brand tile browsing, and direct split-payment checkout fields aligned to the Sales form contract; frontend type-check, lint, and build verified.
+- [x] POS layout reshaped closer to Ultimate POS with left cart/right product tiles, checkout totals under item lines, bottom cashier action bar, and item discount/tax/notes moved into an edit-line dialog; frontend type-check, lint, and build verified.
+- [x] POS summary discount, order tax, and shipping now edit through summary-row modal actions, and duplicate Recent Transactions action was removed from the top toolbar; frontend type-check, lint, and build verified.
+- [x] POS footer payment shortcuts removed in favor of the payment section, a single Save action added, and available-stock text hidden from sell-line rows; frontend type-check, lint, and build verified.
+- [x] POS duplicate suspend control removed, and the POS route now exposes shared layout settings while remaining outside the dashboard sidebar/topbar shell; frontend type-check, lint, and build verified.
+- [x] POS top toolbar now includes a cash-register action that opens the register selection/open-session modal and saves the chosen register session with the sale; frontend type-check, lint, and build verified.
+- [x] POS cash-register modal now supports creating a new active register and opening it with the starting amount/notes in one flow before attaching the session to the sale; frontend type-check, lint, and build verified.
+- [x] Sale/POS save now sends inline payments through the sale create/update transaction, adds a client request id uniqueness guard against duplicate creates, and keeps frontend save buttons locked during submission; PHP syntax checks, frontend type-check, lint, and build verified.
+- [x] Write-flow transaction audit tightened customer-group data/audit writes, auth account/audit writes, and transaction-aware file deletion so database rollback does not leave committed rows pointing at deleted files.
+- [x] POS sales now edit through the full-screen POS form at `/pos/{id}/edit`, with list/detail edit actions routed by sale type and non-POS edit URLs redirecting away from the standard form when needed; frontend type-check, lint, and build verified.
+- [x] POS edit payment records now render in the same payment-line layout as POS create, while keeping completed-payment corrections on the existing safe update flow; frontend type-check and lint verified.
+- [x] POS payment correction modal polished with a POS-style amount summary and aligned payment fields, and POS edit saves now return to `/pos` with a POS-specific update message instead of the sale detail page; frontend type-check and lint verified.
+- [x] POS edit payment handling now uses the same inline multi-line payment form as POS create with no modal, allowing existing completed payment lines to be edited and new lines to be added before Save; frontend type-check and lint verified.
+- [x] POS edit payment lines can now be removed inline; completed payment deletion reverses the payment journal/transaction and marks the payment reversed instead of hard-deleting ledger history. PHP syntax checks and frontend type-check/lint verified; focused backend feature test was added but could not run locally because the PHP SQLite PDO driver is unavailable.
 
 ## Inventory Frontend Rebuild
 

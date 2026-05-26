@@ -158,6 +158,78 @@ class SalePaymentService
         });
     }
 
+    public function remove(string $businessId, Sale $sale, SalePayment $salePayment, string $reason, ?User $actor = null): array
+    {
+        return DB::transaction(function () use ($businessId, $sale, $salePayment, $reason, $actor): array {
+            /** @var Sale $lockedSale */
+            $lockedSale = Sale::withoutGlobalScopes()
+                ->with(['payments.paymentAccount'])
+                ->where('business_id', $businessId)
+                ->whereKey($sale->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ($lockedSale->status !== 'completed') {
+                throw new DomainException('Payments can only be deleted for completed sales.', 422);
+            }
+
+            /** @var SalePayment $lockedPayment */
+            $lockedPayment = SalePayment::withoutGlobalScopes()
+                ->where('business_id', $businessId)
+                ->whereKey($salePayment->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            if ((string) $lockedPayment->sale_id !== (string) $lockedSale->id) {
+                throw new DomainException('The selected payment does not belong to this sale.', 422);
+            }
+
+            if (($lockedPayment->status ?? 'completed') !== 'completed') {
+                throw new DomainException('Only completed payment records can be deleted.', 422);
+            }
+
+            $previousSaleState = [
+                'payment_status' => $lockedSale->payment_status,
+                'paid_amount' => (string) $lockedSale->paid_amount,
+            ];
+
+            $reversalReason = trim($reason) !== '' ? trim($reason) : 'Payment line removed';
+            $reversalJournal = $this->reversePayment($businessId, $lockedSale, $lockedPayment, $reversalReason, $actor);
+            $lockedSale = $this->loadSale($lockedSale);
+            $reversedPayment = $lockedPayment->fresh(['paymentAccount', 'creator', 'reverser', 'replacedPayment']);
+
+            $this->auditService->log(
+                'deleted',
+                SalePayment::class,
+                $lockedPayment->id,
+                $actor,
+                $businessId,
+                [
+                    'payment_account_id' => $lockedPayment->payment_account_id,
+                    'amount' => (string) $lockedPayment->amount,
+                    'method' => $lockedPayment->method,
+                    'reference' => $lockedPayment->reference,
+                    'payment_date' => optional($lockedPayment->payment_date)->toDateString(),
+                    'sale_payment_status' => 'completed',
+                    ...$previousSaleState,
+                ],
+                [
+                    'sale_id' => $lockedSale->id,
+                    'reversal_journal_id' => $reversalJournal->id,
+                    'payment_status' => $lockedSale->payment_status,
+                    'paid_amount' => (string) $lockedSale->paid_amount,
+                    'reason' => $reversalReason,
+                ]
+            );
+
+            return [
+                'sale' => $lockedSale,
+                'reversed_payment' => $reversedPayment,
+                'reversal_journal' => $reversalJournal,
+            ];
+        });
+    }
+
     protected function paymentLines(string $businessId, array $data): array
     {
         if (! empty($data['payments']) && is_array($data['payments'])) {

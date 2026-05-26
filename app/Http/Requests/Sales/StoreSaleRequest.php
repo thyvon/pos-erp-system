@@ -22,6 +22,7 @@ class StoreSaleRequest extends FormRequest
             'customer_id' => ['nullable', 'uuid', Rule::exists('customers', 'id')->where(fn ($query) => $query->where('business_id', $businessId))],
             'cash_register_session_id' => ['nullable', 'uuid', Rule::exists('cash_register_sessions', 'id')],
             'commission_agent_id' => ['nullable', 'uuid', Rule::exists('users', 'id')->where(fn ($query) => $query->where('business_id', $businessId))],
+            'client_request_id' => ['nullable', 'string', 'max:80'],
             'type' => ['nullable', Rule::in(['pos_sale', 'invoice', 'draft', 'quotation', 'suspended'])],
             'sale_date' => ['required', 'date'],
             'due_date' => ['nullable', 'date', 'after_or_equal:sale_date'],
@@ -55,6 +56,26 @@ class StoreSaleRequest extends FormRequest
             'items.*.lot_allocations.*.quantity' => ['required_with:items.*.lot_allocations', 'numeric', 'gt:0'],
             'items.*.serial_ids' => ['nullable', 'array'],
             'items.*.serial_ids.*' => ['uuid', Rule::exists('stock_serials', 'id')->where(fn ($query) => $query->where('business_id', $businessId))],
+            'payment_date' => ['required_with:payments', 'nullable', 'date'],
+            'payment_note' => ['nullable', 'string'],
+            'payments' => ['sometimes', 'array', 'min:1'],
+            'payments.*.payment_account_id' => [
+                'required_with:payments',
+                'uuid',
+                Rule::exists('payment_accounts', 'id')->where(fn ($query) => $query->where('business_id', $businessId)),
+            ],
+            'payments.*.amount' => ['nullable', 'numeric', 'gt:0'],
+            'payments.*.payment_currency' => ['nullable', Rule::in(['USD', 'KHR'])],
+            'payments.*.payment_amount' => ['nullable', 'numeric', 'gt:0'],
+            'payments.*.exchange_rate_id' => [
+                'nullable',
+                'uuid',
+                Rule::exists('exchange_rates', 'id')->where(fn ($query) => $query->where('business_id', $businessId)),
+            ],
+            'payments.*.method' => ['required_with:payments', Rule::in(['cash', 'card', 'bank_transfer', 'cheque', 'reward_points', 'gift_card', 'other'])],
+            'payments.*.reference' => ['nullable', 'string', 'max:120'],
+            'payments.*.payment_date' => ['nullable', 'date'],
+            'payments.*.note' => ['nullable', 'string'],
         ];
     }
 

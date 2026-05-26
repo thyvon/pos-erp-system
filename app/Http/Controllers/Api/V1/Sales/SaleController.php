@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\BaseApiController;
 use App\Http\Requests\Sales\CancelSaleRequest;
 use App\Http\Requests\Sales\CompleteSaleRequest;
 use App\Http\Requests\Sales\ConfirmSaleRequest;
+use App\Http\Requests\Sales\DeleteSalePaymentRequest;
 use App\Http\Requests\Sales\StoreSalePaymentRequest;
 use App\Http\Requests\Sales\StoreSaleRequest;
 use App\Http\Requests\Sales\UpdateSalePaymentRequest;
@@ -167,5 +168,28 @@ class SaleController extends BaseApiController
             'journal' => new JournalResource($result['journal']),
             'reversal_journal' => new JournalResource($result['reversal_journal']),
         ], 'Sale payment updated successfully.');
+    }
+
+    public function deletePayment(
+        DeleteSalePaymentRequest $request,
+        Sale $sale,
+        SalePayment $salePayment,
+        SalePaymentService $salePayments
+    ): JsonResponse {
+        $this->authorize('deletePayment', $sale);
+
+        $result = $salePayments->remove(
+            $request->user()->business_id,
+            $sale,
+            $salePayment,
+            $request->validated()['reason'] ?? 'Payment line removed',
+            $request->user()
+        );
+
+        return $this->success([
+            'sale' => new SaleResource($result['sale']),
+            'reversed_payment' => new SalePaymentResource($result['reversed_payment']),
+            'reversal_journal' => new JournalResource($result['reversal_journal']),
+        ], 'Sale payment deleted successfully.');
     }
 }
