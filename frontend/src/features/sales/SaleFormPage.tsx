@@ -33,7 +33,7 @@ import {
   Typography,
 } from '@mui/material'
 import dayjs from 'dayjs'
-import { Add, ArrowBack, DangerCircleOutlined, DeleteOutlined, EditOutlined, SaveOutlined } from '@/components/ui/icons'
+import { Add, ArrowBack, DangerCircleOutlined, DeleteOutlined, SaveOutlined } from '@/components/ui/icons'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
@@ -43,17 +43,21 @@ import { useCustomersQuery } from '@/features/customers/hooks'
 import { InventoryProductLookupPicker } from '@/features/inventory/components/InventoryProductLookupPicker'
 import { usePriceGroupsQuery } from '@/features/price-groups/hooks'
 import { useAppCurrency, useCurrencyFormatter } from '@/features/settings/useAppCurrency'
-import { useAppDateFormat } from '@/features/settings/useAppDateFormat'
 import { useTaxRatesQuery } from '@/features/tax-rates/hooks'
 import { useWarehousesQuery } from '@/features/warehouses/hooks'
 import { useAuthStore } from '@/stores/authStore'
-import { useCreateSaleMutation, useSaleQuery, useUpdateSaleMutation, useUpdateSalePaymentMutation } from './hooks'
+import {
+  useCreateSaleMutation,
+  useDeleteSalePaymentMutation,
+  useRecordSalePaymentMutation,
+  useSaleQuery,
+  useUpdateSaleMutation,
+  useUpdateSalePaymentMutation,
+} from './hooks'
 import { saleFormSchema, type SaleFormInput, type SaleFormValues } from './schema'
-import { SalePaymentCorrectionDialog } from './SalePaymentCorrectionDialog'
-import { formatAppDate } from '@/utils/dateFormat'
 import type { PaymentAccount } from '@/types/accounting'
 import type { InventoryProductLookupItem } from '@/types/inventory'
-import type { Sale, SaleItem, SalePayload, SalePayment, SalePaymentCorrectionPayload } from '@/types/sales'
+import type { Sale, SaleItem, SalePayload, SalePayment, SalePaymentCorrectionPayload, SalePaymentLinePayload } from '@/types/sales'
 import type { Warehouse } from '@/types/warehouse'
 import type { Customer } from '@/types/customer'
 import type { PriceGroup } from '@/types/priceGroup'
@@ -150,22 +154,10 @@ function paymentAccountLabel(account: PaymentAccount) {
   return [account.name, account.type].filter(Boolean).join(' / ')
 }
 
-function salePaymentAccountLabel(payment: SalePayment) {
-  return payment.payment_account
-    ? [payment.payment_account.name, payment.payment_account.type].filter(Boolean).join(' / ')
-    : payment.payment_account_id
-}
-
-function paymentEnteredAmount(payment: SalePayment) {
-  if (payment.payment_currency === 'KHR' && payment.payment_amount) {
-    return `KHR ${Number(payment.payment_amount).toLocaleString()}`
-  }
-
-  return `USD ${Number(payment.payment_amount ?? payment.amount ?? 0).toFixed(2)}`
-}
-
 function valuesFromSale(sale: Sale | null | undefined): SaleFormInput {
   if (!sale) return emptyValues()
+
+  const completedPayments = (sale.payments ?? []).filter((payment) => payment.status === 'completed')
 
   return {
     branch_id: sale.branch_id,
@@ -183,8 +175,10 @@ function valuesFromSale(sale: Sale | null | undefined): SaleFormInput {
     tax_rate: toNumber(sale.tax_rate),
     tax_type: sale.tax_type === 'inclusive' ? 'inclusive' : 'exclusive',
     shipping_charges: toNumber(sale.shipping_charges),
-    direct_payment_enabled: false,
-    direct_payments: [newDirectPaymentLine()],
+    direct_payment_enabled: completedPayments.length > 0,
+    direct_payments: completedPayments.length > 0
+      ? completedPayments.map(paymentToDirectPaymentLine)
+      : [newDirectPaymentLine()],
     notes: sale.notes ?? '',
     staff_note: sale.staff_note ?? '',
     items: (sale.items ?? []).map((item) => ({
@@ -253,6 +247,17 @@ function newDirectPaymentLine(paymentAccounts: PaymentAccount[] = []): DirectPay
   }
 }
 
+function paymentToDirectPaymentLine(payment: SalePayment): DirectPaymentLineInput {
+  return {
+    sale_payment_id: payment.id,
+    payment_account_id: payment.payment_account_id,
+    payment_currency: payment.payment_currency ?? 'USD',
+    payment_amount: toNumber(payment.payment_amount ?? payment.amount),
+    method: payment.method ?? 'cash',
+    reference: payment.reference ?? '',
+  }
+}
+
 function directPaymentLineBaseAmount(
   line: Partial<DirectPaymentLineInput> | null | undefined,
   exchangeRate: number,
@@ -270,41 +275,61 @@ function buildDirectPaymentLines(values: SaleFormValues, exchangeRate: number, e
   let remaining = round(saleTotal)
 
   return (values.direct_payments ?? []).flatMap((line) => {
+    if (line.sale_payment_id) {
+      remaining = Math.max(0, round(remaining - directPaymentLineBaseAmount(line, exchangeRate)))
+      return []
+    }
+
     if (remaining <= 0) return []
 
-    const paymentAccountId = line.payment_account_id
-    const paymentCurrency = line.payment_currency ?? 'USD'
-    const paymentMethod = line.method ?? 'cash'
+    const payload = directPaymentLinePayload(line, values.sale_date, exchangeRate, exchangeRateId)
+    if (!payload) return []
 
-    if (!paymentAccountId) return []
-
-    const lineBaseAmount = directPaymentLineBaseAmount(line, exchangeRate)
-    if (lineBaseAmount <= 0) return []
-
-    const appliedAmount = Math.min(lineBaseAmount, remaining)
+    const appliedAmount = Math.min(payload.amount, remaining)
     remaining = round(remaining - appliedAmount)
 
     return [{
-      payment_account_id: paymentAccountId,
+      ...payload,
       amount: appliedAmount,
-      payment_currency: paymentCurrency,
-      payment_amount: paymentCurrency === 'KHR'
+      payment_amount: payload.payment_currency === 'KHR'
         ? round(appliedAmount * exchangeRate)
         : appliedAmount,
-      exchange_rate_id: paymentCurrency === 'KHR' ? exchangeRateId : null,
-      method: paymentMethod,
-      reference: line.reference || null,
-      payment_date: values.sale_date,
-      note: null,
     }]
   })
 }
 
-function outstandingAmount(sale: Sale | null | undefined, fallbackTotal: number) {
-  const total = toNumber(sale?.total_amount, fallbackTotal)
-  const paid = toNumber(sale?.paid_amount)
+function directPaymentLinePayload(
+  line: Partial<DirectPaymentLineInput> | null | undefined,
+  paymentDate: string,
+  exchangeRate: number,
+  exchangeRateId: string | null,
+): SalePaymentLinePayload | null {
+  const paymentAccountId = line?.payment_account_id
+  const paymentCurrency = line?.payment_currency ?? 'USD'
+  const paymentMethod = line?.method ?? 'cash'
+  const lineBaseAmount = directPaymentLineBaseAmount(line, exchangeRate)
 
-  return Math.max(0, round(total - paid))
+  if (!paymentAccountId || lineBaseAmount <= 0) return null
+
+  return {
+    payment_account_id: paymentAccountId,
+    amount: lineBaseAmount,
+    payment_currency: paymentCurrency,
+    payment_amount: paymentCurrency === 'KHR' ? round(toNumber(line?.payment_amount)) : lineBaseAmount,
+    exchange_rate_id: paymentCurrency === 'KHR' ? exchangeRateId : null,
+    method: paymentMethod,
+    reference: line?.reference || null,
+    payment_date: paymentDate,
+    note: null,
+  }
+}
+
+function directPaymentLineChanged(line: Partial<DirectPaymentLineInput>, payment: SalePayment) {
+  return line.payment_account_id !== payment.payment_account_id
+    || (line.payment_currency ?? 'USD') !== (payment.payment_currency ?? 'USD')
+    || round(toNumber(line.payment_amount)) !== round(toNumber(payment.payment_amount ?? payment.amount))
+    || (line.method ?? 'cash') !== payment.method
+    || (line.reference ?? '') !== (payment.reference ?? '')
 }
 
 function formatUsdKhrAmount(amount: number, exchangeRate: number) {
@@ -376,17 +401,16 @@ function buildPayload(values: SaleFormValues): SalePayload {
 }
 
 export function SaleFormPage({ saleId }: SaleFormPageProps) {
-  const { t, i18n } = useTranslation(['sales', 'common'])
+  const { t } = useTranslation(['sales', 'common'])
   const router = useRouter()
   const { enqueueSnackbar } = useSnackbar()
   const can = useAuthStore((state) => state.can)
   const [serverError, setServerError] = useState('')
-  const [editingPayment, setEditingPayment] = useState<SalePayment | null>(null)
   const [clientRequestId, setClientRequestId] = useState(() => createClientRequestId())
+  const [removedPaymentIds, setRemovedPaymentIds] = useState<string[]>([])
   const isEdit = !!saleId
   const currency = useAppCurrency()
   const currencyFormatter = useCurrencyFormatter()
-  const dateFormat = useAppDateFormat()
 
   const saleQuery = useSaleQuery(saleId ?? null)
   const customersQuery = useCustomersQuery({ status: 'active', per_page: 100 })
@@ -394,9 +418,11 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
   const taxRatesQuery = useTaxRatesQuery({ is_active: true, per_page: 100 })
   const createSale = useCreateSaleMutation()
   const updateSale = useUpdateSaleMutation()
+  const recordPayment = useRecordSalePaymentMutation()
   const updatePayment = useUpdateSalePaymentMutation()
+  const deletePayment = useDeleteSalePaymentMutation()
   const [isSubmittingSale, setIsSubmittingSale] = useState(false)
-  const isSaving = isSubmittingSale || createSale.isPending || updateSale.isPending || updatePayment.isPending
+  const isSaving = isSubmittingSale || createSale.isPending || updateSale.isPending || recordPayment.isPending || updatePayment.isPending || deletePayment.isPending
 
   const {
     control,
@@ -468,16 +494,17 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
   const directPaymentBaseDisplay = formatUsdKhrAmount(directPaymentBase, defaultExchangeRateValue)
   const currentSale = saleQuery.data ?? null
   const currentSaleStatus = currentSale?.status
-  const existingPayments = currentSale?.payments ?? []
-  const canEditExistingPayments = isEdit && can('payments.edit') && currentSaleStatus === 'completed'
-  const editPaymentLimit = isEdit
-    ? Math.max(0, round(totals.total - toNumber(currentSale?.paid_amount)))
-    : totals.total
+  const existingPayments = useMemo(
+    () => (currentSale?.payments ?? []).filter((payment) => payment.status === 'completed'),
+    [currentSale?.payments],
+  )
+  const existingPaymentById = useMemo(() => new Map(existingPayments.map((payment) => [payment.id, payment])), [existingPayments])
+  const canManageExistingPayments = isEdit && can('payments.edit') && currentSaleStatus === 'completed'
+  const canDeleteExistingPayments = isEdit && can('payments.delete') && currentSaleStatus === 'completed'
+  const canAddPaymentLines = isEdit ? can('payments.create') && currentSaleStatus === 'completed' : true
+  const editPaymentLimit = totals.total
   const canTakeDirectPayment = (saleType === 'invoice' || saleType === 'pos_sale')
-    && (!isEdit || (
-      editPaymentLimit > 0
-      && ['draft', 'suspended', 'confirmed', 'completed'].includes(String(currentSaleStatus ?? ''))
-    ))
+    && (!isEdit || ['draft', 'suspended', 'confirmed', 'completed'].includes(String(currentSaleStatus ?? '')))
   const directPaymentRemaining = Math.max(0, round(editPaymentLimit - directPaymentBase))
   const directPaymentChange = Math.max(0, round(directPaymentBase - editPaymentLimit))
   const directPaymentRemainingDisplay = formatUsdKhrAmount(directPaymentRemaining, defaultExchangeRateValue)
@@ -539,6 +566,16 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
     setValue(`direct_payments.${index}.payment_amount`, nextPaymentAmount, { shouldDirty: true, shouldValidate: true })
   }
 
+  const removeDirectPaymentLine = (index: number) => {
+    const paymentId = watchedDirectPayments[index]?.sale_payment_id
+
+    if (paymentId) {
+      setRemovedPaymentIds((current) => current.includes(paymentId) ? current : [...current, paymentId])
+    }
+
+    removeDirectPayment(index)
+  }
+
   const addLookupItem = (item: InventoryProductLookupItem) => {
     append({
       product_id: item.product_id,
@@ -579,34 +616,77 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
     setServerError('')
 
     try {
+      const shouldRecordDirectPayment = values.direct_payment_enabled && canTakeDirectPayment
+
       if (saleId) {
-        const shouldRecordDirectPayment = values.direct_payment_enabled && canTakeDirectPayment
-        const directPaymentLines = shouldRecordDirectPayment
-          ? buildDirectPaymentLines(
-            values,
-            defaultExchangeRateValue,
-            defaultExchangeRate?.id ?? null,
-            outstandingAmount(currentSale, totals.total),
-          )
+        const editedPaymentLines = shouldRecordDirectPayment && canManageExistingPayments
+          ? (values.direct_payments ?? []).flatMap((line) => {
+            if (!line.sale_payment_id) return []
+            if (removedPaymentIds.includes(line.sale_payment_id)) return []
+
+            const payment = existingPaymentById.get(line.sale_payment_id)
+            const payload = directPaymentLinePayload(line, payment?.payment_date ?? values.sale_date, defaultExchangeRateValue, defaultExchangeRate?.id ?? null)
+            if (!payment || !payload || !directPaymentLineChanged(line, payment)) return []
+
+            return [{
+              paymentId: payment.id,
+              previousAmount: toNumber(payment.amount),
+              nextAmount: payload.amount,
+              payload: {
+                ...payload,
+                payment_date: payment.payment_date ?? values.sale_date,
+                note: payment.note ?? null,
+                reason: t('payment.editAction'),
+              } satisfies SalePaymentCorrectionPayload,
+            }]
+          }).sort((a, b) => (a.nextAmount - a.previousAmount) - (b.nextAmount - b.previousAmount))
           : []
+        const newPaymentLines = shouldRecordDirectPayment && canAddPaymentLines
+          ? buildDirectPaymentLines(values, defaultExchangeRateValue, defaultExchangeRate?.id ?? null, totals.total)
+          : []
+        const deletedPaymentIds = shouldRecordDirectPayment && canDeleteExistingPayments
+          ? removedPaymentIds.filter((paymentId) => existingPaymentById.has(paymentId))
+          : []
+
         const sale = await updateSale.mutateAsync({
           id: saleId,
-          payload: {
-            ...buildPayload(values),
-            ...(shouldRecordDirectPayment && directPaymentLines.length > 0
-              ? { payment_date: values.sale_date, payment_note: null, payments: directPaymentLines }
-              : {}),
-          },
+          payload: buildPayload(values),
         })
 
-        if (shouldRecordDirectPayment && directPaymentLines.length > 0) {
+        for (const paymentId of deletedPaymentIds) {
+          await deletePayment.mutateAsync({
+            saleId,
+            paymentId,
+            payload: { reason: t('payment.removeLine') },
+          })
+        }
+
+        for (const paymentLine of editedPaymentLines) {
+          await updatePayment.mutateAsync({
+            saleId,
+            paymentId: paymentLine.paymentId,
+            payload: paymentLine.payload,
+          })
+        }
+
+        if (newPaymentLines.length > 0) {
+          await recordPayment.mutateAsync({
+            id: saleId,
+            payload: {
+              payment_date: values.sale_date,
+              note: null,
+              payments: newPaymentLines,
+            },
+          })
+        }
+
+        if (newPaymentLines.length > 0) {
           enqueueSnackbar(t('messages.updatedAndPaid'), { variant: 'success' })
         } else {
           enqueueSnackbar(t('messages.updated'), { variant: 'success' })
         }
         router.push(`/sales/${sale.id}`)
       } else {
-        const shouldRecordDirectPayment = values.direct_payment_enabled && canTakeDirectPayment
         const directPaymentLines = shouldRecordDirectPayment
           ? buildDirectPaymentLines(values, defaultExchangeRateValue, defaultExchangeRate?.id ?? null, totals.total)
           : []
@@ -637,18 +717,6 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
     } finally {
       setIsSubmittingSale(false)
     }
-  }
-
-  const submitPaymentCorrection = async (paymentId: string, payload: SalePaymentCorrectionPayload) => {
-    if (!saleId) return
-
-    await updatePayment.mutateAsync({
-      saleId,
-      paymentId,
-      payload,
-    })
-
-    enqueueSnackbar(t('messages.paymentUpdated'), { variant: 'success' })
   }
 
   if (isEdit && saleQuery.isLoading) {
@@ -1008,56 +1076,6 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
             <Card>
               <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
                 <Stack spacing={1.5}>
-                  {isEdit && (
-                    <Stack spacing={1.5}>
-                      <Typography variant="subtitle2">{t('payment.existingTitle')}</Typography>
-                      {existingPayments.length === 0 ? (
-                        <Alert severity="info">{t('payment.noRecords')}</Alert>
-                      ) : (
-                        <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1, overflowX: 'auto' }}>
-                          <Table sx={{ minWidth: 1080, tableLayout: 'fixed' }}>
-                            <TableHead>
-                              <TableRow>
-                                <TableCell sx={{ width: 140 }}>{t('payment.date')}</TableCell>
-                                <TableCell sx={{ width: 240 }}>{t('payment.account')}</TableCell>
-                                <TableCell sx={{ width: 150 }}>{t('payment.method')}</TableCell>
-                                <TableCell sx={{ width: 170 }} align="right">{t('payment.amount')}</TableCell>
-                                <TableCell sx={{ width: 170 }} align="right">{t('payment.converted')}</TableCell>
-                                <TableCell sx={{ width: 160 }}>{t('payment.reference')}</TableCell>
-                                <TableCell sx={{ width: 130 }}>{t('payment.status')}</TableCell>
-                                <TableCell sx={{ width: 120 }} align="right">{t('columns.actions')}</TableCell>
-                              </TableRow>
-                            </TableHead>
-                            <TableBody>
-                              {existingPayments.map((payment) => (
-                                <TableRow key={payment.id}>
-                                  <TableCell>{payment.payment_date ? formatAppDate(payment.payment_date, dateFormat, i18n.language) : '-'}</TableCell>
-                                  <TableCell>{salePaymentAccountLabel(payment)}</TableCell>
-                                  <TableCell>{t(`paymentMethods.${payment.method}`, { defaultValue: payment.method })}</TableCell>
-                                  <TableCell align="right">{paymentEnteredAmount(payment)}</TableCell>
-                                  <TableCell align="right">{currencyFormatter.format(toNumber(payment.amount))}</TableCell>
-                                  <TableCell>{payment.reference || '-'}</TableCell>
-                                  <TableCell>{t(`payment.${payment.status}`, { defaultValue: payment.status })}</TableCell>
-                                  <TableCell align="right">
-                                    {canEditExistingPayments && payment.status === 'completed' ? (
-                                          <Tooltip title={t('payment.editAction')}>
-                                        <span>
-                                          <IconButton size="small" onClick={() => setEditingPayment(payment)} disabled={isSaving}>
-                                            <EditOutlined />
-                                          </IconButton>
-                                        </span>
-                                      </Tooltip>
-                                    ) : null}
-                                  </TableCell>
-                                </TableRow>
-                              ))}
-                            </TableBody>
-                          </Table>
-                        </TableContainer>
-                      )}
-                    </Stack>
-                  )}
-
                   {canTakeDirectPayment && (
                     <>
                     <Stack
@@ -1111,7 +1129,7 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
                             variant="outlined"
                             startIcon={<Add />}
                             onClick={() => appendDirectPayment(newDirectPaymentLine(paymentAccounts))}
-                            disabled={isSaving || paymentAccounts.length === 0}
+                            disabled={isSaving || paymentAccounts.length === 0 || !canAddPaymentLines}
                           >
                             {t('payment.addLine')}
                           </Button>
@@ -1131,142 +1149,154 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
                               </TableRow>
                             </TableHead>
                             <TableBody>
-                              {directPaymentFields.map((field, index) => (
-                                <TableRow key={field.fieldId}>
-                                  <TableCell sx={directPaymentColumnSx.account}>
-                                    <Controller
-                                      name={`direct_payments.${index}.payment_account_id`}
-                                      control={control}
-                                      render={({ field }) => (
-                                        <Autocomplete
-                                          fullWidth
-                                          options={paymentAccounts}
-                                          value={paymentAccounts.find((account) => account.id === field.value) ?? null}
-                                          loading={paymentAccountsQuery.isLoading}
-                                          getOptionLabel={paymentAccountLabel}
-                                          isOptionEqualToValue={(option, value) => option.id === value.id}
-                                          onBlur={field.onBlur}
-                                          onChange={(_, account) => field.onChange(account?.id ?? '')}
-                                          renderInput={(params) => (
-                                            <TextField
-                                              {...params}
-                                              error={!!errors.direct_payments?.[index]?.payment_account_id}
-                                              helperText={errors.direct_payments?.[index]?.payment_account_id?.message}
-                                              required
-                                            />
-                                          )}
-                                        />
-                                      )}
-                                    />
-                                  </TableCell>
-                                  <TableCell sx={directPaymentColumnSx.currency}>
-                                    <Controller
-                                      name={`direct_payments.${index}.payment_currency`}
-                                      control={control}
-                                      render={({ field }) => (
-                                        <TextField
-                                          {...field}
-                                          value={field.value ?? 'USD'}
-                                          fullWidth
-                                          select
-                                          error={!!errors.direct_payments?.[index]?.payment_currency}
-                                          helperText={errors.direct_payments?.[index]?.payment_currency?.message}
-                                          required
-                                          onChange={(event) => changeDirectPaymentCurrency(index, event.target.value as 'USD' | 'KHR')}
-                                        >
-                                          <MenuItem value="USD">USD</MenuItem>
-                                          <MenuItem value="KHR" disabled={!defaultExchangeRate}>KHR</MenuItem>
-                                        </TextField>
-                                      )}
-                                    />
-                                  </TableCell>
-                                  <TableCell align="right" sx={directPaymentColumnSx.amount}>
-                                    <Controller
-                                      name={`direct_payments.${index}.payment_amount`}
-                                      control={control}
-                                      render={({ field }) => (
-                                        <TextField
-                                          {...field}
-                                          value={field.value ?? ''}
-                                          fullWidth
-                                          type="number"
-                                          error={!!errors.direct_payments?.[index]?.payment_amount}
-                                          helperText={errors.direct_payments?.[index]?.payment_amount?.message}
-                                          required
-                                          slotProps={{
-                                            htmlInput: { min: 0.01, step: 0.01 },
-                                            input: {
-                                              startAdornment: <InputAdornment position="start">{watchedDirectPayments[index]?.payment_currency ?? 'USD'}</InputAdornment>,
-                                            },
-                                          }}
-                                        />
-                                      )}
-                                    />
-                                  </TableCell>
-                                  <TableCell sx={directPaymentColumnSx.method}>
-                                    <Controller
-                                      name={`direct_payments.${index}.method`}
-                                      control={control}
-                                      render={({ field }) => (
-                                        <TextField
-                                          {...field}
-                                          value={field.value ?? 'cash'}
-                                          fullWidth
-                                          select
-                                          error={!!errors.direct_payments?.[index]?.method}
-                                          helperText={errors.direct_payments?.[index]?.method?.message}
-                                          required
-                                        >
-                                          {paymentMethods.map((method) => (
-                                            <MenuItem key={method} value={method}>
-                                              {t(`paymentMethods.${method}`)}
-                                            </MenuItem>
-                                          ))}
-                                        </TextField>
-                                      )}
-                                    />
-                                  </TableCell>
-                                  <TableCell sx={directPaymentColumnSx.reference}>
-                                    <Controller
-                                      name={`direct_payments.${index}.reference`}
-                                      control={control}
-                                      render={({ field }) => (
-                                        <TextField
-                                          {...field}
-                                          value={field.value ?? ''}
-                                          fullWidth
-                                          error={!!errors.direct_payments?.[index]?.reference}
-                                          helperText={errors.direct_payments?.[index]?.reference?.message}
-                                        />
-                                      )}
-                                    />
-                                  </TableCell>
-                                  <TableCell align="right" sx={directPaymentColumnSx.converted}>
-                                    <Typography variant="body2">
-                                      {currencyFormatter.format(directPaymentLineBaseAmount(watchedDirectPayments[index], defaultExchangeRateValue))}
-                                    </Typography>
-                                    {watchedDirectPayments[index]?.payment_currency === 'KHR' && defaultExchangeRate && (
-                                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                        1 USD = {Number(defaultExchangeRate.rate ?? 0).toLocaleString()} KHR
+                              {directPaymentFields.map((field, index) => {
+                                const line = watchedDirectPayments[index]
+                                const isExistingPaymentLine = !!line?.sale_payment_id
+                                const lineDisabled = isSaving
+                                  || (isExistingPaymentLine ? !canManageExistingPayments : !canAddPaymentLines)
+
+                                return (
+                                  <TableRow key={field.fieldId}>
+                                    <TableCell sx={directPaymentColumnSx.account}>
+                                      <Controller
+                                        name={`direct_payments.${index}.payment_account_id`}
+                                        control={control}
+                                        render={({ field }) => (
+                                          <Autocomplete
+                                            fullWidth
+                                            disabled={lineDisabled}
+                                            options={paymentAccounts}
+                                            value={paymentAccounts.find((account) => account.id === field.value) ?? null}
+                                            loading={paymentAccountsQuery.isLoading}
+                                            getOptionLabel={paymentAccountLabel}
+                                            isOptionEqualToValue={(option, value) => option.id === value.id}
+                                            onBlur={field.onBlur}
+                                            onChange={(_, account) => field.onChange(account?.id ?? '')}
+                                            renderInput={(params) => (
+                                              <TextField
+                                                {...params}
+                                                error={!!errors.direct_payments?.[index]?.payment_account_id}
+                                                helperText={errors.direct_payments?.[index]?.payment_account_id?.message}
+                                                required
+                                              />
+                                            )}
+                                          />
+                                        )}
+                                      />
+                                    </TableCell>
+                                    <TableCell sx={directPaymentColumnSx.currency}>
+                                      <Controller
+                                        name={`direct_payments.${index}.payment_currency`}
+                                        control={control}
+                                        render={({ field }) => (
+                                          <TextField
+                                            {...field}
+                                            value={field.value ?? 'USD'}
+                                            fullWidth
+                                            select
+                                            disabled={lineDisabled}
+                                            error={!!errors.direct_payments?.[index]?.payment_currency}
+                                            helperText={errors.direct_payments?.[index]?.payment_currency?.message}
+                                            required
+                                            onChange={(event) => changeDirectPaymentCurrency(index, event.target.value as 'USD' | 'KHR')}
+                                          >
+                                            <MenuItem value="USD">USD</MenuItem>
+                                            <MenuItem value="KHR" disabled={!defaultExchangeRate}>KHR</MenuItem>
+                                          </TextField>
+                                        )}
+                                      />
+                                    </TableCell>
+                                    <TableCell align="right" sx={directPaymentColumnSx.amount}>
+                                      <Controller
+                                        name={`direct_payments.${index}.payment_amount`}
+                                        control={control}
+                                        render={({ field }) => (
+                                          <TextField
+                                            {...field}
+                                            value={field.value ?? ''}
+                                            fullWidth
+                                            type="number"
+                                            disabled={lineDisabled}
+                                            error={!!errors.direct_payments?.[index]?.payment_amount}
+                                            helperText={errors.direct_payments?.[index]?.payment_amount?.message}
+                                            required
+                                            slotProps={{
+                                              htmlInput: { min: 0.01, step: 0.01 },
+                                              input: {
+                                                startAdornment: <InputAdornment position="start">{watchedDirectPayments[index]?.payment_currency ?? 'USD'}</InputAdornment>,
+                                              },
+                                            }}
+                                          />
+                                        )}
+                                      />
+                                    </TableCell>
+                                    <TableCell sx={directPaymentColumnSx.method}>
+                                      <Controller
+                                        name={`direct_payments.${index}.method`}
+                                        control={control}
+                                        render={({ field }) => (
+                                          <TextField
+                                            {...field}
+                                            value={field.value ?? 'cash'}
+                                            fullWidth
+                                            select
+                                            disabled={lineDisabled}
+                                            error={!!errors.direct_payments?.[index]?.method}
+                                            helperText={errors.direct_payments?.[index]?.method?.message}
+                                            required
+                                          >
+                                            {paymentMethods.map((method) => (
+                                              <MenuItem key={method} value={method}>
+                                                {t(`paymentMethods.${method}`)}
+                                              </MenuItem>
+                                            ))}
+                                          </TextField>
+                                        )}
+                                      />
+                                    </TableCell>
+                                    <TableCell sx={directPaymentColumnSx.reference}>
+                                      <Controller
+                                        name={`direct_payments.${index}.reference`}
+                                        control={control}
+                                        render={({ field }) => (
+                                          <TextField
+                                            {...field}
+                                            value={field.value ?? ''}
+                                            fullWidth
+                                            disabled={lineDisabled}
+                                            error={!!errors.direct_payments?.[index]?.reference}
+                                            helperText={errors.direct_payments?.[index]?.reference?.message}
+                                          />
+                                        )}
+                                      />
+                                    </TableCell>
+                                    <TableCell align="right" sx={directPaymentColumnSx.converted}>
+                                      <Typography variant="body2">
+                                        {currencyFormatter.format(directPaymentLineBaseAmount(watchedDirectPayments[index], defaultExchangeRateValue))}
                                       </Typography>
-                                    )}
-                                  </TableCell>
-                                  <TableCell align="right" sx={directPaymentColumnSx.actions}>
-                                    <Tooltip title={t('payment.removeLine')}>
-                                      <span>
-                                        <IconButton
-                                          size="small"
-                                          color="error"
-                                          disabled={isSaving || directPaymentFields.length === 1}
-                                          onClick={() => removeDirectPayment(index)}
-                                        >
-                                          <DeleteOutlined />
-                                        </IconButton>
-                                      </span>
-                                    </Tooltip>
-                                  </TableCell>
-                                </TableRow>
-                              ))}
+                                      {watchedDirectPayments[index]?.payment_currency === 'KHR' && defaultExchangeRate && (
+                                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                          1 USD = {Number(defaultExchangeRate.rate ?? 0).toLocaleString()} KHR
+                                        </Typography>
+                                      )}
+                                    </TableCell>
+                                    <TableCell align="right" sx={directPaymentColumnSx.actions}>
+                                      <Tooltip title={t('payment.removeLine')}>
+                                        <span>
+                                          <IconButton
+                                            size="small"
+                                            color="error"
+                                            disabled={isSaving || directPaymentFields.length === 1 || (isExistingPaymentLine && !canDeleteExistingPayments)}
+                                            onClick={() => removeDirectPaymentLine(index)}
+                                          >
+                                            <DeleteOutlined />
+                                          </IconButton>
+                                        </span>
+                                      </Tooltip>
+                                    </TableCell>
+                                  </TableRow>
+                                )
+                              })}
                             </TableBody>
                           </Table>
                         </TableContainer>
@@ -1318,20 +1348,42 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
                           <Button
                             type="button"
                             variant="outlined"
+                            disabled={isSaving || paymentAccounts.length === 0 || (isEdit && directPaymentRemaining <= 0 && watchedDirectPayments.every((line) => line.sale_payment_id))}
                             onClick={() => {
                               const currentLine = watchedDirectPayments[0]
                               const nextCurrency = currentLine?.payment_currency ?? 'USD'
-                              const nextAmount = nextCurrency === 'KHR' && defaultExchangeRateValue > 0
-                                ? round(editPaymentLimit * defaultExchangeRateValue)
+                              const existingBaseAmount = isEdit
+                                ? watchedDirectPayments.reduce((total, line) => (
+                                  line.sale_payment_id ? total + directPaymentLineBaseAmount(line, defaultExchangeRateValue) : total
+                                ), 0)
+                                : 0
+                              const targetAmount = isEdit
+                                ? Math.max(0, round(editPaymentLimit - existingBaseAmount))
                                 : editPaymentLimit
-
-                              setValue('direct_payments', [{
+                              const nextAmount = nextCurrency === 'KHR' && defaultExchangeRateValue > 0
+                                ? round(targetAmount * defaultExchangeRateValue)
+                                : targetAmount
+                              const nextLine: DirectPaymentLineInput = {
                                 ...newDirectPaymentLine(paymentAccounts),
                                 payment_account_id: currentLine?.payment_account_id || paymentAccounts[0]?.id || '',
                                 payment_currency: nextCurrency,
                                 payment_amount: nextAmount,
                                 method: currentLine?.method ?? 'cash',
                                 reference: currentLine?.reference ?? '',
+                              }
+
+                              if (isEdit) {
+                                const firstNewLineIndex = watchedDirectPayments.findIndex((line) => !line.sale_payment_id)
+                                const nextPayments = firstNewLineIndex >= 0
+                                  ? watchedDirectPayments.map((line, index) => index === firstNewLineIndex ? nextLine : line)
+                                  : [...watchedDirectPayments, nextLine]
+
+                                setValue('direct_payments', nextPayments, { shouldDirty: true, shouldValidate: true })
+                                return
+                              }
+
+                              setValue('direct_payments', [{
+                                ...nextLine,
                               }], { shouldDirty: true, shouldValidate: true })
                             }}
                           >
@@ -1366,15 +1418,6 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
           </Stack>
         </Stack>
       </Box>
-      <SalePaymentCorrectionDialog
-        open={!!editingPayment}
-        payment={editingPayment}
-        paymentAccounts={paymentAccounts}
-        defaultExchangeRate={defaultExchangeRate}
-        isSaving={updatePayment.isPending}
-        onClose={() => setEditingPayment(null)}
-        onSubmit={(payload) => editingPayment ? submitPaymentCorrection(editingPayment.id, payload) : Promise.resolve()}
-      />
     </Stack>
   )
 }

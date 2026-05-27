@@ -21,6 +21,8 @@ const sales = {
   columns: {
     sale: 'Sale',
     customer: 'Customer',
+    code: 'Code',
+    phone: 'Phone',
     branch: 'Branch',
     date: 'Date',
     status: 'Status',

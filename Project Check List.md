@@ -78,6 +78,10 @@
 - [x] POS payment correction modal polished with a POS-style amount summary and aligned payment fields, and POS edit saves now return to `/pos` with a POS-specific update message instead of the sale detail page; frontend type-check and lint verified.
 - [x] POS edit payment handling now uses the same inline multi-line payment form as POS create with no modal, allowing existing completed payment lines to be edited and new lines to be added before Save; frontend type-check and lint verified.
 - [x] POS edit payment lines can now be removed inline; completed payment deletion reverses the payment journal/transaction and marks the payment reversed instead of hard-deleting ledger history. PHP syntax checks and frontend type-check/lint verified; focused backend feature test was added but could not run locally because the PHP SQLite PDO driver is unavailable.
+- [x] POS footer buttons now keep stable height and no-wrap labels, with horizontal overflow handling for narrow screens; frontend type-check and lint verified.
+- [x] POS product line table now gives more room to product descriptions and less width to unit price while keeping fixed table sizing.
+- [x] POS product line unit price input now right-aligns values to match the table header and total column alignment.
+- [x] POS Recent Transactions now opens an in-page modal using the existing searchable table pattern, paginated POS-sale rows, and View/Edit actions.
 
 ## Inventory Frontend Rebuild
 
@@ -125,10 +129,22 @@
 - [x] Shared theme now aligns default button and outlined input heights while preserving compact small controls for dense tables.
 - [x] Layout settings now include persisted Small, Normal, and Large size options, with Normal matching the previous default theme density.
 - [x] Small layout setting now globally applies dense table rows and compact table-cell padding across MUI tables; frontend type-check and lint verified.
+- [x] Layout settings now include a Compact size smaller than Small and a persisted Corner Radius level applied through the shared MUI theme; frontend type-check, lint, and build verified.
+- [x] Layout theme color presets were refreshed with a more modern premium palette and cleaner light/dark app backgrounds.
+- [x] Layout theme color presets were refined into premium choices while preserving the existing Graphite preset.
+- [x] Layout settings color presets now show visible premium swatches and translated preset names instead of unlabeled color dots.
+- [x] Layout corner radius setting now uses a volume-style slider from 0px to 20px, with 0px applying no radius.
 - [x] Layout settings drawer now uses Solar icon badges for each settings section.
+- [x] Normal Sale edit payment section now uses the same inline direct-payment rows as create mode, with existing completed payments editable/removable in-place instead of opening the payment correction modal.
+- [x] Sale detail page refactored into an invoice-style document layout with header actions, customer/location metadata, itemized lines, notes, totals, and collapsible payment history.
+- [x] Sale detail invoice summary totals now display as one horizontal row with local scrolling instead of wrapping into multiple rows.
+- [x] Sale detail invoice header metadata now uses label/value lines with bold underlined values and no item-count field.
+- [x] Sale detail invoice header label/value columns now align consistently with left-aligned labels and secondary-color value underlines.
+- [x] Sale detail invoice header value underlines now use dashed divider-color borders to match the summary strip.
 - [x] Backend-backed table filters now use a shared searchable autocomplete pattern for branch, warehouse, customer, category parent, and role option filters.
 - [x] Searchable autocomplete fields now inherit the same theme-level height standard as normal select and text fields.
 - [x] Date picker fields now inherit the same theme-level height standard as normal input, select, and searchable autocomplete fields.
+- [x] Shared form field labels, placeholders, select values, autocomplete text, and date-picker text are vertically centered across layout size settings; frontend type-check, lint, and build verified.
 - [x] Product variation and combo table inputs now use the shared default-height, full-width product form controls.
 - [x] Shared MUI table rows now use a global striped body-row style so standard system tables inherit consistent alternating row backgrounds without page-level duplication.
 - [x] Agent rules now require small reusable shared components/hooks for repeated frontend patterns instead of duplicated page-level code.

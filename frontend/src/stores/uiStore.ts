@@ -1,6 +1,13 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
-import type { FontPreset, LayoutSize, ThemeColorPreset } from '@/theme'
+import {
+  DEFAULT_BORDER_RADIUS_LEVEL,
+  normalizeBorderRadiusLevel,
+  type BorderRadiusLevel,
+  type FontPreset,
+  type LayoutSize,
+  type ThemeColorPreset,
+} from '@/theme'
 
 export type LayoutSurfaceTheme = 'inherit' | 'light' | 'dark'
 
@@ -13,6 +20,7 @@ interface UIState {
   fontPreset: FontPreset
   colorPreset: ThemeColorPreset
   layoutSize: LayoutSize
+  borderRadiusLevel: BorderRadiusLevel
   sidebarTheme: LayoutSurfaceTheme
   topbarTheme: LayoutSurfaceTheme
   contentStretch: boolean
@@ -31,6 +39,7 @@ interface UIActions {
   setFontPreset: (fontPreset: FontPreset) => void
   setColorPreset: (colorPreset: ThemeColorPreset) => void
   setLayoutSize: (layoutSize: LayoutSize) => void
+  setBorderRadiusLevel: (borderRadiusLevel: BorderRadiusLevel) => void
   setSidebarTheme: (theme: LayoutSurfaceTheme) => void
   setTopbarTheme: (theme: LayoutSurfaceTheme) => void
   setContentStretch: (stretch: boolean) => void
@@ -49,6 +58,7 @@ export const useUIStore = create<UIStore>()(
       fontPreset: 'publicSans',
       colorPreset: 'default',
       layoutSize: 'normal',
+      borderRadiusLevel: DEFAULT_BORDER_RADIUS_LEVEL,
       sidebarTheme: 'inherit',
       topbarTheme: 'inherit',
       contentStretch: true,
@@ -65,6 +75,7 @@ export const useUIStore = create<UIStore>()(
       setFontPreset: (fontPreset) => set({ fontPreset }),
       setColorPreset: (colorPreset) => set({ colorPreset }),
       setLayoutSize: (layoutSize) => set({ layoutSize }),
+      setBorderRadiusLevel: (borderRadiusLevel) => set({ borderRadiusLevel: normalizeBorderRadiusLevel(borderRadiusLevel) }),
       setSidebarTheme: (sidebarTheme) => set({ sidebarTheme }),
       setTopbarTheme: (topbarTheme) => set({ topbarTheme }),
       setContentStretch: (contentStretch) => set({ contentStretch }),
@@ -72,17 +83,26 @@ export const useUIStore = create<UIStore>()(
     {
       name: 'erp-ui',
       storage: createJSONStorage(() => localStorage),
-      version: 1,
-      migrate: (persistedState) => ({
-        ...(persistedState as Partial<UIStore>),
-        contentStretch: true,
-        language: (persistedState as Partial<UIStore>)?.language ?? 'en',
-        fontPreset: (persistedState as Partial<UIStore>)?.fontPreset ?? 'publicSans',
-        colorPreset: (persistedState as Partial<UIStore>)?.colorPreset ?? 'default',
-        layoutSize: (persistedState as Partial<UIStore>)?.layoutSize ?? 'normal',
-        sidebarTheme: (persistedState as Partial<UIStore>)?.sidebarTheme ?? 'inherit',
-        topbarTheme: (persistedState as Partial<UIStore>)?.topbarTheme ?? 'inherit',
-      }),
+      version: 3,
+      migrate: (persistedState) => {
+        const previousState = persistedState as Partial<UIStore> & {
+          borderRadiusPreset?: unknown
+        }
+
+        return {
+          ...previousState,
+          contentStretch: true,
+          language: previousState.language ?? 'en',
+          fontPreset: previousState.fontPreset ?? 'publicSans',
+          colorPreset: previousState.colorPreset ?? 'default',
+          layoutSize: previousState.layoutSize ?? 'normal',
+          borderRadiusLevel: normalizeBorderRadiusLevel(
+            previousState.borderRadiusLevel ?? previousState.borderRadiusPreset
+          ),
+          sidebarTheme: previousState.sidebarTheme ?? 'inherit',
+          topbarTheme: previousState.topbarTheme ?? 'inherit',
+        }
+      },
     }
   )
 )

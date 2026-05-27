@@ -10,6 +10,7 @@ import {
   Box,
   Button,
   CardActionArea,
+  Chip,
   CircularProgress,
   Dialog,
   DialogActions,
@@ -28,6 +29,7 @@ import {
   TableCell,
   TableContainer,
   TableHead,
+  TablePagination,
   TableRow,
   TextField,
   ToggleButton,
@@ -41,7 +43,9 @@ import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
-import { AccountBalanceWalletOutlined, Add, ArrowBack, DeleteOutlined, EditOutlined, PointOfSaleOutlined, SettingsOutlined } from '@/components/ui/icons'
+import { AccountBalanceWalletOutlined, Add, ArrowBack, DeleteOutlined, EditOutlined, PointOfSaleOutlined, Search, SettingsOutlined } from '@/components/ui/icons'
+import { RowActions } from '@/components/ui/RowActions'
+import { TableStateRow } from '@/components/ui/TableStateRow'
 import { useDefaultExchangeRateQuery, usePaymentAccountsQuery } from '@/features/accounting/hooks'
 import { useBrandsQuery } from '@/features/brands/hooks'
 import { useCategoriesQuery } from '@/features/categories/hooks'
@@ -51,10 +55,12 @@ import { InventoryProductLookupPicker } from '@/features/inventory/components/In
 import { usePriceGroupsQuery } from '@/features/price-groups/hooks'
 import { useProductsQuery } from '@/features/products/hooks'
 import { useAppCurrency, useCurrencyFormatter } from '@/features/settings/useAppCurrency'
+import { useAppDateFormat } from '@/features/settings/useAppDateFormat'
 import { useTaxRatesQuery } from '@/features/tax-rates/hooks'
 import { useWarehousesQuery } from '@/features/warehouses/hooks'
 import { useAuthStore } from '@/stores/authStore'
 import { useUIStore } from '@/stores/uiStore'
+import { formatAppDate } from '@/utils/dateFormat'
 import type { Brand } from '@/types/brand'
 import type { Category } from '@/types/category'
 import type { PaymentAccount } from '@/types/accounting'
@@ -62,10 +68,10 @@ import type { Customer } from '@/types/customer'
 import type { InventoryProductLookupItem } from '@/types/inventory'
 import type { PriceGroup } from '@/types/priceGroup'
 import type { Product } from '@/types/product'
-import type { CashRegister, Sale, SaleItem, SalePayment, SalePaymentCorrectionPayload, SalePaymentLinePayload, SalePayload } from '@/types/sales'
+import type { CashRegister, Sale, SaleFilters, SaleItem, SalePayment, SalePaymentCorrectionPayload, SalePaymentLinePayload, SalePayload } from '@/types/sales'
 import type { TaxRate } from '@/types/taxRate'
 import type { Warehouse } from '@/types/warehouse'
-import { useCashRegistersQuery, useCreateCashRegisterMutation, useCreateSaleMutation, useDeleteSalePaymentMutation, useOpenCashRegisterSessionMutation, useRecordSalePaymentMutation, useSaleQuery, useUpdateSaleMutation, useUpdateSalePaymentMutation } from './hooks'
+import { useCashRegistersQuery, useCreateCashRegisterMutation, useCreateSaleMutation, useDeleteSalePaymentMutation, useOpenCashRegisterSessionMutation, useRecordSalePaymentMutation, useSaleQuery, useSalesQuery, useUpdateSaleMutation, useUpdateSalePaymentMutation } from './hooks'
 import { saleFormSchema, type SaleFormInput, type SaleFormValues } from './schema'
 
 interface PosFormPageProps {
@@ -78,12 +84,22 @@ const taxTypes = ['exclusive', 'inclusive'] as const
 const paymentMethods = ['cash', 'card', 'bank_transfer', 'cheque', 'reward_points', 'gift_card', 'other'] as const
 
 const cartColumnSx = {
-  product: { width: 300, minWidth: 300 },
+  product: { width: 400, minWidth: 400 },
   quantity: { width: 170, minWidth: 170 },
-  price: { width: 230, minWidth: 230 },
+  price: { width: 160, minWidth: 160 },
   total: { width: 132, minWidth: 132 },
   actions: { width: 96, minWidth: 96 },
 } as const
+
+const footerButtonSx = {
+  height: 40,
+  minHeight: 40,
+  whiteSpace: 'nowrap',
+  flex: '0 0 auto',
+  px: 1.5,
+} as const
+
+const recentTransactionRowsPerPageOptions = [10, 25, 50]
 
 type DirectPaymentLineInput = NonNullable<SaleFormInput['direct_payments']>[number]
 
@@ -99,6 +115,11 @@ function toNumber(value: unknown, fallback = 0) {
 
 function round(value: number) {
   return Math.round(value * 100) / 100
+}
+
+function formatMoney(value: number | string | null | undefined, formatter: Intl.NumberFormat) {
+  const numeric = Number(value ?? 0)
+  return Number.isFinite(numeric) ? formatter.format(numeric) : '-'
 }
 
 function createClientRequestId() {
@@ -392,7 +413,7 @@ function directPaymentLineChanged(line: Partial<DirectPaymentLineInput>, payment
 }
 
 export function PosFormPage({ saleId }: PosFormPageProps) {
-  const { t } = useTranslation(['sales', 'common'])
+  const { t, i18n } = useTranslation(['sales', 'common'])
   const router = useRouter()
   const { enqueueSnackbar } = useSnackbar()
   const can = useAuthStore((state) => state.can)
@@ -412,11 +433,27 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
   const [cashRegisterNotes, setCashRegisterNotes] = useState('')
   const [clientRequestId, setClientRequestId] = useState(() => createClientRequestId())
   const [removedPaymentIds, setRemovedPaymentIds] = useState<string[]>([])
+  const [recentTransactionsOpen, setRecentTransactionsOpen] = useState(false)
+  const [recentTransactionsSearch, setRecentTransactionsSearch] = useState('')
+  const [recentTransactionsPage, setRecentTransactionsPage] = useState(0)
+  const [recentTransactionsPerPage, setRecentTransactionsPerPage] = useState(10)
   const isEdit = !!saleId
   const currency = useAppCurrency()
   const currencyFormatter = useCurrencyFormatter()
+  const dateFormat = useAppDateFormat()
+
+  const recentTransactionsFilters: SaleFilters = useMemo(
+    () => ({
+      search: recentTransactionsSearch || undefined,
+      type: 'pos_sale',
+      page: recentTransactionsPage + 1,
+      per_page: recentTransactionsPerPage,
+    }),
+    [recentTransactionsPage, recentTransactionsPerPage, recentTransactionsSearch],
+  )
 
   const saleQuery = useSaleQuery(saleId ?? null)
+  const recentTransactionsQuery = useSalesQuery(recentTransactionsFilters)
   const warehousesQuery = useWarehousesQuery({ per_page: 100 })
   const customersQuery = useCustomersQuery({ status: 'active', per_page: 100 })
   const categoriesQuery = useCategoriesQuery({ per_page: 100 })
@@ -488,6 +525,8 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
   const brands = brandsQuery.data?.data ?? []
   const products = productsQuery.data?.data ?? []
   const cashRegisters = useMemo(() => cashRegistersQuery.data?.data ?? [], [cashRegistersQuery.data?.data])
+  const recentTransactions = recentTransactionsQuery.data?.data ?? []
+  const recentTransactionsMeta = recentTransactionsQuery.data?.meta
   const priceGroups = priceGroupsQuery.data?.data ?? []
   const taxRates = taxRatesQuery.data?.data ?? []
   const paymentAccounts = useMemo(
@@ -1042,7 +1081,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
                   {typeof errors.items?.message === 'string' && <Alert severity="error">{errors.items.message}</Alert>}
 
                   <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1, overflowX: 'auto' }}>
-                    <Table sx={{ minWidth: 928, tableLayout: 'fixed' }}>
+                    <Table sx={{ minWidth: 958, tableLayout: 'fixed' }}>
                       <TableHead>
                         <TableRow>
                           <TableCell sx={cartColumnSx.product}>{t('items.product')}</TableCell>
@@ -1103,7 +1142,18 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
                             </TableCell>
                             <TableCell align="right" sx={cartColumnSx.price}>
                               <Controller name={`items.${index}.unit_price`} control={control} render={({ field }) => (
-                                <TextField {...field} fullWidth type="number" error={!!errors.items?.[index]?.unit_price} helperText={errors.items?.[index]?.unit_price?.message} required slotProps={{ htmlInput: { min: 0, step: 0.01 }, input: { startAdornment: <InputAdornment position="start">{currency}</InputAdornment> } }} />
+                                <TextField
+                                  {...field}
+                                  fullWidth
+                                  type="number"
+                                  error={!!errors.items?.[index]?.unit_price}
+                                  helperText={errors.items?.[index]?.unit_price?.message}
+                                  required
+                                  slotProps={{
+                                    htmlInput: { min: 0, step: 0.01, style: { textAlign: 'right' } },
+                                    input: { startAdornment: <InputAdornment position="start">{currency}</InputAdornment> },
+                                  }}
+                                />
                               )} />
                             </TableCell>
                             <TableCell align="right" sx={cartColumnSx.total}>
@@ -1501,38 +1551,190 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
             borderColor: 'divider',
             bgcolor: 'background.paper',
             display: 'grid',
-            gridTemplateColumns: { xs: '1fr', md: '160px 1fr 220px' },
+            gridTemplateColumns: { xs: '1fr', md: 'max-content minmax(0, 1fr) max-content' },
             gap: 1.5,
             alignItems: 'center',
           }}
         >
-          <Button type="button" variant="outlined" color="error" disabled={isSaving} onClick={() => reset(emptyValues())}>
+          <Button
+            type="button"
+            variant="outlined"
+            color="error"
+            disabled={isSaving}
+            onClick={() => reset(emptyValues())}
+            sx={{ ...footerButtonSx, minWidth: 132 }}
+          >
             {t('common:buttons.cancel')}
           </Button>
-          <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', rowGap: 1 }}>
-            <Button type="button" variant="text" disabled={isSaving} onClick={() => submitAs('draft')}>
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{
+              minWidth: 0,
+              overflowX: 'auto',
+              overflowY: 'hidden',
+              scrollbarWidth: 'thin',
+              pb: 0.25,
+            }}
+          >
+            <Button type="button" variant="text" disabled={isSaving} onClick={() => submitAs('draft')} sx={{ ...footerButtonSx, minWidth: 96 }}>
               {t('types.draft')}
             </Button>
-            <Button type="button" variant="text" disabled={isSaving} onClick={() => submitAs('quotation')}>
+            <Button type="button" variant="text" disabled={isSaving} onClick={() => submitAs('quotation')} sx={{ ...footerButtonSx, minWidth: 112 }}>
               {t('types.quotation')}
             </Button>
-            <Button type="button" variant="text" color="warning" disabled={isSaving} onClick={() => submitAs('suspended')}>
+            <Button type="button" variant="text" color="warning" disabled={isSaving} onClick={() => submitAs('suspended')} sx={{ ...footerButtonSx, minWidth: 112 }}>
               {t('types.suspended')}
             </Button>
-            <Button type="button" variant="text" disabled>
+            <Button type="button" variant="text" disabled sx={{ ...footerButtonSx, minWidth: 118 }}>
               {t('pos.actions.creditSale')}
             </Button>
           </Stack>
-          <Stack direction="row" spacing={1} sx={{ justifyContent: { md: 'flex-end' } }}>
-            <Button type="button" variant="outlined" onClick={() => router.push('/sales')}>
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{
+              minWidth: 0,
+              justifyContent: { md: 'flex-end' },
+              overflowX: 'auto',
+              overflowY: 'hidden',
+              scrollbarWidth: 'thin',
+              pb: 0.25,
+            }}
+          >
+            <Button type="button" variant="outlined" onClick={() => setRecentTransactionsOpen(true)} sx={{ ...footerButtonSx, minWidth: 178 }}>
               {t('pos.recentTransactions')}
             </Button>
-            <Button type="button" variant="contained" disabled={isSaving} onClick={() => submitAs(saleType)}>
+            <Button type="button" variant="contained" disabled={isSaving} onClick={() => submitAs(saleType)} sx={{ ...footerButtonSx, minWidth: 104 }}>
               {isSaving ? <CircularProgress size={20} color="inherit" /> : t('common:buttons.save')}
             </Button>
           </Stack>
         </Box>
       </Box>
+      <Dialog
+        open={recentTransactionsOpen}
+        onClose={() => setRecentTransactionsOpen(false)}
+        fullWidth
+        maxWidth="lg"
+      >
+        <DialogTitle>{t('pos.recentTransactions')}</DialogTitle>
+        <DialogContent sx={{ p: 0 }}>
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            spacing={1.5}
+            sx={{ p: 2, alignItems: { xs: 'stretch', sm: 'center' } }}
+          >
+            <TextField
+              value={recentTransactionsSearch}
+              onChange={(event) => {
+                setRecentTransactionsSearch(event.target.value)
+                setRecentTransactionsPage(0)
+              }}
+              placeholder={t('filters.search')}
+              sx={{ flexGrow: 1 }}
+              slotProps={{
+                input: {
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <Search fontSize="small" />
+                    </InputAdornment>
+                  ),
+                },
+              }}
+            />
+          </Stack>
+          {recentTransactionsQuery.isError && (
+            <Alert severity="error" sx={{ mx: 2, mt: 2 }}>
+              {toAppApiError(recentTransactionsQuery.error).message}
+            </Alert>
+          )}
+          <TableContainer sx={{ maxHeight: { xs: 420, md: 560 } }}>
+            <Table stickyHeader>
+              <TableHead>
+                <TableRow>
+                  <TableCell>{t('columns.sale')}</TableCell>
+                  <TableCell>{t('columns.customer')}</TableCell>
+                  <TableCell>{t('columns.date')}</TableCell>
+                  <TableCell>{t('columns.status')}</TableCell>
+                  <TableCell>{t('columns.payment')}</TableCell>
+                  <TableCell align="right">{t('columns.total')}</TableCell>
+                  <TableCell align="right">{t('columns.actions')}</TableCell>
+                </TableRow>
+              </TableHead>
+              <TableBody>
+                {recentTransactionsQuery.isLoading && <TableStateRow colSpan={7} loading />}
+                {!recentTransactionsQuery.isLoading && recentTransactions.length === 0 && (
+                  <TableStateRow colSpan={7} message={t('empty')} />
+                )}
+                {recentTransactions.map((sale) => (
+                  <TableRow key={sale.id} hover>
+                    <TableCell>
+                      <Stack spacing={0.25}>
+                        <Typography variant="subtitle2">{sale.sale_number}</Typography>
+                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                          {t(`types.${sale.type}`, { defaultValue: sale.type })}
+                        </Typography>
+                      </Stack>
+                    </TableCell>
+                    <TableCell>{sale.customer?.name ?? t('labels.walkInCustomer')}</TableCell>
+                    <TableCell>{formatAppDate(sale.sale_date, dateFormat, i18n.language)}</TableCell>
+                    <TableCell>
+                      <Chip
+                        size="small"
+                        label={t(`statuses.${sale.status}`, { defaultValue: sale.status })}
+                        variant="outlined"
+                      />
+                    </TableCell>
+                    <TableCell>
+                      <Chip
+                        size="small"
+                        label={t(`paymentStatuses.${sale.payment_status}`, { defaultValue: sale.payment_status })}
+                        variant="outlined"
+                      />
+                    </TableCell>
+                    <TableCell align="right">{formatMoney(sale.total_amount, currencyFormatter)}</TableCell>
+                    <TableCell align="right">
+                      <RowActions
+                        viewLabel={t('common:buttons.view')}
+                        editLabel={t('common:buttons.edit')}
+                        deleteLabel={t('common:buttons.delete')}
+                        showView
+                        showEdit={can('sales.edit')}
+                        showDelete={false}
+                        onView={() => {
+                          setRecentTransactionsOpen(false)
+                          router.push(`/sales/${sale.id}`)
+                        }}
+                        onEdit={() => {
+                          setRecentTransactionsOpen(false)
+                          router.push(`/pos/${sale.id}/edit`)
+                        }}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </TableContainer>
+          <TablePagination
+            component="div"
+            count={recentTransactionsMeta?.total ?? 0}
+            page={recentTransactionsPage}
+            rowsPerPage={recentTransactionsPerPage}
+            rowsPerPageOptions={recentTransactionRowsPerPageOptions}
+            onPageChange={(_, nextPage) => setRecentTransactionsPage(nextPage)}
+            onRowsPerPageChange={(event) => {
+              setRecentTransactionsPerPage(Number(event.target.value))
+              setRecentTransactionsPage(0)
+            }}
+          />
+        </DialogContent>
+        <DialogActions>
+          <Button variant="outlined" onClick={() => setRecentTransactionsOpen(false)}>
+            {t('common:buttons.close')}
+          </Button>
+        </DialogActions>
+      </Dialog>
       <Dialog open={editingItemIndex !== null} onClose={() => setEditingItemIndex(null)} fullWidth maxWidth="sm">
         <DialogTitle>{t('pos.lineDialog.title')}</DialogTitle>
         <DialogContent>

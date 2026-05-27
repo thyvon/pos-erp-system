@@ -21,6 +21,8 @@ const sales = {
   columns: {
     sale: 'ការលក់',
     customer: 'អតិថិជន',
+    code: 'លេខកូដ',
+    phone: 'ទូរស័ព្ទ',
     branch: 'សាខា',
     date: 'កាលបរិច្ឆេទ',
     status: 'ស្ថានភាព',

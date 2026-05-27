@@ -7,14 +7,12 @@ import AppTopbar from '@/components/layout/AppTopbar'
 import Breadcrumbs from '@/components/layout/Breadcrumbs'
 import LayoutSettings from '@/components/layout/LayoutSettings'
 import { AuthGate } from '@/components/auth/AuthGate'
-import {
-  CONTENT_MAX_WIDTH,
-  TOPBAR_HEIGHT,
-} from '@/theme'
+import { getLayoutMetrics } from '@/theme'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { contentStretch } = useUIStore()
+  const { contentStretch, layoutSize } = useUIStore()
   const theme = useTheme()
+  const layoutMetrics = getLayoutMetrics(layoutSize)
 
   return (
     <AuthGate>
@@ -41,12 +39,12 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
             sx={{
               flexGrow: 1,
               width: '100%',
-              maxWidth: contentStretch ? 'none' : CONTENT_MAX_WIDTH,
+              maxWidth: contentStretch ? 'none' : layoutMetrics.contentMaxWidth,
               mx: 'auto',
               px: { xs: 2, sm: 3, lg: 3 },
               py: { xs: 2, sm: 3 },
-              mt: `${TOPBAR_HEIGHT}px`,
-              minHeight: `calc(100vh - ${TOPBAR_HEIGHT}px)`,
+              mt: `${layoutMetrics.topbarHeight}px`,
+              minHeight: `calc(100vh - ${layoutMetrics.topbarHeight}px)`,
             }}
           >
             <Breadcrumbs />

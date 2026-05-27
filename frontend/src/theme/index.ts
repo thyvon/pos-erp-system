@@ -12,7 +12,20 @@ export const TOPBAR_HEIGHT = 64
 export const CONTENT_MAX_WIDTH = 1440
 
 export type FontPreset = 'publicSans' | 'inter' | 'dmSans' | 'nunitoSans'
-export type LayoutSize = 'small' | 'normal' | 'large'
+export type LayoutSize = 'compact' | 'small' | 'normal' | 'large'
+export type BorderRadiusLevel = number
+
+export const BORDER_RADIUS_MIN = 0
+export const BORDER_RADIUS_MAX = 20
+export const BORDER_RADIUS_STEP = 1
+export const DEFAULT_BORDER_RADIUS_LEVEL = 8
+
+export interface LayoutMetrics {
+  sidebarWidth: number
+  sidebarCollapsedWidth: number
+  topbarHeight: number
+  contentMaxWidth: number
+}
 
 export const ENGLISH_FONT_OPTIONS: Array<{ value: FontPreset; label: string; family: string }> = [
   { value: 'publicSans', label: 'Public Sans', family: 'Public Sans' },
@@ -22,10 +35,42 @@ export const ENGLISH_FONT_OPTIONS: Array<{ value: FontPreset; label: string; fam
 ]
 
 export const LAYOUT_SIZE_OPTIONS: Array<{ value: LayoutSize; labelKey: string }> = [
+  { value: 'compact', labelKey: 'layoutSettings.compact' },
   { value: 'small', labelKey: 'layoutSettings.small' },
   { value: 'normal', labelKey: 'layoutSettings.normal' },
   { value: 'large', labelKey: 'layoutSettings.large' },
 ]
+
+const LAYOUT_METRICS_PRESETS: Record<LayoutSize, LayoutMetrics> = {
+  compact: {
+    sidebarWidth: 252,
+    sidebarCollapsedWidth: 72,
+    topbarHeight: 56,
+    contentMaxWidth: 1320,
+  },
+  small: {
+    sidebarWidth: 268,
+    sidebarCollapsedWidth: 80,
+    topbarHeight: 60,
+    contentMaxWidth: 1380,
+  },
+  normal: {
+    sidebarWidth: SIDEBAR_WIDTH,
+    sidebarCollapsedWidth: SIDEBAR_COLLAPSED_WIDTH,
+    topbarHeight: TOPBAR_HEIGHT,
+    contentMaxWidth: CONTENT_MAX_WIDTH,
+  },
+  large: {
+    sidebarWidth: 300,
+    sidebarCollapsedWidth: 96,
+    topbarHeight: 72,
+    contentMaxWidth: 1560,
+  },
+}
+
+export function getLayoutMetrics(layoutSize: LayoutSize = 'normal'): LayoutMetrics {
+  return LAYOUT_METRICS_PRESETS[layoutSize] ?? LAYOUT_METRICS_PRESETS.normal
+}
 
 const LAYOUT_SIZE_PRESETS: Record<LayoutSize, {
   spacing: number
@@ -47,6 +92,26 @@ const LAYOUT_SIZE_PRESETS: Record<LayoutSize, {
     overline: string
   }
 }> = {
+  compact: {
+    spacing: 6,
+    controlHeight: 42,
+    smallControlHeight: 30,
+    largeControlHeight: 48,
+    typography: {
+      h1: '2rem',
+      h2: '1.625rem',
+      h3: '1.25rem',
+      h4: '1.0625rem',
+      h5: '0.9375rem',
+      h6: '0.875rem',
+      subtitle1: '0.875rem',
+      subtitle2: '0.75rem',
+      body1: '0.875rem',
+      body2: '0.75rem',
+      caption: '0.6875rem',
+      overline: '0.6875rem',
+    },
+  },
   small: {
     spacing: 7,
     controlHeight: 48,
@@ -109,6 +174,15 @@ const LAYOUT_SIZE_PRESETS: Record<LayoutSize, {
   },
 }
 
+export function normalizeBorderRadiusLevel(level: unknown): BorderRadiusLevel {
+  if (level === 'low') return 4
+  if (level === 'medium') return DEFAULT_BORDER_RADIUS_LEVEL
+  if (level === 'high') return 12
+
+  const numericLevel = typeof level === 'number' ? level : DEFAULT_BORDER_RADIUS_LEVEL
+  return Math.min(BORDER_RADIUS_MAX, Math.max(BORDER_RADIUS_MIN, numericLevel))
+}
+
 const SYSTEM_FONT_STACK = 'ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
 
 function resolveFontFamily(fontPreset: FontPreset) {
@@ -120,14 +194,20 @@ export function createAppTheme(
   mode: 'light' | 'dark',
   fontPreset: FontPreset = 'publicSans',
   colorPreset: ThemeColorPreset = 'default',
-  layoutSize: LayoutSize = 'normal'
+  layoutSize: LayoutSize = 'normal',
+  borderRadiusLevel: BorderRadiusLevel = DEFAULT_BORDER_RADIUS_LEVEL
 ): Theme {
   const palette = buildPalette(mode, colorPreset)
   const primaryMain =
     palette.primary && 'main' in palette.primary ? palette.primary.main : '#00A76F'
   const fontFamily = resolveFontFamily(fontPreset)
-  const sizePreset = LAYOUT_SIZE_PRESETS[layoutSize]
-  const isSmallLayout = layoutSize === 'small'
+  const sizePreset = LAYOUT_SIZE_PRESETS[layoutSize] ?? LAYOUT_SIZE_PRESETS.normal
+  const controlRadius = normalizeBorderRadiusLevel(borderRadiusLevel)
+  const iconButtonRadius = controlRadius
+  const isDenseLayout = layoutSize === 'compact' || layoutSize === 'small'
+  const isCompactLayout = layoutSize === 'compact'
+  const inputLabelOffset = Math.max((sizePreset.controlHeight - 22) / 2, 7)
+  const smallInputLabelOffset = Math.max((sizePreset.smallControlHeight - 20) / 2, 5)
 
   return createTheme({
     palette,
@@ -147,7 +227,7 @@ export function createAppTheme(
       caption: { fontSize: sizePreset.typography.caption, lineHeight: 1.5 },
       overline: { fontSize: sizePreset.typography.overline, fontWeight: 700, letterSpacing: '1.1px', lineHeight: 1.5, textTransform: 'uppercase' },
     },
-    shape: { borderRadius: 8 },
+    shape: { borderRadius: controlRadius },
     shadows: [
       'none',
       `0 1px 2px 0 ${alpha('#919EAB', 0.16)}`,
@@ -193,7 +273,7 @@ export function createAppTheme(
           root: {
             textTransform: 'none',
             fontWeight: 700,
-            borderRadius: 8,
+            borderRadius: controlRadius,
             minHeight: sizePreset.controlHeight,
             padding: '6px 16px',
           },
@@ -210,9 +290,11 @@ export function createAppTheme(
       MuiOutlinedInput: {
         styleOverrides: {
           root: {
-            borderRadius: 8,
+            borderRadius: controlRadius,
             backgroundColor: mode === 'light' ? '#F9FAFB' : alpha('#FFFFFF', 0.04),
+            height: sizePreset.controlHeight,
             minHeight: sizePreset.controlHeight,
+            alignItems: 'center',
             '&:hover .MuiOutlinedInput-notchedOutline': {
               borderColor: primaryMain,
             },
@@ -220,19 +302,79 @@ export function createAppTheme(
               borderWidth: 1,
               borderColor: primaryMain,
             },
+            '&.MuiInputBase-multiline': {
+              height: 'auto',
+              alignItems: 'flex-start',
+              paddingTop: 12,
+              paddingBottom: 12,
+            },
           },
           notchedOutline: {
             borderColor: mode === 'light' ? alpha('#919EAB', 0.24) : alpha('#919EAB', 0.32),
           },
           input: {
-            paddingTop: (sizePreset.controlHeight - 24) / 2,
-            paddingBottom: (sizePreset.controlHeight - 24) / 2,
+            boxSizing: 'border-box',
+            height: sizePreset.controlHeight,
+            lineHeight: `${sizePreset.controlHeight}px`,
+            paddingTop: 0,
+            paddingBottom: 0,
+            '&::placeholder': {
+              lineHeight: `${sizePreset.controlHeight}px`,
+            },
+            '&.MuiInputBase-inputMultiline': {
+              height: 'auto',
+              lineHeight: 1.5,
+              paddingTop: 0,
+              paddingBottom: 0,
+              '&::placeholder': {
+                lineHeight: 1.5,
+              },
+            },
           },
           sizeSmall: {
+            height: sizePreset.smallControlHeight,
             minHeight: sizePreset.smallControlHeight,
             '& .MuiOutlinedInput-input': {
-              paddingTop: Math.max((sizePreset.smallControlHeight - 23) / 2, 5),
-              paddingBottom: Math.max((sizePreset.smallControlHeight - 23) / 2, 5),
+              height: sizePreset.smallControlHeight,
+              lineHeight: `${sizePreset.smallControlHeight}px`,
+              paddingTop: 0,
+              paddingBottom: 0,
+              '&::placeholder': {
+                lineHeight: `${sizePreset.smallControlHeight}px`,
+              },
+            },
+            '&.MuiInputBase-multiline': {
+              height: 'auto',
+            },
+          },
+        },
+      },
+      MuiInputLabel: {
+        styleOverrides: {
+          outlined: {
+            transform: `translate(14px, ${inputLabelOffset}px) scale(1)`,
+            '&.MuiInputLabel-sizeSmall': {
+              transform: `translate(14px, ${smallInputLabelOffset}px) scale(1)`,
+            },
+            '&.MuiInputLabel-shrink': {
+              transform: 'translate(14px, -9px) scale(0.75)',
+            },
+          },
+        },
+      },
+      MuiSelect: {
+        styleOverrides: {
+          select: {
+            boxSizing: 'border-box',
+            height: sizePreset.controlHeight,
+            minHeight: 'auto',
+            display: 'flex',
+            alignItems: 'center',
+            paddingTop: 0,
+            paddingBottom: 0,
+            lineHeight: 1.5,
+            '&.MuiInputBase-inputSizeSmall': {
+              height: sizePreset.smallControlHeight,
             },
           },
         },
@@ -248,8 +390,21 @@ export function createAppTheme(
               minHeight: sizePreset.smallControlHeight,
             },
             '& .MuiAutocomplete-input': {
+              boxSizing: 'border-box',
+              height: sizePreset.controlHeight,
+              lineHeight: `${sizePreset.controlHeight}px`,
               paddingTop: '0 !important',
               paddingBottom: '0 !important',
+              '&::placeholder': {
+                lineHeight: `${sizePreset.controlHeight}px`,
+              },
+            },
+            '&.MuiInputBase-sizeSmall .MuiAutocomplete-input': {
+              height: sizePreset.smallControlHeight,
+              lineHeight: `${sizePreset.smallControlHeight}px`,
+              '&::placeholder': {
+                lineHeight: `${sizePreset.smallControlHeight}px`,
+              },
             },
           },
           endAdornment: {
@@ -261,8 +416,9 @@ export function createAppTheme(
       MuiPickersOutlinedInput: {
         styleOverrides: {
           root: {
-            borderRadius: 8,
+            borderRadius: controlRadius,
             backgroundColor: mode === 'light' ? '#F9FAFB' : alpha('#FFFFFF', 0.04),
+            alignItems: 'center',
             height: sizePreset.controlHeight,
             minHeight: sizePreset.controlHeight,
             paddingTop: 0,
@@ -279,12 +435,17 @@ export function createAppTheme(
             borderColor: mode === 'light' ? alpha('#919EAB', 0.24) : alpha('#919EAB', 0.32),
           },
           input: {
-            paddingTop: `${(sizePreset.controlHeight - 24) / 2}px !important`,
-            paddingBottom: `${(sizePreset.controlHeight - 24) / 2}px !important`,
+            height: sizePreset.controlHeight,
+            lineHeight: `${sizePreset.controlHeight}px`,
+            paddingTop: '0 !important',
+            paddingBottom: '0 !important',
           },
           sectionsContainer: {
-            paddingTop: `${(sizePreset.controlHeight - 24) / 2}px !important`,
-            paddingBottom: `${(sizePreset.controlHeight - 24) / 2}px !important`,
+            alignItems: 'center',
+            height: sizePreset.controlHeight,
+            minHeight: sizePreset.controlHeight,
+            paddingTop: '0 !important',
+            paddingBottom: '0 !important',
           },
         },
       },
@@ -293,7 +454,7 @@ export function createAppTheme(
           root: {
             position: 'relative',
             boxShadow: `0 0 2px 0 ${alpha('#919EAB', 0.2)}, 0 12px 24px -4px ${alpha('#919EAB', 0.12)}`,
-            borderRadius: 8,
+            borderRadius: controlRadius,
             zIndex: 0,
           },
         },
@@ -310,7 +471,7 @@ export function createAppTheme(
       },
       MuiTable: {
         defaultProps: {
-          size: isSmallLayout ? 'small' : 'medium',
+          size: isDenseLayout ? 'small' : 'medium',
         },
       },
       MuiTableRow: {
@@ -328,11 +489,11 @@ export function createAppTheme(
                   ? alpha(primaryMain, 0.06)
                   : alpha('#ffffff', 0.06),
             },
-            ...(isSmallLayout
+            ...(isDenseLayout
               ? {
                   '& .MuiTableCell-root': {
-                    paddingTop: 6,
-                    paddingBottom: 6,
+                    paddingTop: isCompactLayout ? 4 : 6,
+                    paddingBottom: isCompactLayout ? 4 : 6,
                   },
                 }
               : {}),
@@ -342,23 +503,23 @@ export function createAppTheme(
       MuiTableCell: {
         styleOverrides: {
           root: {
-            ...(isSmallLayout
+            ...(isDenseLayout
               ? {
-                  padding: '6px 12px',
+                  padding: isCompactLayout ? '4px 10px' : '6px 12px',
                 }
               : {}),
           },
           head: {
-            ...(isSmallLayout
+            ...(isDenseLayout
               ? {
-                  paddingTop: 8,
-                  paddingBottom: 8,
+                  paddingTop: isCompactLayout ? 6 : 8,
+                  paddingBottom: isCompactLayout ? 6 : 8,
                   fontSize: sizePreset.typography.caption,
                 }
               : {}),
           },
           body: {
-            ...(isSmallLayout
+            ...(isDenseLayout
               ? {
                   fontSize: sizePreset.typography.body2,
                 }
@@ -394,14 +555,31 @@ export function createAppTheme(
       MuiIconButton: {
         styleOverrides: {
           root: {
-            borderRadius: 8,
+            borderRadius: iconButtonRadius,
+          },
+        },
+      },
+      MuiToggleButton: {
+        styleOverrides: {
+          root: {
+            borderRadius: controlRadius,
+            minHeight: sizePreset.smallControlHeight,
+            textTransform: 'none',
+            fontWeight: 700,
+          },
+        },
+      },
+      MuiToggleButtonGroup: {
+        styleOverrides: {
+          grouped: {
+            borderRadius: controlRadius,
           },
         },
       },
       MuiPopover: {
         styleOverrides: {
           paper: {
-            borderRadius: 12,
+            borderRadius: controlRadius,
           },
         },
       },
@@ -427,7 +605,7 @@ export function createAppTheme(
       MuiListItemButton: {
         styleOverrides: {
           root: {
-            borderRadius: 8,
+            borderRadius: controlRadius,
             margin: '4px 8px',
             color: palette.text?.secondary,
             '&.Mui-selected': {

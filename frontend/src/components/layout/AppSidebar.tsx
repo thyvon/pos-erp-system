@@ -46,7 +46,7 @@ import {
 } from '@/components/ui/icons'
 import { useAuthStore } from '@/stores/authStore'
 import { useUIStore } from '@/stores/uiStore'
-import { SIDEBAR_WIDTH, SIDEBAR_COLLAPSED_WIDTH } from '@/theme'
+import { getLayoutMetrics } from '@/theme'
 
 interface NavItem {
   key: string
@@ -151,11 +151,12 @@ export default function AppSidebar() {
   const router = useRouter()
   const theme = useTheme()
   const isDesktop = useMediaQuery(theme.breakpoints.up('lg'))
-  const { sidebarOpen, setSidebarOpen, mobileSidebarOpen, setMobileSidebarOpen, sidebarTheme } = useUIStore()
+  const { sidebarOpen, setSidebarOpen, mobileSidebarOpen, setMobileSidebarOpen, sidebarTheme, layoutSize } = useUIStore()
   const { isAdmin } = useAuthStore()
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({})
   const expanded = isDesktop ? sidebarOpen : true
-  const drawerWidth = expanded ? SIDEBAR_WIDTH : SIDEBAR_COLLAPSED_WIDTH
+  const layoutMetrics = getLayoutMetrics(layoutSize)
+  const drawerWidth = expanded ? layoutMetrics.sidebarWidth : layoutMetrics.sidebarCollapsedWidth
   const resolvedSidebarTheme = sidebarTheme === 'inherit' ? theme.palette.mode : sidebarTheme
   const sidebarIsDark = resolvedSidebarTheme === 'dark'
   const sidebarColors = {
@@ -321,14 +322,14 @@ export default function AppSidebar() {
       onClose={() => setMobileSidebarOpen(false)}
       ModalProps={{ keepMounted: true }}
       sx={{
-        width: isDesktop ? drawerWidth : SIDEBAR_WIDTH,
+        width: isDesktop ? drawerWidth : layoutMetrics.sidebarWidth,
         flexShrink: 0,
         whiteSpace: 'nowrap',
         boxSizing: 'border-box',
         overflow: 'visible',
         position: 'relative',
         '& .MuiDrawer-paper': {
-          width: isDesktop ? drawerWidth : SIDEBAR_WIDTH,
+          width: isDesktop ? drawerWidth : layoutMetrics.sidebarWidth,
           transition: theme.transitions.create('width', {
             easing: theme.transitions.easing.sharp,
             duration: theme.transitions.duration.enteringScreen,

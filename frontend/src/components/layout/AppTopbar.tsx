@@ -19,7 +19,7 @@ import {
   ChevronRight,
 } from '@/components/ui/icons'
 import { useUIStore } from '@/stores/uiStore'
-import { SIDEBAR_WIDTH, SIDEBAR_COLLAPSED_WIDTH, TOPBAR_HEIGHT } from '@/theme'
+import { getLayoutMetrics } from '@/theme'
 import AccountPopover from './AccountPopover'
 import NotificationsPopover from './NotificationsPopover'
 
@@ -32,9 +32,11 @@ export default function AppTopbar() {
     toggleMobileSidebar,
     toggleSettings,
     toggleTheme,
+    layoutSize,
   } = useUIStore()
 
-  const drawerWidth = sidebarOpen ? SIDEBAR_WIDTH : SIDEBAR_COLLAPSED_WIDTH
+  const layoutMetrics = getLayoutMetrics(layoutSize)
+  const drawerWidth = sidebarOpen ? layoutMetrics.sidebarWidth : layoutMetrics.sidebarCollapsedWidth
   const resolvedTopbarTheme = topbarTheme === 'inherit' ? theme.palette.mode : topbarTheme
   const topbarIsDark = resolvedTopbarTheme === 'dark'
   const topbarColors = {
@@ -57,7 +59,7 @@ export default function AppTopbar() {
       sx={{
         width: { lg: `calc(100% - ${drawerWidth}px)` },
         ml: { lg: `${drawerWidth}px` },
-        height: TOPBAR_HEIGHT,
+        height: layoutMetrics.topbarHeight,
         zIndex: theme.zIndex.drawer + 1,
         transition: theme.transitions.create(['width', 'margin'], {
           duration: theme.transitions.duration.shorter,
@@ -98,7 +100,7 @@ export default function AppTopbar() {
 
       <Toolbar
         sx={{
-          minHeight: TOPBAR_HEIGHT,
+          minHeight: layoutMetrics.topbarHeight,
           px: { lg: 5 },
         }}
       >

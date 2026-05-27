@@ -7,6 +7,7 @@ import {
   Divider,
   Drawer,
   FormControlLabel,
+  Slider,
   Stack,
   Switch,
   ToggleButton,
@@ -30,7 +31,14 @@ import {
 } from '@/components/ui/icons'
 import { useTranslation } from 'react-i18next'
 import { useUIStore } from '@/stores/uiStore'
-import { ENGLISH_FONT_OPTIONS, LAYOUT_SIZE_OPTIONS, THEME_COLOR_PRESETS } from '@/theme'
+import {
+  BORDER_RADIUS_MAX,
+  BORDER_RADIUS_MIN,
+  BORDER_RADIUS_STEP,
+  ENGLISH_FONT_OPTIONS,
+  LAYOUT_SIZE_OPTIONS,
+  THEME_COLOR_PRESETS,
+} from '@/theme'
 
 function SectionTitle({ icon, label }: { icon: ReactNode; label: string }) {
   return (
@@ -70,6 +78,8 @@ export default function LayoutSettings() {
     setColorPreset,
     layoutSize,
     setLayoutSize,
+    borderRadiusLevel,
+    setBorderRadiusLevel,
     sidebarTheme,
     setSidebarTheme,
     topbarTheme,
@@ -191,12 +201,13 @@ export default function LayoutSettings() {
             <Box
               sx={{
                 display: 'grid',
-                gridTemplateColumns: 'repeat(3, minmax(0, 1fr))',
+                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
                 gap: 1,
               }}
             >
               {THEME_COLOR_PRESETS.map((preset) => {
                 const selected = colorPreset === preset.value
+                const presetLabel = t(preset.labelKey)
 
                 return (
                   <Button
@@ -204,8 +215,10 @@ export default function LayoutSettings() {
                     variant="outlined"
                     onClick={() => setColorPreset(preset.value)}
                     sx={{
-                      minHeight: 58,
+                      minHeight: 78,
                       p: 1,
+                      flexDirection: 'column',
+                      gap: 0.75,
                       justifyContent: 'center',
                       borderColor: selected ? preset.main : theme.palette.divider,
                       bgcolor: selected ? alpha(preset.main, 0.08) : 'transparent',
@@ -214,19 +227,30 @@ export default function LayoutSettings() {
                         bgcolor: alpha(preset.main, 0.12),
                       },
                     }}
-                    aria-label={t('layoutSettings.useColorPreset', { name: preset.label })}
+                    aria-label={t('layoutSettings.useColorPreset', { name: presetLabel })}
                   >
                     <Box
                       sx={{
-                        width: 26,
-                        height: 26,
-                        borderRadius: '50%',
+                        width: '100%',
+                        height: 28,
+                        borderRadius: 1,
                         bgcolor: preset.main,
+                        background: `linear-gradient(135deg, ${preset.dark} 0%, ${preset.main} 52%, ${preset.light} 100%)`,
                         boxShadow: selected
-                          ? `0 0 0 4px ${alpha(preset.main, 0.16)}`
+                          ? `0 0 0 3px ${alpha(preset.main, 0.18)}`
                           : `inset 0 0 0 1px ${alpha('#000000', 0.08)}`,
                       }}
                     />
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: selected ? preset.main : 'text.secondary',
+                        fontWeight: 700,
+                        lineHeight: 1.2,
+                      }}
+                    >
+                      {presetLabel}
+                    </Typography>
                   </Button>
                 )
               })}
@@ -274,6 +298,55 @@ export default function LayoutSettings() {
                 </ToggleButton>
               ))}
             </ToggleButtonGroup>
+          </Box>
+
+          <Box>
+            <SectionTitle
+              icon={<TuneOutlined fontSize="small" />}
+              label={t('layoutSettings.cornerRadius')}
+            />
+            <Stack
+              spacing={1.25}
+              sx={{
+                px: 1.5,
+                py: 1.25,
+                borderRadius: 1,
+                border: `1px solid ${theme.palette.divider}`,
+                bgcolor: alpha(theme.palette.grey[500], 0.04),
+              }}
+            >
+              <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  {borderRadiusLevel === 0
+                    ? t('layoutSettings.radiusNone')
+                    : t('layoutSettings.radiusValue', { value: borderRadiusLevel })}
+                </Typography>
+                <Box
+                  sx={{
+                    width: 34,
+                    height: 24,
+                    border: `1px solid ${theme.palette.divider}`,
+                    borderRadius: `${borderRadiusLevel}px`,
+                    bgcolor: 'background.paper',
+                    boxShadow: `inset 0 0 0 1px ${alpha(theme.palette.primary.main, 0.08)}`,
+                  }}
+                />
+              </Stack>
+              <Slider
+                value={borderRadiusLevel}
+                onChange={(_, value) => setBorderRadiusLevel(Array.isArray(value) ? value[0] : value)}
+                min={BORDER_RADIUS_MIN}
+                max={BORDER_RADIUS_MAX}
+                step={BORDER_RADIUS_STEP}
+                marks={[
+                  { value: BORDER_RADIUS_MIN, label: '0' },
+                  { value: 8, label: '8' },
+                  { value: BORDER_RADIUS_MAX, label: String(BORDER_RADIUS_MAX) },
+                ]}
+                valueLabelDisplay="auto"
+                aria-label={t('layoutSettings.cornerRadius')}
+              />
+            </Stack>
           </Box>
 
           <Box>
