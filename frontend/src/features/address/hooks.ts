@@ -1,6 +1,6 @@
 'use client'
 
-import { useQuery } from '@tanstack/react-query'
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { cambodiaAddressApi } from './api'
 
 export const cambodiaAddressKeys = {
@@ -9,6 +9,7 @@ export const cambodiaAddressKeys = {
   districts: (provinceId: string) => [...cambodiaAddressKeys.all, 'districts', provinceId] as const,
   communes: (districtId: string) => [...cambodiaAddressKeys.all, 'communes', districtId] as const,
   villages: (communeId: string) => [...cambodiaAddressKeys.all, 'villages', communeId] as const,
+  syncStatus: () => [...cambodiaAddressKeys.all, 'sync-status'] as const,
 }
 
 export function useCambodiaProvincesQuery(enabled = true) {
@@ -44,5 +45,25 @@ export function useCambodiaVillagesQuery(communeId: string, enabled = true) {
     queryFn: () => cambodiaAddressApi.villages(communeId),
     enabled: enabled && communeId !== '',
     staleTime: 24 * 60 * 60 * 1000,
+  })
+}
+
+export function useCambodiaAddressSyncStatusQuery(enabled = true) {
+  return useQuery({
+    queryKey: cambodiaAddressKeys.syncStatus(),
+    queryFn: () => cambodiaAddressApi.syncStatus(),
+    enabled,
+    staleTime: 60 * 1000,
+  })
+}
+
+export function useSyncCambodiaAddressMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: () => cambodiaAddressApi.sync(),
+    onSuccess: () => {
+      void queryClient.invalidateQueries({ queryKey: cambodiaAddressKeys.all })
+    },
   })
 }

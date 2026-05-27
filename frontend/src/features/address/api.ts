@@ -1,5 +1,5 @@
 import { apiClient } from '@/api/client'
-import type { CambodiaAddressDivision } from './types'
+import type { CambodiaAddressDivision, CambodiaAddressSyncResult, CambodiaAddressSyncStatus } from './types'
 
 export const cambodiaAddressApi = {
   provinces: () =>
@@ -15,5 +15,11 @@ export const cambodiaAddressApi = {
   villages: (communeId: string) =>
     apiClient.get<CambodiaAddressDivision[]>('/v1/locations/cambodia/villages', {
       commune_id: communeId,
+    }),
+  syncStatus: () =>
+    apiClient.get<CambodiaAddressSyncStatus>('/v1/locations/cambodia/sync-status'),
+  sync: () =>
+    apiClient.post<CambodiaAddressSyncResult>('/v1/locations/cambodia/sync', undefined, {
+      timeout: 120_000,
     }),
 }

@@ -37,7 +37,7 @@ class EditWindowService
             return true;
         }
 
-        return now()->startOfDay()->diffInDays($referenceDate->copy()->startOfDay()) <= $lifetimeDays;
+        return $referenceDate->copy()->startOfDay()->diffInDays(now()->startOfDay(), true) <= $lifetimeDays;
     }
 
     public function assertWithinWindow(

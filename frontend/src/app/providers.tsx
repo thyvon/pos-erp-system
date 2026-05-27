@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo } from 'react'
 import { ThemeProvider, CssBaseline, GlobalStyles, alpha } from '@mui/material'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
@@ -18,7 +18,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const colorPreset = useUIStore((s) => s.colorPreset)
   const layoutSize = useUIStore((s) => s.layoutSize)
   const borderRadiusLevel = useUIStore((s) => s.borderRadiusLevel)
-  const [language, setLanguage] = useState(i18n.resolvedLanguage ?? i18n.language ?? 'en')
+  const language = useUIStore((s) => s.language)
   const theme = useMemo(
     () => createAppTheme(themeMode, fontPreset, colorPreset, layoutSize, borderRadiusLevel),
     [borderRadiusLevel, colorPreset, fontPreset, layoutSize, themeMode]
@@ -26,16 +26,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const queryClient = useMemo(() => createQueryClient(), [])
 
   useEffect(() => {
-    const handleLanguageChanged = (nextLanguage: string) => {
-      setLanguage(nextLanguage)
-      document.documentElement.lang = nextLanguage
-    }
-
     document.documentElement.lang = language
-    i18n.on('languageChanged', handleLanguageChanged)
-
-    return () => {
-      i18n.off('languageChanged', handleLanguageChanged)
+    if (i18n.language !== language) {
+      void i18n.changeLanguage(language)
     }
   }, [language])
 

@@ -48,16 +48,30 @@ import { useWarehousesQuery } from '@/features/warehouses/hooks'
 import { useAuthStore } from '@/stores/authStore'
 import {
   useCreateSaleMutation,
-  useDeleteSalePaymentMutation,
-  useRecordSalePaymentMutation,
   useSaleQuery,
-  useUpdateSaleMutation,
-  useUpdateSalePaymentMutation,
+  useUpdateSaleWithPaymentsMutation,
 } from './hooks'
+import {
+  buildDirectPaymentLines,
+  buildSalePayload,
+  createClientRequestId,
+  directPaymentLineBaseAmount,
+  directPaymentLineChanged,
+  directPaymentLinePayload,
+  discountAmount,
+  formatUsdKhrAmount,
+  lineTotal,
+  newDirectPaymentLine,
+  paymentToDirectPaymentLine,
+  round,
+  taxAmount,
+  toNumber,
+  type DirectPaymentLineInput,
+} from './formHelpers'
 import { saleFormSchema, type SaleFormInput, type SaleFormValues } from './schema'
 import type { PaymentAccount } from '@/types/accounting'
 import type { InventoryProductLookupItem } from '@/types/inventory'
-import type { Sale, SaleItem, SalePayload, SalePayment, SalePaymentCorrectionPayload, SalePaymentLinePayload } from '@/types/sales'
+import type { Sale, SaleItem, SalePaymentCorrectionPayload } from '@/types/sales'
 import type { Warehouse } from '@/types/warehouse'
 import type { Customer } from '@/types/customer'
 import type { PriceGroup } from '@/types/priceGroup'
@@ -97,12 +111,6 @@ const paymentMethods = ['cash', 'card', 'bank_transfer', 'cheque', 'reward_point
 
 function today() {
   return dayjs().format('YYYY-MM-DD')
-}
-
-function toNumber(value: unknown, fallback = 0) {
-  if (value === null || value === undefined || value === '') return fallback
-  const numeric = Number(value)
-  return Number.isFinite(numeric) ? numeric : fallback
 }
 
 function emptyValues(): SaleFormInput {
@@ -207,140 +215,6 @@ function valuesFromSale(sale: Sale | null | undefined): SaleFormInput {
   }
 }
 
-function discountAmount(type: string | null | undefined, amount: unknown, base: number) {
-  const value = toNumber(amount)
-  if (type === 'percentage') return Math.min(base, round(base * value / 100))
-  if (type === 'fixed') return Math.min(base, value)
-  return 0
-}
-
-function taxAmount(type: string | null | undefined, rateType: string | null | undefined, rate: unknown, base: number) {
-  const value = toNumber(rate)
-  if (!type || !rateType || value <= 0) return { base, tax: 0, total: base }
-  const tax = rateType === 'fixed' ? value : round(base * value / 100)
-
-  if (type === 'inclusive') {
-    const inclusiveTax = rateType === 'fixed' ? Math.min(base, value) : round(base - (base / (1 + value / 100)))
-    return { base: round(base - inclusiveTax), tax: inclusiveTax, total: base }
-  }
-
-  return { base, tax, total: round(base + tax) }
-}
-
-function round(value: number) {
-  return Math.round(value * 100) / 100
-}
-
-function createClientRequestId() {
-  return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`
-}
-
-type DirectPaymentLineInput = NonNullable<SaleFormInput['direct_payments']>[number]
-
-function newDirectPaymentLine(paymentAccounts: PaymentAccount[] = []): DirectPaymentLineInput {
-  return {
-    payment_account_id: paymentAccounts.find((account) => account.is_active)?.id ?? '',
-    payment_currency: 'USD',
-    payment_amount: 0,
-    method: 'cash',
-    reference: '',
-  }
-}
-
-function paymentToDirectPaymentLine(payment: SalePayment): DirectPaymentLineInput {
-  return {
-    sale_payment_id: payment.id,
-    payment_account_id: payment.payment_account_id,
-    payment_currency: payment.payment_currency ?? 'USD',
-    payment_amount: toNumber(payment.payment_amount ?? payment.amount),
-    method: payment.method ?? 'cash',
-    reference: payment.reference ?? '',
-  }
-}
-
-function directPaymentLineBaseAmount(
-  line: Partial<DirectPaymentLineInput> | null | undefined,
-  exchangeRate: number,
-) {
-  const amount = round(toNumber(line?.payment_amount))
-
-  if (line?.payment_currency === 'KHR') {
-    return exchangeRate > 0 ? round(amount / exchangeRate) : 0
-  }
-
-  return amount
-}
-
-function buildDirectPaymentLines(values: SaleFormValues, exchangeRate: number, exchangeRateId: string | null, saleTotal: number) {
-  let remaining = round(saleTotal)
-
-  return (values.direct_payments ?? []).flatMap((line) => {
-    if (line.sale_payment_id) {
-      remaining = Math.max(0, round(remaining - directPaymentLineBaseAmount(line, exchangeRate)))
-      return []
-    }
-
-    if (remaining <= 0) return []
-
-    const payload = directPaymentLinePayload(line, values.sale_date, exchangeRate, exchangeRateId)
-    if (!payload) return []
-
-    const appliedAmount = Math.min(payload.amount, remaining)
-    remaining = round(remaining - appliedAmount)
-
-    return [{
-      ...payload,
-      amount: appliedAmount,
-      payment_amount: payload.payment_currency === 'KHR'
-        ? round(appliedAmount * exchangeRate)
-        : appliedAmount,
-    }]
-  })
-}
-
-function directPaymentLinePayload(
-  line: Partial<DirectPaymentLineInput> | null | undefined,
-  paymentDate: string,
-  exchangeRate: number,
-  exchangeRateId: string | null,
-): SalePaymentLinePayload | null {
-  const paymentAccountId = line?.payment_account_id
-  const paymentCurrency = line?.payment_currency ?? 'USD'
-  const paymentMethod = line?.method ?? 'cash'
-  const lineBaseAmount = directPaymentLineBaseAmount(line, exchangeRate)
-
-  if (!paymentAccountId || lineBaseAmount <= 0) return null
-
-  return {
-    payment_account_id: paymentAccountId,
-    amount: lineBaseAmount,
-    payment_currency: paymentCurrency,
-    payment_amount: paymentCurrency === 'KHR' ? round(toNumber(line?.payment_amount)) : lineBaseAmount,
-    exchange_rate_id: paymentCurrency === 'KHR' ? exchangeRateId : null,
-    method: paymentMethod,
-    reference: line?.reference || null,
-    payment_date: paymentDate,
-    note: null,
-  }
-}
-
-function directPaymentLineChanged(line: Partial<DirectPaymentLineInput>, payment: SalePayment) {
-  return line.payment_account_id !== payment.payment_account_id
-    || (line.payment_currency ?? 'USD') !== (payment.payment_currency ?? 'USD')
-    || round(toNumber(line.payment_amount)) !== round(toNumber(payment.payment_amount ?? payment.amount))
-    || (line.method ?? 'cash') !== payment.method
-    || (line.reference ?? '') !== (payment.reference ?? '')
-}
-
-function formatUsdKhrAmount(amount: number, exchangeRate: number) {
-  const usd = `USD ${amount.toFixed(2)}`
-  const khr = exchangeRate > 0
-    ? `KHR ${Math.round(amount * exchangeRate).toLocaleString()}`
-    : 'KHR -'
-
-  return { usd, khr }
-}
-
 function InstructionTooltip({ title }: { title: string }) {
   return (
     <Tooltip title={title}>
@@ -349,55 +223,6 @@ function InstructionTooltip({ title }: { title: string }) {
       </IconButton>
     </Tooltip>
   )
-}
-
-function lineTotal(item: Partial<SaleFormInput['items'][number]> | null | undefined, taxScope: string) {
-  if (!item) return 0
-
-  const gross = round(toNumber(item.quantity) * toNumber(item.unit_price))
-  const afterDiscount = Math.max(0, round(gross - discountAmount(item.discount_type, item.discount_amount, gross)))
-  return taxScope === 'line'
-    ? taxAmount(item.tax_type, item.tax_rate_type, item.tax_rate, afterDiscount).total
-    : afterDiscount
-}
-
-function buildPayload(values: SaleFormValues): SalePayload {
-  return {
-    branch_id: values.branch_id,
-    warehouse_id: values.warehouse_id,
-    customer_id: values.customer_id || null,
-    type: values.type,
-    sale_date: values.sale_date,
-    due_date: values.due_date || null,
-    price_group_id: values.price_group_id || null,
-    discount_type: values.discount_type ?? null,
-    discount_amount: values.discount_amount ?? 0,
-    tax_scope: values.tax_scope,
-    tax_rate_id: values.tax_scope === 'sale' ? values.tax_rate_id || null : null,
-    tax_rate_type: values.tax_scope === 'sale' ? values.tax_rate_type ?? null : null,
-    tax_rate: values.tax_scope === 'sale' ? values.tax_rate ?? 0 : null,
-    tax_type: values.tax_scope === 'sale' ? values.tax_type ?? 'exclusive' : null,
-    shipping_charges: values.shipping_charges ?? 0,
-    notes: values.notes ?? null,
-    staff_note: values.staff_note ?? null,
-    items: values.items.map((item) => ({
-      product_id: item.product_id,
-      variation_id: item.variation_id ?? null,
-      sub_unit_id: item.sub_unit_id ?? null,
-      quantity: item.quantity,
-      unit_price: item.unit_price,
-      discount_type: item.discount_type ?? null,
-      discount_amount: item.discount_amount ?? 0,
-      tax_rate_id: values.tax_scope === 'line' ? item.tax_rate_id || null : null,
-      tax_rate_type: values.tax_scope === 'line' ? item.tax_rate_type ?? null : null,
-      tax_rate: values.tax_scope === 'line' ? item.tax_rate ?? 0 : null,
-      tax_type: values.tax_scope === 'line' ? item.tax_type ?? 'exclusive' : null,
-      unit_cost: item.unit_cost ?? 0,
-      notes: item.notes ?? null,
-      lot_allocations: item.lot_id ? [{ lot_id: item.lot_id, quantity: item.quantity }] : undefined,
-      serial_ids: item.serial_id ? [item.serial_id] : undefined,
-    })),
-  }
 }
 
 export function SaleFormPage({ saleId }: SaleFormPageProps) {
@@ -417,12 +242,9 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
   const priceGroupsQuery = usePriceGroupsQuery({ per_page: 100 })
   const taxRatesQuery = useTaxRatesQuery({ is_active: true, per_page: 100 })
   const createSale = useCreateSaleMutation()
-  const updateSale = useUpdateSaleMutation()
-  const recordPayment = useRecordSalePaymentMutation()
-  const updatePayment = useUpdateSalePaymentMutation()
-  const deletePayment = useDeleteSalePaymentMutation()
+  const updateSaleWithPayments = useUpdateSaleWithPaymentsMutation()
   const [isSubmittingSale, setIsSubmittingSale] = useState(false)
-  const isSaving = isSubmittingSale || createSale.isPending || updateSale.isPending || recordPayment.isPending || updatePayment.isPending || deletePayment.isPending
+  const isSaving = isSubmittingSale || createSale.isPending || updateSaleWithPayments.isPending
 
   const {
     control,
@@ -648,37 +470,26 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
           ? removedPaymentIds.filter((paymentId) => existingPaymentById.has(paymentId))
           : []
 
-        const sale = await updateSale.mutateAsync({
+        const sale = await updateSaleWithPayments.mutateAsync({
           id: saleId,
-          payload: buildPayload(values),
+          payload: {
+            ...buildSalePayload(values),
+            ...(deletedPaymentIds.length > 0
+              ? { payment_deletions: deletedPaymentIds.map((paymentId) => ({ payment_id: paymentId, reason: t('payment.removeLine') })) }
+              : {}),
+            ...(editedPaymentLines.length > 0
+              ? {
+                payment_corrections: editedPaymentLines.map((paymentLine) => ({
+                  payment_id: paymentLine.paymentId,
+                  ...paymentLine.payload,
+                })),
+              }
+              : {}),
+            ...(newPaymentLines.length > 0
+              ? { payment_date: values.sale_date, payment_note: null, payments: newPaymentLines }
+              : {}),
+          },
         })
-
-        for (const paymentId of deletedPaymentIds) {
-          await deletePayment.mutateAsync({
-            saleId,
-            paymentId,
-            payload: { reason: t('payment.removeLine') },
-          })
-        }
-
-        for (const paymentLine of editedPaymentLines) {
-          await updatePayment.mutateAsync({
-            saleId,
-            paymentId: paymentLine.paymentId,
-            payload: paymentLine.payload,
-          })
-        }
-
-        if (newPaymentLines.length > 0) {
-          await recordPayment.mutateAsync({
-            id: saleId,
-            payload: {
-              payment_date: values.sale_date,
-              note: null,
-              payments: newPaymentLines,
-            },
-          })
-        }
 
         if (newPaymentLines.length > 0) {
           enqueueSnackbar(t('messages.updatedAndPaid'), { variant: 'success' })
@@ -692,7 +503,7 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
           : []
 
         const sale = await createSale.mutateAsync({
-          ...buildPayload(values),
+          ...buildSalePayload(values),
           client_request_id: clientRequestId,
           ...(shouldRecordDirectPayment && directPaymentLines.length > 0
             ? { payment_date: values.sale_date, payment_note: null, payments: directPaymentLines }

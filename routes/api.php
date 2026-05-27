@@ -47,6 +47,8 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'throttle:300,1'])->group(funct
     Route::put('business', [BusinessController::class, 'update'])->middleware('can:businesses.edit');
 
     Route::prefix('locations/cambodia')->group(function () {
+        Route::get('sync-status', [CambodiaAddressController::class, 'syncStatus'])->middleware('can:settings.index');
+        Route::post('sync', [CambodiaAddressController::class, 'sync'])->middleware('can:settings.edit');
         Route::get('provinces', [CambodiaAddressController::class, 'provinces']);
         Route::get('districts', [CambodiaAddressController::class, 'districts']);
         Route::get('communes', [CambodiaAddressController::class, 'communes']);

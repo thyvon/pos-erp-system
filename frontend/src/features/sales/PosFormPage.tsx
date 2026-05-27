@@ -16,6 +16,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  Drawer,
   FormControl,
   FormHelperText,
   IconButton,
@@ -37,19 +38,23 @@ import {
   Tooltip,
   Typography,
   alpha,
+  useTheme,
 } from '@mui/material'
 import dayjs from 'dayjs'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
-import { AccountBalanceWalletOutlined, Add, ArrowBack, DeleteOutlined, EditOutlined, PointOfSaleOutlined, Search, SettingsOutlined } from '@/components/ui/icons'
+import { AccountBalanceWalletOutlined, Add, ArrowBack, CategoryOutlined, Close, DeleteOutlined, EditOutlined, PointOfSaleOutlined, Search, SettingsOutlined } from '@/components/ui/icons'
 import { RowActions } from '@/components/ui/RowActions'
 import { TableStateRow } from '@/components/ui/TableStateRow'
 import { useDefaultExchangeRateQuery, usePaymentAccountsQuery } from '@/features/accounting/hooks'
 import { useBrandsQuery } from '@/features/brands/hooks'
 import { useCategoriesQuery } from '@/features/categories/hooks'
-import { useCustomersQuery } from '@/features/customers/hooks'
+import { useCustomerGroupsQuery } from '@/features/customer-groups/hooks'
+import { CustomerFormDialog } from '@/features/customers/CustomerFormDialog'
+import { useCreateCustomerMutation, useCustomersQuery } from '@/features/customers/hooks'
+import { useCustomFieldsQuery } from '@/features/custom-fields/hooks'
 import { inventoryApi } from '@/features/inventory/api'
 import { InventoryProductLookupPicker } from '@/features/inventory/components/InventoryProductLookupPicker'
 import { usePriceGroupsQuery } from '@/features/price-groups/hooks'
@@ -60,18 +65,35 @@ import { useTaxRatesQuery } from '@/features/tax-rates/hooks'
 import { useWarehousesQuery } from '@/features/warehouses/hooks'
 import { useAuthStore } from '@/stores/authStore'
 import { useUIStore } from '@/stores/uiStore'
+import { getLayoutMetrics } from '@/theme'
 import { formatAppDate } from '@/utils/dateFormat'
 import type { Brand } from '@/types/brand'
 import type { Category } from '@/types/category'
 import type { PaymentAccount } from '@/types/accounting'
-import type { Customer } from '@/types/customer'
+import type { Customer, CustomerPayload } from '@/types/customer'
 import type { InventoryProductLookupItem } from '@/types/inventory'
 import type { PriceGroup } from '@/types/priceGroup'
 import type { Product } from '@/types/product'
-import type { CashRegister, Sale, SaleFilters, SaleItem, SalePayment, SalePaymentCorrectionPayload, SalePaymentLinePayload, SalePayload } from '@/types/sales'
+import type { CashRegister, Sale, SaleFilters, SaleItem, SalePaymentCorrectionPayload } from '@/types/sales'
 import type { TaxRate } from '@/types/taxRate'
 import type { Warehouse } from '@/types/warehouse'
-import { useCashRegistersQuery, useCreateCashRegisterMutation, useCreateSaleMutation, useDeleteSalePaymentMutation, useOpenCashRegisterSessionMutation, useRecordSalePaymentMutation, useSaleQuery, useSalesQuery, useUpdateSaleMutation, useUpdateSalePaymentMutation } from './hooks'
+import { useCashRegistersQuery, useCreateCashRegisterMutation, useCreateSaleMutation, useOpenCashRegisterSessionMutation, useSaleQuery, useSalesQuery, useUpdateSaleWithPaymentsMutation } from './hooks'
+import {
+  buildDirectPaymentLines,
+  buildSalePayload,
+  createClientRequestId,
+  directPaymentLineBaseAmount,
+  directPaymentLineChanged,
+  directPaymentLinePayload,
+  discountAmount,
+  formatUsdKhrAmount,
+  lineTotal,
+  newDirectPaymentLine,
+  paymentToDirectPaymentLine,
+  round,
+  taxAmount,
+  toNumber,
+} from './formHelpers'
 import { saleFormSchema, type SaleFormInput, type SaleFormValues } from './schema'
 
 interface PosFormPageProps {
@@ -101,39 +123,13 @@ const footerButtonSx = {
 
 const recentTransactionRowsPerPageOptions = [10, 25, 50]
 
-type DirectPaymentLineInput = NonNullable<SaleFormInput['direct_payments']>[number]
-
 function today() {
   return dayjs().format('YYYY-MM-DD')
-}
-
-function toNumber(value: unknown, fallback = 0) {
-  if (value === null || value === undefined || value === '') return fallback
-  const numeric = Number(value)
-  return Number.isFinite(numeric) ? numeric : fallback
-}
-
-function round(value: number) {
-  return Math.round(value * 100) / 100
 }
 
 function formatMoney(value: number | string | null | undefined, formatter: Intl.NumberFormat) {
   const numeric = Number(value ?? 0)
   return Number.isFinite(numeric) ? formatter.format(numeric) : '-'
-}
-
-function createClientRequestId() {
-  return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`
-}
-
-function newDirectPaymentLine(paymentAccounts: PaymentAccount[] = []): DirectPaymentLineInput {
-  return {
-    payment_account_id: paymentAccounts.find((account) => account.is_active)?.id ?? paymentAccounts[0]?.id ?? '',
-    payment_currency: 'USD',
-    payment_amount: 0,
-    method: 'cash',
-    reference: '',
-  }
 }
 
 function emptyValues(): SaleFormInput {
@@ -220,49 +216,6 @@ function valuesFromSale(sale: Sale | null | undefined): SaleFormInput {
   }
 }
 
-function discountAmount(type: string | null | undefined, amount: unknown, base: number) {
-  const value = toNumber(amount)
-  if (type === 'percentage') return Math.min(base, round(base * value / 100))
-  if (type === 'fixed') return Math.min(base, value)
-  return 0
-}
-
-function taxAmount(type: string | null | undefined, rateType: string | null | undefined, rate: unknown, base: number) {
-  const value = toNumber(rate)
-  if (!type || !rateType || value <= 0) return { tax: 0, total: base }
-  const tax = rateType === 'fixed' ? value : round(base * value / 100)
-
-  if (type === 'inclusive') {
-    const inclusiveTax = rateType === 'fixed' ? Math.min(base, value) : round(base - (base / (1 + value / 100)))
-    return { tax: inclusiveTax, total: base }
-  }
-
-  return { tax, total: round(base + tax) }
-}
-
-function lineTotal(item: Partial<SaleFormInput['items'][number]> | null | undefined, taxScope: string) {
-  if (!item) return 0
-
-  const gross = round(toNumber(item.quantity) * toNumber(item.unit_price))
-  const afterDiscount = Math.max(0, round(gross - discountAmount(item.discount_type, item.discount_amount, gross)))
-  return taxScope === 'line'
-    ? taxAmount(item.tax_type, item.tax_rate_type, item.tax_rate, afterDiscount).total
-    : afterDiscount
-}
-
-function directPaymentLineBaseAmount(line: Partial<DirectPaymentLineInput> | null | undefined, exchangeRate: number) {
-  const amount = round(toNumber(line?.payment_amount))
-  if (line?.payment_currency === 'KHR') return exchangeRate > 0 ? round(amount / exchangeRate) : 0
-  return amount
-}
-
-function formatUsdKhrAmount(amount: number, exchangeRate: number) {
-  return {
-    usd: `USD ${amount.toFixed(2)}`,
-    khr: exchangeRate > 0 ? `KHR ${Math.round(amount * exchangeRate).toLocaleString()}` : 'KHR -',
-  }
-}
-
 function warehouseLabel(warehouse: Warehouse) {
   return [warehouse.name, warehouse.code, warehouse.branch?.name].filter(Boolean).join(' / ')
 }
@@ -281,17 +234,6 @@ function taxRateLabel(rate: TaxRate) {
 
 function paymentAccountLabel(account: PaymentAccount) {
   return [account.name, account.type].filter(Boolean).join(' / ')
-}
-
-function paymentToDirectPaymentLine(payment: SalePayment): DirectPaymentLineInput {
-  return {
-    sale_payment_id: payment.id,
-    payment_account_id: payment.payment_account_id,
-    payment_currency: payment.payment_currency ?? 'USD',
-    payment_amount: toNumber(payment.payment_amount ?? payment.amount),
-    method: payment.method ?? 'cash',
-    reference: payment.reference ?? '',
-  }
 }
 
 function cashRegisterLabel(register: CashRegister) {
@@ -315,117 +257,27 @@ function productPrice(product: Product) {
   return toNumber(product.variations?.[0]?.selling_price)
 }
 
-function buildPayload(values: SaleFormValues): SalePayload {
-  return {
-    branch_id: values.branch_id,
-    warehouse_id: values.warehouse_id,
-    customer_id: values.customer_id || null,
-    cash_register_session_id: values.cash_register_session_id || null,
-    type: values.type,
-    sale_date: values.sale_date,
-    due_date: values.due_date || null,
-    price_group_id: values.price_group_id || null,
-    discount_type: values.discount_type ?? null,
-    discount_amount: values.discount_amount ?? 0,
-    tax_scope: values.tax_scope,
-    tax_rate_id: values.tax_scope === 'sale' ? values.tax_rate_id || null : null,
-    tax_rate_type: values.tax_scope === 'sale' ? values.tax_rate_type ?? null : null,
-    tax_rate: values.tax_scope === 'sale' ? values.tax_rate ?? 0 : null,
-    tax_type: values.tax_scope === 'sale' ? values.tax_type ?? 'exclusive' : null,
-    shipping_charges: values.shipping_charges ?? 0,
-    notes: values.notes ?? null,
-    staff_note: values.staff_note ?? null,
-    items: values.items.map((item) => ({
-      product_id: item.product_id,
-      variation_id: item.variation_id ?? null,
-      sub_unit_id: item.sub_unit_id ?? null,
-      quantity: item.quantity,
-      unit_price: item.unit_price,
-      discount_type: item.discount_type ?? null,
-      discount_amount: item.discount_amount ?? 0,
-      tax_rate_id: values.tax_scope === 'line' ? item.tax_rate_id || null : null,
-      tax_rate_type: values.tax_scope === 'line' ? item.tax_rate_type ?? null : null,
-      tax_rate: values.tax_scope === 'line' ? item.tax_rate ?? 0 : null,
-      tax_type: values.tax_scope === 'line' ? item.tax_type ?? 'exclusive' : null,
-      unit_cost: item.unit_cost ?? 0,
-      notes: item.notes ?? null,
-      lot_allocations: item.lot_id ? [{ lot_id: item.lot_id, quantity: item.quantity }] : undefined,
-      serial_ids: item.serial_id ? [item.serial_id] : undefined,
-    })),
-  }
-}
-
-function buildDirectPaymentLines(values: SaleFormValues, exchangeRate: number, exchangeRateId: string | null, saleTotal: number) {
-  let remaining = round(saleTotal)
-
-  return (values.direct_payments ?? []).flatMap((line) => {
-    if (line.sale_payment_id) return []
-    if (remaining <= 0) return []
-
-    const payload = directPaymentLinePayload(line, values.sale_date, exchangeRate, exchangeRateId)
-    if (!payload) return []
-
-    const lineBaseAmount = round(payload.amount)
-    if (lineBaseAmount <= 0) return []
-
-    const appliedAmount = Math.min(lineBaseAmount, remaining)
-    remaining = round(remaining - appliedAmount)
-
-    return [{
-      ...payload,
-      amount: appliedAmount,
-      payment_amount: payload.payment_currency === 'KHR' ? round(appliedAmount * exchangeRate) : appliedAmount,
-    }]
-  })
-}
-
-function directPaymentLinePayload(
-  line: Partial<DirectPaymentLineInput> | null | undefined,
-  paymentDate: string,
-  exchangeRate: number,
-  exchangeRateId: string | null,
-): SalePaymentLinePayload | null {
-  const paymentAccountId = line?.payment_account_id
-  const paymentCurrency = line?.payment_currency ?? 'USD'
-  const paymentMethod = line?.method ?? 'cash'
-  const lineBaseAmount = directPaymentLineBaseAmount(line, exchangeRate)
-
-  if (!paymentAccountId || lineBaseAmount <= 0) return null
-
-  return {
-    payment_account_id: paymentAccountId,
-    amount: lineBaseAmount,
-    payment_currency: paymentCurrency,
-    payment_amount: paymentCurrency === 'KHR' ? round(toNumber(line?.payment_amount)) : lineBaseAmount,
-    exchange_rate_id: paymentCurrency === 'KHR' ? exchangeRateId : null,
-    method: paymentMethod,
-    reference: line?.reference || null,
-    payment_date: paymentDate,
-    note: null,
-  }
-}
-
-function directPaymentLineChanged(line: Partial<DirectPaymentLineInput>, payment: SalePayment) {
-  return line.payment_account_id !== payment.payment_account_id
-    || (line.payment_currency ?? 'USD') !== (payment.payment_currency ?? 'USD')
-    || round(toNumber(line.payment_amount)) !== round(toNumber(payment.payment_amount ?? payment.amount))
-    || (line.method ?? 'cash') !== payment.method
-}
-
 export function PosFormPage({ saleId }: PosFormPageProps) {
-  const { t, i18n } = useTranslation(['sales', 'common'])
+  const { t, i18n } = useTranslation(['sales', 'common', 'customers'])
   const router = useRouter()
+  const theme = useTheme()
   const { enqueueSnackbar } = useSnackbar()
   const can = useAuthStore((state) => state.can)
   const setSettingsOpen = useUIStore((state) => state.setSettingsOpen)
+  const topbarTheme = useUIStore((state) => state.topbarTheme)
+  const layoutSize = useUIStore((state) => state.layoutSize)
   const [serverError, setServerError] = useState('')
   const [productTab, setProductTab] = useState<'featured' | 'category' | 'brand'>('featured')
   const [categoryId, setCategoryId] = useState('')
   const [brandId, setBrandId] = useState('')
+  const [productGallerySearch, setProductGallerySearch] = useState('')
   const [isAddingTileProduct, setIsAddingTileProduct] = useState(false)
+  const [productGalleryOpen, setProductGalleryOpen] = useState(false)
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null)
   const [editingSummary, setEditingSummary] = useState<'discount' | 'tax' | 'shipping' | null>(null)
   const [cashRegisterDialogOpen, setCashRegisterDialogOpen] = useState(false)
+  const [customerDialogOpen, setCustomerDialogOpen] = useState(false)
+  const [createdCustomer, setCreatedCustomer] = useState<Customer | null>(null)
   const [cashRegisterMode, setCashRegisterMode] = useState<'existing' | 'new'>('existing')
   const [selectedCashRegisterId, setSelectedCashRegisterId] = useState('')
   const [newCashRegisterName, setNewCashRegisterName] = useState('')
@@ -441,6 +293,30 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
   const currency = useAppCurrency()
   const currencyFormatter = useCurrencyFormatter()
   const dateFormat = useAppDateFormat()
+  const layoutMetrics = getLayoutMetrics(layoutSize)
+  const resolvedTopbarTheme = topbarTheme === 'inherit' ? theme.palette.mode : topbarTheme
+  const topbarIsDark = resolvedTopbarTheme === 'dark'
+  const posTopbarColors = {
+    bg: topbarIsDark
+      ? alpha('#111827', 0.94)
+      : resolvedTopbarTheme === 'light'
+        ? alpha(theme.palette.common.white, 0.92)
+        : alpha(theme.palette.background.default, 0.86),
+    border: topbarIsDark ? alpha('#ffffff', 0.12) : alpha(theme.palette.grey[500], 0.12),
+    text: topbarIsDark ? alpha('#ffffff', 0.9) : theme.palette.text.primary,
+    muted: topbarIsDark ? alpha('#ffffff', 0.72) : theme.palette.text.secondary,
+    buttonBg: topbarIsDark ? alpha('#ffffff', 0.08) : alpha(theme.palette.grey[500], 0.08),
+    buttonHover: topbarIsDark ? alpha('#ffffff', 0.14) : alpha(theme.palette.primary.main, 0.08),
+  }
+  const posTopbarButtonSx = {
+    width: 'var(--app-small-control-height)',
+    height: 'var(--app-small-control-height)',
+    color: posTopbarColors.text,
+    bgcolor: posTopbarColors.buttonBg,
+    '&:hover': {
+      bgcolor: posTopbarColors.buttonHover,
+    },
+  }
 
   const recentTransactionsFilters: SaleFilters = useMemo(
     () => ({
@@ -456,9 +332,12 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
   const recentTransactionsQuery = useSalesQuery(recentTransactionsFilters)
   const warehousesQuery = useWarehousesQuery({ per_page: 100 })
   const customersQuery = useCustomersQuery({ status: 'active', per_page: 100 })
+  const customerGroupsQuery = useCustomerGroupsQuery({ per_page: 100 })
+  const customerCustomFieldsQuery = useCustomFieldsQuery({ module: 'customer', per_page: 100 })
   const categoriesQuery = useCategoriesQuery({ per_page: 100 })
   const brandsQuery = useBrandsQuery({ per_page: 100 })
   const productsQuery = useProductsQuery({
+    search: productGallerySearch || undefined,
     is_active: true,
     per_page: 30,
     category_id: productTab === 'category' ? categoryId : undefined,
@@ -469,14 +348,12 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
   const paymentAccountsQuery = usePaymentAccountsQuery({ status: 'active', per_page: 100 })
   const defaultExchangeRateQuery = useDefaultExchangeRateQuery('USD', 'KHR')
   const createSale = useCreateSaleMutation()
-  const updateSale = useUpdateSaleMutation()
-  const recordPayment = useRecordSalePaymentMutation()
-  const updatePayment = useUpdateSalePaymentMutation()
-  const deletePayment = useDeleteSalePaymentMutation()
+  const updateSaleWithPayments = useUpdateSaleWithPaymentsMutation()
+  const createCustomer = useCreateCustomerMutation()
   const createRegister = useCreateCashRegisterMutation()
   const openSession = useOpenCashRegisterSessionMutation()
   const [isSubmittingSale, setIsSubmittingSale] = useState(false)
-  const isSaving = isSubmittingSale || createSale.isPending || updateSale.isPending || recordPayment.isPending || updatePayment.isPending || deletePayment.isPending || createRegister.isPending || openSession.isPending
+  const isSaving = isSubmittingSale || createSale.isPending || updateSaleWithPayments.isPending || createRegister.isPending || openSession.isPending
 
   const {
     control,
@@ -520,7 +397,23 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
   })
 
   const warehouses = useMemo(() => warehousesQuery.data?.data ?? [], [warehousesQuery.data?.data])
-  const customers = customersQuery.data?.data ?? []
+  const customers = useMemo(() => {
+    const baseCustomers = customersQuery.data?.data ?? []
+    if (!createdCustomer || baseCustomers.some((customer) => customer.id === createdCustomer.id)) {
+      return baseCustomers
+    }
+
+    return [createdCustomer, ...baseCustomers]
+  }, [createdCustomer, customersQuery.data?.data])
+  const customerGroups = customerGroupsQuery.data?.data ?? []
+  const customerCustomFields = useMemo(
+    () =>
+      [...(customerCustomFieldsQuery.data?.data ?? [])].sort((a, b) => {
+        if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order
+        return a.field_label.localeCompare(b.field_label)
+      }),
+    [customerCustomFieldsQuery.data?.data],
+  )
   const categories = categoriesQuery.data?.data ?? []
   const brands = brandsQuery.data?.data ?? []
   const products = productsQuery.data?.data ?? []
@@ -541,6 +434,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
     [currentSale?.payments],
   )
   const existingPaymentById = useMemo(() => new Map(existingPayments.map((payment) => [payment.id, payment])), [existingPayments])
+  const canCreateCustomer = can('customers.create')
   const canManageExistingPayments = isEdit && can('payments.edit') && currentSaleStatus === 'completed'
   const canDeleteExistingPayments = isEdit && can('payments.delete') && currentSaleStatus === 'completed'
   const canAddPaymentLines = (isEdit ? can('payments.create') && currentSaleStatus === 'completed' : true)
@@ -630,12 +524,38 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
   }, [currentSaleStatus, isEdit, isSuspended, setValue])
 
   const addLookupItem = (item: InventoryProductLookupItem) => {
+    const itemVariationId = item.variation_id ?? null
+    const itemSubUnitId = item.sub_unit?.id ?? null
+    const itemLotId = item.lot_id ?? null
+    const itemSerialId = item.serial_id ?? null
+    const existingIndex = watchedItems.findIndex((line) =>
+      line.product_id === item.product_id
+      && (line.variation_id ?? null) === itemVariationId
+      && (line.sub_unit_id ?? null) === itemSubUnitId
+      && (line.lot_id ?? null) === itemLotId
+      && (line.serial_id ?? null) === itemSerialId
+    )
+
+    if (existingIndex >= 0) {
+      if (itemSerialId) {
+        enqueueSnackbar(t('pos.messages.serialAlreadyInCart'), { variant: 'warning' })
+        return
+      }
+
+      const currentQuantity = toNumber(watchedItems[existingIndex]?.quantity, 0)
+      setValue(`items.${existingIndex}.quantity`, round(currentQuantity + 1), {
+        shouldDirty: true,
+        shouldValidate: true,
+      })
+      return
+    }
+
     append({
       product_id: item.product_id,
-      variation_id: item.variation_id ?? null,
-      sub_unit_id: item.sub_unit?.id ?? null,
-      lot_id: item.lot_id ?? null,
-      serial_id: item.serial_id ?? null,
+      variation_id: itemVariationId,
+      sub_unit_id: itemSubUnitId,
+      lot_id: itemLotId,
+      serial_id: itemSerialId,
       product_label: item.label,
       sku: item.sku ?? null,
       lot_number: item.lot_number ?? null,
@@ -664,6 +584,14 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
     setCashRegisterMode((current) => (cashRegisters.length === 0 ? 'new' : current))
     setSelectedCashRegisterId((current) => current || selectedCashRegister?.id || cashRegisters[0]?.id || '')
     setCashRegisterDialogOpen(true)
+  }
+
+  const handleCreateCustomer = async (payload: CustomerPayload) => {
+    const customer = await createCustomer.mutateAsync(payload)
+    setCreatedCustomer(customer)
+    setValue('customer_id', customer.id, { shouldDirty: true, shouldValidate: true })
+    await customersQuery.refetch()
+    enqueueSnackbar(t('customers:messages.created'), { variant: 'success' })
   }
 
   const selectOrOpenCashRegister = async () => {
@@ -815,7 +743,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
         : []
 
       const payload = {
-        ...buildPayload({ ...values, type: 'pos_sale' }),
+        ...buildSalePayload({ ...values, type: 'pos_sale' }),
         ...(!isEdit ? { client_request_id: clientRequestId } : {}),
         ...(!isEdit && directPaymentLines.length > 0
           ? { payment_date: values.sale_date, payment_note: null, payments: directPaymentLines }
@@ -823,34 +751,26 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
       }
 
       if (isEdit && saleId) {
-        await updateSale.mutateAsync({ id: saleId, payload })
-
-        for (const paymentId of deletedPaymentIds) {
-          await deletePayment.mutateAsync({
-            saleId,
-            paymentId,
-            payload: { reason: t('payment.posDeleteReason') },
-          })
-        }
-
-        for (const paymentLine of editedPaymentLines) {
-          await updatePayment.mutateAsync({
-            saleId,
-            paymentId: paymentLine.paymentId,
-            payload: paymentLine.payload,
-          })
-        }
-
-        if (newPaymentLines.length > 0) {
-          await recordPayment.mutateAsync({
-            id: saleId,
-            payload: {
-              payment_date: values.sale_date,
-              note: null,
-              payments: newPaymentLines,
-            },
-          })
-        }
+        await updateSaleWithPayments.mutateAsync({
+          id: saleId,
+          payload: {
+            ...payload,
+            ...(deletedPaymentIds.length > 0
+              ? { payment_deletions: deletedPaymentIds.map((paymentId) => ({ payment_id: paymentId, reason: t('payment.posDeleteReason') })) }
+              : {}),
+            ...(editedPaymentLines.length > 0
+              ? {
+                payment_corrections: editedPaymentLines.map((paymentLine) => ({
+                  payment_id: paymentLine.paymentId,
+                  ...paymentLine.payload,
+                })),
+              }
+              : {}),
+            ...(newPaymentLines.length > 0
+              ? { payment_date: values.sale_date, payment_note: null, payments: newPaymentLines }
+              : {}),
+          },
+        })
       } else {
         await createSale.mutateAsync(payload)
       }
@@ -914,6 +834,147 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
     )
   }
 
+  const productGalleryContent = (
+    <Stack spacing={2}>
+      <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 1.5, bgcolor: 'background.paper' }}>
+        <Stack spacing={1.5}>
+          <ToggleButtonGroup
+            fullWidth
+            exclusive
+            size="small"
+            value={productTab}
+            onChange={(_, nextTab) => {
+              if (!nextTab) return
+              setProductTab(nextTab)
+            }}
+          >
+            <ToggleButton value="featured">{t('pos.productTabs.featured')}</ToggleButton>
+            <ToggleButton value="category">{t('pos.productTabs.category')}</ToggleButton>
+            <ToggleButton value="brand">{t('pos.productTabs.brand')}</ToggleButton>
+          </ToggleButtonGroup>
+
+          {productTab === 'category' && (
+            <Autocomplete
+              options={categories}
+              value={categories.find((category) => category.id === categoryId) ?? null}
+              loading={categoriesQuery.isLoading}
+              getOptionLabel={categoryLabel}
+              isOptionEqualToValue={(option, value) => option.id === value.id}
+              onChange={(_, category) => setCategoryId(category?.id ?? '')}
+              renderInput={(params) => <TextField {...params} label={t('pos.filters.category')} />}
+            />
+          )}
+
+          {productTab === 'brand' && (
+            <Autocomplete
+              options={brands}
+              value={brands.find((brand) => brand.id === brandId) ?? null}
+              loading={brandsQuery.isLoading}
+              getOptionLabel={brandLabel}
+              isOptionEqualToValue={(option, value) => option.id === value.id}
+              onChange={(_, brand) => setBrandId(brand?.id ?? '')}
+              renderInput={(params) => <TextField {...params} label={t('pos.filters.brand')} />}
+            />
+          )}
+
+          <TextField
+            value={productGallerySearch}
+            onChange={(event) => setProductGallerySearch(event.target.value)}
+            placeholder={t('pos.filters.productSearch')}
+            slotProps={{
+              input: {
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Search fontSize="small" />
+                  </InputAdornment>
+                ),
+              },
+            }}
+          />
+
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', xl: 'repeat(3, minmax(0, 1fr))' },
+              gap: 1,
+              maxHeight: { xs: 'calc(100vh - 180px)', lg: 'calc(100vh - 390px)' },
+              overflowY: 'auto',
+              pr: 0.5,
+            }}
+          >
+            {productsQuery.isLoading && (
+              <Box sx={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'center', py: 4 }}>
+                <CircularProgress size={24} />
+              </Box>
+            )}
+            {!productsQuery.isLoading && products.length === 0 && (
+              <Box sx={{ gridColumn: '1 / -1', py: 4, textAlign: 'center' }}>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>{t('pos.noProducts')}</Typography>
+              </Box>
+            )}
+            {products.map((product) => {
+              const price = productPrice(product)
+
+              return (
+                <CardActionArea
+                  key={product.id}
+                  disabled={!warehouseId || isSaving || isAddingTileProduct || !product.is_for_selling}
+                  onClick={() => void addTileProduct(product)}
+                  sx={{
+                    border: 1,
+                    borderColor: 'divider',
+                    borderRadius: 1,
+                    overflow: 'hidden',
+                    bgcolor: 'background.paper',
+                    aspectRatio: '1 / 1',
+                    minHeight: 178,
+                    display: 'flex',
+                    alignItems: 'stretch',
+                  }}
+                >
+                  <Stack
+                    spacing={0.75}
+                    sx={{
+                      width: '100%',
+                      height: '100%',
+                      p: 1,
+                      alignItems: 'center',
+                      textAlign: 'center',
+                      minWidth: 0,
+                    }}
+                  >
+                    <Box
+                      sx={{
+                        width: '100%',
+                        flex: '1 1 auto',
+                        minHeight: 96,
+                        borderRadius: 1,
+                        bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
+                        backgroundImage: product.image_url ? `url(${product.image_url})` : 'none',
+                        backgroundSize: 'contain',
+                        backgroundPosition: 'center',
+                        backgroundRepeat: 'no-repeat',
+                      }}
+                    />
+                    <Typography variant="caption" sx={{ fontWeight: 700, width: '100%' }} noWrap title={product.name}>
+                      {product.name}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>
+                      {product.sku || product.variations?.[0]?.sku || '-'}
+                    </Typography>
+                    <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 700 }}>
+                      {currencyFormatter.format(price)}
+                    </Typography>
+                  </Stack>
+                </CardActionArea>
+              )
+            })}
+          </Box>
+        </Stack>
+      </Box>
+    </Stack>
+  )
+
   return (
     <Box
       component="form"
@@ -935,31 +996,64 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
         <Box
           sx={{
             px: { xs: 2, md: 3 },
-            py: 1.5,
-            borderBottom: 1,
-            borderColor: 'divider',
-            bgcolor: 'background.paper',
+            py: 1,
+            minHeight: layoutMetrics.topbarHeight,
+            display: 'flex',
+            alignItems: 'center',
+            borderBottom: `1px solid ${posTopbarColors.border}`,
+            bgcolor: posTopbarColors.bg,
+            color: posTopbarColors.text,
+            backdropFilter: 'blur(8px)',
           }}
         >
-          <Stack direction={{ xs: 'column', md: 'row' }} spacing={1.5} sx={{ justifyContent: 'space-between', alignItems: { md: 'center' } }}>
-            <Stack direction="row" spacing={1.25} sx={{ alignItems: 'center' }}>
+          <Stack
+            direction={{ xs: 'column', md: 'row' }}
+            spacing={1.5}
+            sx={{
+              width: '100%',
+              justifyContent: 'space-between',
+              alignItems: { xs: 'stretch', md: 'center' },
+            }}
+          >
+            <Stack direction="row" spacing={1.25} sx={{ alignItems: 'center', minWidth: 0 }}>
               <Typography variant="body2" sx={{ fontWeight: 800 }}>{t('pos.location')}</Typography>
-              <Typography variant="body2">{selectedWarehouse?.branch?.name || selectedWarehouse?.name || '-'}</Typography>
+              <Typography variant="body2" noWrap sx={{ color: posTopbarColors.muted, minWidth: 0 }}>
+                {selectedWarehouse?.branch?.name || selectedWarehouse?.name || '-'}
+              </Typography>
               <Box sx={{ px: 1.5, py: 0.75, borderRadius: 1, bgcolor: 'primary.main', color: 'primary.contrastText' }}>
                 <Typography variant="caption" sx={{ fontWeight: 800 }}>
                   {dayjs().format('MM/DD/YYYY HH:mm')}
                 </Typography>
               </Box>
             </Stack>
-            <Stack direction="row" spacing={1} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+            <Stack
+              direction="row"
+              spacing={1}
+              sx={{
+                alignItems: 'center',
+                justifyContent: 'flex-end',
+                flexWrap: 'wrap',
+                flex: '0 0 auto',
+              }}
+            >
               <Tooltip title={t('pos.toolbar.back')}>
-                <IconButton size="small" onClick={() => router.push('/sales')}>
+                <IconButton size="small" onClick={() => router.push('/sales')} sx={posTopbarButtonSx}>
                   <ArrowBack />
                 </IconButton>
               </Tooltip>
               <Tooltip title={t('pos.toolbar.pos')}>
-                <IconButton size="small" color="primary">
+                <IconButton size="small" color="primary" sx={posTopbarButtonSx}>
                   <PointOfSaleOutlined />
+                </IconButton>
+              </Tooltip>
+              <Tooltip title={t('pos.toolbar.products')}>
+                <IconButton
+                  size="small"
+                  color={productGalleryOpen ? 'primary' : 'default'}
+                  onClick={() => setProductGalleryOpen(true)}
+                  sx={{ ...posTopbarButtonSx, display: { lg: 'none' } }}
+                >
+                  <CategoryOutlined />
                 </IconButton>
               </Tooltip>
               <Tooltip title={selectedCashRegister ? selectedCashRegister.name : t('pos.cashRegister.title')}>
@@ -967,12 +1061,13 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
                   size="small"
                   color={selectedCashRegister ? 'success' : 'default'}
                   onClick={openCashRegisterDialog}
+                  sx={posTopbarButtonSx}
                 >
                   <AccountBalanceWalletOutlined />
                 </IconButton>
               </Tooltip>
               <Tooltip title={t('pos.toolbar.settings')}>
-                <IconButton size="small" onClick={() => setSettingsOpen(true)}>
+                <IconButton size="small" onClick={() => setSettingsOpen(true)} sx={posTopbarButtonSx}>
                   <SettingsOutlined />
                 </IconButton>
               </Tooltip>
@@ -1037,23 +1132,47 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
                   name="customer_id"
                   control={control}
                   render={({ field }) => (
-                    <Autocomplete
-                      options={customers}
-                      value={customers.find((customer) => customer.id === field.value) ?? null}
-                      loading={customersQuery.isLoading}
-                      getOptionLabel={customerLabel}
-                      isOptionEqualToValue={(option, value) => option.id === value.id}
-                      onBlur={field.onBlur}
-                      onChange={(_, customer) => field.onChange(customer?.id ?? '')}
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          label={t('fields.customer')}
-                          error={!!errors.customer_id}
-                          helperText={errors.customer_id?.message || t('labels.walkInCustomer')}
-                        />
+                    <Stack direction="row" spacing={1} sx={{ alignItems: 'flex-start', minWidth: 0 }}>
+                      <Autocomplete
+                        options={customers}
+                        value={customers.find((customer) => customer.id === field.value) ?? null}
+                        loading={customersQuery.isLoading}
+                        getOptionLabel={customerLabel}
+                        isOptionEqualToValue={(option, value) => option.id === value.id}
+                        onBlur={field.onBlur}
+                        onChange={(_, customer) => field.onChange(customer?.id ?? '')}
+                        sx={{ flex: '1 1 auto', minWidth: 0 }}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label={t('fields.customer')}
+                            error={!!errors.customer_id}
+                            helperText={errors.customer_id?.message || t('labels.walkInCustomer')}
+                          />
+                        )}
+                      />
+                      {canCreateCustomer && (
+                        <Tooltip title={t('pos.actions.addCustomer')}>
+                          <IconButton
+                            aria-label={t('pos.actions.addCustomer')}
+                            size="small"
+                            color="primary"
+                            onClick={() => setCustomerDialogOpen(true)}
+                            sx={{
+                              width: 'var(--app-control-height)',
+                              height: 'var(--app-control-height)',
+                              minWidth: 'var(--app-control-height)',
+                              minHeight: 'var(--app-control-height)',
+                              border: 1,
+                              borderColor: 'divider',
+                              flex: '0 0 auto',
+                            }}
+                          >
+                            <Add fontSize="small" />
+                          </IconButton>
+                        </Tooltip>
                       )}
-                    />
+                    </Stack>
                   )}
                 />
                 <Controller
@@ -1198,8 +1317,9 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
                   sx={{
                     display: 'grid',
                     gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(5, minmax(0, 1fr))' },
-                    borderBottom: 1,
-                    borderColor: 'divider',
+                    borderBottomWidth: 1,
+                    borderBottomStyle: 'solid',
+                    borderBottomColor: 'divider',
                   }}
                 >
                   {[
@@ -1209,7 +1329,21 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
                     { key: 'tax', label: t('fields.tax'), value: currencyFormatter.format(totals.tax), edit: 'tax' as const },
                     { key: 'shipping', label: t('fields.shipping'), value: currencyFormatter.format(totals.shipping), edit: 'shipping' as const },
                   ].map((item) => (
-                    <Box key={item.key} sx={{ p: 1.25, textAlign: 'center', borderRight: { md: 1 }, borderColor: 'divider' }}>
+                    <Box
+                      key={item.key}
+                      sx={{
+                        p: 1.25,
+                        textAlign: 'center',
+                        borderRightWidth: { md: 1 },
+                        borderRightStyle: { md: 'solid' },
+                        borderRightColor: 'divider',
+                        borderBottomWidth: { xs: 1, md: 0 },
+                        borderBottomStyle: { xs: 'solid', md: 'none' },
+                        borderBottomColor: 'divider',
+                        '&:nth-of-type(2n)': { borderRightWidth: { xs: 0, md: 1 } },
+                        '&:nth-of-type(5)': { borderRightWidth: 0, borderBottomWidth: 0 },
+                      }}
+                    >
                       <Stack direction="row" spacing={0.5} sx={{ justifyContent: 'center', alignItems: 'center' }}>
                         <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase' }}>
                           {item.label}
@@ -1422,125 +1556,16 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
           <Box
             sx={{
               minWidth: 0,
-              borderLeft: { lg: 1 },
-              borderTop: { xs: 1, lg: 0 },
-              borderColor: 'divider',
+              display: { xs: 'none', lg: 'block' },
+              borderLeftWidth: { lg: 1 },
+              borderLeftStyle: { lg: 'solid' },
+              borderLeftColor: 'divider',
               bgcolor: 'background.paper',
               p: 2,
               overflow: 'auto',
             }}
           >
-            <Stack spacing={2}>
-              <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 1.5 }}>
-                <Stack spacing={1.5}>
-                  <ToggleButtonGroup
-                    fullWidth
-                    exclusive
-                    size="small"
-                    value={productTab}
-                    onChange={(_, nextTab) => {
-                      if (!nextTab) return
-                      setProductTab(nextTab)
-                    }}
-                  >
-                    <ToggleButton value="featured">{t('pos.productTabs.featured')}</ToggleButton>
-                    <ToggleButton value="category">{t('pos.productTabs.category')}</ToggleButton>
-                    <ToggleButton value="brand">{t('pos.productTabs.brand')}</ToggleButton>
-                  </ToggleButtonGroup>
-
-                  {productTab === 'category' && (
-                    <Autocomplete
-                      options={categories}
-                      value={categories.find((category) => category.id === categoryId) ?? null}
-                      loading={categoriesQuery.isLoading}
-                      getOptionLabel={categoryLabel}
-                      isOptionEqualToValue={(option, value) => option.id === value.id}
-                      onChange={(_, category) => setCategoryId(category?.id ?? '')}
-                      renderInput={(params) => <TextField {...params} label={t('pos.filters.category')} />}
-                    />
-                  )}
-
-                  {productTab === 'brand' && (
-                    <Autocomplete
-                      options={brands}
-                      value={brands.find((brand) => brand.id === brandId) ?? null}
-                      loading={brandsQuery.isLoading}
-                      getOptionLabel={brandLabel}
-                      isOptionEqualToValue={(option, value) => option.id === value.id}
-                      onChange={(_, brand) => setBrandId(brand?.id ?? '')}
-                      renderInput={(params) => <TextField {...params} label={t('pos.filters.brand')} />}
-                    />
-                  )}
-
-                  <Box
-                    sx={{
-                      display: 'grid',
-                      gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', xl: 'repeat(3, minmax(0, 1fr))' },
-                      gap: 1,
-                      maxHeight: { xs: 360, lg: 'calc(100vh - 390px)' },
-                      overflowY: 'auto',
-                      pr: 0.5,
-                    }}
-                  >
-                    {productsQuery.isLoading && (
-                      <Box sx={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'center', py: 4 }}>
-                        <CircularProgress size={24} />
-                      </Box>
-                    )}
-                    {!productsQuery.isLoading && products.length === 0 && (
-                      <Box sx={{ gridColumn: '1 / -1', py: 4, textAlign: 'center' }}>
-                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>{t('pos.noProducts')}</Typography>
-                      </Box>
-                    )}
-                    {products.map((product) => {
-                      const price = productPrice(product)
-
-                      return (
-                        <CardActionArea
-                          key={product.id}
-                          disabled={!warehouseId || isSaving || isAddingTileProduct || !product.is_for_selling}
-                          onClick={() => void addTileProduct(product)}
-                          sx={{
-                            border: 1,
-                            borderColor: 'divider',
-                            borderRadius: 1,
-                            overflow: 'hidden',
-                            bgcolor: 'background.default',
-                            minHeight: 156,
-                            display: 'flex',
-                            alignItems: 'stretch',
-                          }}
-                        >
-                          <Stack spacing={0.75} sx={{ width: '100%', p: 1, alignItems: 'center', textAlign: 'center' }}>
-                            <Box
-                              sx={{
-                                width: '100%',
-                                height: 62,
-                                borderRadius: 1,
-                                bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
-                                backgroundImage: product.image_url ? `url(${product.image_url})` : 'none',
-                                backgroundSize: 'contain',
-                                backgroundPosition: 'center',
-                                backgroundRepeat: 'no-repeat',
-                              }}
-                            />
-                            <Typography variant="caption" sx={{ fontWeight: 700, width: '100%' }} noWrap title={product.name}>
-                              {product.name}
-                            </Typography>
-                            <Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>
-                              {product.sku || product.variations?.[0]?.sku || '-'}
-                            </Typography>
-                            <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 700 }}>
-                              {currencyFormatter.format(price)}
-                            </Typography>
-                          </Stack>
-                        </CardActionArea>
-                      )
-                    })}
-                  </Box>
-                </Stack>
-              </Box>
-            </Stack>
+            {productGalleryContent}
           </Box>
         </Box>
         <Box
@@ -1611,6 +1636,44 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
           </Stack>
         </Box>
       </Box>
+      <Drawer
+        anchor="right"
+        open={productGalleryOpen}
+        onClose={() => setProductGalleryOpen(false)}
+        sx={{ display: { xs: 'block', lg: 'none' } }}
+        slotProps={{
+          paper: {
+            sx: {
+              width: { xs: 'min(92vw, 420px)', sm: 420 },
+              p: 2,
+            },
+          },
+        }}
+      >
+        <Stack spacing={1.5} sx={{ minHeight: 0 }}>
+          <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+            <Typography variant="h6">{t('pos.toolbar.products')}</Typography>
+            <Tooltip title={t('common:buttons.close')}>
+              <IconButton size="small" onClick={() => setProductGalleryOpen(false)}>
+                <Close />
+              </IconButton>
+            </Tooltip>
+          </Stack>
+          {productGalleryContent}
+        </Stack>
+      </Drawer>
+      <CustomerFormDialog
+        key={customerDialogOpen ? 'pos-customer-open' : 'pos-customer-closed'}
+        open={customerDialogOpen}
+        customer={null}
+        customerGroups={customerGroups}
+        isLoadingCustomerGroups={customerGroupsQuery.isLoading}
+        customFields={customerCustomFields}
+        isLoadingCustomFields={customerCustomFieldsQuery.isLoading}
+        isSaving={createCustomer.isPending}
+        onClose={() => setCustomerDialogOpen(false)}
+        onSubmit={handleCreateCustomer}
+      />
       <Dialog
         open={recentTransactionsOpen}
         onClose={() => setRecentTransactionsOpen(false)}

@@ -3,6 +3,8 @@
 namespace App\Http\Controllers\Api\V1\Foundation;
 
 use App\Http\Controllers\Api\V1\BaseApiController;
+use App\Http\Resources\Foundation\CambodiaAddressDivisionResource;
+use App\Models\Setting;
 use App\Services\Foundation\CambodiaAddressService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -21,7 +23,9 @@ class CambodiaAddressController extends BaseApiController
             'name_km' => ['nullable', 'string'],
         ]);
 
-        return $this->success($this->addresses->provinces($filters));
+        return $this->success(CambodiaAddressDivisionResource::collection(
+            $this->addresses->provinces($filters)
+        )->resolve());
     }
 
     public function districts(Request $request): JsonResponse
@@ -33,7 +37,9 @@ class CambodiaAddressController extends BaseApiController
             'name_km' => ['nullable', 'string'],
         ]);
 
-        return $this->success($this->addresses->districts($filters));
+        return $this->success(CambodiaAddressDivisionResource::collection(
+            $this->addresses->districts($filters)
+        )->resolve());
     }
 
     public function communes(Request $request): JsonResponse
@@ -46,7 +52,9 @@ class CambodiaAddressController extends BaseApiController
             'name_km' => ['nullable', 'string'],
         ]);
 
-        return $this->success($this->addresses->communes($filters));
+        return $this->success(CambodiaAddressDivisionResource::collection(
+            $this->addresses->communes($filters)
+        )->resolve());
     }
 
     public function villages(Request $request): JsonResponse
@@ -60,6 +68,22 @@ class CambodiaAddressController extends BaseApiController
             'name_km' => ['nullable', 'string'],
         ]);
 
-        return $this->success($this->addresses->villages($filters));
+        return $this->success(CambodiaAddressDivisionResource::collection(
+            $this->addresses->villages($filters)
+        )->resolve());
+    }
+
+    public function syncStatus(): JsonResponse
+    {
+        $this->authorize('viewAny', Setting::class);
+
+        return $this->success($this->addresses->status());
+    }
+
+    public function sync(): JsonResponse
+    {
+        $this->authorize('updateAny', Setting::class);
+
+        return $this->success($this->addresses->syncFromSource(), __('Cambodia address data synchronized successfully.'));
     }
 }

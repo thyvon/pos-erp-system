@@ -14,6 +14,7 @@ return static function (): void {
     Route::post('sales', [SaleController::class, 'store'])->middleware('can:create,'.Sale::class);
     Route::get('sales/{sale}', [SaleController::class, 'show'])->middleware('can:view,sale');
     Route::put('sales/{sale}', [SaleController::class, 'update'])->middleware('can:update,sale');
+    Route::put('sales/{sale}/with-payments', [SaleController::class, 'updateWithPayments'])->middleware('can:update,sale');
     Route::delete('sales/{sale}', [SaleController::class, 'destroy'])->middleware('can:delete,sale');
     Route::post('sales/{sale}/confirm', [SaleController::class, 'confirm'])->middleware('can:confirm,sale');
     Route::post('sales/{sale}/complete', [SaleController::class, 'complete'])->middleware('can:complete,sale');

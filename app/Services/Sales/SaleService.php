@@ -15,6 +15,7 @@ use App\Models\PriceGroup;
 use App\Models\Product;
 use App\Models\ProductVariation;
 use App\Models\Sale;
+use App\Models\SalePayment;
 use App\Models\StockLot;
 use App\Models\StockSerial;
 use App\Models\SubUnit;
@@ -30,6 +31,7 @@ use App\Services\Inventory\StockMovementService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\QueryException;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 
 class SaleService
@@ -314,6 +316,52 @@ class SaleService
         });
     }
 
+    public function updateWithPaymentChanges(string $businessId, Sale $sale, array $data, ?User $actor = null): Sale
+    {
+        return DB::transaction(function () use ($businessId, $sale, $data, $actor): Sale {
+            $updatedSale = $this->update(
+                $businessId,
+                $sale,
+                Arr::except($data, ['payment_corrections', 'payment_deletions', 'payments', 'payment_date', 'payment_note']),
+                $actor
+            );
+
+            foreach ($data['payment_deletions'] ?? [] as $deletion) {
+                $payment = $this->resolveSalePayment($businessId, $updatedSale, $deletion['payment_id']);
+
+                $this->salePayments->remove(
+                    $businessId,
+                    $updatedSale,
+                    $payment,
+                    $deletion['reason'] ?? 'Payment line removed',
+                    $actor
+                );
+            }
+
+            foreach ($data['payment_corrections'] ?? [] as $correction) {
+                $payment = $this->resolveSalePayment($businessId, $updatedSale, $correction['payment_id']);
+
+                $this->salePayments->correct(
+                    $businessId,
+                    $updatedSale,
+                    $payment,
+                    Arr::except($correction, ['payment_id']),
+                    $actor
+                );
+            }
+
+            if (! empty($data['payments']) && is_array($data['payments'])) {
+                $this->salePayments->record($businessId, $updatedSale, [
+                    'payment_date' => $data['payment_date'] ?? $updatedSale->sale_date,
+                    'note' => $data['payment_note'] ?? null,
+                    'payments' => $data['payments'],
+                ], $actor);
+            }
+
+            return $this->loadSale($updatedSale->fresh());
+        });
+    }
+
     protected function applyInlinePayments(string $businessId, Sale $sale, array $data, ?User $actor = null): Sale
     {
         if (empty($data['payments']) || ! is_array($data['payments'])) {
@@ -353,6 +401,21 @@ class SaleService
             ->first();
 
         return $sale ? $this->loadSale($sale) : null;
+    }
+
+    protected function resolveSalePayment(string $businessId, Sale $sale, string $paymentId): SalePayment
+    {
+        /** @var SalePayment|null $payment */
+        $payment = SalePayment::withoutGlobalScopes()
+            ->where('business_id', $businessId)
+            ->whereKey($paymentId)
+            ->first();
+
+        if (! $payment || (string) $payment->sale_id !== (string) $sale->id) {
+            $this->failValidation('The selected payment does not belong to this sale.');
+        }
+
+        return $payment;
     }
 
     protected function isDuplicateClientRequest(QueryException $exception): bool

@@ -255,6 +255,9 @@ export function createAppTheme(
             backgroundColor: palette.background?.default,
             color: palette.text?.primary,
             fontFamily,
+            '--app-control-height': `${sizePreset.controlHeight}px`,
+            '--app-small-control-height': `${sizePreset.smallControlHeight}px`,
+            '--app-large-control-height': `${sizePreset.largeControlHeight}px`,
           },
           'button, input, textarea, select': {
             fontFamily: 'inherit',

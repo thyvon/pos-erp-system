@@ -11,6 +11,7 @@ use App\Http\Requests\Sales\StoreSalePaymentRequest;
 use App\Http\Requests\Sales\StoreSaleRequest;
 use App\Http\Requests\Sales\UpdateSalePaymentRequest;
 use App\Http\Requests\Sales\UpdateSaleRequest;
+use App\Http\Requests\Sales\UpdateSaleWithPaymentsRequest;
 use App\Http\Resources\Accounting\JournalResource;
 use App\Http\Resources\Sales\SalePaymentResource;
 use App\Http\Resources\Sales\SaleResource;
@@ -74,6 +75,34 @@ class SaleController extends BaseApiController
             $request->user()->business_id,
             $sale,
             $request->validated(),
+            $request->user()
+        );
+
+        return $this->success(new SaleResource($sale), 'Sale updated successfully.');
+    }
+
+    public function updateWithPayments(UpdateSaleWithPaymentsRequest $request, Sale $sale): JsonResponse
+    {
+        $this->authorize('update', $sale);
+
+        $validated = $request->validated();
+
+        if (! empty($validated['payment_deletions'])) {
+            $this->authorize('deletePayment', $sale);
+        }
+
+        if (! empty($validated['payment_corrections'])) {
+            $this->authorize('updatePayment', $sale);
+        }
+
+        if (! empty($validated['payments'])) {
+            abort_unless($request->user()->can('payments.create'), 403);
+        }
+
+        $sale = $this->sales->updateWithPaymentChanges(
+            $request->user()->business_id,
+            $sale,
+            $validated,
             $request->user()
         );
 

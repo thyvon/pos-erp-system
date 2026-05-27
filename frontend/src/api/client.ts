@@ -23,8 +23,8 @@ export const apiClient = {
       throw toAppApiError(error)
     }
   },
-  post: <T, TPayload = unknown>(url: string, payload?: TPayload) =>
-    unwrapApiResponse<T>(api.post(url, payload)),
+  post: <T, TPayload = unknown>(url: string, payload?: TPayload, config?: AxiosRequestConfig) =>
+    unwrapApiResponse<T>(api.post(url, payload, config)),
   put: <T, TPayload = unknown>(url: string, payload?: TPayload) =>
     unwrapApiResponse<T>(api.put(url, payload)),
   delete: <T>(url: string, config?: AxiosRequestConfig) => unwrapApiResponse<T>(api.delete(url, config)),

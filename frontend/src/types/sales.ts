@@ -307,6 +307,20 @@ export interface SalePaymentCorrectionPayload extends SalePaymentLinePayload {
   reason: string
 }
 
+export interface SalePaymentCorrectionLinePayload extends SalePaymentCorrectionPayload {
+  payment_id: string
+}
+
+export interface SalePaymentDeletionLinePayload {
+  payment_id: string
+  reason?: string | null
+}
+
+export interface SaleWithPaymentsPayload extends SalePayload {
+  payment_corrections?: SalePaymentCorrectionLinePayload[]
+  payment_deletions?: SalePaymentDeletionLinePayload[]
+}
+
 export interface SalePaymentDeletePayload {
   reason?: string | null
 }

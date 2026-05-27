@@ -15,6 +15,7 @@ import type {
   SalePayload,
   SalePaymentPayload,
   SalePaymentResult,
+  SaleWithPaymentsPayload,
 } from '@/types/sales'
 
 export const salesApi = {
@@ -22,6 +23,8 @@ export const salesApi = {
   show: (id: string) => apiClient.get<Sale>(`/v1/sales/${id}`),
   create: (payload: SalePayload) => apiClient.post<Sale, SalePayload>('/v1/sales', payload),
   update: (id: string, payload: SalePayload) => apiClient.put<Sale, SalePayload>(`/v1/sales/${id}`, payload),
+  updateWithPayments: (id: string, payload: SaleWithPaymentsPayload) =>
+    apiClient.put<Sale, SaleWithPaymentsPayload>(`/v1/sales/${id}/with-payments`, payload),
   delete: (id: string) => apiClient.delete<void>(`/v1/sales/${id}`),
   confirm: (id: string) => apiClient.post<Sale>(`/v1/sales/${id}/confirm`),
   complete: (id: string) => apiClient.post<Sale>(`/v1/sales/${id}/complete`),

@@ -148,6 +148,7 @@ const sales = {
     toolbar: {
       back: 'ត្រឡប់ទៅការលក់',
       pos: 'POS',
+      products: 'ផលិតផល',
       settings: 'ការកំណត់ប្លង់',
     },
     cashRegister: {
@@ -174,6 +175,7 @@ const sales = {
     filters: {
       category: 'ប្រភេទ',
       brand: 'ម៉ាក',
+      productSearch: 'ស្វែងរកផលិតផល',
     },
     modes: {
       checkout: 'ទូទាត់',
@@ -184,6 +186,7 @@ const sales = {
       suspend: 'ផ្អាកការលក់',
       editLine: 'កែព័ត៌មានជួរទំនិញ',
       creditSale: 'លក់ជំពាក់',
+      addCustomer: 'បន្ថែមអតិថិជន',
     },
     lineDialog: {
       title: 'កែព័ត៌មានទំនិញ',
@@ -199,6 +202,7 @@ const sales = {
       updated: 'បានកែការលក់ POS។',
       suspended: 'បានផ្អាកការលក់ POS។',
       productNotAvailable: 'ផលិតផលនេះមិនមាននៅក្នុងឃ្លាំងដែលបានជ្រើសទេ។',
+      serialAlreadyInCart: 'ទំនិញស៊េរីនេះមានរួចហើយក្នុងកន្ត្រក។',
     },
   },
   detail: {

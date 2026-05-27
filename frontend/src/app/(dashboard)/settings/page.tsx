@@ -18,10 +18,11 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
-import { SaveOutlined, SettingsOutlined } from '@/components/ui/icons'
+import { SaveOutlined, SettingsOutlined, UploadOutlined } from '@/components/ui/icons'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
+import { useCambodiaAddressSyncStatusQuery, useSyncCambodiaAddressMutation } from '@/features/address/hooks'
 import { SETTINGS_GROUPS } from '@/features/settings/definitions'
 import { useSettingsGroupQuery, useUpdateSettingsGroupMutation } from '@/features/settings/hooks'
 import { useAuthStore } from '@/stores/authStore'
@@ -55,8 +56,15 @@ export default function SettingsPage() {
   )
   const settingsQuery = useSettingsGroupQuery(activeGroup)
   const updateSettings = useUpdateSettingsGroupMutation(activeGroup)
+  const addressSyncStatusQuery = useCambodiaAddressSyncStatusQuery(activeGroup === 'system')
+  const syncCambodiaAddress = useSyncCambodiaAddressMutation()
   const [draftByGroup, setDraftByGroup] = useState<Partial<Record<SettingsGroupKey, Record<string, unknown>>>>({})
   const groupDraft = draftByGroup[activeGroup] ?? {}
+  const addressSyncStatus = addressSyncStatusQuery.data
+  const addressCounts = addressSyncStatus?.counts
+  const lastAddressSync = addressSyncStatus?.last_synced_at
+    ? new Date(addressSyncStatus.last_synced_at).toLocaleString()
+    : t('cambodiaAddress.neverSynced')
 
   const getDraftValue = (field: SettingsFieldDefinition) => {
     if (Object.prototype.hasOwnProperty.call(groupDraft, field.key)) {
@@ -85,6 +93,16 @@ export default function SettingsPage() {
     try {
       await updateSettings.mutateAsync(payload)
       enqueueSnackbar(t('saved', { group: t(`groups.${activeGroup}`) }), { variant: 'success' })
+    } catch (error) {
+      const apiError = toAppApiError(error)
+      enqueueSnackbar(apiError.message, { variant: 'error' })
+    }
+  }
+
+  const handleSyncCambodiaAddress = async () => {
+    try {
+      const result = await syncCambodiaAddress.mutateAsync()
+      enqueueSnackbar(t('cambodiaAddress.syncSuccess', { total: result.total }), { variant: 'success' })
     } catch (error) {
       const apiError = toAppApiError(error)
       enqueueSnackbar(apiError.message, { variant: 'error' })
@@ -206,6 +224,49 @@ export default function SettingsPage() {
                 }}
               >
                 {activeDefinition.fields.map(renderField)}
+              </Box>
+            )}
+
+            {activeGroup === 'system' && (
+              <Box
+                sx={{
+                  border: (theme) => `1px solid ${theme.palette.divider}`,
+                  borderRadius: 1,
+                  p: 2,
+                }}
+              >
+                <Stack
+                  direction={{ xs: 'column', md: 'row' }}
+                  spacing={2}
+                  sx={{ alignItems: { xs: 'stretch', md: 'center' }, justifyContent: 'space-between' }}
+                >
+                  <Box>
+                    <Typography variant="subtitle1">{t('cambodiaAddress.title')}</Typography>
+                    <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5 }}>
+                      {t('cambodiaAddress.description')}
+                    </Typography>
+                    <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1 }}>
+                      {t('cambodiaAddress.lastSynced', { value: lastAddressSync })}
+                    </Typography>
+                    {addressCounts && (
+                      <Stack direction="row" spacing={1} useFlexGap sx={{ flexWrap: 'wrap', mt: 1 }}>
+                        <Chip size="small" label={t('cambodiaAddress.provinces', { count: addressCounts.provinces })} />
+                        <Chip size="small" label={t('cambodiaAddress.districts', { count: addressCounts.districts })} />
+                        <Chip size="small" label={t('cambodiaAddress.communes', { count: addressCounts.communes })} />
+                        <Chip size="small" label={t('cambodiaAddress.villages', { count: addressCounts.villages })} />
+                      </Stack>
+                    )}
+                  </Box>
+                  <Button
+                    variant="outlined"
+                    startIcon={syncCambodiaAddress.isPending ? <CircularProgress size={18} color="inherit" /> : <UploadOutlined />}
+                    disabled={!canEdit || syncCambodiaAddress.isPending}
+                    onClick={handleSyncCambodiaAddress}
+                    sx={{ alignSelf: { xs: 'stretch', md: 'center' } }}
+                  >
+                    {syncCambodiaAddress.isPending ? t('cambodiaAddress.syncing') : t('cambodiaAddress.sync')}
+                  </Button>
+                </Stack>
               </Box>
             )}
 

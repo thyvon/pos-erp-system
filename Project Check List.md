@@ -82,6 +82,19 @@
 - [x] POS product line table now gives more room to product descriptions and less width to unit price while keeping fixed table sizing.
 - [x] POS product line unit price input now right-aligns values to match the table header and total column alignment.
 - [x] POS Recent Transactions now opens an in-page modal using the existing searchable table pattern, paginated POS-sale rows, and View/Edit actions.
+- [x] POS product gallery now stays as the desktop side panel on large screens and opens from a mobile toolbar toggle drawer on small screens.
+- [x] POS summary divider borders now explicitly use the soft theme divider color, and product gallery panels/tiles now match the clean paper background used by the cart section.
+- [x] POS summary row and product gallery side divider now use explicit soft divider border styles so they do not render as bold black lines.
+- [x] POS customer selector now has a permission-aware add button that opens the shared customer creation dialog and selects the new customer after saving.
+- [x] POS customer add button now uses the active layout setting control height so it matches the customer field height across compact, small, normal, and large sizes.
+- [x] POS now listens to the global layout settings for language synchronization and top navigation height/theme styling.
+- [x] POS toolbar actions now stay pinned to the right edge of the top navigation.
+- [x] POS product gallery now supports product search alongside category and brand filtering.
+- [x] POS duplicate product adds now increase the existing sale line quantity for matching product/variation/unit/lot, while protecting duplicate serial lines.
+- [x] POS product gallery tiles now use a square card shape with a larger flexible image area for clearer product photos.
+- [x] Sale and POS form payment, total, rounding, and payload helpers are centralized in a shared sales form helper module; frontend type-check, lint, and build verified.
+- [x] Sale/POS edit now sends sale changes, payment corrections, payment removals, and new payment lines through one backend update-with-payments endpoint for transaction-safe saves.
+- [x] Sale edit-window day comparison now uses absolute day difference so expired sales are correctly blocked; focused Sales API suite passes.
 
 ## Inventory Frontend Rebuild
 
@@ -152,6 +165,7 @@
 - [x] Customer edit validation now accepts cleared nullable fields and names the first invalid field when save is blocked.
 - [x] Customer edit now normalizes empty/null custom fields to an object so customers without custom fields can save.
 - [x] Customer and supplier forms now share a reusable Cambodia cascading address component ordered Country, Province/City, District, Commune, Village.
+- [x] Cambodia address data now syncs from the external source into local DB, and customer/supplier address fields read local master data with a Settings sync action.
 
 ## Foundation Frontend And API
 

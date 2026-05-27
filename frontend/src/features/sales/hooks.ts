@@ -12,6 +12,7 @@ import type {
   SalePaymentCorrectionPayload,
   SalePaymentDeletePayload,
   SalePaymentPayload,
+  SaleWithPaymentsPayload,
 } from '@/types/sales'
 
 export const saleKeys = {
@@ -86,6 +87,19 @@ export function useUpdateSaleMutation() {
 
   return useMutation({
     mutationFn: ({ id, payload }: { id: string; payload: SalePayload }) => salesApi.update(id, payload),
+    onSuccess: (sale) => {
+      queryClient.invalidateQueries({ queryKey: saleKeys.all })
+      queryClient.invalidateQueries({ queryKey: saleKeys.detail(sale.id) })
+    },
+  })
+}
+
+export function useUpdateSaleWithPaymentsMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: SaleWithPaymentsPayload }) =>
+      salesApi.updateWithPayments(id, payload),
     onSuccess: (sale) => {
       queryClient.invalidateQueries({ queryKey: saleKeys.all })
       queryClient.invalidateQueries({ queryKey: saleKeys.detail(sale.id) })

@@ -148,6 +148,7 @@ const sales = {
     toolbar: {
       back: 'Back to sales',
       pos: 'POS',
+      products: 'Products',
       settings: 'Layout settings',
     },
     cashRegister: {
@@ -174,6 +175,7 @@ const sales = {
     filters: {
       category: 'Category',
       brand: 'Brand',
+      productSearch: 'Search products',
     },
     modes: {
       checkout: 'Checkout',
@@ -184,6 +186,7 @@ const sales = {
       suspend: 'Suspend sale',
       editLine: 'Edit line details',
       creditSale: 'Credit Sale',
+      addCustomer: 'Add customer',
     },
     lineDialog: {
       title: 'Edit item details',
@@ -199,6 +202,7 @@ const sales = {
       updated: 'POS sale updated.',
       suspended: 'POS sale suspended.',
       productNotAvailable: 'This product is not available in the selected warehouse.',
+      serialAlreadyInCart: 'This serial item is already in the cart.',
     },
   },
   detail: {
