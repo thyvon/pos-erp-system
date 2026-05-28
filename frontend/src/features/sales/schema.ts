@@ -128,3 +128,36 @@ export const salePaymentSchema = z.object({
 
 export type SalePaymentFormInput = z.input<typeof salePaymentSchema>
 export type SalePaymentFormValues = z.output<typeof salePaymentSchema>
+
+const refundMethods = ['cash', 'credit_note', 'bank_transfer', 'reward_points'] as const
+
+export const saleReturnLineSchema = z.object({
+  sale_item_id: z.string().min(1, 'Sale item is required'),
+  quantity: z.coerce.number().gt(0, 'Quantity must be greater than zero'),
+  lot_id: z.string().nullable().optional(),
+  serial_ids: z.array(z.string()).optional(),
+})
+
+export const saleReturnSchema = z.object({
+  return_date: z.string().min(1, 'Return date is required'),
+  refund_method: z.enum(refundMethods).nullable().optional(),
+  notes: z.string().trim().nullable().optional(),
+  items: z.array(saleReturnLineSchema).min(1, 'Add at least one return line'),
+})
+
+export type SaleReturnFormInput = z.input<typeof saleReturnSchema>
+export type SaleReturnFormValues = z.output<typeof saleReturnSchema>
+
+export const quotationConvertSchema = z.object({
+  type: z.enum(['invoice', 'draft', 'pos_sale', 'suspended']),
+  sale_date: z.string().nullable().optional(),
+  due_date: z.string().nullable().optional(),
+  notes: z.string().trim().nullable().optional(),
+  staff_note: z.string().trim().nullable().optional(),
+}).refine((values) => !values.due_date || !values.sale_date || values.due_date >= values.sale_date, {
+  path: ['due_date'],
+  message: 'Due date must be on or after the sale date',
+})
+
+export type QuotationConvertFormInput = z.input<typeof quotationConvertSchema>
+export type QuotationConvertFormValues = z.output<typeof quotationConvertSchema>

@@ -107,11 +107,30 @@ Important current behavior:
 - Sale edit lifetime is controlled through settings
 - Branch filtering is enforced in policy and data access
 
-### 4.7 Deferred Backend Modules
+### 4.7 Purchases
+
+Partially implemented:
+
+- Purchases
+- Purchase items
+- Purchase document list/create/show/update/delete API
+- Purchase receiving API
+
+Important current behavior:
+
+- Purchase documents are branch-scoped through `branch_id`
+- Purchase creation validates supplier, branch, warehouse, products, and variation ownership
+- Warehouse must belong to the selected branch
+- Purchase totals are calculated in `PurchaseService`
+- Purchase receiving posts `purchase_receipt` stock movements and updates received quantities
+- Lot-tracked receiving creates or updates stock lots
+- Serial-tracked receiving creates stock serials
+- Purchase returns, supplier payments, and accounting posting are not implemented yet
+
+### 4.8 Deferred Backend Modules
 
 These are **not implemented yet** and must stay in roadmap status:
 
-- Purchases
 - Expenses
 - Reports
 - Loyalty

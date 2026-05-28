@@ -32,6 +32,7 @@ use App\Models\PaymentAccount;
 use App\Models\Sale;
 use App\Models\SaleReturn;
 use App\Models\CashRegister;
+use App\Models\Purchase;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
 
@@ -72,6 +73,7 @@ use App\Policies\SalePolicy;
 use App\Policies\SaleReturnPolicy;
 use App\Policies\CashRegisterPolicy;
 use App\Policies\QuotationPolicy;
+use App\Policies\PurchasePolicy;
 use App\Policies\UserPolicy;
 use App\Policies\WarehousePolicy;
 use Spatie\Permission\Models\Role;
@@ -110,6 +112,7 @@ class AuthServiceProvider extends ServiceProvider
         Sale::class => SalePolicy::class,
         SaleReturn::class => SaleReturnPolicy::class,
         CashRegister::class => CashRegisterPolicy::class,
+        Purchase::class => PurchasePolicy::class,
         User::class => UserPolicy::class,
         Role::class => RolePolicy::class,
         Branch::class => BranchPolicy::class,

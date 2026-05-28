@@ -23,17 +23,19 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
-import { ArrowBack, CheckCircleOutlined, Close, DeleteOutlined, EditOutlined, PaymentsOutlined, PointOfSaleOutlined } from '@/components/ui/icons'
+import { ArrowBack, CheckCircleOutlined, Close, CompareArrowsOutlined, DeleteOutlined, EditOutlined, PaymentsOutlined, PointOfSaleOutlined } from '@/components/ui/icons'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { SaleCancelDialog } from './SaleCancelDialog'
 import { SalePaymentDialog } from './SalePaymentDialog'
+import { SaleReturnDialog } from './SaleReturnDialog'
 import {
   useCancelSaleMutation,
   useCompleteSaleMutation,
   useConfirmSaleMutation,
+  useCreateSaleReturnMutation,
   useDeleteSaleMutation,
   useRecordSalePaymentMutation,
   useSaleQuery,
@@ -43,7 +45,7 @@ import { useAppDateFormat } from '@/features/settings/useAppDateFormat'
 import { useCurrencyFormatter } from '@/features/settings/useAppCurrency'
 import { useAuthStore } from '@/stores/authStore'
 import { formatAppDate, formatAppDateTime } from '@/utils/dateFormat'
-import type { Sale, SaleCancelPayload, SaleItem, SalePayment, SalePaymentPayload } from '@/types/sales'
+import type { Sale, SaleCancelPayload, SaleItem, SalePayment, SalePaymentPayload, SaleReturnPayload } from '@/types/sales'
 
 interface SaleDetailPageProps {
   saleId: string
@@ -131,6 +133,7 @@ export function SaleDetailPage({ saleId }: SaleDetailPageProps) {
   const [cancelOpen, setCancelOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [paymentOpen, setPaymentOpen] = useState(false)
+  const [returnOpen, setReturnOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
   const saleQuery = useSaleQuery(saleId)
   const paymentAccountsQuery = usePaymentAccountsQuery({ status: 'active', per_page: 100 })
@@ -140,11 +143,12 @@ export function SaleDetailPage({ saleId }: SaleDetailPageProps) {
   const cancelSale = useCancelSaleMutation()
   const deleteSale = useDeleteSaleMutation()
   const recordPayment = useRecordSalePaymentMutation()
+  const createReturn = useCreateSaleReturnMutation()
   const dateFormat = useAppDateFormat()
   const currencyFormatter = useCurrencyFormatter()
   const sale = saleQuery.data
   const paymentAccounts = paymentAccountsQuery.data?.data ?? []
-  const isMutating = confirmSale.isPending || completeSale.isPending || cancelSale.isPending || deleteSale.isPending || recordPayment.isPending
+  const isMutating = confirmSale.isPending || completeSale.isPending || cancelSale.isPending || deleteSale.isPending || recordPayment.isPending || createReturn.isPending
 
   const isEditableStatus = !!sale && ['draft', 'quotation', 'suspended', 'confirmed'].includes(sale.status)
   const isClearlyEditBlocked = !!sale && (['cancelled', 'returned'].includes(sale.status) || sale.returns_count > 0)
@@ -157,6 +161,10 @@ export function SaleDetailPage({ saleId }: SaleDetailPageProps) {
     && can('payments.create')
     && sale.status === 'completed'
     && ['unpaid', 'partial'].includes(sale.payment_status)
+  const canReturn = !!sale
+    && can('sales.return')
+    && ['completed', 'returned'].includes(sale.status)
+    && (sale.items?.length ?? 0) > 0
 
   const handleConfirm = async () => {
     if (!sale) return
@@ -184,6 +192,13 @@ export function SaleDetailPage({ saleId }: SaleDetailPageProps) {
     await recordPayment.mutateAsync({ id: sale.id, payload })
     enqueueSnackbar(t('messages.paymentRecorded'), { variant: 'success' })
     setPaymentOpen(false)
+  }
+
+  const handleReturn = async (payload: SaleReturnPayload) => {
+    if (!sale) return
+    await createReturn.mutateAsync({ saleId: sale.id, payload })
+    enqueueSnackbar(t('returns.messages.recorded'), { variant: 'success' })
+    setReturnOpen(false)
   }
 
   const handleDelete = async () => {
@@ -243,6 +258,11 @@ export function SaleDetailPage({ saleId }: SaleDetailPageProps) {
           {canPay && (
             <Button startIcon={<PaymentsOutlined />} variant="contained" onClick={() => setPaymentOpen(true)}>
               {t('actions.recordPayment')}
+            </Button>
+          )}
+          {canReturn && (
+            <Button startIcon={<CompareArrowsOutlined />} variant="outlined" color="warning" onClick={() => setReturnOpen(true)}>
+              {t('returns.actions.record')}
             </Button>
           )}
           {canConfirm && (
@@ -557,6 +577,15 @@ export function SaleDetailPage({ saleId }: SaleDetailPageProps) {
         onClose={() => setPaymentOpen(false)}
         onSubmit={handlePayment}
       />
+      {returnOpen && (
+        <SaleReturnDialog
+          open={returnOpen}
+          sale={sale}
+          isSaving={createReturn.isPending}
+          onClose={() => setReturnOpen(false)}
+          onSubmit={handleReturn}
+        />
+      )}
       <ConfirmDialog
         open={deleteOpen}
         title={t('delete.title')}

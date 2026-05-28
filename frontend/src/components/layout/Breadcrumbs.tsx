@@ -7,11 +7,13 @@ import { NavigateNext } from '@/components/ui/icons'
 import { useTranslation } from 'react-i18next'
 import { useProductQuery } from '@/features/products/hooks'
 import { useStockCountQuery, useStockTransferQuery } from '@/features/inventory/hooks'
-import { useSaleQuery } from '@/features/sales/hooks'
+import { useQuotationQuery, useSaleQuery, useSaleReturnQuery } from '@/features/sales/hooks'
 
 const BREADCRUMB_KEY_MAP: Record<string, string> = {
   '/dashboard': 'dashboard',
   '/sales': 'sales',
+  '/quotations': 'quotations',
+  '/sale-returns': 'saleReturns',
   '/cash-registers': 'cashRegisters',
   '/purchases': 'purchases',
   '/customers': 'customers',
@@ -86,6 +88,12 @@ function breadcrumbLabelKey(to: string, pathnames: string[], index: number) {
     }
   }
 
+  if (pathnames[0] === 'quotations') {
+    if (pathnames[1] === 'create' && index === 1) {
+      return 'quotationCreate'
+    }
+  }
+
   return BREADCRUMB_KEY_MAP[to]
 }
 
@@ -111,6 +119,12 @@ export default function Breadcrumbs() {
   const isSaleRouteWithId = pathnames[0] === 'sales' && !!pathnames[1] && pathnames[1] !== 'create'
   const saleId = isSaleRouteWithId ? pathnames[1] : null
   const saleQuery = useSaleQuery(saleId)
+  const isSaleReturnRouteWithId = pathnames[0] === 'sale-returns' && !!pathnames[1]
+  const saleReturnId = isSaleReturnRouteWithId ? pathnames[1] : null
+  const saleReturnQuery = useSaleReturnQuery(saleReturnId)
+  const isQuotationRouteWithId = pathnames[0] === 'quotations' && !!pathnames[1] && pathnames[1] !== 'create'
+  const quotationId = isQuotationRouteWithId ? pathnames[1] : null
+  const quotationQuery = useQuotationQuery(quotationId)
 
   return (
     <Box sx={{ mb: 3 }}>
@@ -139,6 +153,10 @@ export default function Breadcrumbs() {
             ? (countQuery.data?.reference_no ?? t('breadcrumbs.countDetail'))
             : isSaleRouteWithId && index === 1
             ? (saleQuery.data?.sale_number ?? t('breadcrumbs.saleDetail'))
+            : isSaleReturnRouteWithId && index === 1
+            ? (saleReturnQuery.data?.return_number ?? t('breadcrumbs.saleReturnDetail'))
+            : isQuotationRouteWithId && index === 1
+            ? (quotationQuery.data?.sale_number ?? t('breadcrumbs.quotationDetail'))
             : labelKey
             ? t(`breadcrumbs.${labelKey}`)
             : value.charAt(0).toUpperCase() + value.slice(1)
@@ -154,7 +172,9 @@ export default function Breadcrumbs() {
           ) : (isProductRouteWithId && index === 1)
             || (isTransferRouteWithId && index === 2)
             || (isCountRouteWithId && index === 2)
-            || (isSaleRouteWithId && index === 1) ? (
+            || (isSaleRouteWithId && index === 1)
+            || (isSaleReturnRouteWithId && index === 1)
+            || (isQuotationRouteWithId && index === 1) ? (
             <Typography
               key={to}
               variant="body2"

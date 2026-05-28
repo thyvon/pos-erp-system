@@ -47,6 +47,9 @@
 
 ## Sales Frontend Rebuild
 
+- [x] Sales remaining-scope review completed and planning rules updated to require step-by-step, componentized feature delivery with thin route pages and focused Sales components.
+- [x] Sale Returns frontend slice added with typed API/hooks/schema, record-return dialog from sale detail, focused return line table component, sale returns list/detail routes, sidebar/breadcrumb navigation, English/Khmer translations, and frontend type-check/lint/build verification.
+- [x] Dedicated Quotations frontend slice added with typed API/hooks/schema, quotation list/detail/create routes, Sale form quotation mode, convert-to-sale dialog, quotation-specific cancel copy, sidebar/breadcrumb navigation, English/Khmer translations, and frontend type-check/lint/build verification.
 - [x] Sales API hooks, types, cancel/payment schemas, and action dialogs are present.
 - [x] Sales list page with search, status/type, branch/warehouse/customer, date filters, setting-aware dates, currency-aware totals, pagination, navigation, and translations is present.
 - [x] Sale detail page with summary cards, lifecycle actions, payment recording, overview, totals, item table, breadcrumbs, and translations is present.
@@ -140,6 +143,12 @@
 - [x] System date display and shared date picker now follow the business `general.date_format` setting, with auth payload fallback for users without settings access.
 - [x] Date month display uses abbreviated English month names and full Khmer month names while preserving the configured date order.
 - [x] Date-format alignment verified with focused auth API test, frontend type-check, and frontend lint.
+
+## Purchases Backend Foundation
+
+- [x] Purchase document backend foundation added with purchases/purchase_items tables, models, policy, repository, service, requests, resources, `/api/v1/purchases` routes, branch access checks, generated PO numbers, line totals, and focused API tests.
+- [x] Purchase receiving backend added with `/api/v1/purchases/{purchase}/receive`, receive validation, stock movement posting, received quantities, purchase status updates, lot creation, serial creation, receiver metadata, and focused API tests.
+- [ ] Purchase API focused tests are written but blocked locally because the PHP SQLite driver is missing from the test environment.
 
 ## Frontend UI Consistency
 

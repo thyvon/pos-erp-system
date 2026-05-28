@@ -66,6 +66,7 @@ const sales = {
     completed: 'Completed',
     cancelled: 'Cancelled',
     returned: 'Returned',
+    converted: 'Converted',
   },
   paymentStatuses: {
     unpaid: 'Unpaid',
@@ -289,6 +290,100 @@ const sales = {
       closed: 'Cash register session closed.',
     },
     empty: 'No cash registers found.',
+  },
+  quotations: {
+    title: 'Quotations',
+    subtitle: 'Prepare customer quotes, review approval status, and convert accepted quotes into sales.',
+    filters: {
+      search: 'Search by quotation number, customer, or notes',
+    },
+    columns: {
+      quotation: 'Quotation',
+    },
+    actions: {
+      create: 'Create quotation',
+      convert: 'Convert to sale',
+      cancel: 'Cancel quotation',
+      backToQuotations: 'Back to quotations',
+    },
+    form: {
+      createTitle: 'Create quotation',
+      subtitle: 'Build a customer quotation from available product pricing without reserving stock.',
+    },
+    convert: {
+      title: 'Convert {{number}}',
+      invalid: 'Check the conversion details and try again.',
+    },
+    cancel: {
+      title: 'Cancel quotation',
+      message: 'Cancel {{number}}? Cancelled quotations cannot be converted to sales.',
+    },
+    detail: {
+      subtitle: '{{customer}} on {{date}}',
+      notFound: 'Quotation not found.',
+    },
+    messages: {
+      created: 'Quotation created.',
+      converted: 'Quotation converted to sale.',
+      cancelled: 'Quotation cancelled.',
+    },
+    empty: 'No quotations found.',
+  },
+  returns: {
+    title: 'Sale Returns',
+    subtitle: 'Review customer return documents, restored stock, refund method, and posted return totals.',
+    filters: {
+      search: 'Search by return number, sale number, or notes',
+    },
+    columns: {
+      return: 'Return',
+      sale: 'Sale',
+      select: 'Select',
+      sold: 'Sold',
+      returnQty: 'Return qty',
+      lot: 'Lot',
+      serials: 'Serials',
+      items: 'Items',
+    },
+    fields: {
+      sale: 'Sale',
+      returnDate: 'Return date',
+      refundMethod: 'Refund method',
+      notes: 'Notes',
+      items: 'Items',
+      total: 'Total',
+      estimatedTotal: 'Estimated return total',
+    },
+    actions: {
+      record: 'Record return',
+      selectLine: 'Select return line',
+      viewSale: 'View sale',
+    },
+    form: {
+      title: 'Record return for {{number}}',
+      autoLot: 'Auto-select lot',
+      selectSerials: 'Select serials',
+      invalid: 'Check the return details and try again.',
+    },
+    refundMethods: {
+      none: 'No refund method',
+      cash: 'Cash',
+      credit_note: 'Credit note',
+      bank_transfer: 'Bank transfer',
+      reward_points: 'Reward points',
+    },
+    statuses: {
+      completed: 'Completed',
+    },
+    detail: {
+      subtitle: '{{sale}} on {{date}}',
+      notFound: 'Sale return not found.',
+      noItems: 'No return items found.',
+    },
+    messages: {
+      recorded: 'Sale return recorded.',
+    },
+    empty: 'No sale returns found.',
   },
   detail: {
     subtitle: '{{customer}} on {{date}}',

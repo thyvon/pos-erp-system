@@ -25,6 +25,9 @@ interface SaleCancelDialogProps {
   open: boolean
   sale: Sale | null
   isSaving: boolean
+  title?: string
+  message?: string
+  confirmText?: string
   onClose: () => void
   onSubmit: (payload: SaleCancelPayload) => Promise<void>
 }
@@ -37,6 +40,9 @@ export function SaleCancelDialog({
   open,
   sale,
   isSaving,
+  title,
+  message,
+  confirmText,
   onClose,
   onSubmit,
 }: SaleCancelDialogProps) {
@@ -82,12 +88,12 @@ export function SaleCancelDialog({
   return (
     <Dialog open={open} onClose={isSaving ? undefined : onClose} fullWidth maxWidth="sm">
       <Box component="form" noValidate onSubmit={handleSubmit(submitForm)}>
-        <DialogTitle>{t('cancel.title')}</DialogTitle>
+        <DialogTitle>{title ?? t('cancel.title')}</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2.5} sx={{ pt: 0.5 }}>
             {serverError && <Alert severity="error">{serverError}</Alert>}
             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-              {t('cancel.message', { number: sale?.sale_number ?? '' })}
+              {message ?? t('cancel.message', { number: sale?.sale_number ?? '' })}
             </Typography>
             <Controller
               name="reason"
@@ -111,7 +117,7 @@ export function SaleCancelDialog({
             {t('common:buttons.cancel')}
           </Button>
           <Button type="submit" variant="contained" color="warning" disabled={isSaving}>
-            {isSaving ? <CircularProgress size={20} color="inherit" /> : t('actions.cancelSale')}
+            {isSaving ? <CircularProgress size={20} color="inherit" /> : (confirmText ?? t('actions.cancelSale'))}
           </Button>
         </DialogActions>
       </Box>

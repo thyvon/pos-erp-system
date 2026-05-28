@@ -48,6 +48,7 @@ import { useWarehousesQuery } from '@/features/warehouses/hooks'
 import { useAuthStore } from '@/stores/authStore'
 import {
   useCreateSaleMutation,
+  useCreateQuotationMutation,
   useSaleQuery,
   useUpdateSaleWithPaymentsMutation,
 } from './hooks'
@@ -78,6 +79,7 @@ import type { TaxRate } from '@/types/taxRate'
 
 interface SaleFormPageProps {
   saleId?: string
+  mode?: 'sale' | 'quotation'
 }
 
 const itemColumnSx = {
@@ -112,12 +114,12 @@ function today() {
   return dayjs().format('YYYY-MM-DD')
 }
 
-function emptyValues(): SaleFormInput {
+function emptyValues(type: SaleFormInput['type'] = 'invoice'): SaleFormInput {
   return {
     branch_id: '',
     warehouse_id: '',
     customer_id: '',
-    type: 'invoice',
+    type,
     sale_date: today(),
     due_date: '',
     price_group_id: '',
@@ -224,7 +226,7 @@ function InstructionTooltip({ title }: { title: string }) {
   )
 }
 
-export function SaleFormPage({ saleId }: SaleFormPageProps) {
+export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
   const { t } = useTranslation(['sales', 'common'])
   const router = useRouter()
   const { enqueueSnackbar } = useSnackbar()
@@ -233,6 +235,7 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
   const [clientRequestId, setClientRequestId] = useState(() => createClientRequestId())
   const [removedPaymentIds, setRemovedPaymentIds] = useState<string[]>([])
   const isEdit = !!saleId
+  const isQuotationMode = mode === 'quotation'
   const currency = useAppCurrency()
   const currencyFormatter = useCurrencyFormatter()
 
@@ -241,9 +244,10 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
   const priceGroupsQuery = usePriceGroupsQuery({ per_page: 100 })
   const taxRatesQuery = useTaxRatesQuery({ is_active: true, per_page: 100 })
   const createSale = useCreateSaleMutation()
+  const createQuotation = useCreateQuotationMutation()
   const updateSaleWithPayments = useUpdateSaleWithPaymentsMutation()
   const [isSubmittingSale, setIsSubmittingSale] = useState(false)
-  const isSaving = isSubmittingSale || createSale.isPending || updateSaleWithPayments.isPending
+  const isSaving = isSubmittingSale || createSale.isPending || createQuotation.isPending || updateSaleWithPayments.isPending
 
   const {
     control,
@@ -254,7 +258,7 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
     formState: { errors },
   } = useForm<SaleFormInput, unknown, SaleFormValues>({
     resolver: zodResolver(saleFormSchema),
-    defaultValues: emptyValues(),
+    defaultValues: emptyValues(isQuotationMode ? 'quotation' : 'invoice'),
   })
 
   const { fields: itemFields, append, remove } = useFieldArray({ control, name: 'items', keyName: 'fieldId' })
@@ -324,7 +328,8 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
   const canDeleteExistingPayments = isEdit && can('payments.delete') && currentSaleStatus === 'completed'
   const canAddPaymentLines = isEdit ? can('payments.create') && currentSaleStatus === 'completed' : true
   const editPaymentLimit = totals.total
-  const canTakeDirectPayment = (saleType === 'invoice' || saleType === 'pos_sale')
+  const canTakeDirectPayment = !isQuotationMode
+    && (saleType === 'invoice' || saleType === 'pos_sale')
     && (!isEdit || ['draft', 'suspended', 'confirmed', 'completed'].includes(String(currentSaleStatus ?? '')))
   const directPaymentRemaining = Math.max(0, round(editPaymentLimit - directPaymentBase))
   const directPaymentChange = Math.max(0, round(directPaymentBase - editPaymentLimit))
@@ -337,13 +342,17 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
   }, [reset, saleQuery.data])
 
   useEffect(() => {
+    if (isQuotationMode && saleType !== 'quotation') {
+      setValue('type', 'quotation', { shouldDirty: true, shouldValidate: true })
+    }
+
     const selectedWarehouse = warehouses.find((warehouse) => warehouse.id === warehouseId)
     const nextBranchId = selectedWarehouse?.branch_id ?? ''
 
     if (warehouseId && nextBranchId && branchId !== nextBranchId) {
       setValue('branch_id', nextBranchId, { shouldDirty: true, shouldValidate: true })
     }
-  }, [branchId, setValue, warehouseId, warehouses])
+  }, [branchId, isQuotationMode, saleType, setValue, warehouseId, warehouses])
 
   useEffect(() => {
     if (!canTakeDirectPayment && directPaymentEnabled) {
@@ -480,14 +489,27 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
         const directPaymentLines = shouldRecordDirectPayment
           ? buildDirectPaymentLines(values, defaultExchangeRateValue, defaultExchangeRate?.id ?? null, totals.total)
           : []
-
-        const sale = await createSale.mutateAsync({
-          ...buildSalePayload(values),
+        const payload = {
+          ...buildSalePayload({
+            ...values,
+            type: isQuotationMode ? 'quotation' : values.type,
+          }),
           client_request_id: clientRequestId,
           ...(shouldRecordDirectPayment && directPaymentLines.length > 0
             ? { payment_date: values.sale_date, payment_note: null, payments: directPaymentLines }
             : {}),
-        })
+        }
+
+        if (isQuotationMode) {
+          const quotation = await createQuotation.mutateAsync(payload)
+
+          enqueueSnackbar(t('quotations.messages.created'), { variant: 'success' })
+          setClientRequestId(createClientRequestId())
+          router.push(`/quotations/${quotation.id}`)
+          return
+        }
+
+        const sale = await createSale.mutateAsync(payload)
         if (shouldRecordDirectPayment && directPaymentLines.length > 0) {
           enqueueSnackbar(t('messages.createdAndPaid'), { variant: 'success' })
         } else {
@@ -522,12 +544,18 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ justifyContent: 'space-between' }}>
         <Box>
           <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
-            <Typography variant="h4">{t(isEdit ? 'form.editTitle' : 'form.createTitle')}</Typography>
-            <InstructionTooltip title={t('form.subtitle')} />
+            <Typography variant="h4">
+              {isQuotationMode ? t('quotations.form.createTitle') : t(isEdit ? 'form.editTitle' : 'form.createTitle')}
+            </Typography>
+            <InstructionTooltip title={isQuotationMode ? t('quotations.form.subtitle') : t('form.subtitle')} />
           </Stack>
         </Box>
-        <Tooltip title={t('actions.backToSales')}>
-          <IconButton size="small" aria-label={t('actions.backToSales')} onClick={() => router.push(isEdit && saleId ? `/sales/${saleId}` : '/sales')}>
+        <Tooltip title={isQuotationMode ? t('quotations.actions.backToQuotations') : t('actions.backToSales')}>
+          <IconButton
+            size="small"
+            aria-label={isQuotationMode ? t('quotations.actions.backToQuotations') : t('actions.backToSales')}
+            onClick={() => router.push(isQuotationMode ? '/quotations' : isEdit && saleId ? `/sales/${saleId}` : '/sales')}
+          >
             <ArrowBack />
           </IconButton>
         </Tooltip>
@@ -611,15 +639,19 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
                   control={control}
                   render={({ field }) => <AppDatePicker label={t('fields.saleDate')} value={field.value} onChange={(value) => field.onChange(value ?? '')} error={!!errors.sale_date} helperText={errors.sale_date?.message} required />}
                 />
-                <Controller
-                  name="type"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField {...field} select label={t('fields.type')} error={!!errors.type} helperText={errors.type?.message} required>
-                      {saleTypes.map((type) => <MenuItem key={type} value={type}>{t(`types.${type}`)}</MenuItem>)}
-                    </TextField>
-                  )}
-                />
+                {isQuotationMode ? (
+                  <TextField label={t('fields.type')} value={t('types.quotation')} disabled />
+                ) : (
+                  <Controller
+                    name="type"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField {...field} select label={t('fields.type')} error={!!errors.type} helperText={errors.type?.message} required>
+                        {saleTypes.map((type) => <MenuItem key={type} value={type}>{t(`types.${type}`)}</MenuItem>)}
+                      </TextField>
+                    )}
+                  />
+                )}
               </Box>
 
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
@@ -1199,7 +1231,7 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
           </Box>
 
           <Stack direction="row" spacing={1.5} sx={{ justifyContent: 'flex-end' }}>
-            <Button variant="outlined" onClick={() => router.push(isEdit && saleId ? `/sales/${saleId}` : '/sales')} disabled={isSaving}>
+            <Button variant="outlined" onClick={() => router.push(isQuotationMode ? '/quotations' : isEdit && saleId ? `/sales/${saleId}` : '/sales')} disabled={isSaving}>
               {t('common:buttons.cancel')}
             </Button>
             <Button type="submit" variant="contained" startIcon={isSaving ? undefined : <SaveOutlined />} disabled={isSaving}>

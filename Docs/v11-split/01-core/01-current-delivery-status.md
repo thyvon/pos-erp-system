@@ -11,12 +11,12 @@ The current repository has working backend, migrations, policies, and tests for 
 - Inventory: adjustments, lots, serials, stock transfers, stock counts, inventory lookup, and inventory options
 - Accounting: chart of accounts, journals, payment accounts, and fiscal years
 - Sales: sales, quotations, cash registers, payments, POS-related frontend flows, and sale returns
+- Purchases backend foundation: purchase document list/create/show/update/delete API, receiving, purchase items, branch-scoped policy, and validation. Returns, supplier payments, accounting posting, and frontend pages are not implemented yet.
 
 ### 1.2 What Is Present Only as Permission or Planning Surface
 
 These areas exist in permissions, old plans, or placeholders, but are **not fully implemented in the current codebase**:
 
-- Purchases
 - Expenses
 - Reports and dashboards beyond the current dashboard shell
 - Loyalty
@@ -39,7 +39,7 @@ These areas exist in permissions, old plans, or placeholders, but are **not full
 | Inventory | Live | Core workflows and stock-level browsing exist |
 | Accounting | Live | Manual journals, payment accounts, fiscal years implemented |
 | Sales | Live | Sales, quotations, registers, payments, returns implemented |
-| Purchases | Planned | Permissions reserved, no active module yet |
+| Purchases | Partial | Backend document and receiving foundation exists; payments, returns, accounting posting, and frontend are pending |
 | Optional Modules | Planned | Not implemented yet |
 
 ### 1.4 Important Deltas From v10
@@ -52,6 +52,6 @@ The codebase differs from older v10 planning in important ways:
 - `BaseRepository` is a thin CRUD abstraction; Redis caching is **not implemented** there yet.
 - There is no shared `Auditable` trait in the current codebase.
 - The frontend stack has changed from the earlier Vue plan to Next.js, React, TypeScript, MUI, React Query, Zustand, Axios, React Hook Form, Zod, and i18next.
-- Purchases, reports, loyalty, CRM, manufacturing, HRM, and other later modules are still roadmap items, not current implementation.
+- Purchase payments/returns/frontend, reports, loyalty, CRM, manufacturing, HRM, and other later modules are still roadmap items, not current implementation.
 
 ---

@@ -15,6 +15,7 @@ Keep this file short. Use the plan docs for detail.
 - Explain the implementation plan before editing files.
 - If docs and code disagree, trust current code first and keep docs/checklists aligned.
 - Follow existing architecture and naming. Do not create duplicate systems, helpers, UI patterns, or API logic.
+- Work step by step. Finish one clear slice before starting the next, and keep code organized for maintenance rather than packing a whole feature into one large file.
 - Update `Project Check List.md` after finishing a phase or step. Create it if missing.
 
 ## Source Of Truth
@@ -47,6 +48,7 @@ Keep this file short. Use the plan docs for detail.
 - Page components must not call Axios directly. Use React Query for server state.
 - Reuse existing shared components for loading, empty states, row actions, confirmations, toasts, filters, selects, status displays, and branch-aware behavior.
 - Before adding repeated UI or data-entry patterns, check for an existing reusable component or hook first. If the same pattern is needed in more than one place, create or extend a small typed shared component/hook instead of duplicating page-level code.
+- Build feature UI component by component. Keep route pages thin, move feature sections/tables/dialogs/forms into typed components, and split helpers/hooks/schemas when a feature file starts carrying more than one responsibility.
 - Keep shared frontend components small, composable, option-driven, and aligned through the theme so one implementation can work across modules without copy/paste.
 - Keep form controls, filter controls, and table actions on shared sizing/style standards; fix mismatches in the shared component or theme instead of one-off page overrides.
 - Keep button styling consistent across the system: primary create/save/confirm actions use filled buttons, secondary navigation/cancel actions use outlined buttons, destructive actions use error styling, and table row view/edit/delete actions use the shared row action pattern.
@@ -75,6 +77,6 @@ Keep this file short. Use the plan docs for detail.
 
 ## Current Next Slice
 
-- Catalog frontend rebuild completed Units and Price Groups.
-- Continue with a live Catalog backend module that still needs frontend build, likely Variation Templates or Rack Locations.
-- Inspect backend routes/controllers/resources/services first and reuse Categories, Brands, Units, and Price Groups frontend patterns.
+- Sales frontend is the current focus.
+- Continue step by step with the remaining live Sales backend surfaces, starting with Sale Returns unless the user redirects.
+- Inspect backend routes/controllers/resources/services first and reuse existing Sales, POS, payment, table, dialog, and branch-aware frontend patterns.

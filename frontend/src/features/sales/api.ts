@@ -5,6 +5,8 @@ import type {
   CashRegisterSession,
   CloseCashRegisterSessionPayload,
   CreateCashRegisterPayload,
+  QuotationConvertPayload,
+  QuotationConvertResult,
   OpenCashRegisterSessionPayload,
   Sale,
   SaleCancelPayload,
@@ -16,6 +18,9 @@ import type {
   SalePayload,
   SalePaymentPayload,
   SalePaymentResult,
+  SaleReturn,
+  SaleReturnFilters,
+  SaleReturnPayload,
   SaleWithPaymentsPayload,
   UpdateCashRegisterPayload,
 } from '@/types/sales'
@@ -38,6 +43,23 @@ export const salesApi = {
     apiClient.put<SalePaymentCorrectionResult, SalePaymentCorrectionPayload>(`/v1/sales/${saleId}/payments/${paymentId}`, payload),
   deletePayment: (saleId: string, paymentId: string, payload: SalePaymentDeletePayload = {}) =>
     apiClient.delete<SalePaymentDeleteResult>(`/v1/sales/${saleId}/payments/${paymentId}`, { data: payload }),
+}
+
+export const quotationsApi = {
+  list: (filters: SaleFilters = {}) => apiClient.getPaginated<Sale>('/v1/quotations', filters),
+  show: (id: string) => apiClient.get<Sale>(`/v1/quotations/${id}`),
+  create: (payload: SalePayload) => apiClient.post<Sale, SalePayload>('/v1/quotations', payload),
+  convert: (id: string, payload: QuotationConvertPayload) =>
+    apiClient.post<QuotationConvertResult, QuotationConvertPayload>(`/v1/quotations/${id}/convert`, payload),
+  cancel: (id: string, payload: SaleCancelPayload) =>
+    apiClient.post<Sale, SaleCancelPayload>(`/v1/quotations/${id}/cancel`, payload),
+}
+
+export const saleReturnsApi = {
+  list: (filters: SaleReturnFilters = {}) => apiClient.getPaginated<SaleReturn>('/v1/sale-returns', filters),
+  show: (id: string) => apiClient.get<SaleReturn>(`/v1/sale-returns/${id}`),
+  create: (saleId: string, payload: SaleReturnPayload) =>
+    apiClient.post<SaleReturn, SaleReturnPayload>(`/v1/sales/${saleId}/returns`, payload),
 }
 
 export const cashRegistersApi = {

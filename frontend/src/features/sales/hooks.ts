@@ -1,18 +1,21 @@
 'use client'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { cashRegistersApi, salesApi } from './api'
+import { cashRegistersApi, quotationsApi, saleReturnsApi, salesApi } from './api'
 import type {
   CashRegisterFilters,
   CloseCashRegisterSessionPayload,
   CreateCashRegisterPayload,
   OpenCashRegisterSessionPayload,
+  QuotationConvertPayload,
   SaleCancelPayload,
   SaleFilters,
   SalePayload,
   SalePaymentCorrectionPayload,
   SalePaymentDeletePayload,
   SalePaymentPayload,
+  SaleReturnFilters,
+  SaleReturnPayload,
   SaleWithPaymentsPayload,
   UpdateCashRegisterPayload,
 } from '@/types/sales'
@@ -27,6 +30,18 @@ export const cashRegisterKeys = {
   all: ['cash-registers'] as const,
   list: (filters: CashRegisterFilters) => [...cashRegisterKeys.all, 'list', filters] as const,
   detail: (id: string) => [...cashRegisterKeys.all, 'detail', id] as const,
+}
+
+export const saleReturnKeys = {
+  all: ['sale-returns'] as const,
+  list: (filters: SaleReturnFilters) => [...saleReturnKeys.all, 'list', filters] as const,
+  detail: (id: string) => [...saleReturnKeys.all, 'detail', id] as const,
+}
+
+export const quotationKeys = {
+  all: ['quotations'] as const,
+  list: (filters: SaleFilters) => [...quotationKeys.all, 'list', filters] as const,
+  detail: (id: string) => [...quotationKeys.all, 'detail', id] as const,
 }
 
 export function useSalesQuery(filters: SaleFilters) {
@@ -44,6 +59,36 @@ export function useSaleQuery(id: string | null) {
   })
 }
 
+export function useQuotationsQuery(filters: SaleFilters) {
+  return useQuery({
+    queryKey: quotationKeys.list(filters),
+    queryFn: () => quotationsApi.list(filters),
+  })
+}
+
+export function useQuotationQuery(id: string | null) {
+  return useQuery({
+    queryKey: id ? quotationKeys.detail(id) : [...quotationKeys.all, 'detail', 'none'],
+    queryFn: () => quotationsApi.show(id ?? ''),
+    enabled: !!id,
+  })
+}
+
+export function useSaleReturnsQuery(filters: SaleReturnFilters) {
+  return useQuery({
+    queryKey: saleReturnKeys.list(filters),
+    queryFn: () => saleReturnsApi.list(filters),
+  })
+}
+
+export function useSaleReturnQuery(id: string | null) {
+  return useQuery({
+    queryKey: id ? saleReturnKeys.detail(id) : [...saleReturnKeys.all, 'detail', 'none'],
+    queryFn: () => saleReturnsApi.show(id ?? ''),
+    enabled: !!id,
+  })
+}
+
 export function useCashRegistersQuery(filters: CashRegisterFilters) {
   return useQuery({
     queryKey: cashRegisterKeys.list(filters),
@@ -56,6 +101,61 @@ export function useCashRegisterQuery(id: string | null) {
     queryKey: id ? cashRegisterKeys.detail(id) : [...cashRegisterKeys.all, 'detail', 'none'],
     queryFn: () => cashRegistersApi.show(id ?? ''),
     enabled: !!id,
+  })
+}
+
+export function useCreateQuotationMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (payload: SalePayload) => quotationsApi.create(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: quotationKeys.all })
+      queryClient.invalidateQueries({ queryKey: saleKeys.all })
+    },
+  })
+}
+
+export function useConvertQuotationMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: QuotationConvertPayload }) =>
+      quotationsApi.convert(id, payload),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: quotationKeys.all })
+      queryClient.invalidateQueries({ queryKey: quotationKeys.detail(result.quotation.id) })
+      queryClient.invalidateQueries({ queryKey: saleKeys.all })
+      queryClient.invalidateQueries({ queryKey: saleKeys.detail(result.sale.id) })
+    },
+  })
+}
+
+export function useCancelQuotationMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: SaleCancelPayload }) =>
+      quotationsApi.cancel(id, payload),
+    onSuccess: (quotation) => {
+      queryClient.invalidateQueries({ queryKey: quotationKeys.all })
+      queryClient.invalidateQueries({ queryKey: quotationKeys.detail(quotation.id) })
+      queryClient.invalidateQueries({ queryKey: saleKeys.all })
+    },
+  })
+}
+
+export function useCreateSaleReturnMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ saleId, payload }: { saleId: string; payload: SaleReturnPayload }) =>
+      saleReturnsApi.create(saleId, payload),
+    onSuccess: (saleReturn) => {
+      queryClient.invalidateQueries({ queryKey: saleReturnKeys.all })
+      queryClient.invalidateQueries({ queryKey: saleKeys.all })
+      queryClient.invalidateQueries({ queryKey: saleKeys.detail(saleReturn.sale_id) })
+    },
   })
 }
 

@@ -1,7 +1,7 @@
 import type { PaginatedResponse } from './api'
 
 export type SaleType = 'invoice' | 'pos_sale' | 'draft' | 'quotation' | 'suspended' | string
-export type SaleStatus = 'draft' | 'quotation' | 'suspended' | 'confirmed' | 'completed' | 'cancelled' | 'returned' | string
+export type SaleStatus = 'draft' | 'quotation' | 'suspended' | 'confirmed' | 'completed' | 'cancelled' | 'returned' | 'converted' | string
 export type SalePaymentStatus = 'unpaid' | 'partial' | 'paid' | 'refunded' | string
 export type SaleDeliveryStatus = 'pending' | 'packed' | 'shipped' | 'delivered' | 'cancelled' | string
 export type SalePaymentMethod = 'cash' | 'card' | 'bank_transfer' | 'cheque' | 'reward_points' | 'gift_card' | 'other'
@@ -13,6 +13,17 @@ export interface SaleFilters {
   branch_id?: string
   warehouse_id?: string
   customer_id?: string
+  date_from?: string | null
+  date_to?: string | null
+  page?: number
+  per_page?: number
+}
+
+export interface SaleReturnFilters {
+  search?: string
+  sale_id?: string
+  branch_id?: string
+  warehouse_id?: string
   date_from?: string | null
   date_to?: string | null
   page?: number
@@ -413,4 +424,86 @@ export interface SalePaymentDeleteResult {
   reversal_journal: unknown
 }
 
+export type SaleRefundMethod = 'cash' | 'credit_note' | 'bank_transfer' | 'reward_points'
+
+export interface SaleReturnItemPayload {
+  sale_item_id: string
+  quantity: number
+  lot_id?: string | null
+  serial_ids?: string[]
+}
+
+export interface SaleReturnPayload {
+  return_date: string
+  refund_method?: SaleRefundMethod | null
+  notes?: string | null
+  items: SaleReturnItemPayload[]
+}
+
+export interface QuotationConvertPayload {
+  type: 'invoice' | 'draft' | 'pos_sale' | 'suspended'
+  sale_date?: string | null
+  due_date?: string | null
+  cash_register_session_id?: string | null
+  notes?: string | null
+  staff_note?: string | null
+}
+
+export interface QuotationConvertResult {
+  quotation: Sale
+  sale: Sale
+}
+
+export interface SaleReturnItem {
+  id: string
+  sale_return_id: string
+  sale_item_id: string
+  product_id: string
+  variation_id: string | null
+  quantity: string | null
+  unit_price: string | null
+  unit_cost: string | null
+  total_amount: string | null
+  serial_ids: string[] | null
+  product?: {
+    id: string
+    name: string
+  } | null
+  variation?: {
+    id: string
+    name: string
+  } | null
+  lot?: {
+    id: string
+    lot_number: string
+  } | null
+}
+
+export interface SaleReturn {
+  id: string
+  business_id: string
+  sale_id: string
+  branch_id: string
+  warehouse_id: string
+  return_number: string
+  status: 'completed' | string
+  return_date: string | null
+  total_amount: string | null
+  refund_method: SaleRefundMethod | null
+  notes: string | null
+  sale?: {
+    id: string
+    sale_number: string
+    status: SaleStatus
+  } | null
+  branch?: SaleRelation | null
+  warehouse?: SaleRelation | null
+  creator?: SaleUserRelation | null
+  items_count: number
+  items?: SaleReturnItem[]
+  created_at: string
+  updated_at: string
+}
+
 export type SalesPaginatedResponse = PaginatedResponse<Sale>
+export type SaleReturnsPaginatedResponse = PaginatedResponse<SaleReturn>
