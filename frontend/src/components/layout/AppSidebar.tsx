@@ -27,6 +27,7 @@ import {
   CategoryOutlined,
   WarehouseOutlined,
   AccountBalanceOutlined,
+  AccountBalanceWalletOutlined,
   PaymentsOutlined,
   PeopleAltOutlined,
   SettingsOutlined,
@@ -69,6 +70,7 @@ const NAV_CONFIG: NavSection[] = [
       { key: 'dashboard', path: '/dashboard', icon: <DashboardOutlined /> },
       { key: 'pos', path: '/pos', icon: <PointOfSaleOutlined /> },
       { key: 'sales', path: '/sales', icon: <PointOfSaleOutlined /> },
+      { key: 'cashRegisters', path: '/cash-registers', icon: <AccountBalanceWalletOutlined /> },
     ],
   },
   {
@@ -151,7 +153,7 @@ export default function AppSidebar() {
   const router = useRouter()
   const theme = useTheme()
   const isDesktop = useMediaQuery(theme.breakpoints.up('lg'))
-  const { sidebarOpen, setSidebarOpen, mobileSidebarOpen, setMobileSidebarOpen, sidebarTheme, layoutSize } = useUIStore()
+  const { sidebarOpen, setSidebarOpen, mobileSidebarOpen, setMobileSidebarOpen, sidebarTheme, layoutSize, surfaceStyle } = useUIStore()
   const { isAdmin } = useAuthStore()
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({})
   const expanded = isDesktop ? sidebarOpen : true
@@ -159,10 +161,25 @@ export default function AppSidebar() {
   const drawerWidth = expanded ? layoutMetrics.sidebarWidth : layoutMetrics.sidebarCollapsedWidth
   const resolvedSidebarTheme = sidebarTheme === 'inherit' ? theme.palette.mode : sidebarTheme
   const sidebarIsDark = resolvedSidebarTheme === 'dark'
+  const isGlassSurface = surfaceStyle === 'glass'
   const sidebarColors = {
-    bg: sidebarIsDark ? '#111827' : theme.palette.background.default,
-    paper: sidebarIsDark ? '#111827' : theme.palette.background.default,
-    border: sidebarIsDark ? alpha('#ffffff', 0.14) : theme.palette.divider,
+    bg: isGlassSurface
+      ? sidebarIsDark
+        ? alpha('#111827', 0.72)
+        : alpha(theme.palette.common.white, 0.48)
+      : sidebarIsDark
+        ? '#111827'
+        : theme.palette.background.default,
+    paper: isGlassSurface
+      ? sidebarIsDark
+        ? alpha('#111827', 0.72)
+        : alpha(theme.palette.common.white, 0.48)
+      : sidebarIsDark
+        ? '#111827'
+        : theme.palette.background.default,
+    border: sidebarIsDark
+      ? alpha('#ffffff', isGlassSurface ? 0.18 : 0.14)
+      : alpha(theme.palette.grey[500], isGlassSurface ? 0.22 : 0.18),
     text: sidebarIsDark ? '#f9fafb' : theme.palette.text.primary,
     muted: sidebarIsDark ? alpha('#ffffff', 0.72) : theme.palette.text.secondary,
     disabled: sidebarIsDark ? alpha('#ffffff', 0.42) : theme.palette.text.disabled,
@@ -337,6 +354,8 @@ export default function AppSidebar() {
           overflow: 'visible',
           backgroundColor: sidebarColors.paper,
           borderRight: `1px dashed ${sidebarColors.border}`,
+          backdropFilter: isGlassSurface ? 'blur(18px) saturate(160%)' : 'none',
+          WebkitBackdropFilter: isGlassSurface ? 'blur(18px) saturate(160%)' : 'none',
           px: 1.5,
         },
       }}

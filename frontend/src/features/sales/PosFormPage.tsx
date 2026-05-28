@@ -9,7 +9,6 @@ import {
   Autocomplete,
   Box,
   Button,
-  CardActionArea,
   Chip,
   CircularProgress,
   Dialog,
@@ -44,8 +43,7 @@ import dayjs from 'dayjs'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
-import { AppDatePicker } from '@/components/ui/AppDatePicker'
-import { AccountBalanceWalletOutlined, Add, ArrowBack, CategoryOutlined, Close, DeleteOutlined, EditOutlined, PointOfSaleOutlined, Search, SettingsOutlined } from '@/components/ui/icons'
+import { AccountBalanceWalletOutlined, ArrowBack, CategoryOutlined, Close, PointOfSaleOutlined, Search, SettingsOutlined } from '@/components/ui/icons'
 import { RowActions } from '@/components/ui/RowActions'
 import { TableStateRow } from '@/components/ui/TableStateRow'
 import { useDefaultExchangeRateQuery, usePaymentAccountsQuery } from '@/features/accounting/hooks'
@@ -56,7 +54,6 @@ import { CustomerFormDialog } from '@/features/customers/CustomerFormDialog'
 import { useCreateCustomerMutation, useCustomersQuery } from '@/features/customers/hooks'
 import { useCustomFieldsQuery } from '@/features/custom-fields/hooks'
 import { inventoryApi } from '@/features/inventory/api'
-import { InventoryProductLookupPicker } from '@/features/inventory/components/InventoryProductLookupPicker'
 import { usePriceGroupsQuery } from '@/features/price-groups/hooks'
 import { useProductsQuery } from '@/features/products/hooks'
 import { useAppCurrency, useCurrencyFormatter } from '@/features/settings/useAppCurrency'
@@ -67,24 +64,24 @@ import { useAuthStore } from '@/stores/authStore'
 import { useUIStore } from '@/stores/uiStore'
 import { getLayoutMetrics } from '@/theme'
 import { formatAppDate } from '@/utils/dateFormat'
-import type { Brand } from '@/types/brand'
-import type { Category } from '@/types/category'
-import type { PaymentAccount } from '@/types/accounting'
+import { useDebouncedValue } from '@/utils/useDebouncedValue'
 import type { Customer, CustomerPayload } from '@/types/customer'
 import type { InventoryProductLookupItem } from '@/types/inventory'
 import type { PriceGroup } from '@/types/priceGroup'
 import type { Product } from '@/types/product'
-import type { CashRegister, Sale, SaleFilters, SaleItem, SalePaymentCorrectionPayload } from '@/types/sales'
+import type { CashRegister, Sale, SaleFilters, SaleItem } from '@/types/sales'
 import type { TaxRate } from '@/types/taxRate'
-import type { Warehouse } from '@/types/warehouse'
 import { useCashRegistersQuery, useCreateCashRegisterMutation, useCreateSaleMutation, useOpenCashRegisterSessionMutation, useSaleQuery, useSalesQuery, useUpdateSaleWithPaymentsMutation } from './hooks'
+import { PosCartSection } from './components/PosCartSection'
+import { PosHeaderFields } from './components/PosHeaderFields'
+import { PosPaymentSection } from './components/PosPaymentSection'
+import { PosProductGallery, type PosProductTab } from './components/PosProductGallery'
 import {
   buildDirectPaymentLines,
   buildSalePayload,
+  buildSalePaymentChangePayloads,
   createClientRequestId,
   directPaymentLineBaseAmount,
-  directPaymentLineChanged,
-  directPaymentLinePayload,
   discountAmount,
   formatUsdKhrAmount,
   lineTotal,
@@ -103,15 +100,6 @@ interface PosFormPageProps {
 const discountTypes = ['fixed', 'percentage'] as const
 const taxScopes = ['line', 'sale'] as const
 const taxTypes = ['exclusive', 'inclusive'] as const
-const paymentMethods = ['cash', 'card', 'bank_transfer', 'cheque', 'reward_points', 'gift_card', 'other'] as const
-
-const cartColumnSx = {
-  product: { width: 400, minWidth: 400 },
-  quantity: { width: 170, minWidth: 170 },
-  price: { width: 160, minWidth: 160 },
-  total: { width: 132, minWidth: 132 },
-  actions: { width: 96, minWidth: 96 },
-} as const
 
 const footerButtonSx = {
   height: 40,
@@ -216,14 +204,6 @@ function valuesFromSale(sale: Sale | null | undefined): SaleFormInput {
   }
 }
 
-function warehouseLabel(warehouse: Warehouse) {
-  return [warehouse.name, warehouse.code, warehouse.branch?.name].filter(Boolean).join(' / ')
-}
-
-function customerLabel(customer: Customer) {
-  return [customer.name, customer.code, customer.phone || customer.mobile].filter(Boolean).join(' / ')
-}
-
 function priceGroupLabel(group: PriceGroup) {
   return group.name
 }
@@ -232,29 +212,12 @@ function taxRateLabel(rate: TaxRate) {
   return `${rate.name} (${rate.rate}${rate.type === 'percentage' ? '%' : ''})`
 }
 
-function paymentAccountLabel(account: PaymentAccount) {
-  return [account.name, account.type].filter(Boolean).join(' / ')
-}
-
 function cashRegisterLabel(register: CashRegister) {
   return [register.name, register.branch?.name].filter(Boolean).join(' / ')
 }
 
-function categoryLabel(category: Category) {
-  return category.name
-}
-
-function brandLabel(brand: Brand) {
-  return brand.name
-}
-
 function productSearchTerm(product: Product) {
   return product.sku || product.variations?.[0]?.sku || product.name
-}
-
-function productPrice(product: Product) {
-  if (product.selling_price !== null && product.selling_price !== undefined) return toNumber(product.selling_price)
-  return toNumber(product.variations?.[0]?.selling_price)
 }
 
 export function PosFormPage({ saleId }: PosFormPageProps) {
@@ -266,8 +229,9 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
   const setSettingsOpen = useUIStore((state) => state.setSettingsOpen)
   const topbarTheme = useUIStore((state) => state.topbarTheme)
   const layoutSize = useUIStore((state) => state.layoutSize)
+  const surfaceStyle = useUIStore((state) => state.surfaceStyle)
   const [serverError, setServerError] = useState('')
-  const [productTab, setProductTab] = useState<'featured' | 'category' | 'brand'>('featured')
+  const [productTab, setProductTab] = useState<PosProductTab>('featured')
   const [categoryId, setCategoryId] = useState('')
   const [brandId, setBrandId] = useState('')
   const [productGallerySearch, setProductGallerySearch] = useState('')
@@ -293,19 +257,29 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
   const currency = useAppCurrency()
   const currencyFormatter = useCurrencyFormatter()
   const dateFormat = useAppDateFormat()
+  const debouncedProductGallerySearch = useDebouncedValue(productGallerySearch, 250)
   const layoutMetrics = getLayoutMetrics(layoutSize)
   const resolvedTopbarTheme = topbarTheme === 'inherit' ? theme.palette.mode : topbarTheme
   const topbarIsDark = resolvedTopbarTheme === 'dark'
+  const isGlassSurface = surfaceStyle === 'glass'
   const posTopbarColors = {
-    bg: topbarIsDark
+    bg: isGlassSurface
+      ? topbarIsDark
+        ? alpha('#111827', 0.72)
+        : alpha(theme.palette.common.white, 0.58)
+      : topbarIsDark
       ? alpha('#111827', 0.94)
       : resolvedTopbarTheme === 'light'
         ? alpha(theme.palette.common.white, 0.92)
         : alpha(theme.palette.background.default, 0.86),
-    border: topbarIsDark ? alpha('#ffffff', 0.12) : alpha(theme.palette.grey[500], 0.12),
+    border: topbarIsDark
+      ? alpha('#ffffff', isGlassSurface ? 0.16 : 0.12)
+      : alpha(theme.palette.grey[500], isGlassSurface ? 0.18 : 0.12),
     text: topbarIsDark ? alpha('#ffffff', 0.9) : theme.palette.text.primary,
     muted: topbarIsDark ? alpha('#ffffff', 0.72) : theme.palette.text.secondary,
-    buttonBg: topbarIsDark ? alpha('#ffffff', 0.08) : alpha(theme.palette.grey[500], 0.08),
+    buttonBg: topbarIsDark
+      ? alpha('#ffffff', isGlassSurface ? 0.1 : 0.08)
+      : alpha(theme.palette.grey[500], isGlassSurface ? 0.12 : 0.08),
     buttonHover: topbarIsDark ? alpha('#ffffff', 0.14) : alpha(theme.palette.primary.main, 0.08),
   }
   const posTopbarButtonSx = {
@@ -337,7 +311,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
   const categoriesQuery = useCategoriesQuery({ per_page: 100 })
   const brandsQuery = useBrandsQuery({ per_page: 100 })
   const productsQuery = useProductsQuery({
-    search: productGallerySearch || undefined,
+    search: debouncedProductGallerySearch || undefined,
     is_active: true,
     per_page: 30,
     category_id: productTab === 'category' ? categoryId : undefined,
@@ -699,6 +673,13 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
     removeDirectPayment(index)
   }
 
+  const changeItemQuantity = (index: number, quantity: number) => {
+    setValue(`items.${index}.quantity`, quantity, {
+      shouldDirty: true,
+      shouldValidate: true,
+    })
+  }
+
   const submitForm = async (values: SaleFormValues) => {
     if (isSubmittingSale) return
 
@@ -709,38 +690,20 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
       const directPaymentLines = !isEdit && values.type === 'pos_sale'
         ? buildDirectPaymentLines(values, defaultExchangeRateValue, defaultExchangeRate?.id ?? null, totals.total)
         : []
-      const editedPaymentLines = isEdit && saleId && values.type === 'pos_sale' && canManageExistingPayments
-        ? (values.direct_payments ?? []).flatMap((line) => {
-          if (!line.sale_payment_id) return []
-          if (removedPaymentIds.includes(line.sale_payment_id)) return []
-
-          const payment = existingPaymentById.get(line.sale_payment_id)
-          const payload = directPaymentLinePayload(line, payment?.payment_date ?? values.sale_date, defaultExchangeRateValue, defaultExchangeRate?.id ?? null)
-          if (!payment || !payload || !directPaymentLineChanged(line, payment)) return []
-
-          return [{
-            paymentId: payment.id,
-            previousAmount: toNumber(payment.amount),
-            nextAmount: payload.amount,
-            payload: {
-              ...payload,
-              payment_date: payment.payment_date ?? values.sale_date,
-              note: payment.note ?? null,
-              reason: t('payment.posCorrectionReason'),
-            } satisfies SalePaymentCorrectionPayload,
-          }]
-        }).sort((a, b) => (a.nextAmount - a.previousAmount) - (b.nextAmount - b.previousAmount))
-        : []
-      const newPaymentLines = isEdit && saleId && values.type === 'pos_sale' && canAddPaymentLines
-        ? (values.direct_payments ?? []).flatMap((line) => {
-          if (line.sale_payment_id) return []
-          const payload = directPaymentLinePayload(line, values.sale_date, defaultExchangeRateValue, defaultExchangeRate?.id ?? null)
-          return payload ? [payload] : []
-        })
-        : []
-      const deletedPaymentIds = isEdit && saleId && values.type === 'pos_sale' && canDeleteExistingPayments
-        ? removedPaymentIds.filter((paymentId) => existingPaymentById.has(paymentId))
-        : []
+      const paymentChanges = buildSalePaymentChangePayloads({
+        values,
+        exchangeRate: defaultExchangeRateValue,
+        exchangeRateId: defaultExchangeRate?.id ?? null,
+        saleTotal: totals.total,
+        existingPaymentById,
+        removedPaymentIds,
+        canManageExistingPayments: isEdit && !!saleId && values.type === 'pos_sale' && canManageExistingPayments,
+        canAddPaymentLines: isEdit && !!saleId && values.type === 'pos_sale' && canAddPaymentLines,
+        canDeleteExistingPayments: isEdit && !!saleId && values.type === 'pos_sale' && canDeleteExistingPayments,
+        correctionReason: t('payment.posCorrectionReason'),
+        deletionReason: t('payment.posDeleteReason'),
+        newPaymentMode: 'entered',
+      })
 
       const payload = {
         ...buildSalePayload({ ...values, type: 'pos_sale' }),
@@ -755,19 +718,14 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
           id: saleId,
           payload: {
             ...payload,
-            ...(deletedPaymentIds.length > 0
-              ? { payment_deletions: deletedPaymentIds.map((paymentId) => ({ payment_id: paymentId, reason: t('payment.posDeleteReason') })) }
+            ...(paymentChanges.paymentDeletions.length > 0
+              ? { payment_deletions: paymentChanges.paymentDeletions }
               : {}),
-            ...(editedPaymentLines.length > 0
-              ? {
-                payment_corrections: editedPaymentLines.map((paymentLine) => ({
-                  payment_id: paymentLine.paymentId,
-                  ...paymentLine.payload,
-                })),
-              }
+            ...(paymentChanges.paymentCorrections.length > 0
+              ? { payment_corrections: paymentChanges.paymentCorrections }
               : {}),
-            ...(newPaymentLines.length > 0
-              ? { payment_date: values.sale_date, payment_note: null, payments: newPaymentLines }
+            ...(paymentChanges.payments.length > 0
+              ? { payment_date: values.sale_date, payment_note: null, payments: paymentChanges.payments }
               : {}),
           },
         })
@@ -835,144 +793,27 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
   }
 
   const productGalleryContent = (
-    <Stack spacing={2}>
-      <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 1.5, bgcolor: 'background.paper' }}>
-        <Stack spacing={1.5}>
-          <ToggleButtonGroup
-            fullWidth
-            exclusive
-            size="small"
-            value={productTab}
-            onChange={(_, nextTab) => {
-              if (!nextTab) return
-              setProductTab(nextTab)
-            }}
-          >
-            <ToggleButton value="featured">{t('pos.productTabs.featured')}</ToggleButton>
-            <ToggleButton value="category">{t('pos.productTabs.category')}</ToggleButton>
-            <ToggleButton value="brand">{t('pos.productTabs.brand')}</ToggleButton>
-          </ToggleButtonGroup>
-
-          {productTab === 'category' && (
-            <Autocomplete
-              options={categories}
-              value={categories.find((category) => category.id === categoryId) ?? null}
-              loading={categoriesQuery.isLoading}
-              getOptionLabel={categoryLabel}
-              isOptionEqualToValue={(option, value) => option.id === value.id}
-              onChange={(_, category) => setCategoryId(category?.id ?? '')}
-              renderInput={(params) => <TextField {...params} label={t('pos.filters.category')} />}
-            />
-          )}
-
-          {productTab === 'brand' && (
-            <Autocomplete
-              options={brands}
-              value={brands.find((brand) => brand.id === brandId) ?? null}
-              loading={brandsQuery.isLoading}
-              getOptionLabel={brandLabel}
-              isOptionEqualToValue={(option, value) => option.id === value.id}
-              onChange={(_, brand) => setBrandId(brand?.id ?? '')}
-              renderInput={(params) => <TextField {...params} label={t('pos.filters.brand')} />}
-            />
-          )}
-
-          <TextField
-            value={productGallerySearch}
-            onChange={(event) => setProductGallerySearch(event.target.value)}
-            placeholder={t('pos.filters.productSearch')}
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search fontSize="small" />
-                  </InputAdornment>
-                ),
-              },
-            }}
-          />
-
-          <Box
-            sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', xl: 'repeat(3, minmax(0, 1fr))' },
-              gap: 1,
-              maxHeight: { xs: 'calc(100vh - 180px)', lg: 'calc(100vh - 390px)' },
-              overflowY: 'auto',
-              pr: 0.5,
-            }}
-          >
-            {productsQuery.isLoading && (
-              <Box sx={{ gridColumn: '1 / -1', display: 'flex', justifyContent: 'center', py: 4 }}>
-                <CircularProgress size={24} />
-              </Box>
-            )}
-            {!productsQuery.isLoading && products.length === 0 && (
-              <Box sx={{ gridColumn: '1 / -1', py: 4, textAlign: 'center' }}>
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>{t('pos.noProducts')}</Typography>
-              </Box>
-            )}
-            {products.map((product) => {
-              const price = productPrice(product)
-
-              return (
-                <CardActionArea
-                  key={product.id}
-                  disabled={!warehouseId || isSaving || isAddingTileProduct || !product.is_for_selling}
-                  onClick={() => void addTileProduct(product)}
-                  sx={{
-                    border: 1,
-                    borderColor: 'divider',
-                    borderRadius: 1,
-                    overflow: 'hidden',
-                    bgcolor: 'background.paper',
-                    aspectRatio: '1 / 1',
-                    minHeight: 178,
-                    display: 'flex',
-                    alignItems: 'stretch',
-                  }}
-                >
-                  <Stack
-                    spacing={0.75}
-                    sx={{
-                      width: '100%',
-                      height: '100%',
-                      p: 1,
-                      alignItems: 'center',
-                      textAlign: 'center',
-                      minWidth: 0,
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        width: '100%',
-                        flex: '1 1 auto',
-                        minHeight: 96,
-                        borderRadius: 1,
-                        bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
-                        backgroundImage: product.image_url ? `url(${product.image_url})` : 'none',
-                        backgroundSize: 'contain',
-                        backgroundPosition: 'center',
-                        backgroundRepeat: 'no-repeat',
-                      }}
-                    />
-                    <Typography variant="caption" sx={{ fontWeight: 700, width: '100%' }} noWrap title={product.name}>
-                      {product.name}
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>
-                      {product.sku || product.variations?.[0]?.sku || '-'}
-                    </Typography>
-                    <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 700 }}>
-                      {currencyFormatter.format(price)}
-                    </Typography>
-                  </Stack>
-                </CardActionArea>
-              )
-            })}
-          </Box>
-        </Stack>
-      </Box>
-    </Stack>
+    <PosProductGallery
+      productTab={productTab}
+      onProductTabChange={setProductTab}
+      categoryId={categoryId}
+      onCategoryIdChange={setCategoryId}
+      brandId={brandId}
+      onBrandIdChange={setBrandId}
+      search={productGallerySearch}
+      onSearchChange={setProductGallerySearch}
+      categories={categories}
+      brands={brands}
+      products={products}
+      categoriesLoading={categoriesQuery.isLoading}
+      brandsLoading={brandsQuery.isLoading}
+      productsLoading={productsQuery.isLoading}
+      warehouseId={warehouseId}
+      isSaving={isSaving}
+      isAddingTileProduct={isAddingTileProduct}
+      currencyFormatter={currencyFormatter}
+      onAddProduct={addTileProduct}
+    />
   )
 
   return (
@@ -982,7 +823,9 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
       onSubmit={handleSubmit(submitForm)}
       sx={{
         minHeight: '100vh',
-        bgcolor: (theme) => alpha(theme.palette.primary.main, theme.palette.mode === 'dark' ? 0.06 : 0.035),
+        bgcolor: isGlassSurface
+          ? 'transparent'
+          : (theme) => alpha(theme.palette.primary.main, theme.palette.mode === 'dark' ? 0.06 : 0.035),
         color: 'text.primary',
       }}
     >
@@ -1003,7 +846,8 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
             borderBottom: `1px solid ${posTopbarColors.border}`,
             bgcolor: posTopbarColors.bg,
             color: posTopbarColors.text,
-            backdropFilter: 'blur(8px)',
+            backdropFilter: isGlassSurface ? 'blur(18px) saturate(160%)' : 'blur(8px)',
+            WebkitBackdropFilter: isGlassSurface ? 'blur(18px) saturate(160%)' : 'blur(8px)',
           }}
         >
           <Stack
@@ -1086,424 +930,64 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
             <Stack spacing={2}>
               {serverError && <Alert severity="error">{serverError}</Alert>}
 
-              <Box
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1.2fr) minmax(0, 1fr) 170px 170px' },
-                  gap: 1.5,
-                  p: 2,
-                  border: 1,
-                  borderColor: 'divider',
-                  borderRadius: 1,
-                  bgcolor: 'background.paper',
+              <PosHeaderFields
+                control={control}
+                errors={errors}
+                warehouses={warehouses}
+                customers={customers}
+                warehousesLoading={warehousesQuery.isLoading}
+                customersLoading={customersQuery.isLoading}
+                canCreateCustomer={canCreateCustomer}
+                onWarehouseChange={(_, nextBranchId) => {
+                  setValue('branch_id', nextBranchId, {
+                    shouldDirty: true,
+                    shouldValidate: true,
+                  })
                 }}
+                onAddCustomer={() => setCustomerDialogOpen(true)}
+              />
+
+              <PosCartSection
+                control={control}
+                errors={errors}
+                itemFields={itemFields}
+                watchedItems={watchedItems}
+                warehouseId={warehouseId}
+                isSaving={isSaving}
+                currency={currency}
+                currencyFormatter={currencyFormatter}
+                taxScope={taxScope}
+                totals={totals}
+                onSelectItem={addLookupItem}
+                onQuantityChange={changeItemQuantity}
+                onEditItem={setEditingItemIndex}
+                onRemoveItem={remove}
+                onEditSummary={setEditingSummary}
               >
-                <Controller
-                  name="warehouse_id"
+                <PosPaymentSection
                   control={control}
-                  render={({ field }) => (
-                    <Autocomplete
-                      options={warehouses}
-                      value={warehouses.find((warehouse) => warehouse.id === field.value) ?? null}
-                      loading={warehousesQuery.isLoading}
-                      getOptionLabel={warehouseLabel}
-                      isOptionEqualToValue={(option, value) => option.id === value.id}
-                      onBlur={field.onBlur}
-                      onChange={(_, selectedWarehouse) => {
-                        field.onChange(selectedWarehouse?.id ?? '')
-                        setValue('branch_id', selectedWarehouse?.branch_id ?? '', {
-                          shouldDirty: true,
-                          shouldValidate: true,
-                        })
-                      }}
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          label={t('fields.warehouse')}
-                          error={!!errors.warehouse_id || !!errors.branch_id}
-                          helperText={errors.warehouse_id?.message || errors.branch_id?.message}
-                          required
-                        />
-                      )}
-                    />
-                  )}
+                  errors={errors}
+                  canCapturePayment={canCapturePayment}
+                  canAddPaymentLines={canAddPaymentLines}
+                  canManageExistingPayments={canManageExistingPayments}
+                  canDeleteExistingPayments={canDeleteExistingPayments}
+                  isSaving={isSaving}
+                  paymentAccounts={paymentAccounts}
+                  paymentAccountsLoading={paymentAccountsQuery.isLoading}
+                  defaultExchangeRateLoading={defaultExchangeRateQuery.isLoading}
+                  hasDefaultExchangeRate={!!defaultExchangeRate}
+                  directPaymentFields={directPaymentFields}
+                  watchedDirectPayments={watchedDirectPayments}
+                  totalDisplay={totalDisplay}
+                  paymentDisplay={paymentDisplay}
+                  remainingDisplay={remainingDisplay}
+                  changeDisplay={changeDisplay}
+                  change={change}
+                  onAddLine={() => appendDirectPayment(newDirectPaymentLine(paymentAccounts))}
+                  onCurrencyChange={changeDirectPaymentCurrency}
+                  onRemoveLine={removeDirectPaymentLine}
                 />
-                <Controller
-                  name="customer_id"
-                  control={control}
-                  render={({ field }) => (
-                    <Stack direction="row" spacing={1} sx={{ alignItems: 'flex-start', minWidth: 0 }}>
-                      <Autocomplete
-                        options={customers}
-                        value={customers.find((customer) => customer.id === field.value) ?? null}
-                        loading={customersQuery.isLoading}
-                        getOptionLabel={customerLabel}
-                        isOptionEqualToValue={(option, value) => option.id === value.id}
-                        onBlur={field.onBlur}
-                        onChange={(_, customer) => field.onChange(customer?.id ?? '')}
-                        sx={{ flex: '1 1 auto', minWidth: 0 }}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label={t('fields.customer')}
-                            error={!!errors.customer_id}
-                            helperText={errors.customer_id?.message || t('labels.walkInCustomer')}
-                          />
-                        )}
-                      />
-                      {canCreateCustomer && (
-                        <Tooltip title={t('pos.actions.addCustomer')}>
-                          <IconButton
-                            aria-label={t('pos.actions.addCustomer')}
-                            size="small"
-                            color="primary"
-                            onClick={() => setCustomerDialogOpen(true)}
-                            sx={{
-                              width: 'var(--app-control-height)',
-                              height: 'var(--app-control-height)',
-                              minWidth: 'var(--app-control-height)',
-                              minHeight: 'var(--app-control-height)',
-                              border: 1,
-                              borderColor: 'divider',
-                              flex: '0 0 auto',
-                            }}
-                          >
-                            <Add fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                    </Stack>
-                  )}
-                />
-                <Controller
-                  name="sale_date"
-                  control={control}
-                  render={({ field }) => <AppDatePicker label={t('fields.saleDate')} value={field.value} onChange={(value) => field.onChange(value ?? '')} error={!!errors.sale_date} helperText={errors.sale_date?.message} required />}
-                />
-                <Controller
-                  name="due_date"
-                  control={control}
-                  render={({ field }) => <AppDatePicker label={t('fields.dueDate')} value={field.value ?? ''} onChange={(value) => field.onChange(value ?? '')} error={!!errors.due_date} helperText={errors.due_date?.message} />}
-                />
-              </Box>
-
-              <Box sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 1, bgcolor: 'background.paper' }}>
-                <Stack spacing={1.5}>
-                  <InventoryProductLookupPicker
-                    warehouseId={warehouseId || undefined}
-                    disabled={!warehouseId || isSaving}
-                    autoFocus
-                    label={t('pos.scanLabel')}
-                    helperText={warehouseId ? t('form.pickerHelp') : t('form.selectWarehouseFirst')}
-                    onSelect={addLookupItem}
-                  />
-                  {typeof errors.items?.message === 'string' && <Alert severity="error">{errors.items.message}</Alert>}
-
-                  <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1, overflowX: 'auto' }}>
-                    <Table sx={{ minWidth: 958, tableLayout: 'fixed' }}>
-                      <TableHead>
-                        <TableRow>
-                          <TableCell sx={cartColumnSx.product}>{t('items.product')}</TableCell>
-                          <TableCell sx={cartColumnSx.quantity} align="right">{t('items.quantity')}</TableCell>
-                          <TableCell sx={cartColumnSx.price} align="right">{t('items.unitPrice')}</TableCell>
-                          <TableCell sx={cartColumnSx.total} align="right">{t('items.total')}</TableCell>
-                          <TableCell sx={cartColumnSx.actions} align="right">{t('columns.actions')}</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {itemFields.length === 0 && (
-                          <TableRow>
-                            <TableCell colSpan={5} align="center" sx={{ py: 10 }}>
-                              <Typography variant="body2" sx={{ color: 'text.secondary' }}>{t('pos.emptyCart')}</Typography>
-                            </TableCell>
-                          </TableRow>
-                        )}
-                        {itemFields.map((field, index) => (
-                          <TableRow key={field.fieldId}>
-                            <TableCell sx={cartColumnSx.product}>
-                              <Typography variant="body2" sx={{ fontWeight: 600 }}>{field.product_label || field.product_id}</Typography>
-                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                {[field.sku, field.lot_number, field.serial_number, field.unit_label].filter(Boolean).join(' / ') || '-'}
-                              </Typography>
-                            </TableCell>
-                            <TableCell align="right" sx={cartColumnSx.quantity}>
-                              <Stack direction="row" spacing={0} sx={{ justifyContent: 'flex-end' }}>
-                                <Button
-                                  type="button"
-                                  variant="outlined"
-                                  size="small"
-                                  sx={{ minWidth: 36, borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
-                                  onClick={() => setValue(`items.${index}.quantity`, Math.max(0.0001, round(toNumber(watchedItems[index]?.quantity ?? field.quantity) - 1)), { shouldDirty: true, shouldValidate: true })}
-                                >
-                                  -
-                                </Button>
-                                <Controller name={`items.${index}.quantity`} control={control} render={({ field }) => (
-                                  <TextField
-                                    {...field}
-                                    type="number"
-                                    error={!!errors.items?.[index]?.quantity}
-                                    helperText={errors.items?.[index]?.quantity?.message}
-                                    required
-                                    sx={{ width: 84, '& .MuiOutlinedInput-root': { borderRadius: 0 } }}
-                                    slotProps={{ htmlInput: { min: 0.0001, step: 0.0001, style: { textAlign: 'center' } } }}
-                                  />
-                                )} />
-                                <Button
-                                  type="button"
-                                  variant="outlined"
-                                  size="small"
-                                  sx={{ minWidth: 36, borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
-                                  onClick={() => setValue(`items.${index}.quantity`, round(toNumber(watchedItems[index]?.quantity ?? field.quantity) + 1), { shouldDirty: true, shouldValidate: true })}
-                                >
-                                  +
-                                </Button>
-                              </Stack>
-                            </TableCell>
-                            <TableCell align="right" sx={cartColumnSx.price}>
-                              <Controller name={`items.${index}.unit_price`} control={control} render={({ field }) => (
-                                <TextField
-                                  {...field}
-                                  fullWidth
-                                  type="number"
-                                  error={!!errors.items?.[index]?.unit_price}
-                                  helperText={errors.items?.[index]?.unit_price?.message}
-                                  required
-                                  slotProps={{
-                                    htmlInput: { min: 0, step: 0.01, style: { textAlign: 'right' } },
-                                    input: { startAdornment: <InputAdornment position="start">{currency}</InputAdornment> },
-                                  }}
-                                />
-                              )} />
-                            </TableCell>
-                            <TableCell align="right" sx={cartColumnSx.total}>
-                              <Typography variant="subtitle2">{currencyFormatter.format(lineTotal(watchedItems[index] ?? field, taxScope))}</Typography>
-                            </TableCell>
-                            <TableCell align="right" sx={cartColumnSx.actions}>
-                              <Stack direction="row" spacing={0.5} sx={{ justifyContent: 'flex-end' }}>
-                                <Tooltip title={t('pos.actions.editLine')}>
-                                  <span>
-                                    <IconButton size="small" disabled={isSaving} onClick={() => setEditingItemIndex(index)}>
-                                      <EditOutlined />
-                                    </IconButton>
-                                  </span>
-                                </Tooltip>
-                                <Tooltip title={t('actions.removeItem')}>
-                                  <span>
-                                    <IconButton size="small" color="error" disabled={isSaving} onClick={() => remove(index)}>
-                                      <DeleteOutlined />
-                                    </IconButton>
-                                  </span>
-                                </Tooltip>
-                              </Stack>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </Stack>
-              </Box>
-
-              <Box
-                sx={{
-                  border: 1,
-                  borderColor: 'divider',
-                  borderRadius: 1,
-                  overflow: 'hidden',
-                  bgcolor: 'background.paper',
-                }}
-              >
-                <Box
-                  sx={{
-                    display: 'grid',
-                    gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(5, minmax(0, 1fr))' },
-                    borderBottomWidth: 1,
-                    borderBottomStyle: 'solid',
-                    borderBottomColor: 'divider',
-                  }}
-                >
-                  {[
-                    { key: 'items', label: t('pos.summary.items'), value: watchedItems.length.toString() },
-                    { key: 'subtotal', label: t('fields.subtotal'), value: currencyFormatter.format(totals.subtotal) },
-                    { key: 'discount', label: t('fields.discount'), value: currencyFormatter.format(totals.discount), color: 'error.main', edit: 'discount' as const },
-                    { key: 'tax', label: t('fields.tax'), value: currencyFormatter.format(totals.tax), edit: 'tax' as const },
-                    { key: 'shipping', label: t('fields.shipping'), value: currencyFormatter.format(totals.shipping), edit: 'shipping' as const },
-                  ].map((item) => (
-                    <Box
-                      key={item.key}
-                      sx={{
-                        p: 1.25,
-                        textAlign: 'center',
-                        borderRightWidth: { md: 1 },
-                        borderRightStyle: { md: 'solid' },
-                        borderRightColor: 'divider',
-                        borderBottomWidth: { xs: 1, md: 0 },
-                        borderBottomStyle: { xs: 'solid', md: 'none' },
-                        borderBottomColor: 'divider',
-                        '&:nth-of-type(2n)': { borderRightWidth: { xs: 0, md: 1 } },
-                        '&:nth-of-type(5)': { borderRightWidth: 0, borderBottomWidth: 0 },
-                      }}
-                    >
-                      <Stack direction="row" spacing={0.5} sx={{ justifyContent: 'center', alignItems: 'center' }}>
-                        <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase' }}>
-                          {item.label}
-                        </Typography>
-                        {item.edit && (
-                          <Tooltip title={t('pos.summary.edit')}>
-                            <IconButton size="small" onClick={() => setEditingSummary(item.edit)} sx={{ p: 0.25 }}>
-                              <EditOutlined fontSize="small" />
-                            </IconButton>
-                          </Tooltip>
-                        )}
-                      </Stack>
-                      <Typography variant="subtitle2" sx={{ color: item.color ?? 'text.primary', fontWeight: 800 }}>
-                        {item.value}
-                      </Typography>
-                    </Box>
-                  ))}
-                </Box>
-                <Box
-                  sx={{
-                    display: 'grid',
-                    gridTemplateColumns: { xs: '1fr', md: '1fr 280px' },
-                    alignItems: 'stretch',
-                  }}
-                >
-                  <Box sx={{ p: 1.5 }}>
-                    {canCapturePayment && (
-                      <Stack spacing={1.25}>
-                        <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
-                          <Typography variant="subtitle2">{t('payment.directTitle')}</Typography>
-                          <Button
-                            type="button"
-                            variant="outlined"
-                            size="small"
-                            startIcon={<Add />}
-                            onClick={() => appendDirectPayment(newDirectPaymentLine(paymentAccounts))}
-                            disabled={isSaving || paymentAccounts.length === 0 || !canAddPaymentLines}
-                          >
-                            {t('payment.addLine')}
-                          </Button>
-                        </Stack>
-                        {paymentAccounts.length === 0 && <Alert severity="warning">{t('payment.noAccounts')}</Alert>}
-                        {!defaultExchangeRateQuery.isLoading && !defaultExchangeRate && <Alert severity="info">{t('payment.noExchangeRate')}</Alert>}
-                        {typeof errors.direct_payments?.message === 'string' && <Alert severity="error">{errors.direct_payments.message}</Alert>}
-                        {directPaymentFields.map((field, index) => {
-                          const line = watchedDirectPayments[index]
-                          const isExistingPaymentLine = !!line?.sale_payment_id
-                          const lineDisabled = isSaving
-                            || (isExistingPaymentLine ? !canManageExistingPayments : !canAddPaymentLines)
-
-                          return (
-                            <Box
-                              key={field.fieldId}
-                              sx={{
-                                display: 'grid',
-                                gridTemplateColumns: { xs: '1fr', md: 'minmax(180px, 1fr) 92px 150px 150px 48px' },
-                                gap: 1,
-                                alignItems: 'start',
-                              }}
-                            >
-                              <Controller
-                                name={`direct_payments.${index}.payment_account_id`}
-                                control={control}
-                                render={({ field }) => (
-                                  <Autocomplete
-                                    fullWidth
-                                    disabled={lineDisabled}
-                                    options={paymentAccounts}
-                                    value={paymentAccounts.find((account) => account.id === field.value) ?? null}
-                                    loading={paymentAccountsQuery.isLoading}
-                                    getOptionLabel={paymentAccountLabel}
-                                    isOptionEqualToValue={(option, value) => option.id === value.id}
-                                    onBlur={field.onBlur}
-                                    onChange={(_, account) => field.onChange(account?.id ?? '')}
-                                    renderInput={(params) => <TextField {...params} label={t('payment.account')} error={!!errors.direct_payments?.[index]?.payment_account_id} helperText={errors.direct_payments?.[index]?.payment_account_id?.message} required />}
-                                  />
-                                )}
-                              />
-                              <Controller
-                                name={`direct_payments.${index}.payment_currency`}
-                                control={control}
-                                render={({ field }) => (
-                                  <TextField
-                                    {...field}
-                                    value={field.value ?? 'USD'}
-                                    select
-                                    disabled={lineDisabled}
-                                    label={t('payment.currency')}
-                                    error={!!errors.direct_payments?.[index]?.payment_currency}
-                                    helperText={errors.direct_payments?.[index]?.payment_currency?.message}
-                                    required
-                                    onChange={(event) => changeDirectPaymentCurrency(index, event.target.value as 'USD' | 'KHR')}
-                                  >
-                                    <MenuItem value="USD">USD</MenuItem>
-                                    <MenuItem value="KHR" disabled={!defaultExchangeRate}>KHR</MenuItem>
-                                  </TextField>
-                                )}
-                              />
-                              <Controller
-                                name={`direct_payments.${index}.payment_amount`}
-                                control={control}
-                                render={({ field }) => (
-                                  <TextField
-                                    {...field}
-                                    value={field.value ?? ''}
-                                    type="number"
-                                    disabled={lineDisabled}
-                                    label={t('payment.amount')}
-                                    error={!!errors.direct_payments?.[index]?.payment_amount}
-                                    helperText={errors.direct_payments?.[index]?.payment_amount?.message}
-                                    required
-                                    slotProps={{
-                                      htmlInput: { min: 0.01, step: 0.01 },
-                                      input: {
-                                        startAdornment: <InputAdornment position="start">{watchedDirectPayments[index]?.payment_currency ?? 'USD'}</InputAdornment>,
-                                      },
-                                    }}
-                                  />
-                                )}
-                              />
-                              <Controller
-                                name={`direct_payments.${index}.method`}
-                                control={control}
-                                render={({ field }) => (
-                                  <TextField {...field} value={field.value ?? 'cash'} select disabled={lineDisabled} label={t('payment.method')} error={!!errors.direct_payments?.[index]?.method} helperText={errors.direct_payments?.[index]?.method?.message} required>
-                                    {paymentMethods.map((method) => <MenuItem key={method} value={method}>{t(`paymentMethods.${method}`)}</MenuItem>)}
-                                  </TextField>
-                                )}
-                              />
-                              <Tooltip title={t('payment.removeLine')}>
-                                <span>
-                                  <IconButton
-                                    size="small"
-                                    color="error"
-                                    disabled={isSaving || directPaymentFields.length === 1 || (isExistingPaymentLine && !canDeleteExistingPayments)}
-                                    onClick={() => removeDirectPaymentLine(index)}
-                                  >
-                                    <DeleteOutlined />
-                                  </IconButton>
-                                </span>
-                              </Tooltip>
-                            </Box>
-                          )
-                        })}
-                      </Stack>
-                    )}
-                  </Box>
-                  <Box sx={{ p: 1.5, bgcolor: 'success.lighter', textAlign: 'center', display: 'grid', alignContent: 'center' }}>
-                    <Typography variant="caption" sx={{ color: 'success.dark', fontWeight: 800, textTransform: 'uppercase' }}>{t('pos.totalPayable')}</Typography>
-                    <Typography variant="h4" sx={{ color: 'success.dark', fontWeight: 900 }}>{totalDisplay.usd.replace('USD ', '')}</Typography>
-                    <Typography variant="body2" sx={{ color: 'success.dark' }}>{totalDisplay.khr}</Typography>
-                    {canCapturePayment && (
-                      <Stack spacing={0.25} sx={{ mt: 1 }}>
-                        <Typography variant="caption">{t('payment.totalEntered')}: {paymentDisplay.usd}</Typography>
-                        <Typography variant="caption">{change > 0 ? t('payment.changeBack') : t('payment.remaining')}: {change > 0 ? changeDisplay.usd : remainingDisplay.usd}</Typography>
-                      </Stack>
-                    )}
-                  </Box>
-                </Box>
-              </Box>
+              </PosCartSection>
 
               <Box
                 sx={{

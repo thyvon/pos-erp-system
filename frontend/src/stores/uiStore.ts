@@ -6,6 +6,7 @@ import {
   type BorderRadiusLevel,
   type FontPreset,
   type LayoutSize,
+  type SurfaceStyle,
   type ThemeColorPreset,
 } from '@/theme'
 
@@ -20,6 +21,7 @@ interface UIState {
   fontPreset: FontPreset
   colorPreset: ThemeColorPreset
   layoutSize: LayoutSize
+  surfaceStyle: SurfaceStyle
   borderRadiusLevel: BorderRadiusLevel
   sidebarTheme: LayoutSurfaceTheme
   topbarTheme: LayoutSurfaceTheme
@@ -39,6 +41,7 @@ interface UIActions {
   setFontPreset: (fontPreset: FontPreset) => void
   setColorPreset: (colorPreset: ThemeColorPreset) => void
   setLayoutSize: (layoutSize: LayoutSize) => void
+  setSurfaceStyle: (surfaceStyle: SurfaceStyle) => void
   setBorderRadiusLevel: (borderRadiusLevel: BorderRadiusLevel) => void
   setSidebarTheme: (theme: LayoutSurfaceTheme) => void
   setTopbarTheme: (theme: LayoutSurfaceTheme) => void
@@ -58,6 +61,7 @@ export const useUIStore = create<UIStore>()(
       fontPreset: 'publicSans',
       colorPreset: 'default',
       layoutSize: 'normal',
+      surfaceStyle: 'solid',
       borderRadiusLevel: DEFAULT_BORDER_RADIUS_LEVEL,
       sidebarTheme: 'inherit',
       topbarTheme: 'inherit',
@@ -75,6 +79,7 @@ export const useUIStore = create<UIStore>()(
       setFontPreset: (fontPreset) => set({ fontPreset }),
       setColorPreset: (colorPreset) => set({ colorPreset }),
       setLayoutSize: (layoutSize) => set({ layoutSize }),
+      setSurfaceStyle: (surfaceStyle) => set({ surfaceStyle }),
       setBorderRadiusLevel: (borderRadiusLevel) => set({ borderRadiusLevel: normalizeBorderRadiusLevel(borderRadiusLevel) }),
       setSidebarTheme: (sidebarTheme) => set({ sidebarTheme }),
       setTopbarTheme: (topbarTheme) => set({ topbarTheme }),
@@ -83,7 +88,7 @@ export const useUIStore = create<UIStore>()(
     {
       name: 'erp-ui',
       storage: createJSONStorage(() => localStorage),
-      version: 3,
+      version: 4,
       migrate: (persistedState) => {
         const previousState = persistedState as Partial<UIStore> & {
           borderRadiusPreset?: unknown
@@ -96,6 +101,7 @@ export const useUIStore = create<UIStore>()(
           fontPreset: previousState.fontPreset ?? 'publicSans',
           colorPreset: previousState.colorPreset ?? 'default',
           layoutSize: previousState.layoutSize ?? 'normal',
+          surfaceStyle: previousState.surfaceStyle ?? 'solid',
           borderRadiusLevel: normalizeBorderRadiusLevel(
             previousState.borderRadiusLevel ?? previousState.borderRadiusPreset
           ),

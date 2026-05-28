@@ -33,24 +33,40 @@ export default function AppTopbar() {
     toggleSettings,
     toggleTheme,
     layoutSize,
+    surfaceStyle,
   } = useUIStore()
 
   const layoutMetrics = getLayoutMetrics(layoutSize)
   const drawerWidth = sidebarOpen ? layoutMetrics.sidebarWidth : layoutMetrics.sidebarCollapsedWidth
   const resolvedTopbarTheme = topbarTheme === 'inherit' ? theme.palette.mode : topbarTheme
   const topbarIsDark = resolvedTopbarTheme === 'dark'
+  const isGlassSurface = surfaceStyle === 'glass'
   const topbarColors = {
-    bg: topbarIsDark
+    bg: isGlassSurface
+      ? topbarIsDark
+        ? alpha('#111827', 0.72)
+        : alpha(theme.palette.common.white, 0.58)
+      : topbarIsDark
       ? alpha('#111827', 0.94)
       : resolvedTopbarTheme === 'light'
         ? alpha(theme.palette.common.white, 0.92)
         : alpha(theme.palette.background.default, 0.86),
-    border: topbarIsDark ? alpha('#ffffff', 0.12) : alpha(theme.palette.grey[500], 0.12),
+    border: topbarIsDark
+      ? alpha('#ffffff', isGlassSurface ? 0.16 : 0.12)
+      : alpha(theme.palette.grey[500], isGlassSurface ? 0.18 : 0.12),
     icon: topbarIsDark ? alpha('#ffffff', 0.82) : theme.palette.text.primary,
     iconMuted: topbarIsDark ? alpha('#ffffff', 0.72) : theme.palette.text.secondary,
-    buttonBg: topbarIsDark ? alpha('#ffffff', 0.08) : alpha(theme.palette.grey[500], 0.08),
+    buttonBg: topbarIsDark
+      ? alpha('#ffffff', isGlassSurface ? 0.1 : 0.08)
+      : alpha(theme.palette.grey[500], isGlassSurface ? 0.12 : 0.08),
     buttonHover: topbarIsDark ? alpha('#ffffff', 0.14) : alpha(theme.palette.primary.main, 0.08),
-    floatingBg: topbarIsDark ? '#111827' : theme.palette.background.paper,
+    floatingBg: isGlassSurface
+      ? topbarIsDark
+        ? alpha('#111827', 0.76)
+        : alpha(theme.palette.common.white, 0.72)
+      : topbarIsDark
+        ? '#111827'
+        : theme.palette.background.paper,
     floatingBorder: topbarIsDark ? alpha('#ffffff', 0.16) : theme.palette.divider,
   }
 
@@ -64,7 +80,8 @@ export default function AppTopbar() {
         transition: theme.transitions.create(['width', 'margin'], {
           duration: theme.transitions.duration.shorter,
         }),
-        backdropFilter: 'blur(8px)',
+        backdropFilter: isGlassSurface ? 'blur(18px) saturate(160%)' : 'blur(8px)',
+        WebkitBackdropFilter: isGlassSurface ? 'blur(18px) saturate(160%)' : 'blur(8px)',
         backgroundColor: topbarColors.bg,
         borderBottom: `1px solid ${topbarColors.border}`,
         overflow: 'visible',

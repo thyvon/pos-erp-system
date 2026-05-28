@@ -12,6 +12,7 @@ import { useSaleQuery } from '@/features/sales/hooks'
 const BREADCRUMB_KEY_MAP: Record<string, string> = {
   '/dashboard': 'dashboard',
   '/sales': 'sales',
+  '/cash-registers': 'cashRegisters',
   '/purchases': 'purchases',
   '/customers': 'customers',
   '/suppliers': 'suppliers',

@@ -13,6 +13,7 @@ export const CONTENT_MAX_WIDTH = 1440
 
 export type FontPreset = 'publicSans' | 'inter' | 'dmSans' | 'nunitoSans'
 export type LayoutSize = 'compact' | 'small' | 'normal' | 'large'
+export type SurfaceStyle = 'solid' | 'glass'
 export type BorderRadiusLevel = number
 
 export const BORDER_RADIUS_MIN = 0
@@ -39,6 +40,11 @@ export const LAYOUT_SIZE_OPTIONS: Array<{ value: LayoutSize; labelKey: string }>
   { value: 'small', labelKey: 'layoutSettings.small' },
   { value: 'normal', labelKey: 'layoutSettings.normal' },
   { value: 'large', labelKey: 'layoutSettings.large' },
+]
+
+export const SURFACE_STYLE_OPTIONS: Array<{ value: SurfaceStyle; labelKey: string }> = [
+  { value: 'solid', labelKey: 'layoutSettings.surfaceSolid' },
+  { value: 'glass', labelKey: 'layoutSettings.surfaceGlass' },
 ]
 
 const LAYOUT_METRICS_PRESETS: Record<LayoutSize, LayoutMetrics> = {
@@ -195,9 +201,21 @@ export function createAppTheme(
   fontPreset: FontPreset = 'publicSans',
   colorPreset: ThemeColorPreset = 'default',
   layoutSize: LayoutSize = 'normal',
-  borderRadiusLevel: BorderRadiusLevel = DEFAULT_BORDER_RADIUS_LEVEL
+  borderRadiusLevel: BorderRadiusLevel = DEFAULT_BORDER_RADIUS_LEVEL,
+  surfaceStyle: SurfaceStyle = 'solid'
 ): Theme {
-  const palette = buildPalette(mode, colorPreset)
+  const basePalette = buildPalette(mode, colorPreset)
+  const isGlassSurface = surfaceStyle === 'glass'
+  const palette = isGlassSurface
+    ? {
+        ...basePalette,
+        background: {
+          default: mode === 'light' ? alpha('#F1F5F9', 0.74) : alpha('#0F172A', 0.78),
+          paper: mode === 'light' ? alpha('#FFFFFF', 0.74) : alpha('#111827', 0.74),
+        },
+        divider: mode === 'light' ? alpha('#64748B', 0.22) : alpha('#FFFFFF', 0.16),
+      }
+    : basePalette
   const primaryMain =
     palette.primary && 'main' in palette.primary ? palette.primary.main : '#00A76F'
   const fontFamily = resolveFontFamily(fontPreset)
@@ -208,6 +226,14 @@ export function createAppTheme(
   const isCompactLayout = layoutSize === 'compact'
   const inputLabelOffset = Math.max((sizePreset.controlHeight - 22) / 2, 7)
   const smallInputLabelOffset = Math.max((sizePreset.smallControlHeight - 20) / 2, 5)
+  const glassFilter = 'blur(18px) saturate(160%)'
+  const appBackground = mode === 'light'
+    ? 'linear-gradient(135deg, #F8FAFC 0%, #EEF4F8 42%, #F7FAFC 100%)'
+    : 'linear-gradient(135deg, #111827 0%, #0F172A 52%, #1F2937 100%)'
+  const glassBorder = mode === 'light' ? alpha('#64748B', 0.18) : alpha('#FFFFFF', 0.14)
+  const glassInputBg = mode === 'light' ? alpha('#FFFFFF', 0.58) : alpha('#111827', 0.52)
+  const solidInputBg = mode === 'light' ? '#F9FAFB' : alpha('#FFFFFF', 0.04)
+  const inputBackground = isGlassSurface ? glassInputBg : solidInputBg
 
   return createTheme({
     palette,
@@ -253,6 +279,8 @@ export function createAppTheme(
             width: '100%',
             height: '100%',
             backgroundColor: palette.background?.default,
+            backgroundImage: isGlassSurface ? appBackground : 'none',
+            backgroundAttachment: isGlassSurface ? 'fixed' : 'initial',
             color: palette.text?.primary,
             fontFamily,
             '--app-control-height': `${sizePreset.controlHeight}px`,
@@ -294,10 +322,16 @@ export function createAppTheme(
         styleOverrides: {
           root: {
             borderRadius: controlRadius,
-            backgroundColor: mode === 'light' ? '#F9FAFB' : alpha('#FFFFFF', 0.04),
+            backgroundColor: inputBackground,
             height: sizePreset.controlHeight,
             minHeight: sizePreset.controlHeight,
             alignItems: 'center',
+            ...(isGlassSurface
+              ? {
+                  backdropFilter: glassFilter,
+                  WebkitBackdropFilter: glassFilter,
+                }
+              : {}),
             '&:hover .MuiOutlinedInput-notchedOutline': {
               borderColor: primaryMain,
             },
@@ -420,12 +454,18 @@ export function createAppTheme(
         styleOverrides: {
           root: {
             borderRadius: controlRadius,
-            backgroundColor: mode === 'light' ? '#F9FAFB' : alpha('#FFFFFF', 0.04),
+            backgroundColor: inputBackground,
             alignItems: 'center',
             height: sizePreset.controlHeight,
             minHeight: sizePreset.controlHeight,
             paddingTop: 0,
             paddingBottom: 0,
+            ...(isGlassSurface
+              ? {
+                  backdropFilter: glassFilter,
+                  WebkitBackdropFilter: glassFilter,
+                }
+              : {}),
             '&:hover .MuiPickersOutlinedInput-notchedOutline': {
               borderColor: primaryMain,
             },
@@ -456,7 +496,13 @@ export function createAppTheme(
         styleOverrides: {
           root: {
             position: 'relative',
-            boxShadow: `0 0 2px 0 ${alpha('#919EAB', 0.2)}, 0 12px 24px -4px ${alpha('#919EAB', 0.12)}`,
+            backgroundColor: isGlassSurface ? palette.background?.paper : undefined,
+            border: isGlassSurface ? `1px solid ${glassBorder}` : undefined,
+            backdropFilter: isGlassSurface ? glassFilter : undefined,
+            WebkitBackdropFilter: isGlassSurface ? glassFilter : undefined,
+            boxShadow: isGlassSurface
+              ? `0 18px 42px -18px ${alpha('#0F172A', mode === 'light' ? 0.22 : 0.5)}`
+              : `0 0 2px 0 ${alpha('#919EAB', 0.2)}, 0 12px 24px -4px ${alpha('#919EAB', 0.12)}`,
             borderRadius: controlRadius,
             zIndex: 0,
           },
@@ -469,6 +515,10 @@ export function createAppTheme(
         styleOverrides: {
           root: {
             backgroundImage: 'none',
+            backgroundColor: isGlassSurface ? palette.background?.paper : undefined,
+            borderColor: isGlassSurface ? glassBorder : undefined,
+            backdropFilter: isGlassSurface ? glassFilter : undefined,
+            WebkitBackdropFilter: isGlassSurface ? glassFilter : undefined,
           },
         },
       },
@@ -583,6 +633,10 @@ export function createAppTheme(
         styleOverrides: {
           paper: {
             borderRadius: controlRadius,
+            backgroundColor: isGlassSurface ? palette.background?.paper : undefined,
+            border: isGlassSurface ? `1px solid ${glassBorder}` : undefined,
+            backdropFilter: isGlassSurface ? glassFilter : undefined,
+            WebkitBackdropFilter: isGlassSurface ? glassFilter : undefined,
           },
         },
       },
@@ -591,6 +645,9 @@ export function createAppTheme(
           paper: {
             border: 'none',
             backgroundImage: 'none',
+            backgroundColor: isGlassSurface ? palette.background?.paper : undefined,
+            backdropFilter: isGlassSurface ? glassFilter : undefined,
+            WebkitBackdropFilter: isGlassSurface ? glassFilter : undefined,
           },
         },
       },

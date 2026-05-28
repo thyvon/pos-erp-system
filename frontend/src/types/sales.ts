@@ -80,6 +80,18 @@ export interface CreateCashRegisterPayload {
   is_active?: boolean
 }
 
+export interface UpdateCashRegisterPayload {
+  branch_id?: string
+  name?: string
+  is_active?: boolean
+}
+
+export interface CloseCashRegisterSessionPayload {
+  closing_float: number
+  denominations_at_close?: Record<string, unknown> | null
+  notes?: string | null
+}
+
 export interface SaleItemPayload {
   product_id: string
   variation_id?: string | null

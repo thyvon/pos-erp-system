@@ -95,6 +95,12 @@
 - [x] Sale and POS form payment, total, rounding, and payload helpers are centralized in a shared sales form helper module; frontend type-check, lint, and build verified.
 - [x] Sale/POS edit now sends sale changes, payment corrections, payment removals, and new payment lines through one backend update-with-payments endpoint for transaction-safe saves.
 - [x] Sale edit-window day comparison now uses absolute day difference so expired sales are correctly blocked; focused Sales API suite passes.
+- [x] POS product gallery UI is extracted into a dedicated component so the POS form page keeps sale workflow logic separate from product browsing; frontend type-check, lint, and build verified.
+- [x] Sale/POS payment edit-change payload building now uses one shared helper, POS product gallery search is debounced, and sale detail hides Edit for clearly blocked return/cancel states; Sales API suite and frontend type-check/lint/build verified.
+- [x] POS direct-payment table and payable summary are extracted into a dedicated component so the POS form page keeps payment rendering separate from sale workflow state; frontend type-check, lint, and build verified.
+- [x] POS cart product picker, item table, quantity controls, and summary strip are extracted into a dedicated component while preserving the existing payment section nesting; frontend type-check, lint, and build verified.
+- [x] POS warehouse/customer/date header fields are extracted into a dedicated component while preserving branch synchronization and the add-customer action; frontend type-check, lint, and build verified.
+- [x] Cash Register Management page added with branch/status filters, create/edit/delete actions, open/close session dialogs, recent sessions view, sidebar navigation, breadcrumbs, API hooks, types, and translations; frontend type-check, lint, and build verified.
 
 ## Inventory Frontend Rebuild
 
@@ -148,6 +154,7 @@
 - [x] Layout settings color presets now show visible premium swatches and translated preset names instead of unlabeled color dots.
 - [x] Layout corner radius setting now uses a volume-style slider from 0px to 20px, with 0px applying no radius.
 - [x] Layout settings drawer now uses Solar icon badges for each settings section.
+- [x] Layout settings now include a persisted Solid/Glass surface style, with restrained glassmorphism applied through the shared theme, dashboard shell, and POS shell; frontend type-check, lint, and build verified.
 - [x] Normal Sale edit payment section now uses the same inline direct-payment rows as create mode, with existing completed payments editable/removable in-place instead of opening the payment correction modal.
 - [x] Sale detail page refactored into an invoice-style document layout with header actions, customer/location metadata, itemized lines, notes, totals, and collapsible payment history.
 - [x] Sale detail invoice summary totals now display as one horizontal row with local scrolling instead of wrapping into multiple rows.

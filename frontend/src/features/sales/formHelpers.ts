@@ -1,8 +1,35 @@
 import type { PaymentAccount } from '@/types/accounting'
-import type { SalePayment, SalePaymentLinePayload, SalePayload } from '@/types/sales'
+import type {
+  SalePayment,
+  SalePaymentCorrectionLinePayload,
+  SalePaymentDeletionLinePayload,
+  SalePaymentLinePayload,
+  SalePayload,
+} from '@/types/sales'
 import type { SaleFormInput, SaleFormValues } from './schema'
 
 export type DirectPaymentLineInput = NonNullable<SaleFormInput['direct_payments']>[number]
+
+interface BuildSalePaymentChangePayloadsOptions {
+  values: SaleFormValues
+  exchangeRate: number
+  exchangeRateId: string | null
+  saleTotal: number
+  existingPaymentById: Map<string, SalePayment>
+  removedPaymentIds: string[]
+  canManageExistingPayments: boolean
+  canAddPaymentLines: boolean
+  canDeleteExistingPayments: boolean
+  correctionReason: string
+  deletionReason: string
+  newPaymentMode?: 'clampToRemaining' | 'entered'
+}
+
+interface SalePaymentChangePayloads {
+  paymentCorrections: SalePaymentCorrectionLinePayload[]
+  paymentDeletions: SalePaymentDeletionLinePayload[]
+  payments: SalePaymentLinePayload[]
+}
 
 export function toNumber(value: unknown, fallback = 0) {
   if (value === null || value === undefined || value === '') return fallback
@@ -148,6 +175,76 @@ export function buildDirectPaymentLines(values: SaleFormValues, exchangeRate: nu
         : appliedAmount,
     }]
   })
+}
+
+export function buildSalePaymentChangePayloads({
+  values,
+  exchangeRate,
+  exchangeRateId,
+  saleTotal,
+  existingPaymentById,
+  removedPaymentIds,
+  canManageExistingPayments,
+  canAddPaymentLines,
+  canDeleteExistingPayments,
+  correctionReason,
+  deletionReason,
+  newPaymentMode = 'clampToRemaining',
+}: BuildSalePaymentChangePayloadsOptions): SalePaymentChangePayloads {
+  const paymentCorrections = canManageExistingPayments
+    ? (values.direct_payments ?? []).flatMap((line) => {
+      if (!line.sale_payment_id) return []
+      if (removedPaymentIds.includes(line.sale_payment_id)) return []
+
+      const payment = existingPaymentById.get(line.sale_payment_id)
+      const payload = directPaymentLinePayload(
+        line,
+        payment?.payment_date ?? values.sale_date,
+        exchangeRate,
+        exchangeRateId,
+      )
+
+      if (!payment || !payload || !directPaymentLineChanged(line, payment)) return []
+
+      return [{
+        paymentId: payment.id,
+        previousAmount: toNumber(payment.amount),
+        nextAmount: payload.amount,
+        payload: {
+          ...payload,
+          payment_date: payment.payment_date ?? values.sale_date,
+          note: payment.note ?? null,
+          reason: correctionReason,
+        },
+      }]
+    }).sort((a, b) => (a.nextAmount - a.previousAmount) - (b.nextAmount - b.previousAmount))
+      .map((paymentLine) => ({
+        payment_id: paymentLine.paymentId,
+        ...paymentLine.payload,
+      }))
+    : []
+
+  const payments = canAddPaymentLines
+    ? newPaymentMode === 'entered'
+      ? (values.direct_payments ?? []).flatMap((line) => {
+        if (line.sale_payment_id) return []
+        const payload = directPaymentLinePayload(line, values.sale_date, exchangeRate, exchangeRateId)
+        return payload ? [payload] : []
+      })
+      : buildDirectPaymentLines(values, exchangeRate, exchangeRateId, saleTotal)
+    : []
+
+  const paymentDeletions = canDeleteExistingPayments
+    ? removedPaymentIds
+      .filter((paymentId) => existingPaymentById.has(paymentId))
+      .map((paymentId) => ({ payment_id: paymentId, reason: deletionReason }))
+    : []
+
+  return {
+    paymentCorrections,
+    paymentDeletions,
+    payments,
+  }
 }
 
 export function buildSalePayload(values: SaleFormValues): SalePayload {

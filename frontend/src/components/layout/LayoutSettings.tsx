@@ -37,6 +37,7 @@ import {
   BORDER_RADIUS_STEP,
   ENGLISH_FONT_OPTIONS,
   LAYOUT_SIZE_OPTIONS,
+  SURFACE_STYLE_OPTIONS,
   THEME_COLOR_PRESETS,
 } from '@/theme'
 
@@ -78,6 +79,8 @@ export default function LayoutSettings() {
     setColorPreset,
     layoutSize,
     setLayoutSize,
+    surfaceStyle,
+    setSurfaceStyle,
     borderRadiusLevel,
     setBorderRadiusLevel,
     sidebarTheme,
@@ -173,6 +176,26 @@ export default function LayoutSettings() {
                   {t('layoutSettings.dark')}
                 </Box>
               </ToggleButton>
+            </ToggleButtonGroup>
+          </Box>
+
+          <Box>
+            <SectionTitle
+              icon={<PaletteOutlined fontSize="small" />}
+              label={t('layoutSettings.surfaceStyle')}
+            />
+            <ToggleButtonGroup
+              exclusive
+              fullWidth
+              value={surfaceStyle}
+              onChange={(_, value) => value && setSurfaceStyle(value)}
+              size="small"
+            >
+              {SURFACE_STYLE_OPTIONS.map((option) => (
+                <ToggleButton key={option.value} value={option.value}>
+                  {t(option.labelKey)}
+                </ToggleButton>
+              ))}
             </ToggleButtonGroup>
           </Box>
 

@@ -54,10 +54,9 @@ import {
 import {
   buildDirectPaymentLines,
   buildSalePayload,
+  buildSalePaymentChangePayloads,
   createClientRequestId,
   directPaymentLineBaseAmount,
-  directPaymentLineChanged,
-  directPaymentLinePayload,
   discountAmount,
   formatUsdKhrAmount,
   lineTotal,
@@ -71,7 +70,7 @@ import {
 import { saleFormSchema, type SaleFormInput, type SaleFormValues } from './schema'
 import type { PaymentAccount } from '@/types/accounting'
 import type { InventoryProductLookupItem } from '@/types/inventory'
-import type { Sale, SaleItem, SalePaymentCorrectionPayload } from '@/types/sales'
+import type { Sale, SaleItem } from '@/types/sales'
 import type { Warehouse } from '@/types/warehouse'
 import type { Customer } from '@/types/customer'
 import type { PriceGroup } from '@/types/priceGroup'
@@ -438,60 +437,40 @@ export function SaleFormPage({ saleId }: SaleFormPageProps) {
     setServerError('')
 
     try {
-      const shouldRecordDirectPayment = values.direct_payment_enabled && canTakeDirectPayment
+      const shouldRecordDirectPayment = !!values.direct_payment_enabled && canTakeDirectPayment
 
       if (saleId) {
-        const editedPaymentLines = shouldRecordDirectPayment && canManageExistingPayments
-          ? (values.direct_payments ?? []).flatMap((line) => {
-            if (!line.sale_payment_id) return []
-            if (removedPaymentIds.includes(line.sale_payment_id)) return []
-
-            const payment = existingPaymentById.get(line.sale_payment_id)
-            const payload = directPaymentLinePayload(line, payment?.payment_date ?? values.sale_date, defaultExchangeRateValue, defaultExchangeRate?.id ?? null)
-            if (!payment || !payload || !directPaymentLineChanged(line, payment)) return []
-
-            return [{
-              paymentId: payment.id,
-              previousAmount: toNumber(payment.amount),
-              nextAmount: payload.amount,
-              payload: {
-                ...payload,
-                payment_date: payment.payment_date ?? values.sale_date,
-                note: payment.note ?? null,
-                reason: t('payment.editAction'),
-              } satisfies SalePaymentCorrectionPayload,
-            }]
-          }).sort((a, b) => (a.nextAmount - a.previousAmount) - (b.nextAmount - b.previousAmount))
-          : []
-        const newPaymentLines = shouldRecordDirectPayment && canAddPaymentLines
-          ? buildDirectPaymentLines(values, defaultExchangeRateValue, defaultExchangeRate?.id ?? null, totals.total)
-          : []
-        const deletedPaymentIds = shouldRecordDirectPayment && canDeleteExistingPayments
-          ? removedPaymentIds.filter((paymentId) => existingPaymentById.has(paymentId))
-          : []
+        const paymentChanges = buildSalePaymentChangePayloads({
+          values,
+          exchangeRate: defaultExchangeRateValue,
+          exchangeRateId: defaultExchangeRate?.id ?? null,
+          saleTotal: totals.total,
+          existingPaymentById,
+          removedPaymentIds,
+          canManageExistingPayments: shouldRecordDirectPayment && canManageExistingPayments,
+          canAddPaymentLines: shouldRecordDirectPayment && canAddPaymentLines,
+          canDeleteExistingPayments: shouldRecordDirectPayment && canDeleteExistingPayments,
+          correctionReason: t('payment.editAction'),
+          deletionReason: t('payment.removeLine'),
+        })
 
         const sale = await updateSaleWithPayments.mutateAsync({
           id: saleId,
           payload: {
             ...buildSalePayload(values),
-            ...(deletedPaymentIds.length > 0
-              ? { payment_deletions: deletedPaymentIds.map((paymentId) => ({ payment_id: paymentId, reason: t('payment.removeLine') })) }
+            ...(paymentChanges.paymentDeletions.length > 0
+              ? { payment_deletions: paymentChanges.paymentDeletions }
               : {}),
-            ...(editedPaymentLines.length > 0
-              ? {
-                payment_corrections: editedPaymentLines.map((paymentLine) => ({
-                  payment_id: paymentLine.paymentId,
-                  ...paymentLine.payload,
-                })),
-              }
+            ...(paymentChanges.paymentCorrections.length > 0
+              ? { payment_corrections: paymentChanges.paymentCorrections }
               : {}),
-            ...(newPaymentLines.length > 0
-              ? { payment_date: values.sale_date, payment_note: null, payments: newPaymentLines }
+            ...(paymentChanges.payments.length > 0
+              ? { payment_date: values.sale_date, payment_note: null, payments: paymentChanges.payments }
               : {}),
           },
         })
 
-        if (newPaymentLines.length > 0) {
+        if (paymentChanges.payments.length > 0) {
           enqueueSnackbar(t('messages.updatedAndPaid'), { variant: 'success' })
         } else {
           enqueueSnackbar(t('messages.updated'), { variant: 'success' })

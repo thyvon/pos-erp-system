@@ -10,13 +10,20 @@ import { AuthGate } from '@/components/auth/AuthGate'
 import { getLayoutMetrics } from '@/theme'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { contentStretch, layoutSize } = useUIStore()
+  const { contentStretch, layoutSize, surfaceStyle } = useUIStore()
   const theme = useTheme()
   const layoutMetrics = getLayoutMetrics(layoutSize)
+  const isGlassSurface = surfaceStyle === 'glass'
 
   return (
     <AuthGate>
-      <Box sx={{ display: 'flex', minHeight: '100vh', bgcolor: 'background.default' }}>
+      <Box
+        sx={{
+          display: 'flex',
+          minHeight: '100vh',
+          bgcolor: isGlassSurface ? 'transparent' : 'background.default',
+        }}
+      >
         <AppSidebar />
 
         <Box

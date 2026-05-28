@@ -4,6 +4,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { cashRegistersApi, salesApi } from './api'
 import type {
   CashRegisterFilters,
+  CloseCashRegisterSessionPayload,
   CreateCashRegisterPayload,
   OpenCashRegisterSessionPayload,
   SaleCancelPayload,
@@ -13,6 +14,7 @@ import type {
   SalePaymentDeletePayload,
   SalePaymentPayload,
   SaleWithPaymentsPayload,
+  UpdateCashRegisterPayload,
 } from '@/types/sales'
 
 export const saleKeys = {
@@ -24,6 +26,7 @@ export const saleKeys = {
 export const cashRegisterKeys = {
   all: ['cash-registers'] as const,
   list: (filters: CashRegisterFilters) => [...cashRegisterKeys.all, 'list', filters] as const,
+  detail: (id: string) => [...cashRegisterKeys.all, 'detail', id] as const,
 }
 
 export function useSalesQuery(filters: SaleFilters) {
@@ -48,11 +51,43 @@ export function useCashRegistersQuery(filters: CashRegisterFilters) {
   })
 }
 
+export function useCashRegisterQuery(id: string | null) {
+  return useQuery({
+    queryKey: id ? cashRegisterKeys.detail(id) : [...cashRegisterKeys.all, 'detail', 'none'],
+    queryFn: () => cashRegistersApi.show(id ?? ''),
+    enabled: !!id,
+  })
+}
+
 export function useCreateCashRegisterMutation() {
   const queryClient = useQueryClient()
 
   return useMutation({
     mutationFn: (payload: CreateCashRegisterPayload) => cashRegistersApi.create(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: cashRegisterKeys.all })
+    },
+  })
+}
+
+export function useUpdateCashRegisterMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: UpdateCashRegisterPayload }) =>
+      cashRegistersApi.update(id, payload),
+    onSuccess: (register) => {
+      queryClient.invalidateQueries({ queryKey: cashRegisterKeys.all })
+      queryClient.invalidateQueries({ queryKey: cashRegisterKeys.detail(register.id) })
+    },
+  })
+}
+
+export function useDeleteCashRegisterMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (id: string) => cashRegistersApi.delete(id),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: cashRegisterKeys.all })
     },
@@ -67,6 +102,20 @@ export function useOpenCashRegisterSessionMutation() {
       cashRegistersApi.openSession(id, payload),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: cashRegisterKeys.all })
+    },
+  })
+}
+
+export function useCloseCashRegisterSessionMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ sessionId, payload }: { sessionId: string; payload: CloseCashRegisterSessionPayload }) =>
+      cashRegistersApi.closeSession(sessionId, payload),
+    onSuccess: (session) => {
+      queryClient.invalidateQueries({ queryKey: cashRegisterKeys.all })
+      queryClient.invalidateQueries({ queryKey: cashRegisterKeys.detail(session.cash_register_id) })
+      queryClient.invalidateQueries({ queryKey: saleKeys.all })
     },
   })
 }

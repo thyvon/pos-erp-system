@@ -3,6 +3,7 @@ import type {
   CashRegister,
   CashRegisterFilters,
   CashRegisterSession,
+  CloseCashRegisterSessionPayload,
   CreateCashRegisterPayload,
   OpenCashRegisterSessionPayload,
   Sale,
@@ -16,6 +17,7 @@ import type {
   SalePaymentPayload,
   SalePaymentResult,
   SaleWithPaymentsPayload,
+  UpdateCashRegisterPayload,
 } from '@/types/sales'
 
 export const salesApi = {
@@ -40,8 +42,14 @@ export const salesApi = {
 
 export const cashRegistersApi = {
   list: (filters: CashRegisterFilters = {}) => apiClient.getPaginated<CashRegister>('/v1/cash-registers', filters),
+  show: (id: string) => apiClient.get<CashRegister>(`/v1/cash-registers/${id}`),
   create: (payload: CreateCashRegisterPayload) =>
     apiClient.post<CashRegister, CreateCashRegisterPayload>('/v1/cash-registers', payload),
+  update: (id: string, payload: UpdateCashRegisterPayload) =>
+    apiClient.put<CashRegister, UpdateCashRegisterPayload>(`/v1/cash-registers/${id}`, payload),
+  delete: (id: string) => apiClient.delete<void>(`/v1/cash-registers/${id}`),
   openSession: (id: string, payload: OpenCashRegisterSessionPayload) =>
     apiClient.post<CashRegisterSession, OpenCashRegisterSessionPayload>(`/v1/cash-registers/${id}/open-session`, payload),
+  closeSession: (sessionId: string, payload: CloseCashRegisterSessionPayload) =>
+    apiClient.post<CashRegisterSession, CloseCashRegisterSessionPayload>(`/v1/cash-register-sessions/${sessionId}/close`, payload),
 }
