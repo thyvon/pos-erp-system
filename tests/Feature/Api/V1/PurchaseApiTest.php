@@ -4,6 +4,8 @@ namespace Tests\Feature\Api\V1;
 
 use App\Models\Branch;
 use App\Models\Business;
+use App\Models\ChartOfAccount;
+use App\Models\PaymentAccount;
 use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\StockLevel;
@@ -244,6 +246,331 @@ class PurchaseApiTest extends TestCase
         $this->assertSame(2, StockSerial::query()->count());
         $this->assertSame(2, StockMovement::query()->where('type', 'purchase_receipt')->count());
         $this->assertSame('2.0000', StockLevel::query()->firstOrFail()->quantity);
+    }
+
+    public function test_confirmed_purchase_can_record_payment_and_update_payment_status(): void
+    {
+        [$business, $admin, $branch, $warehouse, $supplier, $product] = $this->makePurchaseContext();
+        $purchase = $this->makePurchase($business, $branch, $warehouse, $supplier, $product, 'PO-2026-00001', 'confirmed');
+
+        $cashAccount = ChartOfAccount::withoutGlobalScopes()
+            ->where('business_id', $business->id)
+            ->where('code', '1110')
+            ->firstOrFail();
+
+        $paymentAccount = PaymentAccount::withoutGlobalScopes()->create([
+            'business_id' => $business->id,
+            'name' => 'Main Cash Drawer',
+            'account_type' => 'cash',
+            'opening_balance' => 0,
+            'coa_account_id' => $cashAccount->id,
+            'is_active' => true,
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $this->postJson("/api/v1/purchases/{$purchase->id}/payments", [
+            'payment_account_id' => $paymentAccount->id,
+            'amount' => (float) $purchase->total_amount,
+            'method' => 'cash',
+            'payment_date' => '2026-05-28',
+            'reference' => 'CASH-001',
+        ])->assertCreated()
+            ->assertJsonPath('data.purchase.payment_status', 'paid')
+            ->assertJsonPath('data.purchase.paid_amount', number_format((float) $purchase->total_amount, 2, '.', ''))
+            ->assertJsonPath('data.payment.amount', number_format((float) $purchase->total_amount, 2, '.', ''));
+
+        $this->assertDatabaseHas('purchase_payments', [
+            'purchase_id' => $purchase->id,
+            'amount' => number_format((float) $purchase->total_amount, 2, '.', ''),
+            'method' => 'cash',
+        ]);
+
+        $this->assertDatabaseHas('account_transactions', [
+            'payment_account_id' => $paymentAccount->id,
+            'reference_type' => 'App\\Models\\PurchasePayment',
+            'type' => 'debit',
+            'amount' => number_format((float) $purchase->total_amount, 2, '.', ''),
+        ]);
+
+        $this->assertDatabaseHas('journals', [
+            'reference_type' => 'App\\Models\\PurchasePayment',
+            'type' => 'payment_out',
+        ]);
+
+        $this->assertDatabaseHas('audit_logs', [
+            'business_id' => $business->id,
+            'event' => 'payment_recorded',
+            'auditable_id' => $purchase->id,
+        ]);
+    }
+
+    public function test_confirmed_purchase_can_record_split_payments(): void
+    {
+        [$business, $admin, $branch, $warehouse, $supplier, $product] = $this->makePurchaseContext();
+        $purchase = $this->makePurchase($business, $branch, $warehouse, $supplier, $product, 'PO-2026-00001', 'confirmed');
+
+        $cashAccount = ChartOfAccount::withoutGlobalScopes()
+            ->where('business_id', $business->id)
+            ->where('code', '1110')
+            ->firstOrFail();
+        $bankAccount = ChartOfAccount::withoutGlobalScopes()
+            ->where('business_id', $business->id)
+            ->where('code', '1120')
+            ->firstOrFail();
+
+        $cashPaymentAccount = PaymentAccount::withoutGlobalScopes()->create([
+            'business_id' => $business->id,
+            'name' => 'Main Cash Drawer',
+            'account_type' => 'cash',
+            'opening_balance' => 0,
+            'coa_account_id' => $cashAccount->id,
+            'is_active' => true,
+        ]);
+        $bankPaymentAccount = PaymentAccount::withoutGlobalScopes()->create([
+            'business_id' => $business->id,
+            'name' => 'Main Bank Account',
+            'account_type' => 'bank',
+            'opening_balance' => 0,
+            'coa_account_id' => $bankAccount->id,
+            'is_active' => true,
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $cashAmount = 5;
+        $bankAmount = round((float) $purchase->total_amount - $cashAmount, 2);
+
+        $this->postJson("/api/v1/purchases/{$purchase->id}/payments", [
+            'payment_date' => '2026-05-28',
+            'note' => 'Split tender',
+            'payments' => [
+                [
+                    'payment_account_id' => $cashPaymentAccount->id,
+                    'amount' => $cashAmount,
+                    'method' => 'cash',
+                    'reference' => 'CASH-001',
+                ],
+                [
+                    'payment_account_id' => $bankPaymentAccount->id,
+                    'amount' => $bankAmount,
+                    'method' => 'bank_transfer',
+                    'reference' => 'BANK-001',
+                ],
+            ],
+        ])->assertCreated()
+            ->assertJsonPath('data.purchase.payment_status', 'paid')
+            ->assertJsonPath('data.purchase.paid_amount', number_format((float) $purchase->total_amount, 2, '.', ''))
+            ->assertJsonCount(2, 'data.payments')
+            ->assertJsonCount(2, 'data.journals');
+
+        $this->assertSame(2, PurchasePayment::withoutGlobalScopes()->where('purchase_id', $purchase->id)->count());
+
+        $this->assertDatabaseHas('purchase_payments', [
+            'purchase_id' => $purchase->id,
+            'payment_account_id' => $cashPaymentAccount->id,
+            'amount' => number_format($cashAmount, 2, '.', ''),
+            'method' => 'cash',
+            'reference' => 'CASH-001',
+        ]);
+        $this->assertDatabaseHas('purchase_payments', [
+            'purchase_id' => $purchase->id,
+            'payment_account_id' => $bankPaymentAccount->id,
+            'amount' => number_format($bankAmount, 2, '.', ''),
+            'method' => 'bank_transfer',
+            'reference' => 'BANK-001',
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'business_id' => $business->id,
+            'event' => 'payment_recorded',
+            'auditable_id' => $purchase->id,
+        ]);
+    }
+
+    public function test_confirmed_purchase_payment_can_be_corrected_with_reversal_and_replacement(): void
+    {
+        [$business, $admin, $branch, $warehouse, $supplier, $product] = $this->makePurchaseContext();
+        $purchase = $this->makePurchase($business, $branch, $warehouse, $supplier, $product, 'PO-2026-00001', 'confirmed');
+
+        $cashAccount = ChartOfAccount::withoutGlobalScopes()
+            ->where('business_id', $business->id)
+            ->where('code', '1110')
+            ->firstOrFail();
+        $bankAccount = ChartOfAccount::withoutGlobalScopes()
+            ->where('business_id', $business->id)
+            ->where('code', '1120')
+            ->firstOrFail();
+
+        $cashPaymentAccount = PaymentAccount::withoutGlobalScopes()->create([
+            'business_id' => $business->id,
+            'name' => 'Main Cash Drawer',
+            'account_type' => 'cash',
+            'opening_balance' => 0,
+            'coa_account_id' => $cashAccount->id,
+            'is_active' => true,
+        ]);
+        $bankPaymentAccount = PaymentAccount::withoutGlobalScopes()->create([
+            'business_id' => $business->id,
+            'name' => 'Main Bank Account',
+            'account_type' => 'bank',
+            'opening_balance' => 0,
+            'coa_account_id' => $bankAccount->id,
+            'is_active' => true,
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $paymentResponse = $this->postJson("/api/v1/purchases/{$purchase->id}/payments", [
+            'payment_account_id' => $cashPaymentAccount->id,
+            'amount' => 10,
+            'method' => 'cash',
+            'payment_date' => '2026-05-28',
+            'reference' => 'CASH-001',
+        ])->assertCreated();
+
+        $originalPaymentId = $paymentResponse->json('data.payment.id');
+
+        $accountant = User::factory()->for($business)->create();
+        $accountant->assignRole('accountant');
+        $accountant->branches()->attach($branch->id);
+
+        Sanctum::actingAs($accountant);
+
+        $this->putJson("/api/v1/purchases/{$purchase->id}/payments/{$originalPaymentId}", [
+            'payment_account_id' => $bankPaymentAccount->id,
+            'amount' => 10,
+            'method' => 'bank_transfer',
+            'payment_date' => '2026-05-28',
+            'reference' => 'BANK-001',
+            'reason' => 'Wrong payment tender selected',
+        ])->assertOk()
+            ->assertJsonPath('data.reversed_payment.status', 'reversed')
+            ->assertJsonPath('data.payment.replaces_payment_id', $originalPaymentId)
+            ->assertJsonPath('data.payment.payment_account_id', $bankPaymentAccount->id)
+            ->assertJsonPath('data.purchase.payment_status', 'partial');
+
+        $this->assertDatabaseHas('purchase_payments', [
+            'id' => $originalPaymentId,
+            'status' => 'reversed',
+            'reversal_reason' => 'Wrong payment tender selected',
+        ]);
+        $this->assertDatabaseHas('purchase_payments', [
+            'purchase_id' => $purchase->id,
+            'payment_account_id' => $bankPaymentAccount->id,
+            'amount' => '10.00',
+            'method' => 'bank_transfer',
+            'reference' => 'BANK-001',
+            'replaces_payment_id' => $originalPaymentId,
+            'status' => 'completed',
+        ]);
+        $this->assertDatabaseHas('account_transactions', [
+            'payment_account_id' => $cashPaymentAccount->id,
+            'reference_type' => 'App\\Models\\PurchasePayment',
+            'type' => 'credit',
+            'amount' => '10.00',
+        ]);
+        $this->assertDatabaseHas('journals', [
+            'type' => 'reversal',
+            'reference_type' => 'App\\Models\\Journal',
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'business_id' => $business->id,
+            'event' => 'updated',
+            'auditable_type' => 'App\\Models\\PurchasePayment',
+            'auditable_id' => $originalPaymentId,
+        ]);
+    }
+
+    public function test_confirmed_purchase_payment_can_be_deleted_with_reversal(): void
+    {
+        [$business, $admin, $branch, $warehouse, $supplier, $product] = $this->makePurchaseContext();
+        $purchase = $this->makePurchase($business, $branch, $warehouse, $supplier, $product, 'PO-2026-00001', 'confirmed');
+
+        $cashAccount = ChartOfAccount::withoutGlobalScopes()
+            ->where('business_id', $business->id)
+            ->where('code', '1110')
+            ->firstOrFail();
+
+        $paymentAccount = PaymentAccount::withoutGlobalScopes()->create([
+            'business_id' => $business->id,
+            'name' => 'Main Cash Drawer',
+            'account_type' => 'cash',
+            'opening_balance' => 0,
+            'coa_account_id' => $cashAccount->id,
+            'is_active' => true,
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $paymentResponse = $this->postJson("/api/v1/purchases/{$purchase->id}/payments", [
+            'payment_account_id' => $paymentAccount->id,
+            'amount' => 10,
+            'method' => 'cash',
+            'payment_date' => '2026-05-28',
+            'reference' => 'CASH-DELETE',
+        ])->assertCreated();
+
+        $paymentId = $paymentResponse->json('data.payment.id');
+
+        $accountant = User::factory()->for($business)->create();
+        $accountant->assignRole('accountant');
+        $accountant->branches()->attach($branch->id);
+
+        Sanctum::actingAs($accountant);
+
+        $this->deleteJson("/api/v1/purchases/{$purchase->id}/payments/{$paymentId}", [
+            'reason' => 'Supplier changed payment method',
+        ])->assertOk()
+            ->assertJsonPath('data.reversed_payment.status', 'reversed')
+            ->assertJsonPath('data.purchase.payment_status', 'unpaid')
+            ->assertJsonPath('data.purchase.paid_amount', '0.00');
+
+        $this->assertDatabaseHas('purchase_payments', [
+            'id' => $paymentId,
+            'status' => 'reversed',
+            'reversal_reason' => 'Supplier changed payment method',
+        ]);
+        $this->assertDatabaseHas('account_transactions', [
+            'payment_account_id' => $paymentAccount->id,
+            'reference_type' => 'App\\Models\\PurchasePayment',
+            'type' => 'credit',
+            'amount' => '10.00',
+        ]);
+        $this->assertDatabaseHas('audit_logs', [
+            'business_id' => $business->id,
+            'event' => 'deleted',
+            'auditable_type' => 'App\\Models\\PurchasePayment',
+            'auditable_id' => $paymentId,
+        ]);
+    }
+
+    public function test_purchase_payment_cannot_exceed_outstanding_balance(): void
+    {
+        [$business, $admin, $branch, $warehouse, $supplier, $product] = $this->makePurchaseContext();
+        $purchase = $this->makePurchase($business, $branch, $warehouse, $supplier, $product, 'PO-2026-00001', 'confirmed');
+
+        $cashAccount = ChartOfAccount::withoutGlobalScopes()
+            ->where('business_id', $business->id)
+            ->where('code', '1110')
+            ->firstOrFail();
+
+        $paymentAccount = PaymentAccount::withoutGlobalScopes()->create([
+            'business_id' => $business->id,
+            'name' => 'Main Cash Drawer',
+            'account_type' => 'cash',
+            'opening_balance' => 0,
+            'coa_account_id' => $cashAccount->id,
+            'is_active' => true,
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $this->postJson("/api/v1/purchases/{$purchase->id}/payments", [
+            'payment_account_id' => $paymentAccount->id,
+            'amount' => round((float) $purchase->total_amount + 5, 2),
+            'method' => 'cash',
+            'payment_date' => '2026-05-28',
+        ])->assertStatus(422);
     }
 
     protected function makePurchaseContext(array $productOverrides = []): array

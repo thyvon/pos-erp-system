@@ -16,10 +16,13 @@ class PurchaseItem extends Model
         'purchase_id',
         'product_id',
         'variation_id',
+        'sub_unit_id',
         'quantity',
         'received_quantity',
         'unit_cost',
+        'discount_type',
         'discount_amount',
+        'tax_rate_id',
         'tax_rate',
         'tax_amount',
         'total_amount',
@@ -52,5 +55,15 @@ class PurchaseItem extends Model
     public function variation(): BelongsTo
     {
         return $this->belongsTo(ProductVariation::class, 'variation_id');
+    }
+
+    public function subUnit(): BelongsTo
+    {
+        return $this->belongsTo(SubUnit::class, 'sub_unit_id');
+    }
+
+    public function taxRate(): BelongsTo
+    {
+        return $this->belongsTo(TaxRate::class, 'tax_rate_id');
     }
 }

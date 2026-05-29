@@ -58,7 +58,13 @@ class PurchaseService
                 'purchase_date' => $data['purchase_date'],
                 'expected_date' => $data['expected_date'] ?? null,
                 'subtotal' => $totals['subtotal'],
+                'discount_type' => $data['discount_type'] ?? null,
                 'discount_amount' => $totals['discount_amount'],
+                'tax_scope' => $data['tax_scope'] ?? 'line',
+                'tax_rate_id' => $data['tax_rate_id'] ?? null,
+                'tax_rate_type' => $data['tax_rate_type'] ?? null,
+                'tax_rate' => $data['tax_rate'] ?? 0,
+                'tax_type' => $data['tax_type'] ?? null,
                 'tax_amount' => $totals['tax_amount'],
                 'shipping_charges' => $totals['shipping_charges'],
                 'total_amount' => $totals['total_amount'],
@@ -107,7 +113,13 @@ class PurchaseService
                 'purchase_date' => $data['purchase_date'],
                 'expected_date' => $data['expected_date'] ?? null,
                 'subtotal' => $totals['subtotal'],
+                'discount_type' => $data['discount_type'] ?? null,
                 'discount_amount' => $totals['discount_amount'],
+                'tax_scope' => $data['tax_scope'] ?? 'line',
+                'tax_rate_id' => $data['tax_rate_id'] ?? null,
+                'tax_rate_type' => $data['tax_rate_type'] ?? null,
+                'tax_rate' => $data['tax_rate'] ?? 0,
+                'tax_type' => $data['tax_type'] ?? null,
                 'tax_amount' => $totals['tax_amount'],
                 'shipping_charges' => $totals['shipping_charges'],
                 'total_amount' => $totals['total_amount'],
@@ -155,7 +167,7 @@ class PurchaseService
         return DB::transaction(function () use ($businessId, $purchase, $data, $actor): Purchase {
             /** @var Purchase $lockedPurchase */
             $lockedPurchase = Purchase::withoutGlobalScopes()
-                ->with(['items.product', 'items.variation', 'warehouse', 'branch', 'supplier'])
+                ->with(['items.product.unit', 'items.variation', 'items.subUnit', 'items.taxRate', 'warehouse', 'branch', 'supplier'])
                 ->where('business_id', $businessId)
                 ->whereKey($purchase->id)
                 ->lockForUpdate()
@@ -370,20 +382,25 @@ class PurchaseService
             $unitCost = round((float) $item['unit_cost'], 4);
             $lineSubtotal = round($quantity * $unitCost, 2);
             $discountAmount = round((float) ($item['discount_amount'] ?? 0), 2);
-            $taxRate = round((float) ($item['tax_rate'] ?? 0), 2);
             $taxableAmount = max(0, $lineSubtotal - $discountAmount);
-            $taxAmount = round($taxableAmount * ($taxRate / 100), 2);
+
+            $itemTaxAmount = $purchase->tax_scope === 'sale'
+                ? 0
+                : round($taxableAmount * (round((float) ($item['tax_rate'] ?? 0), 2) / 100), 2);
 
             $purchase->items()->create([
                 'product_id' => $product->id,
                 'variation_id' => $variation?->id,
+                'sub_unit_id' => $item['sub_unit_id'] ?? null,
                 'quantity' => $quantity,
                 'received_quantity' => 0,
                 'unit_cost' => $unitCost,
+                'discount_type' => $item['discount_type'] ?? null,
                 'discount_amount' => $discountAmount,
-                'tax_rate' => $taxRate,
-                'tax_amount' => $taxAmount,
-                'total_amount' => round($taxableAmount + $taxAmount, 2),
+                'tax_rate_id' => $item['tax_rate_id'] ?? null,
+                'tax_rate' => round((float) ($item['tax_rate'] ?? 0), 2),
+                'tax_amount' => $itemTaxAmount,
+                'total_amount' => round($taxableAmount + $itemTaxAmount, 2),
                 'notes' => $item['notes'] ?? null,
             ]);
         }
@@ -393,7 +410,7 @@ class PurchaseService
     {
         $subtotal = 0.0;
         $itemDiscount = 0.0;
-        $taxAmount = 0.0;
+        $itemTax = 0.0;
 
         foreach ($data['items'] as $item) {
             $lineSubtotal = round((float) $item['quantity'] * (float) $item['unit_cost'], 2);
@@ -402,19 +419,28 @@ class PurchaseService
 
             $subtotal += $lineSubtotal;
             $itemDiscount += $discountAmount;
-            $taxAmount += round($taxableAmount * (round((float) ($item['tax_rate'] ?? 0), 2) / 100), 2);
+
+            if (($data['tax_scope'] ?? 'line') === 'line') {
+                $itemTax += round($taxableAmount * (round((float) ($item['tax_rate'] ?? 0), 2) / 100), 2);
+            }
         }
 
         $headerDiscount = round((float) ($data['discount_amount'] ?? 0), 2);
         $shipping = round((float) ($data['shipping_charges'] ?? 0), 2);
         $discount = round($itemDiscount + $headerDiscount, 2);
+        $discounted = max(0, round($subtotal - $discount, 2));
+
+        if (($data['tax_scope'] ?? 'line') === 'sale') {
+            $saleTaxRate = round((float) ($data['tax_rate'] ?? 0), 2);
+            $itemTax = round($discounted * ($saleTaxRate / 100), 2);
+        }
 
         return [
             'subtotal' => round($subtotal, 2),
             'discount_amount' => $discount,
-            'tax_amount' => round($taxAmount, 2),
+            'tax_amount' => round($itemTax, 2),
             'shipping_charges' => $shipping,
-            'total_amount' => round(max(0, $subtotal - $discount + $taxAmount + $shipping), 2),
+            'total_amount' => round(max(0, $subtotal - $discount + $itemTax + $shipping), 2),
         ];
     }
 
@@ -511,7 +537,7 @@ class PurchaseService
 
     protected function loadPurchase(Purchase $purchase): Purchase
     {
-        return $purchase->load(['branch', 'warehouse.branch', 'supplier', 'creator', 'receiver', 'items.product', 'items.variation']);
+        return $purchase->load(['branch', 'warehouse.branch', 'supplier', 'creator', 'receiver', 'items.product.unit', 'items.variation', 'items.subUnit', 'items.taxRate', 'payments.paymentAccount', 'payments.replacedPayment', 'payments.reverser']);
     }
 
     protected function audit(string $event, Purchase $purchase, ?User $actor, ?array $oldValues): void

@@ -25,7 +25,13 @@ class PurchaseResource extends JsonResource
             'expected_date' => optional($this->expected_date)->toDateString(),
             'received_at' => optional($this->received_at)->toISOString(),
             'subtotal' => $this->subtotal,
+            'discount_type' => $this->discount_type,
             'discount_amount' => $this->discount_amount,
+            'tax_scope' => $this->tax_scope,
+            'tax_rate_id' => $this->tax_rate_id,
+            'tax_rate_type' => $this->tax_rate_type,
+            'tax_rate' => $this->tax_rate,
+            'tax_type' => $this->tax_type,
             'tax_amount' => $this->tax_amount,
             'shipping_charges' => $this->shipping_charges,
             'total_amount' => $this->total_amount,
@@ -54,15 +60,16 @@ class PurchaseResource extends JsonResource
             ]),
             'creator' => $this->whenLoaded('creator', fn () => $this->creator ? [
                 'id' => $this->creator->id,
-                'name' => $this->creator->name,
+                'name' => trim(($this->creator->first_name ?? '') . ' ' . ($this->creator->last_name ?? '')),
                 'email' => $this->creator->email,
             ] : null),
             'receiver' => $this->whenLoaded('receiver', fn () => $this->receiver ? [
                 'id' => $this->receiver->id,
-                'name' => $this->receiver->name,
+                'name' => trim(($this->receiver->first_name ?? '') . ' ' . ($this->receiver->last_name ?? '')),
                 'email' => $this->receiver->email,
             ] : null),
             'items' => PurchaseItemResource::collection($this->whenLoaded('items')),
+            'payments' => PurchasePaymentResource::collection($this->whenLoaded('payments')),
         ];
     }
 }

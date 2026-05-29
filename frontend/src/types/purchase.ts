@@ -30,16 +30,22 @@ export interface PurchaseItem {
   purchase_id: string
   product_id: string
   variation_id: string | null
+  sub_unit_id: string | null
   quantity: string
   received_quantity: string
   unit_cost: string
+  discount_type: string | null
   discount_amount: string
+  tax_rate_id: string | null
   tax_rate: string
   tax_amount: string
   total_amount: string
   notes: string | null
-  product?: Pick<Product, 'id' | 'name' | 'sku' | 'type' | 'stock_tracking'> | null
+  unit_label: string | null
+  product?: Pick<Product, 'id' | 'name' | 'sku' | 'type' | 'stock_tracking'> & { unit?: { id: string; name: string; short_name: string | null } | null } | null
   variation?: Pick<ProductVariation, 'id' | 'name' | 'sku'> | null
+  sub_unit?: { id: string; name: string; short_name: string | null; conversion_factor: string | null } | null
+  tax_rate_info?: { id: string; name: string; rate: string; type: string } | null
 }
 
 export interface Purchase {
@@ -58,7 +64,13 @@ export interface Purchase {
   expected_date: string | null
   received_at: string | null
   subtotal: string
+  discount_type: string | null
   discount_amount: string
+  tax_scope: string
+  tax_rate_id: string | null
+  tax_rate_type: string | null
+  tax_rate: string
+  tax_type: string | null
   tax_amount: string
   shipping_charges: string
   total_amount: string
@@ -71,6 +83,7 @@ export interface Purchase {
   creator?: PurchaseUser | null
   receiver?: PurchaseUser | null
   items: PurchaseItem[]
+  payments?: PurchasePayment[]
   created_at: string
   updated_at: string
 }
@@ -78,9 +91,12 @@ export interface Purchase {
 export interface PurchaseItemPayload {
   product_id: string
   variation_id?: string | null
+  sub_unit_id?: string | null
   quantity: number
   unit_cost: number
+  discount_type?: string | null
   discount_amount?: number | null
+  tax_rate_id?: string | null
   tax_rate?: number | null
   notes?: string | null
 }
@@ -93,7 +109,13 @@ export interface PurchasePayload {
   status?: 'draft' | 'confirmed'
   purchase_date: string
   expected_date?: string | null
+  discount_type?: string | null
   discount_amount?: number | null
+  tax_scope?: string
+  tax_rate_id?: string | null
+  tax_rate_type?: string | null
+  tax_rate?: number | null
+  tax_type?: string | null
   shipping_charges?: number | null
   notes?: string | null
   staff_note?: string | null
@@ -115,4 +137,98 @@ export interface ReceivePurchasePayload {
   received_at?: string | null
   notes?: string | null
   items: ReceivePurchaseItemPayload[]
+}
+
+export type PurchasePaymentMethod = 'cash' | 'card' | 'bank_transfer' | 'cheque' | 'reward_points' | 'gift_card' | 'other'
+
+export interface PurchasePayment {
+  id: string
+  business_id: string
+  purchase_id: string
+  payment_account_id: string
+  amount: string | null
+  payment_currency: 'USD' | 'KHR'
+  payment_amount: string | null
+  exchange_rate_id: string | null
+  exchange_rate: string | null
+  method: PurchasePaymentMethod
+  reference: string | null
+  payment_date: string | null
+  note: string | null
+  status: 'completed' | 'reversed'
+  replaces_payment_id: string | null
+  reversed_by?: {
+    id: string
+    name: string
+  } | null
+  reversed_at: string | null
+  reversal_reason: string | null
+  payment_account?: {
+    id: string
+    name: string
+    type: string
+  } | null
+  replaced_payment?: {
+    id: string
+    reference: string | null
+    payment_date: string | null
+  } | null
+  creator?: PurchaseUser | null
+  created_at: string
+}
+
+export interface PurchasePaymentLinePayload {
+  payment_account_id: string
+  amount: number
+  payment_currency?: 'USD' | 'KHR'
+  payment_amount?: number
+  exchange_rate_id?: string | null
+  method: PurchasePaymentMethod
+  reference?: string | null
+  payment_date?: string
+  note?: string | null
+}
+
+export interface PurchasePaymentPayload {
+  payment_account_id?: string
+  amount?: number
+  payment_currency?: 'USD' | 'KHR'
+  payment_amount?: number
+  exchange_rate_id?: string | null
+  method?: PurchasePaymentMethod
+  reference?: string | null
+  payment_date: string
+  note?: string | null
+  payments?: PurchasePaymentLinePayload[]
+}
+
+export interface PurchasePaymentCorrectionPayload extends PurchasePaymentLinePayload {
+  payment_date: string
+  reason: string
+}
+
+export interface PurchasePaymentDeletePayload {
+  reason?: string | null
+}
+
+export interface PurchasePaymentResult {
+  purchase: Purchase
+  payment: PurchasePayment
+  payments?: PurchasePayment[]
+  journal: unknown
+  journals?: unknown[]
+}
+
+export interface PurchasePaymentCorrectionResult {
+  purchase: Purchase
+  payment: PurchasePayment
+  reversed_payment: PurchasePayment
+  journal: unknown
+  reversal_journal: unknown
+}
+
+export interface PurchasePaymentDeleteResult {
+  purchase: Purchase
+  reversed_payment: PurchasePayment
+  reversal_journal: unknown
 }

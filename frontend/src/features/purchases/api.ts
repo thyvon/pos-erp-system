@@ -1,5 +1,5 @@
 import { apiClient } from '@/api/client'
-import type { Purchase, PurchaseFilters, PurchasePayload, ReceivePurchasePayload } from '@/types/purchase'
+import type { Purchase, PurchaseFilters, PurchasePayload, PurchasePaymentCorrectionPayload, PurchasePaymentDeletePayload, PurchasePaymentPayload, PurchasePaymentResult, PurchasePaymentCorrectionResult, PurchasePaymentDeleteResult, ReceivePurchasePayload } from '@/types/purchase'
 
 export const purchasesApi = {
   list: (filters: PurchaseFilters = {}) => apiClient.getPaginated<Purchase>('/v1/purchases', filters),
@@ -10,4 +10,10 @@ export const purchasesApi = {
   delete: (id: string) => apiClient.delete<void>(`/v1/purchases/${id}`),
   receive: (id: string, payload: ReceivePurchasePayload) =>
     apiClient.post<Purchase, ReceivePurchasePayload>(`/v1/purchases/${id}/receive`, payload),
+  recordPayment: (id: string, payload: PurchasePaymentPayload) =>
+    apiClient.post<PurchasePaymentResult, PurchasePaymentPayload>(`/v1/purchases/${id}/payments`, payload),
+  updatePayment: (purchaseId: string, paymentId: string, payload: PurchasePaymentCorrectionPayload) =>
+    apiClient.put<PurchasePaymentCorrectionResult, PurchasePaymentCorrectionPayload>(`/v1/purchases/${purchaseId}/payments/${paymentId}`, payload),
+  deletePayment: (purchaseId: string, paymentId: string, payload: PurchasePaymentDeletePayload = {}) =>
+    apiClient.delete<PurchasePaymentDeleteResult>(`/v1/purchases/${purchaseId}/payments/${paymentId}`, { data: payload }),
 }

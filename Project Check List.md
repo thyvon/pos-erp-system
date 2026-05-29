@@ -150,6 +150,20 @@
 - [x] Purchase receiving backend added with `/api/v1/purchases/{purchase}/receive`, receive validation, stock movement posting, received quantities, purchase status updates, lot creation, serial creation, receiver metadata, and focused API tests.
 - [ ] Purchase API focused tests are written but blocked locally because the PHP SQLite driver is missing from the test environment.
 
+## Purchases Frontend
+
+- [x] Types (`Purchase`, `PurchaseFilters`, `PurchasePayload`, `ReceivePurchasePayload`, etc.) are defined in `frontend/src/types/purchase.ts`.
+- [x] API transport layer (`purchasesApi`) with list, show, create, update, delete, receive methods is present.
+- [x] React Query hooks (`usePurchasesQuery`, `usePurchaseQuery`, `useCreatePurchaseMutation`, `useUpdatePurchaseMutation`, `useDeletePurchaseMutation`, `useReceivePurchaseMutation`) are present.
+- [x] Zod schemas (`purchaseSchema`, `purchaseItemSchema`, `receivePurchaseSchema`, `receivePurchaseItemSchema`) and form helpers (`emptyPurchaseValues`, `valuesFromPurchase`, `buildPurchasePayload`) are present.
+- [x] Purchases list page with search, status/payment/branch/warehouse/supplier/date filters, paginated table, row actions (view/edit/delete), and delete confirmation is present.
+- [x] Purchases create/edit form with warehouse/supplier autocompletes, item line table, totals calculation, discount/shipping/notes fields, and status selection is present.
+- [x] Purchases detail page with header info, items table, summary, notes, and action buttons (receive/edit/delete) is present.
+- [x] Purchase receive dialog with per-item quantity/lot/serial entry is present.
+- [x] Sidebar navigation (`/purchases`), breadcrumbs, and route pages (list, create, detail, edit) are registered.
+- [x] English and Khmer translations are complete with namespace registered in i18n.
+- [x] Frontend type-check, lint (0 new errors), and build verified.
+
 ## Frontend UI Consistency
 
 - [x] Frontend shared and page-level icons now use Solar icons through a single local icon module, including sidebar navigation and common actions.

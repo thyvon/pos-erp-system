@@ -4,11 +4,23 @@ export const purchaseItemSchema = z.object({
   product_id: z.string().uuid(),
   variation_id: z.string().uuid().nullable().optional(),
   product_label: z.string().min(1),
+  sku: z.string().nullable().optional(),
+  unit_id: z.string().nullable().optional(),
+  unit_name: z.string().nullable().optional(),
+  sub_unit_id: z.string().nullable().optional(),
+  unit_label: z.string().nullable().optional(),
+  has_sub_unit: z.boolean().optional(),
+  _default_sub_unit_id: z.string().nullable().optional(),
+  conversion_factor: z.string().nullable().optional(),
   stock_tracking: z.string().nullable().optional(),
   quantity: z.coerce.number().gt(0),
   unit_cost: z.coerce.number().min(0),
+  discount_type: z.enum(['fixed', 'percentage']).nullable().optional(),
   discount_amount: z.coerce.number().min(0).optional().default(0),
+  tax_rate_id: z.string().nullable().optional(),
+  tax_rate_type: z.string().nullable().optional(),
   tax_rate: z.coerce.number().min(0).max(100).optional().default(0),
+  tax_type: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
 })
 
@@ -20,7 +32,13 @@ export const purchaseSchema = z.object({
   status: z.enum(['draft', 'confirmed']).default('draft'),
   purchase_date: z.string().min(1),
   expected_date: z.string().nullable().optional(),
+  discount_type: z.enum(['fixed', 'percentage']).nullable().optional(),
   discount_amount: z.coerce.number().min(0).optional().default(0),
+  tax_scope: z.enum(['line', 'sale']).optional().default('line'),
+  tax_rate_id: z.string().nullable().optional(),
+  tax_rate_type: z.string().nullable().optional(),
+  tax_rate: z.coerce.number().min(0).optional().default(0),
+  tax_type: z.string().nullable().optional(),
   shipping_charges: z.coerce.number().min(0).optional().default(0),
   notes: z.string().nullable().optional(),
   staff_note: z.string().nullable().optional(),
@@ -30,6 +48,7 @@ export const purchaseSchema = z.object({
 export const receivePurchaseItemSchema = z.object({
   purchase_item_id: z.string().uuid(),
   product_label: z.string(),
+  sku: z.string().nullable().optional(),
   stock_tracking: z.string().nullable().optional(),
   remaining_quantity: z.number(),
   quantity: z.coerce.number().gt(0),
@@ -62,7 +81,28 @@ export const receivePurchaseSchema = z.object({
   items: z.array(receivePurchaseItemSchema).min(1),
 })
 
+const paymentMethods = ['cash', 'card', 'bank_transfer', 'cheque', 'reward_points', 'gift_card', 'other'] as const
+
+const purchasePaymentLineSchema = z.object({
+  payment_account_id: z.string().min(1, 'Payment account is required'),
+  payment_currency: z.enum(['USD', 'KHR']),
+  payment_amount: z.coerce.number().gt(0, 'Amount must be greater than zero'),
+  amount: z.coerce.number().gt(0, 'Amount must be greater than zero').optional(),
+  exchange_rate_id: z.string().nullable().optional(),
+  method: z.enum(paymentMethods),
+  reference: z.string().trim().max(120, 'Reference must be 120 characters or less').nullable().optional(),
+})
+
+export const purchasePaymentSchema = z.object({
+  payment_date: z.string().min(1, 'Payment date is required'),
+  note: z.string().trim().nullable().optional(),
+  reason: z.string().trim().optional(),
+  payments: z.array(purchasePaymentLineSchema).min(1, 'Add at least one payment line'),
+})
+
 export type PurchaseFormInput = z.input<typeof purchaseSchema>
 export type PurchaseFormValues = z.output<typeof purchaseSchema>
 export type ReceivePurchaseFormInput = z.input<typeof receivePurchaseSchema>
 export type ReceivePurchaseFormValues = z.output<typeof receivePurchaseSchema>
+export type PurchasePaymentFormInput = z.input<typeof purchasePaymentSchema>
+export type PurchasePaymentFormValues = z.output<typeof purchasePaymentSchema>

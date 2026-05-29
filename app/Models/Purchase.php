@@ -27,7 +27,13 @@ class Purchase extends BaseModel
         'expected_date',
         'received_at',
         'subtotal',
+        'discount_type',
         'discount_amount',
+        'tax_scope',
+        'tax_rate_id',
+        'tax_rate_type',
+        'tax_rate',
+        'tax_type',
         'tax_amount',
         'shipping_charges',
         'total_amount',
@@ -68,16 +74,21 @@ class Purchase extends BaseModel
 
     public function creator(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'created_by');
+        return $this->belongsTo(User::class, 'created_by')->withTrashed();
     }
 
     public function receiver(): BelongsTo
     {
-        return $this->belongsTo(User::class, 'received_by');
+        return $this->belongsTo(User::class, 'received_by')->withTrashed();
     }
 
     public function items(): HasMany
     {
         return $this->hasMany(PurchaseItem::class)->orderBy('created_at');
+    }
+
+    public function payments(): HasMany
+    {
+        return $this->hasMany(PurchasePayment::class)->orderBy('created_at');
     }
 }

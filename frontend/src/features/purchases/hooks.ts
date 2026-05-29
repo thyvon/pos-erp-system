@@ -2,7 +2,7 @@
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
 import { purchasesApi } from './api'
-import type { PurchaseFilters, PurchasePayload, ReceivePurchasePayload } from '@/types/purchase'
+import type { PurchaseFilters, PurchasePayload, PurchasePaymentCorrectionPayload, PurchasePaymentDeletePayload, PurchasePaymentPayload, ReceivePurchasePayload } from '@/types/purchase'
 
 export const purchaseKeys = {
   all: ['purchases'] as const,
@@ -67,6 +67,44 @@ export function useReceivePurchaseMutation() {
     onSuccess: (purchase) => {
       queryClient.invalidateQueries({ queryKey: purchaseKeys.all })
       queryClient.invalidateQueries({ queryKey: purchaseKeys.detail(purchase.id) })
+    },
+  })
+}
+
+export function useRecordPurchasePaymentMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: PurchasePaymentPayload }) => purchasesApi.recordPayment(id, payload),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: purchaseKeys.all })
+      queryClient.invalidateQueries({ queryKey: purchaseKeys.detail(result.purchase.id) })
+    },
+  })
+}
+
+export function useUpdatePurchasePaymentMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ purchaseId, paymentId, payload }: { purchaseId: string; paymentId: string; payload: PurchasePaymentCorrectionPayload }) =>
+      purchasesApi.updatePayment(purchaseId, paymentId, payload),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: purchaseKeys.all })
+      queryClient.invalidateQueries({ queryKey: purchaseKeys.detail(result.purchase.id) })
+    },
+  })
+}
+
+export function useDeletePurchasePaymentMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ purchaseId, paymentId, payload }: { purchaseId: string; paymentId: string; payload?: PurchasePaymentDeletePayload }) =>
+      purchasesApi.deletePayment(purchaseId, paymentId, payload),
+    onSuccess: (result) => {
+      queryClient.invalidateQueries({ queryKey: purchaseKeys.all })
+      queryClient.invalidateQueries({ queryKey: purchaseKeys.detail(result.purchase.id) })
     },
   })
 }

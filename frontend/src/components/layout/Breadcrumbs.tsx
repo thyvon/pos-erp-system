@@ -7,6 +7,7 @@ import { NavigateNext } from '@/components/ui/icons'
 import { useTranslation } from 'react-i18next'
 import { useProductQuery } from '@/features/products/hooks'
 import { useStockCountQuery, useStockTransferQuery } from '@/features/inventory/hooks'
+import { usePurchaseQuery } from '@/features/purchases/hooks'
 import { useQuotationQuery, useSaleQuery, useSaleReturnQuery } from '@/features/sales/hooks'
 
 const BREADCRUMB_KEY_MAP: Record<string, string> = {
@@ -94,6 +95,16 @@ function breadcrumbLabelKey(to: string, pathnames: string[], index: number) {
     }
   }
 
+  if (pathnames[0] === 'purchases') {
+    if (pathnames[1] === 'create' && index === 1) {
+      return 'purchaseCreate'
+    }
+
+    if (pathnames[2] === 'edit' && index === 2) {
+      return 'purchaseEdit'
+    }
+  }
+
   return BREADCRUMB_KEY_MAP[to]
 }
 
@@ -125,6 +136,9 @@ export default function Breadcrumbs() {
   const isQuotationRouteWithId = pathnames[0] === 'quotations' && !!pathnames[1] && pathnames[1] !== 'create'
   const quotationId = isQuotationRouteWithId ? pathnames[1] : null
   const quotationQuery = useQuotationQuery(quotationId)
+  const isPurchaseRouteWithId = pathnames[0] === 'purchases' && !!pathnames[1] && pathnames[1] !== 'create'
+  const purchaseId = isPurchaseRouteWithId ? pathnames[1] : null
+  const purchaseQuery = usePurchaseQuery(purchaseId)
 
   return (
     <Box sx={{ mb: 3 }}>
@@ -157,6 +171,8 @@ export default function Breadcrumbs() {
             ? (saleReturnQuery.data?.return_number ?? t('breadcrumbs.saleReturnDetail'))
             : isQuotationRouteWithId && index === 1
             ? (quotationQuery.data?.sale_number ?? t('breadcrumbs.quotationDetail'))
+            : isPurchaseRouteWithId && index === 1
+            ? (purchaseQuery.data?.purchase_number ?? t('breadcrumbs.purchaseDetail'))
             : labelKey
             ? t(`breadcrumbs.${labelKey}`)
             : value.charAt(0).toUpperCase() + value.slice(1)
@@ -174,7 +190,8 @@ export default function Breadcrumbs() {
             || (isCountRouteWithId && index === 2)
             || (isSaleRouteWithId && index === 1)
             || (isSaleReturnRouteWithId && index === 1)
-            || (isQuotationRouteWithId && index === 1) ? (
+            || (isQuotationRouteWithId && index === 1)
+            || (isPurchaseRouteWithId && index === 1) ? (
             <Typography
               key={to}
               variant="body2"
