@@ -142,6 +142,7 @@ export function usePaymentAccountsQuery(filters: PaymentAccountFilters) {
   return useQuery({
     queryKey: paymentAccountKeys.list(filters),
     queryFn: () => paymentAccountsApi.list(filters),
+    staleTime: 5 * 60 * 1000,
   })
 }
 

@@ -127,8 +127,14 @@ class PurchaseService
                 'staff_note' => $data['staff_note'] ?? null,
             ]);
             $lockedPurchase->save();
-            $lockedPurchase->items()->delete();
-            $this->syncItems($businessId, $lockedPurchase, $data['items']);
+
+            $hasReceivedItems = $lockedPurchase->items->contains(fn ($item) => (float) $item->received_quantity > 0);
+            if ($hasReceivedItems) {
+                $this->syncItemsUpdate($businessId, $lockedPurchase, $data['items']);
+            } else {
+                $lockedPurchase->items()->delete();
+                $this->syncItems($businessId, $lockedPurchase, $data['items']);
+            }
 
             $lockedPurchase = $this->loadPurchase($lockedPurchase);
             $this->audit('updated', $lockedPurchase, $actor, $oldValues);
@@ -371,6 +377,90 @@ class PurchaseService
         }
 
         return $receivedQuantity >= $totalQuantity ? 'received' : 'partially_received';
+    }
+
+    protected function syncItemsUpdate(string $businessId, Purchase $purchase, array $items): void
+    {
+        $existingItems = $purchase->items->keyBy('id');
+
+        $matchedIds = [];
+
+        foreach ($items as $item) {
+            $match = $existingItems->first(
+                fn (PurchaseItem $ei) => (string) $ei->product_id === (string) $item['product_id']
+                    && (string) ($ei->variation_id ?? '') === (string) ($item['variation_id'] ?? '')
+                    && (string) ($ei->sub_unit_id ?? '') === (string) ($item['sub_unit_id'] ?? '')
+            );
+
+            if ($match) {
+                $matchedIds[] = $match->id;
+                $this->updateItemLine($purchase, $match, $item);
+            } else {
+                $this->createItemLine($businessId, $purchase, $item);
+            }
+        }
+
+        $purchase->items()
+            ->whereNotIn('id', $matchedIds)
+            ->where('received_quantity', 0)
+            ->delete();
+    }
+
+    protected function updateItemLine(Purchase $purchase, PurchaseItem $item, array $data): void
+    {
+        $quantity = round((float) $data['quantity'], 4);
+        $unitCost = round((float) $data['unit_cost'], 4);
+        $lineSubtotal = round($quantity * $unitCost, 2);
+        $discountAmount = round((float) ($data['discount_amount'] ?? 0), 2);
+        $taxableAmount = max(0, $lineSubtotal - $discountAmount);
+
+        $itemTaxAmount = $purchase->tax_scope === 'sale'
+            ? 0
+            : round($taxableAmount * (round((float) ($data['tax_rate'] ?? 0), 2) / 100), 2);
+
+        $item->fill([
+            'quantity' => $quantity,
+            'unit_cost' => $unitCost,
+            'discount_type' => $data['discount_type'] ?? null,
+            'discount_amount' => $discountAmount,
+            'tax_rate_id' => $data['tax_rate_id'] ?? null,
+            'tax_rate' => round((float) ($data['tax_rate'] ?? 0), 2),
+            'tax_amount' => $itemTaxAmount,
+            'total_amount' => round($taxableAmount + $itemTaxAmount, 2),
+            'notes' => $data['notes'] ?? null,
+        ]);
+        $item->save();
+    }
+
+    protected function createItemLine(string $businessId, Purchase $purchase, array $data): void
+    {
+        $product = $this->resolveProduct($businessId, $data['product_id']);
+        $variation = $this->resolveVariation($businessId, $product, $data['variation_id'] ?? null);
+        $quantity = round((float) $data['quantity'], 4);
+        $unitCost = round((float) $data['unit_cost'], 4);
+        $lineSubtotal = round($quantity * $unitCost, 2);
+        $discountAmount = round((float) ($data['discount_amount'] ?? 0), 2);
+        $taxableAmount = max(0, $lineSubtotal - $discountAmount);
+
+        $itemTaxAmount = $purchase->tax_scope === 'sale'
+            ? 0
+            : round($taxableAmount * (round((float) ($data['tax_rate'] ?? 0), 2) / 100), 2);
+
+        $purchase->items()->create([
+            'product_id' => $product->id,
+            'variation_id' => $variation?->id,
+            'sub_unit_id' => $data['sub_unit_id'] ?? null,
+            'quantity' => $quantity,
+            'received_quantity' => 0,
+            'unit_cost' => $unitCost,
+            'discount_type' => $data['discount_type'] ?? null,
+            'discount_amount' => $discountAmount,
+            'tax_rate_id' => $data['tax_rate_id'] ?? null,
+            'tax_rate' => round((float) ($data['tax_rate'] ?? 0), 2),
+            'tax_amount' => $itemTaxAmount,
+            'total_amount' => round($taxableAmount + $itemTaxAmount, 2),
+            'notes' => $data['notes'] ?? null,
+        ]);
     }
 
     protected function syncItems(string $businessId, Purchase $purchase, array $items): void

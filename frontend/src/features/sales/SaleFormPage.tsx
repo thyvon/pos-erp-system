@@ -40,6 +40,8 @@ import { toAppApiError } from '@/api/errors'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
 import { useDefaultExchangeRateQuery, usePaymentAccountsQuery } from '@/features/accounting/hooks'
 import { useCustomersQuery } from '@/features/customers/hooks'
+import { UnitConversionBadge } from '@/features/sales/components/UnitConversionBadge'
+import { UnitToggle } from '@/features/sales/components/UnitToggle'
 import { InventoryProductLookupPicker } from '@/features/inventory/components/InventoryProductLookupPicker'
 import { usePriceGroupsQuery } from '@/features/price-groups/hooks'
 import { useAppCurrency, useCurrencyFormatter } from '@/features/settings/useAppCurrency'
@@ -83,7 +85,8 @@ interface SaleFormPageProps {
 }
 
 const itemColumnSx = {
-  product: { width: 340, minWidth: 340 },
+  product: { width: 310, minWidth: 310 },
+  unit: { width: 110, minWidth: 110 },
   quantity: { width: 130, minWidth: 130 },
   price: { width: 150, minWidth: 150 },
   discountType: { width: 150, minWidth: 150 },
@@ -194,6 +197,13 @@ function valuesFromSale(sale: Sale | null | undefined): SaleFormInput {
       product_id: item.product_id,
       variation_id: item.variation_id ?? null,
       sub_unit_id: item.sub_unit_id ?? null,
+      unit_id: item.product?.unit?.id ?? null,
+      sub_unit_label: item.sub_unit?.short_name ?? item.product?.sub_unit?.short_name ?? item.variation?.sub_unit?.short_name ?? null,
+      _base_unit_label: item.product?.unit?.short_name ?? null,
+      _sub_unit_option_id: item.product?.sub_unit?.id ?? item.variation?.sub_unit?.id ?? null,
+      _base_unit_price: toNumber(item.variation?.selling_price ?? item.product?.selling_price),
+      _sub_unit_price: toNumber(item.variation?.sub_unit_selling_price ?? item.product?.sub_unit_selling_price ?? item.variation?.selling_price ?? item.product?.selling_price),
+      _conversion_factor: item.sub_unit?.conversion_factor ?? null,
       lot_id: item.lots?.[0]?.lot_id ?? null,
       serial_id: item.serials?.[0]?.serial_id ?? null,
       product_label: itemName(item),
@@ -267,20 +277,11 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
     append: appendDirectPayment,
     remove: removeDirectPayment,
   } = useFieldArray({ control, name: 'direct_payments', keyName: 'fieldId' })
-  const branchId = useWatch({ control, name: 'branch_id' })
-  const warehouseId = useWatch({ control, name: 'warehouse_id' })
-  const taxScope = useWatch({ control, name: 'tax_scope' })
-  const watchedItemsValue = useWatch({ control, name: 'items' })
+  const [branchId, warehouseId, taxScope, watchedItemsValue, saleDiscountType, saleDiscountValue, saleTaxType, saleTaxRateType, saleTaxRate, shippingCharges, saleType, directPaymentEnabled, watchedDirectPaymentsValue] = useWatch({
+    control,
+    name: ['branch_id', 'warehouse_id', 'tax_scope', 'items', 'discount_type', 'discount_amount', 'tax_type', 'tax_rate_type', 'tax_rate', 'shipping_charges', 'type', 'direct_payment_enabled', 'direct_payments'],
+  }) as [string, string, string, SaleFormInput['items'], string, number, string, string, number, number, string, boolean, SaleFormInput['direct_payments']]
   const watchedItems = useMemo(() => watchedItemsValue ?? [], [watchedItemsValue])
-  const saleDiscountType = useWatch({ control, name: 'discount_type' })
-  const saleDiscountValue = useWatch({ control, name: 'discount_amount' })
-  const saleTaxType = useWatch({ control, name: 'tax_type' })
-  const saleTaxRateType = useWatch({ control, name: 'tax_rate_type' })
-  const saleTaxRate = useWatch({ control, name: 'tax_rate' })
-  const shippingCharges = useWatch({ control, name: 'shipping_charges' })
-  const saleType = useWatch({ control, name: 'type' })
-  const directPaymentEnabled = useWatch({ control, name: 'direct_payment_enabled' })
-  const watchedDirectPaymentsValue = useWatch({ control, name: 'direct_payments' })
   const watchedDirectPayments = useMemo(() => watchedDirectPaymentsValue ?? [], [watchedDirectPaymentsValue])
   const warehousesQuery = useWarehousesQuery({ per_page: 100 })
   const paymentAccountsQuery = usePaymentAccountsQuery({ status: 'active', per_page: 100 })
@@ -313,10 +314,10 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
       total: round(discounted + saleTax + toNumber(shippingCharges)),
     }
   }, [saleDiscountType, saleDiscountValue, saleTaxRate, saleTaxRateType, saleTaxType, shippingCharges, taxScope, watchedItems])
-  const directPaymentBase = round(
-    watchedDirectPayments.reduce((total, line) => total + directPaymentLineBaseAmount(line, defaultExchangeRateValue), 0),
+  const lineTotals = useMemo(
+    () => watchedItems.map((item) => lineTotal(item, taxScope)),
+    [watchedItems, taxScope],
   )
-  const directPaymentBaseDisplay = formatUsdKhrAmount(directPaymentBase, defaultExchangeRateValue)
   const currentSale = saleQuery.data ?? null
   const currentSaleStatus = currentSale?.status
   const existingPayments = useMemo(
@@ -331,11 +332,30 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
   const canTakeDirectPayment = !isQuotationMode
     && (saleType === 'invoice' || saleType === 'pos_sale')
     && (!isEdit || ['draft', 'suspended', 'confirmed', 'completed'].includes(String(currentSaleStatus ?? '')))
-  const directPaymentRemaining = Math.max(0, round(editPaymentLimit - directPaymentBase))
-  const directPaymentChange = Math.max(0, round(directPaymentBase - editPaymentLimit))
-  const directPaymentRemainingDisplay = formatUsdKhrAmount(directPaymentRemaining, defaultExchangeRateValue)
-  const directPaymentChangeDisplay = formatUsdKhrAmount(directPaymentChange, defaultExchangeRateValue)
-  const showPaymentSection = canTakeDirectPayment || (isEdit && existingPayments.length > 0)
+  const {
+    directPaymentBase,
+    directPaymentBaseDisplay,
+    directPaymentRemaining,
+    directPaymentChange,
+    directPaymentRemainingDisplay,
+    directPaymentChangeDisplay,
+    showPaymentSection,
+  } = useMemo(() => {
+    const base = round(
+      watchedDirectPayments.reduce((total, line) => total + directPaymentLineBaseAmount(line, defaultExchangeRateValue), 0),
+    )
+    const remaining = Math.max(0, round(editPaymentLimit - base))
+    const change = Math.max(0, round(base - editPaymentLimit))
+    return {
+      directPaymentBase: base,
+      directPaymentBaseDisplay: formatUsdKhrAmount(base, defaultExchangeRateValue),
+      directPaymentRemaining: remaining,
+      directPaymentChange: change,
+      directPaymentRemainingDisplay: formatUsdKhrAmount(remaining, defaultExchangeRateValue),
+      directPaymentChangeDisplay: formatUsdKhrAmount(change, defaultExchangeRateValue),
+      showPaymentSection: canTakeDirectPayment || (isEdit && existingPayments.length > 0),
+    }
+  }, [watchedDirectPayments, defaultExchangeRateValue, editPaymentLimit, canTakeDirectPayment, isEdit, existingPayments.length])
 
   useEffect(() => {
     if (saleQuery.data) reset(valuesFromSale(saleQuery.data))
@@ -410,14 +430,21 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
     append({
       product_id: item.product_id,
       variation_id: item.variation_id ?? null,
-      sub_unit_id: item.sub_unit?.id ?? null,
+      sub_unit_id: null,
+      unit_id: item.unit?.id ?? null,
+      sub_unit_label: item.sub_unit?.short_name ?? null,
+      _base_unit_label: item.unit?.short_name ?? null,
+      _sub_unit_option_id: item.sub_unit?.id ?? null,
+      _base_unit_price: toNumber(item.selling_price),
+      _sub_unit_price: toNumber(item.sub_unit_selling_price ?? item.selling_price),
+      _conversion_factor: item.sub_unit?.conversion_factor ?? null,
       lot_id: item.lot_id ?? null,
       serial_id: item.serial_id ?? null,
       product_label: item.label,
       sku: item.sku ?? null,
       lot_number: item.lot_number ?? null,
       serial_number: item.serial_number ?? null,
-      unit_label: item.sub_unit?.short_name ?? item.unit?.short_name ?? null,
+      unit_label: item.unit?.short_name ?? null,
       available_quantity: item.available_quantity ?? null,
       quantity: item.serial_id ? 1 : 1,
       unit_price: toNumber(item.selling_price),
@@ -437,6 +464,12 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
     setValue(`items.${index}.tax_rate_id`, taxRateId)
     setValue(`items.${index}.tax_rate_type`, taxRate?.type ?? null)
     setValue(`items.${index}.tax_rate`, taxRate?.rate ?? 0)
+  }
+
+  const changeItemUnit = (index: number, nextSubUnitId: string | null, nextLabel: string, nextPrice: number) => {
+    setValue(`items.${index}.sub_unit_id`, nextSubUnitId, { shouldDirty: true, shouldValidate: true })
+    setValue(`items.${index}.unit_label`, nextLabel, { shouldDirty: true, shouldValidate: true })
+    setValue(`items.${index}.unit_price`, nextPrice, { shouldDirty: true, shouldValidate: true })
   }
 
   const submitForm = async (values: SaleFormValues) => {
@@ -567,7 +600,7 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
         <Stack spacing={3}>
           {serverError && <Alert severity="error">{serverError}</Alert>}
 
-          <Card>
+          <Card variant="outlined">
             <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
               <Stack spacing={2.5}>
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1.3fr) minmax(0, 1fr) 180px 180px' }, gap: 2 }}>
@@ -684,13 +717,15 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
                   )}
                 />
               </Box>
+              </Stack>
+            </CardContent>
+          </Card>
 
-              <Stack spacing={1.5}>
+          <Card variant="outlined">
+            <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+              <Stack spacing={2.5}>
                 <Box>
-                  <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
-                    <Typography variant="subtitle2">{t('form.items')}</Typography>
-                    <InstructionTooltip title={t('form.itemsHelp')} />
-                  </Stack>
+                  <Typography variant="subtitle2">{t('form.items')}</Typography>
                 </Box>
                 <InventoryProductLookupPicker
                   warehouseId={warehouseId || undefined}
@@ -698,16 +733,14 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
                   helperText={undefined}
                   onSelect={addLookupItem}
                 />
-                <Box sx={{ mt: -1 }}>
-                  <InstructionTooltip title={warehouseId ? t('form.pickerHelp') : t('form.selectWarehouseFirst')} />
-                </Box>
                 {typeof errors.items?.message === 'string' && <Alert severity="error">{errors.items.message}</Alert>}
 
                 <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1, overflowX: 'auto' }}>
-                  <Table sx={{ minWidth: 1460, tableLayout: 'fixed' }}>
+                  <Table sx={{ minWidth: 1580, tableLayout: 'fixed' }}>
                     <TableHead>
                       <TableRow>
                         <TableCell sx={itemColumnSx.product}>{t('items.product')}</TableCell>
+                        <TableCell sx={itemColumnSx.unit}>{t('items.unit')}</TableCell>
                         <TableCell sx={itemColumnSx.quantity} align="right">{t('items.quantity')}</TableCell>
                         <TableCell sx={itemColumnSx.price} align="right">{t('items.unitPrice')}</TableCell>
                         <TableCell sx={itemColumnSx.discountType}>{t('items.discountType')}</TableCell>
@@ -721,25 +754,46 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
                     <TableBody>
                       {itemFields.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
+                          <TableCell colSpan={10} align="center" sx={{ py: 4 }}>
                             <Typography variant="body2" sx={{ color: 'text.secondary' }}>{t('form.emptyItems')}</Typography>
                           </TableCell>
                         </TableRow>
                       )}
-                      {itemFields.map((field, index) => (
+                        {itemFields.map((field, index) => (
                           <TableRow key={field.fieldId}>
                             <TableCell sx={itemColumnSx.product}>
                               <Stack spacing={0.25}>
                                 <Typography variant="body2">{field.product_label || field.product_id}</Typography>
-                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                  {[field.sku, field.lot_number, field.serial_number, field.unit_label].filter(Boolean).join(' / ') || '-'}
-                                </Typography>
-                                {field.available_quantity !== null && field.available_quantity !== undefined && (
+                                <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
                                   <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                    {t('form.available', { quantity: field.available_quantity })}
+                                    {field.sku || '-'}
                                   </Typography>
-                                )}
+                                  {watchedItems[index]?.sub_unit_id && field._conversion_factor ? (
+                                    <UnitConversionBadge
+                                      conversionFactor={field._conversion_factor}
+                                      baseUnitLabel={field._base_unit_label ?? ''}
+                                      subUnitLabel={field.sub_unit_label ?? ''}
+                                      quantity={Number(watchedItems[index]?.quantity ?? 0)}
+                                    />
+                                  ) : field._base_unit_label ? (
+                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                      · {field._base_unit_label}
+                                    </Typography>
+                                  ) : null}
+                                </Stack>
                               </Stack>
+                            </TableCell>
+                            <TableCell sx={itemColumnSx.unit}>
+                              <UnitToggle
+                                subUnitOptionId={field._sub_unit_option_id ?? null}
+                                currentSubUnitId={field.sub_unit_id ?? null}
+                                baseUnitLabel={field._base_unit_label ?? null}
+                                subUnitLabel={field.sub_unit_label ?? null}
+                                baseUnitPrice={Number(field._base_unit_price ?? 0) || 0}
+                                subUnitPrice={Number(field._sub_unit_price ?? 0) || 0}
+                                disabled={isSaving}
+                                onChange={(nextSubUnitId, nextLabel, nextPrice) => changeItemUnit(index, nextSubUnitId, nextLabel, nextPrice)}
+                              />
                             </TableCell>
                             <TableCell align="right" sx={itemColumnSx.quantity}>
                               <Controller name={`items.${index}.quantity`} control={control} render={({ field }) => (
@@ -791,7 +845,7 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
                                 <TextField {...field} fullWidth value={field.value ?? ''} error={!!errors.items?.[index]?.notes} helperText={errors.items?.[index]?.notes?.message} />
                               )} />
                             </TableCell>
-                            <TableCell align="right" sx={itemColumnSx.total}>{currencyFormatter.format(lineTotal(watchedItems[index] ?? field, taxScope))}</TableCell>
+                            <TableCell align="right" sx={itemColumnSx.total}>{currencyFormatter.format(lineTotals[index] ?? lineTotal(field, taxScope))}</TableCell>
                             <TableCell align="right" sx={itemColumnSx.actions}>
                               <Tooltip title={t('actions.removeItem')}>
                                 <span>
@@ -807,8 +861,13 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
                   </Table>
                 </TableContainer>
               </Stack>
+            </CardContent>
+          </Card>
 
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr 1fr' }, gap: 2 }}>
+          <Card variant="outlined">
+            <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+              <Stack spacing={2.5}>
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr 1fr' }, gap: 2 }}>
                 <Controller name="discount_type" control={control} render={({ field }) => (
                   <TextField {...field} value={field.value ?? ''} select label={t('fields.discountType')} error={!!errors.discount_type} helperText={errors.discount_type?.message}>
                     <MenuItem value="">{t('form.noDiscount')}</MenuItem>
@@ -895,7 +954,7 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
           </Card>
 
           {showPaymentSection && (
-            <Card>
+            <Card variant="outlined">
               <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
                 <Stack spacing={1.5}>
                   {canTakeDirectPayment && (
@@ -1221,14 +1280,20 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
             </Card>
           )}
 
-          <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
-            <Controller name="notes" control={control} render={({ field }) => (
-              <TextField {...field} value={field.value ?? ''} label={t('fields.notes')} error={!!errors.notes} helperText={errors.notes?.message} multiline minRows={3} />
-            )} />
-            <Controller name="staff_note" control={control} render={({ field }) => (
-              <TextField {...field} value={field.value ?? ''} label={t('fields.staffNote')} error={!!errors.staff_note} helperText={errors.staff_note?.message} multiline minRows={3} />
-            )} />
-          </Box>
+          <Card variant="outlined">
+            <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+              <Stack spacing={2.5}>
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+                  <Controller name="notes" control={control} render={({ field }) => (
+                    <TextField {...field} value={field.value ?? ''} label={t('fields.notes')} error={!!errors.notes} helperText={errors.notes?.message} multiline minRows={3} />
+                  )} />
+                  <Controller name="staff_note" control={control} render={({ field }) => (
+                    <TextField {...field} value={field.value ?? ''} label={t('fields.staffNote')} error={!!errors.staff_note} helperText={errors.staff_note?.message} multiline minRows={3} />
+                  )} />
+                </Box>
+              </Stack>
+            </CardContent>
+          </Card>
 
           <Stack direction="row" spacing={1.5} sx={{ justifyContent: 'flex-end' }}>
             <Button variant="outlined" onClick={() => router.push(isQuotationMode ? '/quotations' : isEdit && saleId ? `/sales/${saleId}` : '/sales')} disabled={isSaving}>

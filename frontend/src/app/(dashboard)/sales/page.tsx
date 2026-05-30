@@ -37,20 +37,17 @@ import { useCustomersQuery } from '@/features/customers/hooks'
 import { useDeleteSaleMutation, useSalesQuery } from '@/features/sales/hooks'
 import { useAppDateFormat } from '@/features/settings/useAppDateFormat'
 import { useCurrencyFormatter } from '@/features/settings/useAppCurrency'
-import { useWarehousesQuery } from '@/features/warehouses/hooks'
 import { useAuthStore } from '@/stores/authStore'
 import { formatAppDate } from '@/utils/dateFormat'
-import type { Sale, SaleFilters, SaleStatus, SaleType } from '@/types/sales'
+import { formatMoney } from '@/utils/formatMoney'
+import { useWarehousesQuery } from '@/features/warehouses/hooks'
+import type { Sale, SaleFilters, SaleStatus, SalePaymentStatus, SaleType } from '@/types/sales'
 
 const rowsPerPageOptions = [10, 25, 50]
-const statuses: SaleStatus[] = ['draft', 'quotation', 'suspended', 'confirmed', 'completed', 'cancelled', 'returned']
-const saleTypes: SaleType[] = ['invoice', 'pos_sale', 'draft', 'quotation', 'suspended']
-const deletableStatuses = ['draft', 'quotation', 'suspended', 'confirmed']
-
-function formatMoney(value: number | string | null | undefined, formatter: Intl.NumberFormat) {
-  const numeric = Number(value ?? 0)
-  return Number.isFinite(numeric) ? formatter.format(numeric) : '-'
-}
+const saleStatuses: SaleStatus[] = ['quotation', 'confirmed', 'partially_shipped', 'shipped', 'completed', 'cancelled']
+const saleTypes: SaleType[] = ['quotation', 'invoice', 'pos_sale']
+const paymentStatuses: SalePaymentStatus[] = ['unpaid', 'partial', 'paid']
+const deletableStatuses: SaleStatus[] = ['quotation', 'confirmed']
 
 export default function SalesPage() {
   const { t, i18n } = useTranslation(['sales', 'common'])
@@ -204,7 +201,7 @@ export default function SalesPage() {
                   sx={{ minWidth: { xs: '100%', lg: 170 } }}
                 >
                   <MenuItem value="">{t('filters.allStatuses')}</MenuItem>
-                  {statuses.map((status) => (
+                  {saleStatuses.map((status) => (
                     <MenuItem key={status} value={status}>{t(`statuses.${status}`)}</MenuItem>
                   ))}
                 </TextField>

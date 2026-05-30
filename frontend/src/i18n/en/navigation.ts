@@ -14,6 +14,7 @@ export default {
     quotations: 'Quotations',
     saleReturns: 'Sale Returns',
     cashRegisters: 'Cash Registers',
+    purchases: 'Purchase Orders',
     branches: 'Branches',
     warehouses: 'Warehouses',
     users: 'Users',

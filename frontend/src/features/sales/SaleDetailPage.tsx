@@ -28,6 +28,7 @@ import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { UnitConversionBadge } from '@/features/sales/components/UnitConversionBadge'
 import { SaleCancelDialog } from './SaleCancelDialog'
 import { SalePaymentDialog } from './SalePaymentDialog'
 import { SaleReturnDialog } from './SaleReturnDialog'
@@ -45,15 +46,11 @@ import { useAppDateFormat } from '@/features/settings/useAppDateFormat'
 import { useCurrencyFormatter } from '@/features/settings/useAppCurrency'
 import { useAuthStore } from '@/stores/authStore'
 import { formatAppDate, formatAppDateTime } from '@/utils/dateFormat'
+import { formatMoney } from '@/utils/formatMoney'
 import type { Sale, SaleCancelPayload, SaleItem, SalePayment, SalePaymentPayload, SaleReturnPayload } from '@/types/sales'
 
 interface SaleDetailPageProps {
   saleId: string
-}
-
-function formatMoney(value: number | string | null | undefined, formatter: Intl.NumberFormat) {
-  const numeric = Number(value ?? 0)
-  return Number.isFinite(numeric) ? formatter.format(numeric) : '-'
 }
 
 function formatQuantity(value: string | number | null | undefined) {
@@ -374,9 +371,23 @@ export function SaleDetailPage({ saleId }: SaleDetailPageProps) {
                         <TableCell>
                           <Stack spacing={0.25}>
                             <Typography variant="subtitle2">{itemLabel(item)}</Typography>
-                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                              {item.variation?.sku ?? item.product?.sku ?? '-'}
-                            </Typography>
+                            <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                {item.variation?.sku ?? item.product?.sku ?? '-'}
+                              </Typography>
+                              {item.sub_unit_id && item.sub_unit?.conversion_factor ? (
+                                <UnitConversionBadge
+                                  conversionFactor={item.sub_unit.conversion_factor}
+                                  baseUnitLabel={item.product?.unit?.short_name ?? ''}
+                                  subUnitLabel={item.sub_unit.short_name ?? ''}
+                                  quantity={Number(item.quantity ?? 0)}
+                                />
+                              ) : item.product?.unit?.short_name ? (
+                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                  · {item.product.unit.short_name}
+                                </Typography>
+                              ) : null}
+                            </Stack>
                             {item.notes && (
                               <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                                 {item.notes}

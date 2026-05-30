@@ -28,20 +28,17 @@ import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { SaleCancelDialog } from './SaleCancelDialog'
 import { QuotationConvertDialog } from './QuotationConvertDialog'
+import { UnitConversionBadge } from '@/features/sales/components/UnitConversionBadge'
 import { useCancelQuotationMutation, useConvertQuotationMutation, useQuotationQuery } from './hooks'
 import { useAppDateFormat } from '@/features/settings/useAppDateFormat'
 import { useCurrencyFormatter } from '@/features/settings/useAppCurrency'
 import { useAuthStore } from '@/stores/authStore'
 import { formatAppDate, formatAppDateTime } from '@/utils/dateFormat'
+import { formatMoney } from '@/utils/formatMoney'
 import type { QuotationConvertPayload, SaleCancelPayload, SaleItem } from '@/types/sales'
 
 interface QuotationDetailPageProps {
   quotationId: string
-}
-
-function formatMoney(value: number | string | null | undefined, formatter: Intl.NumberFormat) {
-  const numeric = Number(value ?? 0)
-  return Number.isFinite(numeric) ? formatter.format(numeric) : '-'
 }
 
 function formatQuantity(value: string | number | null | undefined) {
@@ -213,7 +210,28 @@ export function QuotationDetailPage({ quotationId }: QuotationDetailPageProps) {
                   {(quotation.items ?? []).map((item, index) => (
                     <TableRow key={item.id}>
                       <TableCell>{index + 1}</TableCell>
-                      <TableCell>{itemLabel(item)}</TableCell>
+                      <TableCell>
+                        <Stack spacing={0.25}>
+                          <Typography variant="subtitle2">{itemLabel(item)}</Typography>
+                          <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              {item.variation?.sku ?? item.product?.sku ?? '-'}
+                            </Typography>
+                            {item.sub_unit_id && item.sub_unit?.conversion_factor ? (
+                              <UnitConversionBadge
+                                conversionFactor={item.sub_unit.conversion_factor}
+                                baseUnitLabel={item.product?.unit?.short_name ?? ''}
+                                subUnitLabel={item.sub_unit.short_name ?? ''}
+                                quantity={Number(item.quantity ?? 0)}
+                              />
+                            ) : item.product?.unit?.short_name ? (
+                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                · {item.product.unit.short_name}
+                              </Typography>
+                            ) : null}
+                          </Stack>
+                        </Stack>
+                      </TableCell>
                       <TableCell align="right">{formatQuantity(item.quantity)}</TableCell>
                       <TableCell>{item.sub_unit?.short_name ?? item.product?.unit?.short_name ?? '-'}</TableCell>
                       <TableCell align="right">{formatMoney(item.unit_price, currencyFormatter)}</TableCell>

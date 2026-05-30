@@ -1,6 +1,6 @@
 'use client'
 
-import type { ReactNode } from 'react'
+import { useMemo, type ReactNode } from 'react'
 import {
   Alert,
   Box,
@@ -20,6 +20,8 @@ import {
 } from '@mui/material'
 import { Controller, type Control, type FieldArrayWithId, type FieldErrors } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
+import { UnitConversionBadge } from '@/features/sales/components/UnitConversionBadge'
+import { UnitToggle } from '@/features/sales/components/UnitToggle'
 import { InventoryProductLookupPicker } from '@/features/inventory/components/InventoryProductLookupPicker'
 import { DeleteOutlined, EditOutlined } from '@/components/ui/icons'
 import type { InventoryProductLookupItem } from '@/types/inventory'
@@ -27,7 +29,8 @@ import { lineTotal, round, toNumber } from '../formHelpers'
 import type { SaleFormInput, SaleFormValues } from '../schema'
 
 const cartColumnSx = {
-  product: { width: 400, minWidth: 400 },
+  product: { width: 370, minWidth: 370 },
+  unit: { width: 110, minWidth: 110 },
   quantity: { width: 170, minWidth: 170 },
   price: { width: 160, minWidth: 160 },
   total: { width: 132, minWidth: 132 },
@@ -54,6 +57,7 @@ interface PosCartSectionProps {
   totals: CartTotals
   onSelectItem: (item: InventoryProductLookupItem) => void
   onQuantityChange: (index: number, quantity: number) => void
+  onChangeUnit: (index: number, subUnitId: string | null, unitLabel: string, unitPrice: number) => void
   onEditItem: (index: number) => void
   onRemoveItem: (index: number) => void
   onEditSummary: (summary: 'discount' | 'tax' | 'shipping') => void
@@ -73,12 +77,17 @@ export function PosCartSection({
   totals,
   onSelectItem,
   onQuantityChange,
+  onChangeUnit,
   onEditItem,
   onRemoveItem,
   onEditSummary,
   children,
 }: PosCartSectionProps) {
   const { t } = useTranslation(['sales'])
+  const lineTotals = useMemo(
+    () => watchedItems.map((item) => lineTotal(item, taxScope)),
+    [watchedItems, taxScope],
+  )
 
   return (
     <>
@@ -95,10 +104,11 @@ export function PosCartSection({
           {typeof errors.items?.message === 'string' && <Alert severity="error">{errors.items.message}</Alert>}
 
           <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1, overflowX: 'auto' }}>
-            <Table sx={{ minWidth: 958, tableLayout: 'fixed' }}>
+            <Table sx={{ minWidth: 1048, tableLayout: 'fixed' }}>
               <TableHead>
                 <TableRow>
                   <TableCell sx={cartColumnSx.product}>{t('items.product')}</TableCell>
+                  <TableCell sx={cartColumnSx.unit}>{t('items.unit')}</TableCell>
                   <TableCell sx={cartColumnSx.quantity} align="right">{t('items.quantity')}</TableCell>
                   <TableCell sx={cartColumnSx.price} align="right">{t('items.unitPrice')}</TableCell>
                   <TableCell sx={cartColumnSx.total} align="right">{t('items.total')}</TableCell>
@@ -108,7 +118,7 @@ export function PosCartSection({
               <TableBody>
                 {itemFields.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={5} align="center" sx={{ py: 10 }}>
+                    <TableCell colSpan={6} align="center" sx={{ py: 10 }}>
                       <Typography variant="body2" sx={{ color: 'text.secondary' }}>{t('pos.emptyCart')}</Typography>
                     </TableCell>
                   </TableRow>
@@ -116,10 +126,38 @@ export function PosCartSection({
                 {itemFields.map((field, index) => (
                   <TableRow key={field.fieldId}>
                     <TableCell sx={cartColumnSx.product}>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>{field.product_label || field.product_id}</Typography>
-                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                        {[field.sku, field.lot_number, field.serial_number, field.unit_label].filter(Boolean).join(' / ') || '-'}
-                      </Typography>
+                      <Stack spacing={0.25}>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }}>{field.product_label || field.product_id}</Typography>
+                        <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                            {field.sku || '-'}
+                          </Typography>
+                          {watchedItems[index]?.sub_unit_id && field._conversion_factor ? (
+                            <UnitConversionBadge
+                              conversionFactor={field._conversion_factor}
+                              baseUnitLabel={field._base_unit_label ?? ''}
+                              subUnitLabel={field.sub_unit_label ?? ''}
+                              quantity={Number(watchedItems[index]?.quantity ?? 0)}
+                            />
+                          ) : field._base_unit_label ? (
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              · {field._base_unit_label}
+                            </Typography>
+                          ) : null}
+                        </Stack>
+                      </Stack>
+                    </TableCell>
+                    <TableCell sx={cartColumnSx.unit}>
+                      <UnitToggle
+                        subUnitOptionId={field._sub_unit_option_id ?? null}
+                        currentSubUnitId={field.sub_unit_id ?? null}
+                        baseUnitLabel={field._base_unit_label ?? null}
+                        subUnitLabel={field.sub_unit_label ?? null}
+                        baseUnitPrice={Number(field._base_unit_price ?? 0) || 0}
+                        subUnitPrice={Number(field._sub_unit_price ?? 0) || 0}
+                        disabled={isSaving}
+                        onChange={(nextSubUnitId, nextLabel, nextPrice) => onChangeUnit(index, nextSubUnitId, nextLabel, nextPrice)}
+                      />
                     </TableCell>
                     <TableCell align="right" sx={cartColumnSx.quantity}>
                       <Stack direction="row" spacing={0} sx={{ justifyContent: 'flex-end' }}>
@@ -171,7 +209,7 @@ export function PosCartSection({
                       )} />
                     </TableCell>
                     <TableCell align="right" sx={cartColumnSx.total}>
-                      <Typography variant="subtitle2">{currencyFormatter.format(lineTotal(watchedItems[index] ?? field, taxScope))}</Typography>
+                      <Typography variant="subtitle2">{currencyFormatter.format(lineTotals[index] ?? lineTotal(watchedItems[index] ?? field, taxScope))}</Typography>
                     </TableCell>
                     <TableCell align="right" sx={cartColumnSx.actions}>
                       <Stack direction="row" spacing={0.5} sx={{ justifyContent: 'flex-end' }}>

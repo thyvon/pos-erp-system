@@ -15,6 +15,8 @@ import {
   Typography,
 } from '@mui/material'
 import { useTranslation } from 'react-i18next'
+import { UnitConversionBadge } from '@/features/sales/components/UnitConversionBadge'
+import { toNumber } from '@/features/sales/formHelpers'
 import type { SaleItem } from '@/types/sales'
 
 export interface SaleReturnDraftLine {
@@ -30,11 +32,6 @@ interface SaleReturnLineTableProps {
   lines: SaleReturnDraftLine[]
   disabled?: boolean
   onChange: (lines: SaleReturnDraftLine[]) => void
-}
-
-function toNumber(value: number | string | null | undefined, fallback = 0) {
-  const numeric = Number(value ?? fallback)
-  return Number.isFinite(numeric) ? numeric : fallback
 }
 
 function formatQuantity(value: string | number | null | undefined) {
@@ -91,9 +88,23 @@ export function SaleReturnLineTable({ items, lines, disabled = false, onChange }
                 <TableCell>
                   <Stack spacing={0.25}>
                     <Typography variant="subtitle2">{itemLabel(item)}</Typography>
-                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                      {item.variation?.sku ?? item.product?.sku ?? '-'}
-                    </Typography>
+                    <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                        {item.variation?.sku ?? item.product?.sku ?? '-'}
+                      </Typography>
+                      {item.sub_unit_id && item.sub_unit?.conversion_factor ? (
+                        <UnitConversionBadge
+                          conversionFactor={item.sub_unit.conversion_factor}
+                          baseUnitLabel={item.product?.unit?.short_name ?? ''}
+                          subUnitLabel={item.sub_unit.short_name ?? ''}
+                          quantity={Number(item.quantity ?? 0)}
+                        />
+                      ) : item.product?.unit?.short_name ? (
+                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                          · {item.product.unit.short_name}
+                        </Typography>
+                      ) : null}
+                    </Stack>
                   </Stack>
                 </TableCell>
                 <TableCell align="right">{formatQuantity(item.quantity)}</TableCell>

@@ -14,6 +14,7 @@ export default {
     quotations: 'សម្រង់តម្លៃ',
     saleReturns: 'ការត្រឡប់ការលក់',
     cashRegisters: 'ទូរទាត់ប្រាក់',
+    purchases: 'ការបញ្ជាទិញទំនិញចូល',
     branches: 'សាខា',
     warehouses: 'ឃ្លាំង',
     users: 'អ្នកប្រើប្រាស់',

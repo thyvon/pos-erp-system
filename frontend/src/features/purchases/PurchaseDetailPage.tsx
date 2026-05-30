@@ -12,7 +12,6 @@ import {
   Chip,
   CircularProgress,
   Collapse,
-  Divider,
   IconButton,
   Stack,
   Table,
@@ -29,6 +28,7 @@ import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
+import { UnitConversionBadge } from '@/features/sales/components/UnitConversionBadge'
 import { PurchaseReceiveDialog } from './PurchaseReceiveDialog'
 import { PurchasePaymentDialog } from './PurchasePaymentDialog'
 
@@ -45,16 +45,11 @@ import { useAppDateFormat } from '@/features/settings/useAppDateFormat'
 import { useCurrencyFormatter } from '@/features/settings/useAppCurrency'
 import { useAuthStore } from '@/stores/authStore'
 import { formatAppDate, formatAppDateTime } from '@/utils/dateFormat'
+import { formatMoney } from '@/utils/formatMoney'
 import type { PurchaseItem, PurchasePayment, PurchasePaymentCorrectionPayload, PurchasePaymentPayload, ReceivePurchasePayload } from '@/types/purchase'
-
 
 interface PurchaseDetailPageProps {
   purchaseId: string
-}
-
-function formatMoney(value: number | string | null | undefined, formatter: Intl.NumberFormat) {
-  const numeric = Number(value ?? 0)
-  return Number.isFinite(numeric) ? formatter.format(numeric) : '-'
 }
 
 function formatQuantity(value: string | number | null | undefined) {
@@ -86,12 +81,29 @@ function paymentEnteredAmount(payment: PurchasePayment) {
 
 function InvoiceHeaderLine({ label, value }: { label: string; value: ReactNode }) {
   return (
-    <Box sx={{ display: 'flex', gap: 1 }}>
-      <Typography variant="body2" sx={{ color: 'text.secondary', minWidth: 100, flexShrink: 0 }}>
-        {label}
+    <Box
+      sx={{
+        display: 'grid',
+        gridTemplateColumns: { xs: '112px minmax(0, 1fr)', md: '128px minmax(0, 1fr)' },
+        columnGap: 1,
+        alignItems: 'end',
+      }}
+    >
+      <Typography variant="body2" sx={{ color: 'text.secondary', whiteSpace: 'nowrap', textAlign: 'left' }}>
+        {label}:
       </Typography>
-      <Typography variant="body2" sx={{ fontWeight: 600, borderBottom: '1px dashed', borderColor: 'divider', pb: 0.5, flexGrow: 1 }}>
-        {value}
+      <Typography
+        variant="body2"
+        sx={{
+          minHeight: 24,
+          borderBottom: 1,
+          borderBottomStyle: 'dashed',
+          borderColor: 'divider',
+          fontWeight: 800,
+          overflowWrap: 'anywhere',
+        }}
+      >
+        {value || '-'}
       </Typography>
     </Box>
   )
@@ -174,7 +186,7 @@ export function PurchaseDetailPage({ purchaseId }: PurchaseDetailPageProps) {
 
   if (purchaseQuery.isLoading) {
     return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+      <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
         <CircularProgress />
       </Box>
     )
@@ -260,56 +272,60 @@ export function PurchaseDetailPage({ purchaseId }: PurchaseDetailPageProps) {
       </Stack>
 
       <Card>
-        <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
-          <Stack spacing={2.5}>
-            <Box sx={{ display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: { xs: 2, md: 0 } }}>
-              <Stack spacing={1.5} sx={{ flex: 1, pr: { md: 3 } }}>
+        <CardContent sx={{ p: { xs: 2, md: 4 }, '&:last-child': { pb: { xs: 2, md: 4 } } }}>
+          <Stack spacing={3.5}>
+            <Box
+              sx={{
+                display: 'grid',
+                gridTemplateColumns: { xs: '1fr', md: '1.2fr 1fr 1fr' },
+                gap: { xs: 1.25, md: 2 },
+                py: 2.5,
+                borderTop: 1,
+                borderBottom: 1,
+                borderColor: 'divider',
+              }}
+            >
+              <Stack spacing={1}>
                 <InvoiceHeaderLine label={t('detail.supplier')} value={purchase.supplier?.name ?? '-'} />
-                <InvoiceHeaderLine label={t('detail.branch')} value={purchase.branch?.name ?? '-'} />
-                <InvoiceHeaderLine label={t('detail.warehouse')} value={purchase.warehouse?.name ?? '-'} />
+                <InvoiceHeaderLine label={t('detail.poNumber')} value={purchase.purchase_number} />
                 <InvoiceHeaderLine label={t('detail.date')} value={formatAppDate(purchase.purchase_date, dateFormat, i18n.language)} />
-                {purchase.expected_date && (
-                  <InvoiceHeaderLine label={t('detail.expected')} value={formatAppDate(purchase.expected_date, dateFormat, i18n.language)} />
-                )}
                 {purchase.supplier_invoice_no && (
                   <InvoiceHeaderLine label={t('detail.invoice')} value={purchase.supplier_invoice_no} />
                 )}
-                <InvoiceHeaderLine label={t('detail.createdAt')} value={formatAppDateTime(purchase.created_at, dateFormat, i18n.language)} />
               </Stack>
-              <Divider orientation="vertical" flexItem sx={{ display: { xs: 'none', md: 'block' } }} />
-              <Divider sx={{ display: { md: 'none' } }} />
-              <Stack spacing={1.5} sx={{ flex: 1, pl: { md: 3 } }}>
+              <Stack spacing={1}>
+                <InvoiceHeaderLine label={t('detail.branch')} value={purchase.branch?.name ?? '-'} />
+                <InvoiceHeaderLine label={t('detail.warehouse')} value={purchase.warehouse?.name ?? '-'} />
+                {purchase.expected_date && (
+                  <InvoiceHeaderLine label={t('detail.expected')} value={formatAppDate(purchase.expected_date, dateFormat, i18n.language)} />
+                )}
+              </Stack>
+              <Stack spacing={1}>
+                <InvoiceHeaderLine label={t('detail.createdAt')} value={formatAppDateTime(purchase.created_at, dateFormat, i18n.language)} />
+                <InvoiceHeaderLine label={t('detail.createdBy')} value={purchase.creator?.name ?? '-'} />
                 {purchase.received_at && (
                   <InvoiceHeaderLine label={t('detail.received')} value={formatAppDateTime(purchase.received_at, dateFormat, i18n.language)} />
                 )}
-                <InvoiceHeaderLine label={t('detail.poNumber')} value={purchase.purchase_number} />
-                <InvoiceHeaderLine
-                  label={t('detail.createdBy')}
-                  value={purchase.creator?.name ?? '-'}
-                />
                 {purchase.receiver && (
-                  <InvoiceHeaderLine
-                    label={t('detail.receivedBy')}
-                    value={purchase.receiver?.name ?? '-'}
-                  />
+                  <InvoiceHeaderLine label={t('detail.receivedBy')} value={purchase.receiver?.name ?? '-'} />
                 )}
               </Stack>
             </Box>
 
-            <Typography variant="subtitle2">{t('detail.items')}</Typography>
-            <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1 }}>
-              <Table>
+            <Box>
+              <TableContainer sx={{ overflowX: 'auto' }}>
+                <Table sx={{ minWidth: 920, tableLayout: 'fixed' }}>
                 <TableHead>
                   <TableRow>
-                    <TableCell>#</TableCell>
-                    <TableCell>{t('form.product')}</TableCell>
-                    <TableCell align="right">{t('form.quantity')}</TableCell>
-                    <TableCell align="right">{t('detail.receivedQty')}</TableCell>
-                    <TableCell>{t('form.unit')}</TableCell>
-                    <TableCell align="right">{t('form.unitCost')}</TableCell>
-                    <TableCell align="right">{t('form.discountAmount')}</TableCell>
-                    <TableCell align="right">{t('form.taxAmount')}</TableCell>
-                    <TableCell align="right">{t('form.subtotal')}</TableCell>
+                    <TableCell sx={{ width: 56 }}>#</TableCell>
+                    <TableCell sx={{ width: 280 }}>{t('form.product')}</TableCell>
+                    <TableCell sx={{ width: 100 }} align="right">{t('form.quantity')}</TableCell>
+                    <TableCell sx={{ width: 100 }} align="right">{t('detail.receivedQty')}</TableCell>
+                    <TableCell sx={{ width: 90 }}>{t('form.unit')}</TableCell>
+                    <TableCell sx={{ width: 110 }} align="right">{t('form.unitCost')}</TableCell>
+                    <TableCell sx={{ width: 110 }} align="right">{t('form.discountAmount')}</TableCell>
+                    <TableCell sx={{ width: 110 }} align="right">{t('form.taxAmount')}</TableCell>
+                    <TableCell sx={{ width: 130 }} align="right">{t('form.subtotal')}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -338,9 +354,23 @@ export function PurchaseDetailPage({ purchaseId }: PurchaseDetailPageProps) {
                           <TableCell>
                             <Stack spacing={0.25}>
                               <Typography variant="subtitle2">{itemLabel(item)}</Typography>
-                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                {item.variation?.sku ?? item.product?.sku ?? '-'}
-                              </Typography>
+                              <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                  {item.variation?.sku ?? item.product?.sku ?? '-'}
+                                </Typography>
+                                {item.sub_unit_id && item.sub_unit?.conversion_factor ? (
+                                  <UnitConversionBadge
+                                    conversionFactor={item.sub_unit.conversion_factor}
+                                    baseUnitLabel={item.product?.unit?.short_name ?? ''}
+                                    subUnitLabel={item.sub_unit.short_name ?? ''}
+                                    quantity={Number(item.quantity ?? 0)}
+                                  />
+                                ) : item.product?.unit?.short_name ? (
+                                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                    · {item.product.unit.short_name}
+                                  </Typography>
+                                ) : null}
+                              </Stack>
                               {item.notes && (
                                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                                   {item.notes}
@@ -364,78 +394,104 @@ export function PurchaseDetailPage({ purchaseId }: PurchaseDetailPageProps) {
                 </TableBody>
               </Table>
             </TableContainer>
+            </Box>
 
-            {(purchase.notes || purchase.staff_note) && (
-              <Stack spacing={1.5}>
-                {purchase.notes && (
-                  <Box>
-                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>{t('detail.notes')}</Typography>
-                    <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{purchase.notes}</Typography>
-                  </Box>
-                )}
+            <Stack spacing={2.5}>
+              <Stack spacing={2}>
+                <Box>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', textTransform: 'uppercase', fontWeight: 800 }}>
+                    {t('detail.notes')}
+                  </Typography>
+                  <Typography variant="body2" sx={{ mt: 0.75, color: purchase.notes ? 'text.primary' : 'text.secondary' }}>
+                    {purchase.notes || t('detail.noNotes')}
+                  </Typography>
+                </Box>
                 {purchase.staff_note && (
                   <Box>
-                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 600 }}>{t('detail.staffNote')}</Typography>
-                    <Typography variant="body2" sx={{ whiteSpace: 'pre-wrap' }}>{purchase.staff_note}</Typography>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', textTransform: 'uppercase', fontWeight: 800 }}>
+                      {t('detail.staffNote')}
+                    </Typography>
+                    <Typography variant="body2" sx={{ mt: 0.75 }}>
+                      {purchase.staff_note}
+                    </Typography>
                   </Box>
                 )}
               </Stack>
-            )}
 
-            <Box
-              sx={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(6, 1fr)',
-                gap: 2,
-                borderTop: 1,
-                borderColor: 'divider',
-                pt: 2,
-              }}
-            >
-              <Box>
-                <Typography variant="caption" sx={{ color: 'text.secondary' }}>{t('form.subtotal')}</Typography>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{formatMoney(purchase.subtotal, currencyFormatter)}</Typography>
+              <Box
+                sx={{
+                  border: 1,
+                  borderColor: 'divider',
+                  borderRadius: 1,
+                  overflowX: 'auto',
+                  '& .summary-grid': {
+                    display: 'grid',
+                    gridTemplateColumns: 'repeat(7, minmax(136px, 1fr))',
+                    minWidth: 952,
+                  },
+                  '& .summary-cell': {
+                    minHeight: 78,
+                    px: 1.5,
+                    py: 1.25,
+                    borderRight: 1,
+                    borderColor: 'divider',
+                    display: 'grid',
+                    alignContent: 'center',
+                    gap: 0.5,
+                    '&:last-of-type': {
+                      borderRight: 0,
+                    },
+                  },
+                  '& .highlight-cell': {
+                    bgcolor: 'action.hover',
+                  },
+                }}
+              >
+                <Box className="summary-grid">
+                  {[
+                    [t('form.subtotal'), formatMoney(purchase.subtotal, currencyFormatter)],
+                    [t('form.discountAmount'), formatMoney(purchase.discount_amount, currencyFormatter)],
+                    [t('form.taxAmount'), formatMoney(purchase.tax_amount, currencyFormatter)],
+                    [t('form.shippingAmount'), formatMoney(purchase.shipping_charges, currencyFormatter)],
+                    [t('form.total'), formatMoney(purchase.total_amount, currencyFormatter), 'highlight-cell'],
+                    [t('detail.paidAmount'), formatMoney(purchase.paid_amount, currencyFormatter)],
+                    [t('detail.dueAmount'), formatMoney(Math.max(Number(purchase.total_amount ?? 0) - Number(purchase.paid_amount ?? 0), 0), currencyFormatter), 'highlight-cell'],
+                  ].map(([label, value, className]) => (
+                    <Box
+                      key={label}
+                      className={`summary-cell ${className ? String(className) : ''}`}
+                    >
+                      <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase' }}>
+                        {label}
+                      </Typography>
+                      <Typography variant="subtitle2" sx={{ fontWeight: className ? 900 : 700, overflowWrap: 'anywhere' }}>
+                        {value}
+                      </Typography>
+                    </Box>
+                  ))}
+                </Box>
               </Box>
-              <Box>
-                <Typography variant="caption" sx={{ color: 'text.secondary' }}>{t('form.discountAmount')}</Typography>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{formatMoney(purchase.discount_amount, currencyFormatter)}</Typography>
-              </Box>
-              <Box>
-                <Typography variant="caption" sx={{ color: 'text.secondary' }}>{t('form.taxAmount')}</Typography>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{formatMoney(purchase.tax_amount, currencyFormatter)}</Typography>
-              </Box>
-              <Box>
-                <Typography variant="caption" sx={{ color: 'text.secondary' }}>{t('form.shippingAmount')}</Typography>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{formatMoney(purchase.shipping_charges, currencyFormatter)}</Typography>
-              </Box>
-              <Box>
-                <Typography variant="caption" sx={{ color: 'text.secondary' }}>{t('detail.paidAmount')}</Typography>
-                <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{formatMoney(purchase.paid_amount, currencyFormatter)}</Typography>
-              </Box>
-              <Box>
-                <Typography variant="caption" sx={{ color: 'text.secondary' }}>{t('form.total')}</Typography>
-                <Typography variant="h6" sx={{ fontWeight: 800 }}>{formatMoney(purchase.total_amount, currencyFormatter)}</Typography>
-              </Box>
-            </Box>
+            </Stack>
 
-            <Divider />
-
-            <Box>
-              <Stack direction="row" spacing={2} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
-                <Typography variant="subtitle2">{t('payment.title')}</Typography>
-                <Button
-                  size="small"
-                  variant="text"
-                  onClick={() => setHistoryOpen((prev) => !prev)}
-                >
-                  {historyOpen ? 'Hide' : 'Show'}
-                </Button>
+            <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 2.5 }}>
+              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between', mb: historyOpen ? 2 : 0 }}>
+                <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                  <Typography variant="h6">{t('payment.title')}</Typography>
+                  <Tooltip title={t(historyOpen ? 'payment.hide' : 'payment.show')}>
+                    <IconButton size="small" onClick={() => setHistoryOpen((open) => !open)}>
+                      <PaymentsOutlined />
+                    </IconButton>
+                  </Tooltip>
+                </Stack>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  {(payments.length).toLocaleString()} {t('payment.title').toLowerCase()}
+                </Typography>
               </Stack>
               <Collapse in={historyOpen}>
                 {payments.length === 0 ? (
-                  <Alert severity="info" sx={{ mt: 1.5 }}>{t('payment.noHistory')}</Alert>
+                  <Alert severity="info">{t('payment.noHistory')}</Alert>
                 ) : (
-                  <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1, mt: 1.5, overflowX: 'auto' }}>
+                  <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1, overflowX: 'auto' }}>
                     <Table sx={{ minWidth: 1100, tableLayout: 'fixed' }}>
                       <TableHead>
                         <TableRow>

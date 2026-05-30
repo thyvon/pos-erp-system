@@ -94,6 +94,8 @@ const sales = {
     walkInCustomer: 'Walk-in customer',
   },
   fields: {
+    code: 'Code',
+    phone: 'Phone',
     customer: 'Customer',
     branch: 'Branch',
     warehouse: 'Warehouse',

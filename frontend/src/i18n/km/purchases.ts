@@ -74,7 +74,9 @@ export default {
     receivedBy: 'ទទួលដោយ',
     paidAmount: 'ទឹកប្រាក់បានបង់',
     notes: 'កំណត់ចំណាំ',
+    noNotes: 'គ្មានកំណត់ចំណាំ',
     staffNote: 'កំណត់ចំណាំខាងក្នុង',
+    dueAmount: 'នៅសល់',
     summary: 'សង្ខេប',
     items: 'ទំនិញ',
     actions: 'សកម្មភាព',
@@ -172,6 +174,8 @@ export default {
     deleteConfirm: 'តើអ្នកប្រាកដថាចង់លុបការទូទាត់នេះទេ?',
     deleteTitle: 'លុបការទូទាត់',
     deleteAction: 'លុបការទូទាត់',
+    show: 'បង្ហាញ',
+    hide: 'លាក់',
   },
   paymentMethods: {
     cash: 'សាច់ប្រាក់',

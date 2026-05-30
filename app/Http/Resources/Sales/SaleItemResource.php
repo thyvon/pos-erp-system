@@ -75,6 +75,9 @@ class SaleItemResource extends JsonResource
                 'id' => $this->subUnit->id,
                 'name' => $this->subUnit->name,
                 'short_name' => $this->subUnit->short_name,
+                'conversion_factor' => $this->subUnit->conversion_factor !== null
+                    ? (string) $this->subUnit->conversion_factor
+                    : null,
             ] : null,
             'tax_rate_record' => $this->taxRate ? [
                 'id' => $this->taxRate->id,

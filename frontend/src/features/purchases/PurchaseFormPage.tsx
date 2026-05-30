@@ -29,19 +29,23 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
-import { ArrowBack, DeleteOutlined } from '@/components/ui/icons'
+import { Add, ArrowBack, DeleteOutlined } from '@/components/ui/icons'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
+import { UnitConversionBadge } from '@/features/sales/components/UnitConversionBadge'
 import { InventoryProductLookupPicker } from '@/features/inventory/components/InventoryProductLookupPicker'
-import { useSuppliersQuery } from '@/features/suppliers/hooks'
+import { SupplierFormDialog } from '@/features/suppliers/SupplierFormDialog'
+import { useCreateSupplierMutation, useSuppliersQuery } from '@/features/suppliers/hooks'
 import { useWarehousesQuery } from '@/features/warehouses/hooks'
+import { useCustomFieldsQuery } from '@/features/custom-fields/hooks'
+import { useAuthStore } from '@/stores/authStore'
 import type { InventoryProductLookupItem } from '@/types/inventory'
 import { useCreatePurchaseMutation, usePurchaseQuery, useUpdatePurchaseMutation } from './hooks'
 import { buildPurchasePayload, emptyPurchaseValues, valuesFromPurchase } from './formHelpers'
 import { purchaseSchema, type PurchaseFormInput, type PurchaseFormValues } from './schema'
-import type { Supplier } from '@/types/supplier'
+import type { Supplier, SupplierPayload } from '@/types/supplier'
 import type { Warehouse } from '@/types/warehouse'
 import type { TaxRate } from '@/types/taxRate'
 import { useTaxRatesQuery } from '@/features/tax-rates/hooks'
@@ -77,6 +81,8 @@ export function PurchaseFormPage({ purchaseId }: PurchaseFormPageProps) {
   const { enqueueSnackbar } = useSnackbar()
   const [serverError, setServerError] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [supplierDialogOpen, setSupplierDialogOpen] = useState(false)
+  const [createdSupplier, setCreatedSupplier] = useState<Supplier | null>(null)
   const isEdit = !!purchaseId
 
   const purchaseQuery = usePurchaseQuery(purchaseId ?? null)
@@ -85,6 +91,10 @@ export function PurchaseFormPage({ purchaseId }: PurchaseFormPageProps) {
   const createPurchase = useCreatePurchaseMutation()
   const updatePurchase = useUpdatePurchaseMutation()
   const isSaving = isSubmitting || createPurchase.isPending || updatePurchase.isPending
+
+  const can = useAuthStore((state) => state.can)
+  const createSupplier = useCreateSupplierMutation()
+  const supplierCustomFieldsQuery = useCustomFieldsQuery({ module: 'supplier', per_page: 100 })
 
   const taxRatesQuery = useTaxRatesQuery({ is_active: true, per_page: 100 })
   const taxRates = taxRatesQuery.data?.data ?? []
@@ -116,7 +126,22 @@ export function PurchaseFormPage({ purchaseId }: PurchaseFormPageProps) {
   const watchedItemsValue = useWatch({ control, name: 'items' })
   const watchedItems = useMemo(() => watchedItemsValue ?? [], [watchedItemsValue])
   const warehouses = useMemo(() => warehousesQuery.data?.data ?? [], [warehousesQuery.data?.data])
-  const suppliers = useMemo(() => suppliersQuery.data?.data ?? [], [suppliersQuery.data?.data])
+
+  const supplierCustomFields = useMemo(
+    () => [...(supplierCustomFieldsQuery.data?.data ?? [])].sort((a, b) => {
+      if (a.sort_order !== b.sort_order) return a.sort_order - b.sort_order
+      return a.field_label.localeCompare(b.field_label)
+    }),
+    [supplierCustomFieldsQuery.data?.data],
+  )
+  const canCreateSupplier = can('suppliers.create')
+  const suppliers = useMemo(() => {
+    const baseSuppliers = suppliersQuery.data?.data ?? []
+    if (!createdSupplier || baseSuppliers.some((s) => s.id === createdSupplier.id)) {
+      return baseSuppliers
+    }
+    return [createdSupplier, ...baseSuppliers]
+  }, [createdSupplier, suppliersQuery.data?.data])
 
   const totals = useMemo(() => {
     let subtotal = 0
@@ -140,6 +165,20 @@ export function PurchaseFormPage({ purchaseId }: PurchaseFormPageProps) {
     }
     return { subtotal, tax: itemTax, shipping, total: subtotal + itemTax + shipping }
   }, [watchedItems, taxScope, saleTaxRate])
+  const lineCalculations = useMemo(
+    () => watchedItems.map((item) => {
+      const qty = Number(item.quantity) || 0
+      const cost = Number(item.unit_cost) || 0
+      const discount = Number(item.discount_amount) || 0
+      const rate = Number(item.tax_rate) || 0
+      const lineSubtotal = qty * cost
+      const lineDiscounted = Math.max(0, lineSubtotal - discount)
+      const lineTax = lineDiscounted * rate / 100
+      const lineTotal = lineDiscounted + lineTax
+      return { lineSubtotal, lineDiscounted, lineTax, lineTotal }
+    }),
+    [watchedItems],
+  )
 
   useEffect(() => {
     if (purchaseQuery.data) reset(valuesFromPurchase(purchaseQuery.data))
@@ -176,6 +215,14 @@ export function PurchaseFormPage({ purchaseId }: PurchaseFormPageProps) {
       tax_type: null,
       notes: null,
     })
+  }
+
+  const handleCreateSupplier = async (payload: SupplierPayload) => {
+    const supplier = await createSupplier.mutateAsync(payload)
+    setCreatedSupplier(supplier)
+    setValue('supplier_id', supplier.id, { shouldDirty: true, shouldValidate: true })
+    enqueueSnackbar(t('suppliers:messages.created', { defaultValue: 'Supplier created successfully' }), { variant: 'success' })
+    setSupplierDialogOpen(false)
   }
 
   const submitForm = async (values: PurchaseFormValues) => {
@@ -281,30 +328,54 @@ export function PurchaseFormPage({ purchaseId }: PurchaseFormPageProps) {
                       />
                     )}
                   />
-                  <Controller
-                    name="supplier_id"
-                    control={control}
-                    render={({ field }) => (
-                      <Autocomplete
-                        options={suppliers}
-                        value={suppliers.find((s) => s.id === field.value) ?? null}
-                        loading={suppliersQuery.isLoading}
-                        getOptionLabel={supplierLabel}
-                        isOptionEqualToValue={(option, value) => option.id === value.id}
-                        onBlur={field.onBlur}
-                        onChange={(_, s) => field.onChange(s?.id ?? '')}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label={t('form.supplier')}
-                            error={!!errors.supplier_id}
-                            helperText={errors.supplier_id?.message}
-                            required
-                          />
-                        )}
-                      />
+                  <Stack direction="row" spacing={1} sx={{ alignItems: 'flex-start' }}>
+                    <Controller
+                      name="supplier_id"
+                      control={control}
+                      render={({ field }) => (
+                        <Autocomplete
+                          options={suppliers}
+                          value={suppliers.find((s) => s.id === field.value) ?? null}
+                          loading={suppliersQuery.isLoading}
+                          getOptionLabel={supplierLabel}
+                          isOptionEqualToValue={(option, value) => option.id === value.id}
+                          onBlur={field.onBlur}
+                          onChange={(_, s) => field.onChange(s?.id ?? '')}
+                          sx={{ flexGrow: 1 }}
+                          renderInput={(params) => (
+                            <TextField
+                              {...params}
+                              label={t('form.supplier')}
+                              error={!!errors.supplier_id}
+                              helperText={errors.supplier_id?.message}
+                              required
+                            />
+                          )}
+                        />
+                      )}
+                    />
+                    {canCreateSupplier && (
+                      <Tooltip title={t('common:buttons.create')}>
+                        <IconButton
+                          aria-label={t('common:buttons.create')}
+                          size="small"
+                          color="primary"
+                          onClick={() => setSupplierDialogOpen(true)}
+                          sx={{
+                            width: 'var(--app-control-height)',
+                            height: 'var(--app-control-height)',
+                            minWidth: 'var(--app-control-height)',
+                            minHeight: 'var(--app-control-height)',
+                            border: 1,
+                            borderColor: 'divider',
+                            flex: '0 0 auto',
+                          }}
+                        >
+                          <Add fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
                     )}
-                  />
+                  </Stack>
                   <Controller
                     name="purchase_date"
                     control={control}
@@ -397,26 +468,30 @@ export function PurchaseFormPage({ purchaseId }: PurchaseFormPageProps) {
                           </TableRow>
                         )}
                         {itemFields.map((field, index) => {
-                          const qty = Number(watchedItems[index]?.quantity) || 0
-                          const cost = Number(watchedItems[index]?.unit_cost) || 0
-                          const discount = Number(watchedItems[index]?.discount_amount) || 0
-                          const rate = Number(watchedItems[index]?.tax_rate) || 0
-                          const lineSubtotal = qty * cost
-                          const lineDiscounted = Math.max(0, lineSubtotal - discount)
-                          const lineTax = lineDiscounted * rate / 100
-                          const lineTotal = lineDiscounted + lineTax
+                          const calc = lineCalculations[index] ?? { lineSubtotal: 0, lineDiscounted: 0, lineTax: 0, lineTotal: 0 }
 
                           return (
                             <TableRow key={field.fieldId}>
                               <TableCell>
                                 <Stack spacing={0.25}>
                                   <Typography variant="body2">{field.product_label || '-'}</Typography>
-                                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                    {field.sku || '-'}
-                                    {watchedItems[index]?.sub_unit_id && watchedItems[index]?.conversion_factor
-                                      ? ` · ${(qty * Number(watchedItems[index].conversion_factor)).toFixed(2)} ${field.unit_name}`
-                                      : field.unit_name ? ` · ${field.unit_name}` : ''}
-                                  </Typography>
+                                  <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                      {field.sku || '-'}
+                                    </Typography>
+                                    {watchedItems[index]?.sub_unit_id && watchedItems[index]?.conversion_factor ? (
+                                      <UnitConversionBadge
+                                        conversionFactor={watchedItems[index].conversion_factor}
+                                        baseUnitLabel={field.unit_name ?? ''}
+                                        subUnitLabel={field.unit_label ?? ''}
+                                        quantity={Number(watchedItems[index]?.quantity ?? 0)}
+                                      />
+                                    ) : field.unit_name ? (
+                                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                        · {field.unit_name}
+                                      </Typography>
+                                    ) : null}
+                                  </Stack>
                                   {field.stock_tracking && field.stock_tracking !== 'none' && (
                                     <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                                       {field.stock_tracking}
@@ -450,7 +525,7 @@ export function PurchaseFormPage({ purchaseId }: PurchaseFormPageProps) {
                                       {watchedItems[index]?.unit_name ?? t('form.noSubUnit')}
                                     </MenuItem>
                                     <MenuItem value={watchedItems[index]?._default_sub_unit_id ?? ''}>
-                                      {watchedItems[index]?.unit_label || 'Sub Unit'}
+                                      {watchedItems[index]?.unit_label || t('form.subUnit')}
                                     </MenuItem>
                                   </Select>
                                 ) : (
@@ -505,7 +580,7 @@ export function PurchaseFormPage({ purchaseId }: PurchaseFormPageProps) {
                               </TableCell>
                               <TableCell align="right">
                                 <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                  {lineTotal.toFixed(2)}
+                                  {calc.lineTotal.toFixed(2)}
                                 </Typography>
                               </TableCell>
                               <TableCell align="right">
@@ -672,6 +747,17 @@ export function PurchaseFormPage({ purchaseId }: PurchaseFormPageProps) {
           </Box>
         </Stack>
       </Box>
+
+      <SupplierFormDialog
+        key={supplierDialogOpen ? 'purchase-supplier-open' : 'purchase-supplier-closed'}
+        open={supplierDialogOpen}
+        supplier={null}
+        customFields={supplierCustomFields}
+        isLoadingCustomFields={supplierCustomFieldsQuery.isLoading}
+        isSaving={createSupplier.isPending}
+        onClose={() => setSupplierDialogOpen(false)}
+        onSubmit={handleCreateSupplier}
+      />
     </Stack>
   )
 }

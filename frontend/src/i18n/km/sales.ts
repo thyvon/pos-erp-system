@@ -94,6 +94,8 @@ const sales = {
     walkInCustomer: 'អតិថិជនដើរចូល',
   },
   fields: {
+    code: 'លេខកូដ',
+    phone: 'ទូរស័ព្ទ',
     customer: 'អតិថិជន',
     branch: 'សាខា',
     warehouse: 'ឃ្លាំង',

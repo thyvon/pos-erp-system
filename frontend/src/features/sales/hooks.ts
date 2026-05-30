@@ -93,6 +93,7 @@ export function useCashRegistersQuery(filters: CashRegisterFilters) {
   return useQuery({
     queryKey: cashRegisterKeys.list(filters),
     queryFn: () => cashRegistersApi.list(filters),
+    staleTime: 2 * 60 * 1000,
   })
 }
 

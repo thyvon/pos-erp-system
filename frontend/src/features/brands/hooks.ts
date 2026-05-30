@@ -14,6 +14,7 @@ export function useBrandsQuery(filters: BrandFilters) {
   return useQuery({
     queryKey: brandKeys.list(filters),
     queryFn: () => brandsApi.list(filters),
+    staleTime: 10 * 60 * 1000,
   })
 }
 

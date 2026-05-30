@@ -27,16 +27,12 @@ import { useSaleReturnQuery } from './hooks'
 import { useAppDateFormat } from '@/features/settings/useAppDateFormat'
 import { useCurrencyFormatter } from '@/features/settings/useAppCurrency'
 import { formatAppDate, formatAppDateTime } from '@/utils/dateFormat'
+import { formatMoney } from '@/utils/formatMoney'
 import type { ReactNode } from 'react'
 import type { SaleReturnItem } from '@/types/sales'
 
 interface SaleReturnDetailPageProps {
   saleReturnId: string
-}
-
-function formatMoney(value: number | string | null | undefined, formatter: Intl.NumberFormat) {
-  const numeric = Number(value ?? 0)
-  return Number.isFinite(numeric) ? formatter.format(numeric) : '-'
 }
 
 function formatQuantity(value: string | number | null | undefined) {

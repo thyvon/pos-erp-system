@@ -40,17 +40,13 @@ import { useCurrencyFormatter } from '@/features/settings/useAppCurrency'
 import { useWarehousesQuery } from '@/features/warehouses/hooks'
 import { useAuthStore } from '@/stores/authStore'
 import { formatAppDate } from '@/utils/dateFormat'
+import { formatMoney } from '@/utils/formatMoney'
 import type { Purchase, PurchaseFilters, PurchaseStatus, PurchasePaymentStatus } from '@/types/purchase'
 
 const rowsPerPageOptions = [10, 25, 50]
 const statuses: PurchaseStatus[] = ['draft', 'confirmed', 'partially_received', 'received', 'cancelled']
 const paymentStatuses: PurchasePaymentStatus[] = ['unpaid', 'partial', 'paid']
 const deletableStatuses: PurchaseStatus[] = ['draft', 'confirmed', 'cancelled']
-
-function formatMoney(value: number | string | null | undefined, formatter: Intl.NumberFormat) {
-  const numeric = Number(value ?? 0)
-  return Number.isFinite(numeric) ? formatter.format(numeric) : '-'
-}
 
 export default function PurchasesPage() {
   const { t, i18n } = useTranslation(['purchases', 'common'])

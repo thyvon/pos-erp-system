@@ -13,6 +13,7 @@ export function useCustomerGroupsQuery(filters: CustomerGroupFilters) {
   return useQuery({
     queryKey: customerGroupKeys.list(filters),
     queryFn: () => customerGroupsApi.list(filters),
+    staleTime: 10 * 60 * 1000,
   })
 }
 

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import {
   Autocomplete,
   Box,
@@ -85,6 +85,12 @@ export function InventoryProductLookupPicker({
 
     return false
   }
+
+  useEffect(() => {
+    if (inputValue.trim() && options.length > 0 && !lookupQuery.isFetching) {
+      pickBestMatch(options)
+    }
+  }, [options, lookupQuery.isFetching])
 
   const resolveSubmittedTerm = async () => {
     const term = inputValue.trim()

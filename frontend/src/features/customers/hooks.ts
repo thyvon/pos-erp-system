@@ -13,6 +13,7 @@ export function useCustomersQuery(filters: CustomerFilters) {
   return useQuery({
     queryKey: customerKeys.list(filters),
     queryFn: () => customersApi.list(filters),
+    staleTime: 5 * 60 * 1000,
   })
 }
 

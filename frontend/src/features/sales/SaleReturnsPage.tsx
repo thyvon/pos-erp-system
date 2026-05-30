@@ -35,14 +35,10 @@ import { useAppDateFormat } from '@/features/settings/useAppDateFormat'
 import { useCurrencyFormatter } from '@/features/settings/useAppCurrency'
 import { useWarehousesQuery } from '@/features/warehouses/hooks'
 import { formatAppDate } from '@/utils/dateFormat'
+import { formatMoney } from '@/utils/formatMoney'
 import type { SaleReturnFilters } from '@/types/sales'
 
 const rowsPerPageOptions = [10, 25, 50]
-
-function formatMoney(value: number | string | null | undefined, formatter: Intl.NumberFormat) {
-  const numeric = Number(value ?? 0)
-  return Number.isFinite(numeric) ? formatter.format(numeric) : '-'
-}
 
 export function SaleReturnsPage() {
   const { t, i18n } = useTranslation(['sales', 'common'])

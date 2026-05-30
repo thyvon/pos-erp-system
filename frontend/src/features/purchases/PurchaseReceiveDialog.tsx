@@ -26,6 +26,7 @@ import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
 import { receivePurchaseSchema, type ReceivePurchaseFormInput, type ReceivePurchaseFormValues } from './schema'
+import { UnitConversionBadge } from '@/features/sales/components/UnitConversionBadge'
 import type { Purchase, ReceivePurchasePayload } from '@/types/purchase'
 
 interface PurchaseReceiveDialogProps {
@@ -61,6 +62,10 @@ function buildDefaults(purchase: Purchase | null): ReceivePurchaseFormInput {
         product_label: itemLabel(item),
         sku: itemSku(item),
         stock_tracking: item.product?.stock_tracking ?? 'none',
+        sub_unit_id: item.sub_unit_id ?? null,
+        _conversion_factor: item.sub_unit?.conversion_factor ?? null,
+        _base_unit_label: item.product?.unit?.short_name ?? null,
+        sub_unit_label: item.sub_unit?.short_name ?? null,
         remaining_quantity: Math.max(0, toNumber(item.quantity) - toNumber(item.received_quantity)),
         quantity: Math.max(0, toNumber(item.quantity) - toNumber(item.received_quantity)),
         lot_number: '',
@@ -127,7 +132,8 @@ export function PurchaseReceiveDialog({ open, purchase, isSaving, onClose, onSub
   }
 
   const columnSx = {
-    item: { width: 260, minWidth: 260 },
+    item: { width: 230, minWidth: 230 },
+    unit: { width: 110, minWidth: 110 },
     remaining: { width: 100, minWidth: 100 },
     qty: { width: 130, minWidth: 130 },
     lot: { width: 160, minWidth: 160 },
@@ -170,16 +176,17 @@ export function PurchaseReceiveDialog({ open, purchase, isSaving, onClose, onSub
               name="notes"
               control={control}
               render={({ field }) => (
-                <TextField {...field} value={field.value ?? ''} label={t('receive.notes')} />
+                <TextField {...field} value={field.value ?? ''} label={t('receive.notes')} error={!!errors.notes} helperText={errors.notes?.message} />
               )}
             />
           </Box>
 
           <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1, overflowX: 'auto' }}>
-            <Table size="small" sx={{ minWidth: 1050, tableLayout: 'fixed' }}>
+            <Table size="small" sx={{ minWidth: 1130, tableLayout: 'fixed' }}>
               <TableHead>
                 <TableRow>
                   <TableCell sx={columnSx.item}>{t('receive.item')}</TableCell>
+                  <TableCell sx={columnSx.unit}>{t('form.subUnit')}</TableCell>
                   <TableCell sx={columnSx.remaining} align="right">{t('receive.remaining')}</TableCell>
                   <TableCell sx={columnSx.qty}>{t('receive.receiveQty')}</TableCell>
                   <TableCell sx={columnSx.lot}>{t('receive.lot')}</TableCell>
@@ -193,10 +200,32 @@ export function PurchaseReceiveDialog({ open, purchase, isSaving, onClose, onSub
                     <TableCell sx={columnSx.item}>
                       <Stack spacing={0.25}>
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>{field.product_label}</Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {[field.sku, field.stock_tracking !== 'none' ? field.stock_tracking : null].filter(Boolean).join(' / ') || '-'}
-                        </Typography>
+                        <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                            {field.sku || '-'}
+                          </Typography>
+                          {field.sub_unit_id && field._conversion_factor ? (
+                            <UnitConversionBadge
+                              conversionFactor={field._conversion_factor}
+                              baseUnitLabel={field._base_unit_label ?? ''}
+                              subUnitLabel={field.sub_unit_label ?? ''}
+                              quantity={Number(field.quantity)}
+                            />
+                          ) : field._base_unit_label ? (
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              · {field._base_unit_label}
+                            </Typography>
+                          ) : null}
+                        </Stack>
+                        {field.stock_tracking && field.stock_tracking !== 'none' && (
+                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                            {field.stock_tracking}
+                          </Typography>
+                        )}
                       </Stack>
+                    </TableCell>
+                    <TableCell sx={columnSx.unit}>
+                      {field.sub_unit_id ? (field.sub_unit_label ?? '-') : (field._base_unit_label ?? '-')}
                     </TableCell>
                     <TableCell sx={columnSx.remaining} align="right">
                       <Typography variant="body2">{field.remaining_quantity}</Typography>
@@ -274,7 +303,7 @@ export function PurchaseReceiveDialog({ open, purchase, isSaving, onClose, onSub
         </Stack>
       </DialogContent>
       <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button variant="outlined" onClick={onClose} disabled={isSaving}>{t('common:actions.cancel')}</Button>
+        <Button variant="outlined" onClick={onClose} disabled={isSaving}>{t('common:buttons.cancel')}</Button>
         <Button variant="contained" onClick={submit} disabled={isSaving || fields.length === 0}>
           {isSaving ? <CircularProgress size={20} color="inherit" sx={{ mr: 1 }} /> : null}
           {t('receive.receive')}

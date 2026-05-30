@@ -74,7 +74,9 @@ export default {
     receivedBy: 'Received by',
     paidAmount: 'Paid amount',
     notes: 'Notes',
+    noNotes: 'No notes',
     staffNote: 'Staff notes',
+    dueAmount: 'Due',
     summary: 'Summary',
     items: 'Items',
     actions: 'Actions',
@@ -172,6 +174,8 @@ export default {
     deleteConfirm: 'Are you sure you want to delete this payment?',
     deleteTitle: 'Delete Payment',
     deleteAction: 'Delete Payment',
+    show: 'Show',
+    hide: 'Hide',
   },
   paymentMethods: {
     cash: 'Cash',

@@ -13,6 +13,7 @@ export function useTaxRatesQuery(filters: TaxRateFilters) {
   return useQuery({
     queryKey: taxRateKeys.list(filters),
     queryFn: () => taxRatesApi.list(filters),
+    staleTime: 10 * 60 * 1000,
   })
 }
 

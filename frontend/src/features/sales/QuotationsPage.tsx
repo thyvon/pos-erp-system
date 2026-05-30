@@ -38,15 +38,10 @@ import { useCurrencyFormatter } from '@/features/settings/useAppCurrency'
 import { useWarehousesQuery } from '@/features/warehouses/hooks'
 import { useAuthStore } from '@/stores/authStore'
 import { formatAppDate } from '@/utils/dateFormat'
-import type { Sale, SaleFilters, SaleStatus } from '@/types/sales'
+import { formatMoney } from '@/utils/formatMoney'
 
 const rowsPerPageOptions = [10, 25, 50]
 const quotationStatuses: SaleStatus[] = ['quotation', 'converted', 'cancelled']
-
-function formatMoney(value: number | string | null | undefined, formatter: Intl.NumberFormat) {
-  const numeric = Number(value ?? 0)
-  return Number.isFinite(numeric) ? formatter.format(numeric) : '-'
-}
 
 export function QuotationsPage() {
   const { t, i18n } = useTranslation(['sales', 'common'])

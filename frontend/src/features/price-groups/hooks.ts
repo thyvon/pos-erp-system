@@ -13,6 +13,7 @@ export function usePriceGroupsQuery(filters: PriceGroupFilters) {
   return useQuery({
     queryKey: priceGroupKeys.list(filters),
     queryFn: () => priceGroupsApi.list(filters),
+    staleTime: 10 * 60 * 1000,
   })
 }
 

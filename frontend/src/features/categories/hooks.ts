@@ -14,6 +14,7 @@ export function useCategoriesQuery(filters: CategoryFilters) {
   return useQuery({
     queryKey: categoryKeys.list(filters),
     queryFn: () => categoriesApi.list(filters),
+    staleTime: 10 * 60 * 1000,
   })
 }
 

@@ -43,39 +43,9 @@ import { TableStateRow } from '@/components/ui/TableStateRow'
 import { useBranchesQuery } from '@/features/branches/hooks'
 import { useAppDateFormat } from '@/features/settings/useAppDateFormat'
 import { useCurrencyFormatter } from '@/features/settings/useAppCurrency'
-import {
-  useCloseCashRegisterSessionMutation,
-  useCreateCashRegisterMutation,
-  useDeleteCashRegisterMutation,
-  useOpenCashRegisterSessionMutation,
-  useUpdateCashRegisterMutation,
-  useCashRegistersQuery,
-} from '@/features/sales/hooks'
-import { useAuthStore } from '@/stores/authStore'
-import { formatAppDateTime } from '@/utils/dateFormat'
-import type { BranchFilters } from '@/types/branch'
-import type {
-  CashRegister,
-  CashRegisterFilters,
-  CashRegisterSession,
-  CloseCashRegisterSessionPayload,
-  CreateCashRegisterPayload,
-  OpenCashRegisterSessionPayload,
-  UpdateCashRegisterPayload,
-} from '@/types/sales'
+import { formatMoney } from '@/utils/formatMoney'
 
 const rowsPerPageOptions = [10, 25, 50]
-const statusOptions: Array<NonNullable<CashRegisterFilters['status']>> = ['active', 'inactive']
-
-function toNumber(value: number | string | null | undefined, fallback = 0) {
-  const numeric = Number(value ?? fallback)
-  return Number.isFinite(numeric) ? numeric : fallback
-}
-
-function formatMoney(value: number | string | null | undefined, formatter: Intl.NumberFormat) {
-  const numeric = Number(value ?? 0)
-  return Number.isFinite(numeric) ? formatter.format(numeric) : '-'
-}
 
 function CashRegisterFormDialog({
   open,

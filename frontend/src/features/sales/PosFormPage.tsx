@@ -54,28 +54,6 @@ import { CustomerFormDialog } from '@/features/customers/CustomerFormDialog'
 import { useCreateCustomerMutation, useCustomersQuery } from '@/features/customers/hooks'
 import { useCustomFieldsQuery } from '@/features/custom-fields/hooks'
 import { inventoryApi } from '@/features/inventory/api'
-import { usePriceGroupsQuery } from '@/features/price-groups/hooks'
-import { useProductsQuery } from '@/features/products/hooks'
-import { useAppCurrency, useCurrencyFormatter } from '@/features/settings/useAppCurrency'
-import { useAppDateFormat } from '@/features/settings/useAppDateFormat'
-import { useTaxRatesQuery } from '@/features/tax-rates/hooks'
-import { useWarehousesQuery } from '@/features/warehouses/hooks'
-import { useAuthStore } from '@/stores/authStore'
-import { useUIStore } from '@/stores/uiStore'
-import { getLayoutMetrics } from '@/theme'
-import { formatAppDate } from '@/utils/dateFormat'
-import { useDebouncedValue } from '@/utils/useDebouncedValue'
-import type { Customer, CustomerPayload } from '@/types/customer'
-import type { InventoryProductLookupItem } from '@/types/inventory'
-import type { PriceGroup } from '@/types/priceGroup'
-import type { Product } from '@/types/product'
-import type { CashRegister, Sale, SaleFilters, SaleItem } from '@/types/sales'
-import type { TaxRate } from '@/types/taxRate'
-import { useCashRegistersQuery, useCreateCashRegisterMutation, useCreateSaleMutation, useOpenCashRegisterSessionMutation, useSaleQuery, useSalesQuery, useUpdateSaleWithPaymentsMutation } from './hooks'
-import { PosCartSection } from './components/PosCartSection'
-import { PosHeaderFields } from './components/PosHeaderFields'
-import { PosPaymentSection } from './components/PosPaymentSection'
-import { PosProductGallery, type PosProductTab } from './components/PosProductGallery'
 import {
   buildDirectPaymentLines,
   buildSalePayload,
@@ -92,10 +70,37 @@ import {
   toNumber,
 } from './formHelpers'
 import { saleFormSchema, type SaleFormInput, type SaleFormValues } from './schema'
-
-interface PosFormPageProps {
-  saleId?: string
-}
+import {
+  useCashRegistersQuery,
+  useCreateCashRegisterMutation,
+  useCreateSaleMutation,
+  useOpenCashRegisterSessionMutation,
+  useSaleQuery,
+  useSalesQuery,
+  useUpdateSaleWithPaymentsMutation,
+} from './hooks'
+import type { CashRegister, Sale, SaleFilters, SaleItem } from '@/types/sales'
+import type { Customer, CustomerPayload } from '@/types/customer'
+import type { InventoryProductLookupItem } from '@/types/inventory'
+import type { PriceGroup } from '@/types/priceGroup'
+import type { Product } from '@/types/product'
+import type { TaxRate } from '@/types/taxRate'
+import { useDebouncedValue } from '@/utils/useDebouncedValue'
+import { PosCartSection } from './components/PosCartSection'
+import { PosHeaderFields } from './components/PosHeaderFields'
+import { PosPaymentSection } from './components/PosPaymentSection'
+import { PosProductGallery, type PosProductTab } from './components/PosProductGallery'
+import { usePriceGroupsQuery } from '@/features/price-groups/hooks'
+import { useProductsQuery } from '@/features/products/hooks'
+import { useAppCurrency, useCurrencyFormatter } from '@/features/settings/useAppCurrency'
+import { useAppDateFormat } from '@/features/settings/useAppDateFormat'
+import { useTaxRatesQuery } from '@/features/tax-rates/hooks'
+import { useWarehousesQuery } from '@/features/warehouses/hooks'
+import { useAuthStore } from '@/stores/authStore'
+import { useUIStore } from '@/stores/uiStore'
+import { getLayoutMetrics } from '@/theme'
+import { formatAppDate } from '@/utils/dateFormat'
+import { formatMoney } from '@/utils/formatMoney'
 
 const discountTypes = ['fixed', 'percentage'] as const
 const taxScopes = ['line', 'sale'] as const
@@ -113,11 +118,6 @@ const recentTransactionRowsPerPageOptions = [10, 25, 50]
 
 function today() {
   return dayjs().format('YYYY-MM-DD')
-}
-
-function formatMoney(value: number | string | null | undefined, formatter: Intl.NumberFormat) {
-  const numeric = Number(value ?? 0)
-  return Number.isFinite(numeric) ? formatter.format(numeric) : '-'
 }
 
 function emptyValues(): SaleFormInput {
@@ -182,6 +182,13 @@ function valuesFromSale(sale: Sale | null | undefined): SaleFormInput {
       product_id: item.product_id,
       variation_id: item.variation_id ?? null,
       sub_unit_id: item.sub_unit_id ?? null,
+      unit_id: item.product?.unit?.id ?? null,
+      sub_unit_label: item.sub_unit?.short_name ?? item.product?.sub_unit?.short_name ?? item.variation?.sub_unit?.short_name ?? null,
+      _base_unit_label: item.product?.unit?.short_name ?? null,
+      _sub_unit_option_id: item.product?.sub_unit?.id ?? item.variation?.sub_unit?.id ?? null,
+      _base_unit_price: toNumber(item.variation?.selling_price ?? item.product?.selling_price),
+      _sub_unit_price: toNumber(item.variation?.sub_unit_selling_price ?? item.product?.sub_unit_selling_price ?? item.variation?.selling_price ?? item.product?.selling_price),
+      _conversion_factor: item.sub_unit?.conversion_factor ?? null,
       lot_id: item.lots?.[0]?.lot_id ?? null,
       serial_id: item.serials?.[0]?.serial_id ?? null,
       product_label: itemName(item),
@@ -218,6 +225,10 @@ function cashRegisterLabel(register: CashRegister) {
 
 function productSearchTerm(product: Product) {
   return product.sku || product.variations?.[0]?.sku || product.name
+}
+
+interface PosFormPageProps {
+  saleId?: string
 }
 
 export function PosFormPage({ saleId }: PosFormPageProps) {
@@ -348,21 +359,12 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
     remove: removeDirectPayment,
   } = useFieldArray({ control, name: 'direct_payments', keyName: 'fieldId' })
 
-  const branchId = useWatch({ control, name: 'branch_id' })
-  const warehouseId = useWatch({ control, name: 'warehouse_id' })
-  const saleType = useWatch({ control, name: 'type' })
-  const taxScope = useWatch({ control, name: 'tax_scope' })
-  const watchedItemsValue = useWatch({ control, name: 'items' })
+  const [branchId, warehouseId, saleType, taxScope, watchedItemsValue, saleDiscountType, saleDiscountValue, saleTaxType, saleTaxRateType, saleTaxRate, shippingCharges, watchedDirectPaymentsValue, cashRegisterSessionId] = useWatch({
+    control,
+    name: ['branch_id', 'warehouse_id', 'type', 'tax_scope', 'items', 'discount_type', 'discount_amount', 'tax_type', 'tax_rate_type', 'tax_rate', 'shipping_charges', 'direct_payments', 'cash_register_session_id'],
+  }) as [string, string, string, string, SaleFormInput['items'], string, number, string, string, number, number, SaleFormInput['direct_payments'], string]
   const watchedItems = useMemo(() => watchedItemsValue ?? [], [watchedItemsValue])
-  const saleDiscountType = useWatch({ control, name: 'discount_type' })
-  const saleDiscountValue = useWatch({ control, name: 'discount_amount' })
-  const saleTaxType = useWatch({ control, name: 'tax_type' })
-  const saleTaxRateType = useWatch({ control, name: 'tax_rate_type' })
-  const saleTaxRate = useWatch({ control, name: 'tax_rate' })
-  const shippingCharges = useWatch({ control, name: 'shipping_charges' })
-  const watchedDirectPaymentsValue = useWatch({ control, name: 'direct_payments' })
   const watchedDirectPayments = useMemo(() => watchedDirectPaymentsValue ?? [], [watchedDirectPaymentsValue])
-  const cashRegisterSessionId = useWatch({ control, name: 'cash_register_session_id' })
 
   const cashRegistersQuery = useCashRegistersQuery({
     branch_id: branchId || undefined,
@@ -432,17 +434,31 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
     }
   }, [saleDiscountType, saleDiscountValue, saleTaxRate, saleTaxRateType, saleTaxType, shippingCharges, taxScope, watchedItems])
 
-  const paymentBase = round(
-    watchedDirectPayments.reduce((total, line) => total + directPaymentLineBaseAmount(line, defaultExchangeRateValue), 0),
-  )
-  const remaining = Math.max(0, round(totals.total - paymentBase))
-  const change = Math.max(0, round(paymentBase - totals.total))
-  const totalDisplay = formatUsdKhrAmount(totals.total, defaultExchangeRateValue)
-  const paymentDisplay = formatUsdKhrAmount(paymentBase, defaultExchangeRateValue)
-  const remainingDisplay = formatUsdKhrAmount(remaining, defaultExchangeRateValue)
-  const changeDisplay = formatUsdKhrAmount(change, defaultExchangeRateValue)
-  const isSuspended = saleType === 'suspended'
-  const canCapturePayment = !isSuspended && (!isEdit || currentSaleStatus === 'completed')
+  const {
+    paymentBase,
+    totalDisplay,
+    paymentDisplay,
+    remainingDisplay,
+    changeDisplay,
+    change: paymentChange,
+    isSuspended,
+    canCapturePayment,
+  } = useMemo(() => {
+    const base = round(watchedDirectPayments.reduce((total, line) => total + directPaymentLineBaseAmount(line, defaultExchangeRateValue), 0))
+    const rem = Math.max(0, round(totals.total - base))
+    const chg = Math.max(0, round(base - totals.total))
+    const suspended = saleType === 'suspended'
+    return {
+      paymentBase: base,
+      totalDisplay: formatUsdKhrAmount(totals.total, defaultExchangeRateValue),
+      paymentDisplay: formatUsdKhrAmount(base, defaultExchangeRateValue),
+      remainingDisplay: formatUsdKhrAmount(rem, defaultExchangeRateValue),
+      changeDisplay: formatUsdKhrAmount(chg, defaultExchangeRateValue),
+      change: chg,
+      isSuspended: suspended,
+      canCapturePayment: !suspended && (!isEdit || currentSaleStatus === 'completed'),
+    }
+  }, [watchedDirectPayments, defaultExchangeRateValue, totals.total, saleType, isEdit, currentSaleStatus])
 
   useEffect(() => {
     if (!currentSale) return
@@ -499,7 +515,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
 
   const addLookupItem = (item: InventoryProductLookupItem) => {
     const itemVariationId = item.variation_id ?? null
-    const itemSubUnitId = item.sub_unit?.id ?? null
+    const itemSubUnitId = null
     const itemLotId = item.lot_id ?? null
     const itemSerialId = item.serial_id ?? null
     const existingIndex = watchedItems.findIndex((line) =>
@@ -528,13 +544,20 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
       product_id: item.product_id,
       variation_id: itemVariationId,
       sub_unit_id: itemSubUnitId,
+      unit_id: item.unit?.id ?? null,
+      sub_unit_label: item.sub_unit?.short_name ?? null,
+      _base_unit_label: item.unit?.short_name ?? null,
+      _sub_unit_option_id: item.sub_unit?.id ?? null,
+      _base_unit_price: toNumber(item.selling_price),
+      _sub_unit_price: toNumber(item.sub_unit_selling_price ?? item.selling_price),
+      _conversion_factor: item.sub_unit?.conversion_factor ?? null,
       lot_id: itemLotId,
       serial_id: itemSerialId,
       product_label: item.label,
       sku: item.sku ?? null,
       lot_number: item.lot_number ?? null,
       serial_number: item.serial_number ?? null,
-      unit_label: item.sub_unit?.short_name ?? item.unit?.short_name ?? null,
+      unit_label: item.unit?.short_name ?? null,
       available_quantity: item.available_quantity ?? null,
       quantity: item.serial_id ? 1 : 1,
       unit_price: toNumber(item.selling_price),
@@ -564,7 +587,6 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
     const customer = await createCustomer.mutateAsync(payload)
     setCreatedCustomer(customer)
     setValue('customer_id', customer.id, { shouldDirty: true, shouldValidate: true })
-    await customersQuery.refetch()
     enqueueSnackbar(t('customers:messages.created'), { variant: 'success' })
   }
 
@@ -653,6 +675,12 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
     setValue(`items.${index}.tax_rate`, taxRate?.rate ?? 0)
   }
 
+  const changeItemUnit = (index: number, nextSubUnitId: string | null, nextLabel: string, nextPrice: number) => {
+    setValue(`items.${index}.sub_unit_id`, nextSubUnitId, { shouldDirty: true })
+    setValue(`items.${index}.unit_label`, nextLabel, { shouldDirty: true })
+    setValue(`items.${index}.unit_price`, nextPrice, { shouldDirty: true })
+  }
+
   const changeDirectPaymentCurrency = (index: number, nextCurrency: 'USD' | 'KHR') => {
     const currentBaseAmount = directPaymentLineBaseAmount(watchedDirectPayments[index], defaultExchangeRateValue)
     const nextPaymentAmount = nextCurrency === 'KHR' && defaultExchangeRateValue > 0
@@ -674,10 +702,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
   }
 
   const changeItemQuantity = (index: number, quantity: number) => {
-    setValue(`items.${index}.quantity`, quantity, {
-      shouldDirty: true,
-      shouldValidate: true,
-    })
+    setValue(`items.${index}.quantity`, quantity, { shouldDirty: true })
   }
 
   const submitForm = async (values: SaleFormValues) => {
@@ -960,6 +985,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
                 totals={totals}
                 onSelectItem={addLookupItem}
                 onQuantityChange={changeItemQuantity}
+                onChangeUnit={changeItemUnit}
                 onEditItem={setEditingItemIndex}
                 onRemoveItem={remove}
                 onEditSummary={setEditingSummary}
@@ -982,7 +1008,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
                   paymentDisplay={paymentDisplay}
                   remainingDisplay={remainingDisplay}
                   changeDisplay={changeDisplay}
-                  change={change}
+                  change={paymentChange}
                   onAddLine={() => appendDirectPayment(newDirectPaymentLine(paymentAccounts))}
                   onCurrencyChange={changeDirectPaymentCurrency}
                   onRemoveLine={removeDirectPaymentLine}
@@ -1114,7 +1140,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
             <Button type="button" variant="outlined" onClick={() => setRecentTransactionsOpen(true)} sx={{ ...footerButtonSx, minWidth: 178 }}>
               {t('pos.recentTransactions')}
             </Button>
-            <Button type="button" variant="contained" disabled={isSaving} onClick={() => submitAs(saleType)} sx={{ ...footerButtonSx, minWidth: 104 }}>
+            <Button type="button" variant="contained" disabled={isSaving} onClick={() => submitAs(saleType as SaleFormValues['type'])} sx={{ ...footerButtonSx, minWidth: 104 }}>
               {isSaving ? <CircularProgress size={20} color="inherit" /> : t('common:buttons.save')}
             </Button>
           </Stack>

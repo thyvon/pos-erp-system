@@ -507,6 +507,15 @@ export function createAppTheme(
             zIndex: 0,
           },
         },
+        variants: [
+          {
+            props: { variant: 'outlined' },
+            style: {
+              borderColor: 'rgba(145, 158, 171, 0.5)',
+              boxShadow: 'none',
+            },
+          },
+        ],
       },
       MuiPaper: {
         defaultProps: {
@@ -610,6 +619,11 @@ export function createAppTheme(
           root: {
             borderRadius: iconButtonRadius,
           },
+        },
+      },
+      MuiSwitch: {
+        defaultProps: {
+          size: isDenseLayout ? 'small' : 'medium',
         },
       },
       MuiToggleButton: {

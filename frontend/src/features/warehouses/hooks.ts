@@ -13,6 +13,7 @@ export function useWarehousesQuery(filters: WarehouseFilters) {
   return useQuery({
     queryKey: warehouseKeys.list(filters),
     queryFn: () => warehousesApi.list(filters),
+    staleTime: 5 * 60 * 1000,
   })
 }
 

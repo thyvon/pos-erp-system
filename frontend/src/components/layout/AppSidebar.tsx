@@ -171,17 +171,21 @@ export default function AppSidebar() {
     bg: isGlassSurface
       ? sidebarIsDark
         ? alpha('#111827', 0.72)
-        : alpha(theme.palette.common.white, 0.48)
+        : alpha(theme.palette.common.white, 0.58)
       : sidebarIsDark
-        ? '#111827'
-        : theme.palette.background.default,
+        ? alpha('#111827', 0.94)
+        : resolvedSidebarTheme === 'light'
+          ? alpha(theme.palette.common.white, 0.92)
+          : alpha(theme.palette.background.default, 0.86),
     paper: isGlassSurface
       ? sidebarIsDark
         ? alpha('#111827', 0.72)
-        : alpha(theme.palette.common.white, 0.48)
+        : alpha(theme.palette.common.white, 0.58)
       : sidebarIsDark
-        ? '#111827'
-        : theme.palette.background.default,
+        ? alpha('#111827', 0.94)
+        : resolvedSidebarTheme === 'light'
+          ? alpha(theme.palette.common.white, 0.92)
+          : alpha(theme.palette.background.default, 0.86),
     border: sidebarIsDark
       ? alpha('#ffffff', isGlassSurface ? 0.18 : 0.14)
       : alpha(theme.palette.grey[500], isGlassSurface ? 0.22 : 0.18),
