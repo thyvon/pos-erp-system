@@ -42,10 +42,33 @@ import { SearchableFilterSelect } from '@/components/ui/SearchableFilterSelect'
 import { TableStateRow } from '@/components/ui/TableStateRow'
 import { useBranchesQuery } from '@/features/branches/hooks'
 import { useAppDateFormat } from '@/features/settings/useAppDateFormat'
+import { useAuthStore } from '@/stores/authStore'
 import { useCurrencyFormatter } from '@/features/settings/useAppCurrency'
 import { formatMoney } from '@/utils/formatMoney'
+import { formatAppDateTime } from '@/utils/dateFormat'
+import { toNumber } from '@/features/sales/formHelpers'
+import type { BranchFilters } from '@/types/branch'
+import type {
+  CashRegister,
+  CashRegisterFilters,
+  CashRegisterSession,
+  CloseCashRegisterSessionPayload,
+  CreateCashRegisterPayload,
+  OpenCashRegisterSessionPayload,
+  UpdateCashRegisterPayload,
+} from '@/types/sales'
+import {
+  useCashRegistersQuery,
+  useCreateCashRegisterMutation,
+  useUpdateCashRegisterMutation,
+  useDeleteCashRegisterMutation,
+  useOpenCashRegisterSessionMutation,
+  useCloseCashRegisterSessionMutation,
+} from '@/features/sales/hooks'
 
 const rowsPerPageOptions = [10, 25, 50]
+
+const statusOptions: CashRegisterFilters['status'][] = ['active', 'inactive']
 
 function CashRegisterFormDialog({
   open,

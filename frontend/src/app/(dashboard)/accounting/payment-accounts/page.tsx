@@ -41,8 +41,19 @@ import {
 import { useAuthStore } from '@/stores/authStore'
 import { useCurrencyFormatter } from '@/features/settings/useAppCurrency'
 import { formatMoney } from '@/utils/formatMoney'
+import type {
+  AccountStatus,
+  PaymentAccount,
+  PaymentAccountFilters,
+  PaymentAccountPayload,
+  PaymentAccountTransferPayload,
+  PaymentAccountType,
+} from '@/types/accounting'
 
 const rowsPerPageOptions = [10, 25, 50]
+
+const accountTypes: PaymentAccountType[] = ['cash', 'bank', 'other']
+const statuses: AccountStatus[] = ['active', 'inactive']
 
 export default function PaymentAccountsPage() {
   const { t } = useTranslation(['accounting', 'common'])

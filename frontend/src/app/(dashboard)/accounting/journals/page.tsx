@@ -44,8 +44,13 @@ import { useAppDateFormat } from '@/features/settings/useAppDateFormat'
 import { useCurrencyFormatter } from '@/features/settings/useAppCurrency'
 import { useAuthStore } from '@/stores/authStore'
 import { formatMoney } from '@/utils/formatMoney'
+import { formatAppDateTime } from '@/utils/dateFormat'
+import type { Journal, JournalFilters, JournalReversePayload, JournalStatus } from '@/types/accounting'
 
 const rowsPerPageOptions = [10, 25, 50]
+
+const statuses: JournalStatus[] = ['posted', 'reversed']
+const journalTypes: string[] = ['manual', 'reversal']
 
 export default function JournalsPage() {
   const { t, i18n } = useTranslation(['accounting', 'common'])
