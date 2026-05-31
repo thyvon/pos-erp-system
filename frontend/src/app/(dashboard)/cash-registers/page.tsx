@@ -615,7 +615,7 @@ export default function CashRegistersPage() {
                   <TableCell>{t('cashRegisters.columns.session')}</TableCell>
                   <TableCell align="right">{t('cashRegisters.columns.openingFloat')}</TableCell>
                   <TableCell>{t('cashRegisters.columns.status')}</TableCell>
-                  <TableCell align="right">{t('cashRegisters.columns.actions')}</TableCell>
+                  <TableCell align="center">{t('cashRegisters.columns.actions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>

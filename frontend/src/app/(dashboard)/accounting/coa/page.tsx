@@ -238,7 +238,7 @@ export default function ChartOfAccountsPage() {
                   <TableCell>{t('coa.columns.parent')}</TableCell>
                   <TableCell>{t('coa.columns.status')}</TableCell>
                   <TableCell align="right">{t('coa.columns.activity')}</TableCell>
-                  <TableCell align="right">{t('coa.columns.actions')}</TableCell>
+                  <TableCell align="center">{t('coa.columns.actions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -281,7 +281,7 @@ export default function ChartOfAccountsPage() {
                         payments: countValue(account.payment_accounts_count),
                       })}
                     </TableCell>
-                    <TableCell align="right">
+                    <TableCell align="center">
                       <RowActions
                         editLabel={t('common:buttons.edit')}
                         deleteLabel={t('common:buttons.delete')}

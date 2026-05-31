@@ -36,7 +36,7 @@ interface SaleReturnDetailPageProps {
 }
 
 function formatQuantity(value: string | number | null | undefined) {
-  const numeric = Number(value ?? NaN)
+  const numeric = Number(value ?? 0)
   return Number.isFinite(numeric) ? numeric.toLocaleString(undefined, { maximumFractionDigits: 4 }) : '-'
 }
 

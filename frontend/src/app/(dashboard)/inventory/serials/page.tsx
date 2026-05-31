@@ -220,7 +220,7 @@ export default function StockSerialsPage() {
                   <TableCell>{t('serials.columns.warrantyExpires')}</TableCell>
                   <TableCell>{t('serials.columns.receivedAt')}</TableCell>
                   <TableCell>{t('serials.columns.soldAt')}</TableCell>
-                  <TableCell align="right">{t('serials.columns.actions')}</TableCell>
+                  <TableCell align="center">{t('serials.columns.actions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -263,7 +263,7 @@ export default function StockSerialsPage() {
                     <TableCell>{formatAppDate(serial.warranty_expires, dateFormat, i18n.language)}</TableCell>
                     <TableCell>{formatAppDateTime(serial.received_at, dateFormat, i18n.language)}</TableCell>
                     <TableCell>{formatAppDateTime(serial.sold_at, dateFormat, i18n.language)}</TableCell>
-                    <TableCell align="right">
+                    <TableCell align="center">
                       <RowActions
                         viewLabel={t('serials.actions.view')}
                         editLabel={t('serials.actions.writeOff')}

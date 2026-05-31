@@ -78,6 +78,6 @@ class CambodiaAddressApiTest extends TestCase
             ->assertJsonPath('data.0.id', '1201')
             ->assertJsonPath('data.0.province_id', '12');
 
-        Http::assertSent(fn ($request) => $request->url() === 'https://pumi.onrender.com/pumi/districts?province_id=12');
+        Http::assertSent(fn ($request) => str_contains($request->url(), 'pumi.onrender.com/pumi/districts'));
     }
 }

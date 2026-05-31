@@ -1,8 +1,8 @@
 'use client'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { purchasesApi } from './api'
-import type { PurchaseFilters, PurchasePayload, PurchasePaymentCorrectionPayload, PurchasePaymentDeletePayload, PurchasePaymentPayload, ReceivePurchasePayload } from '@/types/purchase'
+import { purchaseReturnsApi, purchasesApi } from './api'
+import type { PurchaseFilters, PurchasePayload, PurchasePaymentCorrectionPayload, PurchasePaymentDeletePayload, PurchasePaymentPayload, PurchaseReturnFilters, PurchaseReturnPayload, ReceivePurchasePayload } from '@/types/purchase'
 
 export const purchaseKeys = {
   all: ['purchases'] as const,
@@ -24,6 +24,41 @@ export function usePurchaseQuery(id: string | null) {
     enabled: !!id,
   })
 }
+
+export const purchaseReturnKeys = {
+  all: ['purchase-returns'] as const,
+  list: (filters: PurchaseReturnFilters) => [...purchaseReturnKeys.all, 'list', filters] as const,
+  detail: (id: string) => [...purchaseReturnKeys.all, 'detail', id] as const,
+}
+
+export function usePurchaseReturnsQuery(filters: PurchaseReturnFilters) {
+  return useQuery({
+    queryKey: purchaseReturnKeys.list(filters),
+    queryFn: () => purchaseReturnsApi.list(filters),
+  })
+}
+
+export function usePurchaseReturnQuery(id: string | null) {
+  return useQuery({
+    queryKey: id ? purchaseReturnKeys.detail(id) : [...purchaseReturnKeys.all, 'detail', 'none'],
+    queryFn: () => purchaseReturnsApi.show(id ?? ''),
+    enabled: !!id,
+  })
+}
+
+export function useCreatePurchaseReturnMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ purchaseId, payload }: { purchaseId: string; payload: PurchaseReturnPayload }) =>
+      purchaseReturnsApi.create(purchaseId, payload),
+    onSuccess: (purchaseReturn) => {
+      queryClient.invalidateQueries({ queryKey: purchaseReturnKeys.all })
+      queryClient.invalidateQueries({ queryKey: purchaseKeys.detail(purchaseReturn.purchase_id) })
+    },
+  })
+}
+
 
 export function useCreatePurchaseMutation() {
   const queryClient = useQueryClient()

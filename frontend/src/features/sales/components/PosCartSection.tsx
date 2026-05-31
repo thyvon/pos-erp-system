@@ -112,7 +112,7 @@ export function PosCartSection({
                   <TableCell sx={cartColumnSx.quantity} align="right">{t('items.quantity')}</TableCell>
                   <TableCell sx={cartColumnSx.price} align="right">{t('items.unitPrice')}</TableCell>
                   <TableCell sx={cartColumnSx.total} align="right">{t('items.total')}</TableCell>
-                  <TableCell sx={cartColumnSx.actions} align="right">{t('columns.actions')}</TableCell>
+                  <TableCell sx={cartColumnSx.actions} align="center">{t('columns.actions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -211,8 +211,8 @@ export function PosCartSection({
                     <TableCell align="right" sx={cartColumnSx.total}>
                       <Typography variant="subtitle2">{currencyFormatter.format(lineTotals[index] ?? lineTotal(watchedItems[index] ?? field, taxScope))}</Typography>
                     </TableCell>
-                    <TableCell align="right" sx={cartColumnSx.actions}>
-                      <Stack direction="row" spacing={0.5} sx={{ justifyContent: 'flex-end' }}>
+                    <TableCell align="center" sx={cartColumnSx.actions}>
+                      <Stack direction="row" spacing={0.5} sx={{ justifyContent: 'center' }}>
                         <Tooltip title={t('pos.actions.editLine')}>
                           <span>
                             <IconButton size="small" disabled={isSaving} onClick={() => onEditItem(index)}>

@@ -104,9 +104,24 @@ export const purchasePaymentSchema = z.object({
   payments: z.array(purchasePaymentLineSchema).min(1, 'Add at least one payment line'),
 })
 
+export const purchaseReturnLineSchema = z.object({
+  purchase_item_id: z.string().min(1, 'Purchase item is required'),
+  quantity: z.coerce.number().gt(0, 'Quantity must be greater than zero'),
+  lot_id: z.string().nullable().optional(),
+  serial_ids: z.array(z.string()).optional(),
+})
+
+export const purchaseReturnSchema = z.object({
+  return_date: z.string().min(1, 'Return date is required'),
+  notes: z.string().trim().nullable().optional(),
+  items: z.array(purchaseReturnLineSchema).min(1, 'Add at least one return line'),
+})
+
 export type PurchaseFormInput = z.input<typeof purchaseSchema>
 export type PurchaseFormValues = z.output<typeof purchaseSchema>
 export type ReceivePurchaseFormInput = z.input<typeof receivePurchaseSchema>
 export type ReceivePurchaseFormValues = z.output<typeof receivePurchaseSchema>
 export type PurchasePaymentFormInput = z.input<typeof purchasePaymentSchema>
 export type PurchasePaymentFormValues = z.output<typeof purchasePaymentSchema>
+export type PurchaseReturnFormInput = z.input<typeof purchaseReturnSchema>
+export type PurchaseReturnFormValues = z.output<typeof purchaseReturnSchema>

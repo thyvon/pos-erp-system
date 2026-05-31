@@ -206,7 +206,7 @@ export default function SuppliersPage() {
                   <TableCell>{t('columns.company')}</TableCell>
                   <TableCell>{t('columns.balance')}</TableCell>
                   <TableCell>{t('columns.status')}</TableCell>
-                  <TableCell align="right">{t('columns.actions')}</TableCell>
+                  <TableCell align="center">{t('columns.actions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -248,7 +248,7 @@ export default function SuppliersPage() {
                         color={supplier.status === 'active' ? 'success' : 'default'}
                       />
                     </TableCell>
-                    <TableCell align="right">
+                    <TableCell align="center">
                       <RowActions
                         editLabel={t('common:buttons.edit')}
                         deleteLabel={t('common:buttons.delete')}

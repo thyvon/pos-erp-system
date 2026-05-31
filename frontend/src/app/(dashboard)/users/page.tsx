@@ -222,7 +222,7 @@ export default function UsersPage() {
                   <TableCell>{t('columns.branches')}</TableCell>
                   <TableCell>{t('columns.salesLimits')}</TableCell>
                   <TableCell>{t('columns.status')}</TableCell>
-                  <TableCell align="right">{t('columns.actions')}</TableCell>
+                  <TableCell align="center">{t('columns.actions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -285,7 +285,7 @@ export default function UsersPage() {
                         color={user.status === 'active' ? 'success' : user.status === 'suspended' ? 'warning' : 'default'}
                       />
                     </TableCell>
-                    <TableCell align="right">
+                    <TableCell align="center">
                       <RowActions
                         editLabel={t('common:buttons.edit')}
                         deleteLabel={t('common:buttons.delete')}

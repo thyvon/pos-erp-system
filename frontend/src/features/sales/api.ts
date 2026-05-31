@@ -62,6 +62,22 @@ export const saleReturnsApi = {
     apiClient.post<SaleReturn, SaleReturnPayload>(`/v1/sales/${saleId}/returns`, payload),
 }
 
+export const invoicePrintApi = {
+  getTemplates: () => apiClient.get<{ data: Array<{ id: string; name: string; description: string }> }>('/v1/invoice-templates'),
+  previewUrl: (saleId: string, template?: string) => {
+    const params = template ? `?template=${template}` : ''
+    return `/v1/sales/${saleId}/invoice-preview${params}`
+  },
+  downloadUrl: (saleId: string, template?: string) => {
+    const params = template ? `?template=${template}` : ''
+    return `/v1/sales/${saleId}/invoice-download${params}`
+  },
+  viewUrl: (saleId: string, template?: string) => {
+    const params = template ? `?template=${template}` : ''
+    return `/v1/sales/${saleId}/invoice-view${params}`
+  },
+}
+
 export const cashRegistersApi = {
   list: (filters: CashRegisterFilters = {}) => apiClient.getPaginated<CashRegister>('/v1/cash-registers', filters),
   show: (id: string) => apiClient.get<CashRegister>(`/v1/cash-registers/${id}`),

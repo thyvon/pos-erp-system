@@ -170,7 +170,7 @@ export default function CustomerGroupsPage() {
                   <TableCell>{t('columns.name')}</TableCell>
                   <TableCell>{t('columns.discount')}</TableCell>
                   <TableCell>{t('columns.priceGroup')}</TableCell>
-                  <TableCell align="right">{t('columns.actions')}</TableCell>
+                  <TableCell align="center">{t('columns.actions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -187,7 +187,7 @@ export default function CustomerGroupsPage() {
                     </TableCell>
                     <TableCell>{customerGroup.discount}%</TableCell>
                     <TableCell>{customerGroup.price_group?.name ?? '-'}</TableCell>
-                    <TableCell align="right">
+                    <TableCell align="center">
                       <RowActions
                         editLabel={t('common:buttons.edit')}
                         deleteLabel={t('common:buttons.delete')}

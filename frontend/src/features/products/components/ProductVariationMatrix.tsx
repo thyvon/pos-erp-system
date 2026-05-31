@@ -138,7 +138,7 @@ export function ProductVariationMatrix({ control, errors, valueLabelMap, subUnit
             <TableCell sx={columnSx.money}>{t('fields.profitMargin')}</TableCell>
             <TableCell sx={columnSx.image}>{t('fields.imageFile')}</TableCell>
             <TableCell sx={columnSx.active}>{t('fields.is_active')}</TableCell>
-            <TableCell sx={columnSx.actions} align="right">{t('columns.actions')}</TableCell>
+            <TableCell sx={columnSx.actions} align="center">{t('columns.actions')}</TableCell>
           </TableRow>
         </TableHead>
         <TableBody>
@@ -215,7 +215,7 @@ export function ProductVariationMatrix({ control, errors, valueLabelMap, subUnit
                   )}
                 />
               </TableCell>
-              <TableCell sx={columnSx.actions} align="right">
+              <TableCell sx={columnSx.actions} align="center">
                 <Button color="error" onClick={() => variations.remove(index)}>
                   {t('common:buttons.delete')}
                 </Button>

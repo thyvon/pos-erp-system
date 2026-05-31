@@ -8,6 +8,7 @@ use App\Models\ChartOfAccount;
 use App\Models\PaymentAccount;
 use App\Models\Product;
 use App\Models\Purchase;
+use App\Models\PurchasePayment;
 use App\Models\StockLevel;
 use App\Models\StockLot;
 use App\Models\StockMovement;
@@ -289,7 +290,7 @@ class PurchaseApiTest extends TestCase
         $this->assertDatabaseHas('account_transactions', [
             'payment_account_id' => $paymentAccount->id,
             'reference_type' => 'App\\Models\\PurchasePayment',
-            'type' => 'debit',
+            'type' => 'credit',
             'amount' => number_format((float) $purchase->total_amount, 2, '.', ''),
         ]);
 
@@ -447,7 +448,7 @@ class PurchaseApiTest extends TestCase
             ->assertJsonPath('data.reversed_payment.status', 'reversed')
             ->assertJsonPath('data.payment.replaces_payment_id', $originalPaymentId)
             ->assertJsonPath('data.payment.payment_account_id', $bankPaymentAccount->id)
-            ->assertJsonPath('data.purchase.payment_status', 'partial');
+            ->assertJsonPath('data.purchase.payment_status', 'paid');
 
         $this->assertDatabaseHas('purchase_payments', [
             'id' => $originalPaymentId,

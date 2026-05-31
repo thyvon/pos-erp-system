@@ -231,7 +231,7 @@ export default function StockAdjustmentsPage() {
                   <TableCell>{t('adjustments.columns.reason')}</TableCell>
                   <TableCell>{t('adjustments.columns.items')}</TableCell>
                   <TableCell>{t('adjustments.columns.createdBy')}</TableCell>
-                  <TableCell align="right">{t('adjustments.columns.actions')}</TableCell>
+                  <TableCell align="center">{t('adjustments.columns.actions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -258,7 +258,7 @@ export default function StockAdjustmentsPage() {
                     <TableCell>{adjustment.reason || '-'}</TableCell>
                     <TableCell>{adjustment.items?.length ?? 0}</TableCell>
                     <TableCell>{adjustment.creator?.name || '-'}</TableCell>
-                    <TableCell align="right">
+                    <TableCell align="center">
                       <RowActions
                         viewLabel={t('adjustments.actions.view')}
                         editLabel={t('common:buttons.edit')}

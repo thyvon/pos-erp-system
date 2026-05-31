@@ -76,6 +76,7 @@ const NAV_CONFIG: NavSection[] = [
       { key: 'saleReturns', path: '/sale-returns', icon: <CompareArrowsOutlined /> },
       { key: 'cashRegisters', path: '/cash-registers', icon: <AccountBalanceWalletOutlined /> },
       { key: 'purchases', path: '/purchases', icon: <LocalShippingOutlined /> },
+      { key: 'purchaseReturns', path: '/purchase-returns', icon: <CompareArrowsOutlined /> },
     ],
   },
   {

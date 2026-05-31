@@ -7,7 +7,7 @@ import { NavigateNext } from '@/components/ui/icons'
 import { useTranslation } from 'react-i18next'
 import { useProductQuery } from '@/features/products/hooks'
 import { useStockCountQuery, useStockTransferQuery } from '@/features/inventory/hooks'
-import { usePurchaseQuery } from '@/features/purchases/hooks'
+import { usePurchaseQuery, usePurchaseReturnQuery } from '@/features/purchases/hooks'
 import { useQuotationQuery, useSaleQuery, useSaleReturnQuery } from '@/features/sales/hooks'
 
 const BREADCRUMB_KEY_MAP: Record<string, string> = {
@@ -17,6 +17,7 @@ const BREADCRUMB_KEY_MAP: Record<string, string> = {
   '/sale-returns': 'saleReturns',
   '/cash-registers': 'cashRegisters',
   '/purchases': 'purchases',
+  '/purchase-returns': 'purchaseReturns',
   '/customers': 'customers',
   '/suppliers': 'suppliers',
   '/products': 'products',
@@ -131,6 +132,7 @@ export default function Breadcrumbs() {
   const saleId = isSaleRouteWithId ? pathnames[1] : null
   const saleQuery = useSaleQuery(saleId)
   const isSaleReturnRouteWithId = pathnames[0] === 'sale-returns' && !!pathnames[1]
+  const isPurchaseReturnRouteWithId = pathnames[0] === 'purchase-returns' && !!pathnames[1]
   const saleReturnId = isSaleReturnRouteWithId ? pathnames[1] : null
   const saleReturnQuery = useSaleReturnQuery(saleReturnId)
   const isQuotationRouteWithId = pathnames[0] === 'quotations' && !!pathnames[1] && pathnames[1] !== 'create'
@@ -139,6 +141,8 @@ export default function Breadcrumbs() {
   const isPurchaseRouteWithId = pathnames[0] === 'purchases' && !!pathnames[1] && pathnames[1] !== 'create'
   const purchaseId = isPurchaseRouteWithId ? pathnames[1] : null
   const purchaseQuery = usePurchaseQuery(purchaseId)
+  const purchaseReturnId = isPurchaseReturnRouteWithId ? pathnames[1] : null
+  const purchaseReturnQuery = usePurchaseReturnQuery(purchaseReturnId)
 
   return (
     <Box sx={{ mb: 3 }}>

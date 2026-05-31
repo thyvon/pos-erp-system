@@ -197,7 +197,7 @@ export default function CreateJournalPage() {
                         <TableCell sx={{ width: 160 }}>{t('journals.entries.type')}</TableCell>
                         <TableCell sx={{ width: 180 }}>{t('journals.entries.amount')}</TableCell>
                         <TableCell>{t('journals.entries.description')}</TableCell>
-                        <TableCell align="right" sx={{ width: 72 }}>{t('journals.columns.actions')}</TableCell>
+                        <TableCell align="center" sx={{ width: 72 }}>{t('journals.columns.actions')}</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -275,7 +275,7 @@ export default function CreateJournalPage() {
                               )}
                             />
                           </TableCell>
-                          <TableCell align="right">
+                          <TableCell align="center">
                             <Tooltip title={t('common:buttons.delete')}>
                               <span>
                                 <IconButton

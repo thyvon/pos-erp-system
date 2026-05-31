@@ -47,6 +47,14 @@ export const SETTINGS_GROUPS: SettingsGroupDefinition[] = [
       { key: 'show_previous_due', type: 'boolean' },
       { key: 'terms_conditions', type: 'textarea' },
       { key: 'footer_note', type: 'textarea' },
+      {
+        key: 'invoice_layout',
+        type: 'select',
+        options: [
+          { value: 'classic', label: 'Classic' },
+          { value: 'modern', label: 'Modern' },
+        ],
+      },
     ],
   },
   {

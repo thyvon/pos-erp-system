@@ -211,7 +211,7 @@ export default function StockCountsPage() {
                   <TableCell align="right">{t('counts.columns.discrepancies')}</TableCell>
                   <TableCell>{t('counts.columns.createdBy')}</TableCell>
                   <TableCell>{t('counts.columns.completedBy')}</TableCell>
-                  <TableCell align="right">{t('counts.columns.actions')}</TableCell>
+                  <TableCell align="center">{t('counts.columns.actions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -246,7 +246,7 @@ export default function StockCountsPage() {
                     <TableCell align="right">{count.discrepancy_count}</TableCell>
                     <TableCell>{count.creator?.name || '-'}</TableCell>
                     <TableCell>{count.completer?.name || '-'}</TableCell>
-                    <TableCell align="right">
+                    <TableCell align="center">
                       <RowActions
                         viewLabel={t('counts.actions.view')}
                         editLabel={t('common:buttons.edit')}

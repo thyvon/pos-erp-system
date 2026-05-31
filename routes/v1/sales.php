@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Sales\CashRegisterController;
+use App\Http\Controllers\Api\V1\Sales\InvoicePrintController;
 use App\Http\Controllers\Api\V1\Sales\QuotationController;
 use App\Http\Controllers\Api\V1\Sales\SaleReturnController;
 use App\Http\Controllers\Api\V1\Sales\SaleController;
@@ -40,4 +41,9 @@ return static function (): void {
     Route::delete('cash-registers/{cashRegister}', [CashRegisterController::class, 'destroy'])->middleware('can:delete,cashRegister');
     Route::post('cash-registers/{cashRegister}/open-session', [CashRegisterController::class, 'openSession'])->middleware('can:openSession,cashRegister');
     Route::post('cash-register-sessions/{session}/close', [CashRegisterController::class, 'closeSession']);
+
+    Route::get('invoice-templates', [InvoicePrintController::class, 'templates'])->middleware('can:viewAny,'.\App\Models\Sale::class);
+    Route::get('sales/{sale}/invoice-preview', [InvoicePrintController::class, 'preview'])->middleware('can:view,sale');
+    Route::get('sales/{sale}/invoice-download', [InvoicePrintController::class, 'download'])->middleware('can:view,sale');
+    Route::get('sales/{sale}/invoice-view', [InvoicePrintController::class, 'view'])->middleware('can:view,sale');
 };

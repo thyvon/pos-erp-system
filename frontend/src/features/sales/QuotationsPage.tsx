@@ -271,7 +271,7 @@ export function QuotationsPage() {
                   <TableCell>{t('columns.status')}</TableCell>
                   <TableCell align="right">{t('detail.summary.items')}</TableCell>
                   <TableCell align="right">{t('columns.total')}</TableCell>
-                  <TableCell align="right">{t('columns.actions')}</TableCell>
+                  <TableCell align="center">{t('columns.actions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -292,7 +292,7 @@ export function QuotationsPage() {
                     </TableCell>
                     <TableCell align="right">{(quotation.items?.length ?? 0).toLocaleString()}</TableCell>
                     <TableCell align="right">{formatMoney(quotation.total_amount, currencyFormatter)}</TableCell>
-                    <TableCell align="right">
+                    <TableCell align="center">
                       <RowActions
                         viewLabel={t('common:buttons.view')}
                         editLabel={t('common:buttons.edit')}

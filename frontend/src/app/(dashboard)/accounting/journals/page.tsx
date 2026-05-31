@@ -219,7 +219,7 @@ export default function JournalsPage() {
                   <TableCell>{t('journals.columns.description')}</TableCell>
                   <TableCell align="right">{t('journals.columns.total')}</TableCell>
                   <TableCell>{t('journals.columns.status')}</TableCell>
-                  <TableCell align="right">{t('journals.columns.actions')}</TableCell>
+                  <TableCell align="center">{t('journals.columns.actions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -261,7 +261,7 @@ export default function JournalsPage() {
                         variant="outlined"
                       />
                     </TableCell>
-                    <TableCell align="right">
+                    <TableCell align="center">
                       <RowActions
                         viewLabel={t('common:buttons.view')}
                         editLabel={t('journals.actions.reverse')}

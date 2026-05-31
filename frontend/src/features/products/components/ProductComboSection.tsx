@@ -55,7 +55,7 @@ export function ProductComboSection({ control, errors, comboItems, options, t }:
               <TableCell sx={comboColumnSx.product}><RequiredHeader>{t('fields.comboProduct')}</RequiredHeader></TableCell>
               <TableCell sx={comboColumnSx.variation}>{t('fields.comboVariation')}</TableCell>
               <TableCell sx={comboColumnSx.quantity}><RequiredHeader>{t('fields.quantity')}</RequiredHeader></TableCell>
-              <TableCell sx={comboColumnSx.actions} align="right">{t('columns.actions')}</TableCell>
+              <TableCell sx={comboColumnSx.actions} align="center">{t('columns.actions')}</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
@@ -95,7 +95,7 @@ export function ProductComboSection({ control, errors, comboItems, options, t }:
                     required
                   />
                 </TableCell>
-                <TableCell sx={comboColumnSx.actions} align="right">
+                <TableCell sx={comboColumnSx.actions} align="center">
                   <Button color="error" startIcon={<DeleteOutlined />} onClick={() => comboItems.remove(index)}>
                     {t('common:buttons.delete')}
                   </Button>

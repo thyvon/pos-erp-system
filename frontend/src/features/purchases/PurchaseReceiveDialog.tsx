@@ -128,6 +128,7 @@ export function PurchaseReceiveDialog({ open, purchase, isSaving, onClose, onSub
 
   const closeDialog = () => {
     setServerError('')
+    reset(buildDefaults(null))
     onClose()
   }
 
@@ -136,7 +137,7 @@ export function PurchaseReceiveDialog({ open, purchase, isSaving, onClose, onSub
     unit: { width: 110, minWidth: 110 },
     remaining: { width: 100, minWidth: 100 },
     qty: { width: 130, minWidth: 130 },
-    lot: { width: 160, minWidth: 160 },
+    lot: { width: 240, minWidth: 240 },
     serials: { width: 200, minWidth: 200 },
     notes: { width: 200, minWidth: 200 },
   }
@@ -182,7 +183,7 @@ export function PurchaseReceiveDialog({ open, purchase, isSaving, onClose, onSub
           </Box>
 
           <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1, overflowX: 'auto' }}>
-            <Table size="small" sx={{ minWidth: 1130, tableLayout: 'fixed' }}>
+            <Table size="small" sx={{ minWidth: 1240, tableLayout: 'fixed' }}>
               <TableHead>
                 <TableRow>
                   <TableCell sx={columnSx.item}>{t('receive.item')}</TableCell>
@@ -247,19 +248,54 @@ export function PurchaseReceiveDialog({ open, purchase, isSaving, onClose, onSub
                     </TableCell>
                     <TableCell sx={columnSx.lot}>
                       {field.stock_tracking === 'lot' ? (
-                        <Controller
-                          name={`items.${index}.lot_number`}
-                          control={control}
-                          render={({ field: f }) => (
-                            <TextField
-                              {...f}
-                              value={f.value ?? ''}
-                              label={t('receive.lot')}
-                              error={!!errors.items?.[index]?.lot_number}
-                              helperText={errors.items?.[index]?.lot_number?.message}
-                            />
-                          )}
-                        />
+                        <Stack spacing={1}>
+                          <Controller
+                            name={`items.${index}.lot_number`}
+                            control={control}
+                            render={({ field: f }) => (
+                              <TextField
+                                {...f}
+                                value={f.value ?? ''}
+                                label={t('receive.lot')}
+                                error={!!errors.items?.[index]?.lot_number}
+                                helperText={errors.items?.[index]?.lot_number?.message}
+                              />
+                            )}
+                          />
+                          <Controller
+                            name={`items.${index}.manufacture_date`}
+                            control={control}
+                            render={({ field: f }) => (
+                              <AppDatePicker
+                                label={t('receive.manufactureDate')}
+                                value={f.value ?? ''}
+                                onChange={f.onChange}
+                              />
+                            )}
+                          />
+                          <Controller
+                            name={`items.${index}.expiry_date`}
+                            control={control}
+                            render={({ field: f }) => (
+                              <AppDatePicker
+                                label={t('receive.expiryDate')}
+                                value={f.value ?? ''}
+                                onChange={f.onChange}
+                              />
+                            )}
+                          />
+                          <Controller
+                            name={`items.${index}.warranty_expires`}
+                            control={control}
+                            render={({ field: f }) => (
+                              <AppDatePicker
+                                label={t('receive.warrantyExpires')}
+                                value={f.value ?? ''}
+                                onChange={f.onChange}
+                              />
+                            )}
+                          />
+                        </Stack>
                       ) : (
                         <Typography variant="body2" sx={{ color: 'text.disabled' }}>—</Typography>
                       )}
@@ -279,6 +315,16 @@ export function PurchaseReceiveDialog({ open, purchase, isSaving, onClose, onSub
                               placeholder={t('receive.serialsPlaceholder')}
                               error={!!errors.items?.[index]?.serial_numbers_text}
                               helperText={errors.items?.[index]?.serial_numbers_text?.message}
+                              onPaste={(event: React.ClipboardEvent) => {
+                                const pasted = event.clipboardData.getData('text')
+                                const split = pasted.split(/[\r\n,;\t]+|  +/).map((s) => s.trim()).filter(Boolean)
+                                if (split.length > 1) {
+                                  event.preventDefault()
+                                  const existing = (f.value ?? '').trim()
+                                  const merged = existing ? existing + '\n' + split.join('\n') : split.join('\n')
+                                  f.onChange(merged)
+                                }
+                              }}
                             />
                           )}
                         />

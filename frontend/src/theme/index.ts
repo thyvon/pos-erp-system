@@ -266,7 +266,7 @@ export function createAppTheme(
     ] as Shadows,
     components: {
       MuiCssBaseline: {
-        styleOverrides: {
+        styleOverrides: (theme) => ({
           '*': {
             boxSizing: 'border-box',
           },
@@ -274,6 +274,22 @@ export function createAppTheme(
             width: '100%',
             height: '100%',
             WebkitOverflowScrolling: 'touch',
+            scrollbarWidth: 'thin',
+            scrollbarColor: `${alpha(theme.palette.grey[500], 0.32)} transparent`,
+          },
+          '*::-webkit-scrollbar': {
+            width: 6,
+            height: 6,
+          },
+          '*::-webkit-scrollbar-track': {
+            background: 'transparent',
+          },
+          '*::-webkit-scrollbar-thumb': {
+            background: alpha(theme.palette.grey[500], 0.32),
+            borderRadius: 3,
+          },
+          '*::-webkit-scrollbar-thumb:hover': {
+            background: alpha(theme.palette.grey[500], 0.5),
           },
           body: {
             width: '100%',
@@ -294,7 +310,7 @@ export function createAppTheme(
             width: '100%',
             height: '100%',
           },
-        },
+        }),
       },
       MuiButton: {
         defaultProps: {
@@ -572,6 +588,7 @@ export function createAppTheme(
               : {}),
           },
           head: {
+            textAlign: 'center',
             ...(isDenseLayout
               ? {
                   paddingTop: isCompactLayout ? 6 : 8,

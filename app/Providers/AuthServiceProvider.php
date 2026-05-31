@@ -6,6 +6,7 @@ use App\Models\Branch;
 use App\Models\AuditLog;
 use App\Models\Business;
 use App\Models\CustomFieldDefinition;
+use App\Models\Expense;
 use App\Models\Setting;
 use App\Models\TaxRate;
 use App\Models\TaxGroup;
@@ -33,6 +34,7 @@ use App\Models\Sale;
 use App\Models\SaleReturn;
 use App\Models\CashRegister;
 use App\Models\Purchase;
+use App\Models\PurchaseReturn;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
 
@@ -50,6 +52,7 @@ use App\Policies\SettingPolicy;
 use App\Policies\TaxRatePolicy;
 use App\Policies\TaxGroupPolicy;
 use App\Policies\CustomerGroupPolicy;
+use App\Policies\ExpensePolicy;
 use App\Policies\CustomerPolicy;
 use App\Policies\CategoryPolicy;
 use App\Policies\BrandPolicy;
@@ -74,6 +77,7 @@ use App\Policies\SaleReturnPolicy;
 use App\Policies\CashRegisterPolicy;
 use App\Policies\QuotationPolicy;
 use App\Policies\PurchasePolicy;
+use App\Policies\PurchaseReturnPolicy;
 use App\Policies\UserPolicy;
 use App\Policies\WarehousePolicy;
 use Spatie\Permission\Models\Role;
@@ -113,6 +117,8 @@ class AuthServiceProvider extends ServiceProvider
         SaleReturn::class => SaleReturnPolicy::class,
         CashRegister::class => CashRegisterPolicy::class,
         Purchase::class => PurchasePolicy::class,
+        PurchaseReturn::class => PurchaseReturnPolicy::class,
+        Expense::class => ExpensePolicy::class,
         User::class => UserPolicy::class,
         Role::class => RolePolicy::class,
         Branch::class => BranchPolicy::class,

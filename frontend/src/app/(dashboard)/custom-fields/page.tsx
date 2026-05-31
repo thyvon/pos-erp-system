@@ -196,7 +196,7 @@ export default function CustomFieldsPage() {
                   <TableCell>{t('columns.options')}</TableCell>
                   <TableCell>{t('columns.required')}</TableCell>
                   <TableCell>{t('columns.sortOrder')}</TableCell>
-                  <TableCell align="right">{t('columns.actions')}</TableCell>
+                  <TableCell align="center">{t('columns.actions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -240,7 +240,7 @@ export default function CustomFieldsPage() {
                       />
                     </TableCell>
                     <TableCell>{customField.sort_order}</TableCell>
-                    <TableCell align="right">
+                    <TableCell align="center">
                       <RowActions
                         editLabel={t('common:buttons.edit')}
                         deleteLabel={t('common:buttons.delete')}

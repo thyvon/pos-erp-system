@@ -42,12 +42,13 @@ The current repository has working backend, migrations, policies, and tests for 
 - Inventory: adjustments, lots, serials, stock transfers, stock counts, inventory lookup, and inventory options
 - Accounting: chart of accounts, journals, payment accounts, and fiscal years
 - Sales: sales, quotations, cash registers, payments, POS-related frontend flows, and sale returns
+- Purchases: purchases, purchase payments, purchase returns
+- Expenses: expense recording with accounting integration
 
 ### 1.2 What Is Present Only as Permission or Planning Surface
 
 These areas exist in permissions, old plans, or placeholders, but are **not fully implemented in the current codebase**:
 
-- Purchases
 - Expenses
 - Reports and dashboards beyond the current dashboard shell
 - Loyalty
@@ -70,7 +71,8 @@ These areas exist in permissions, old plans, or placeholders, but are **not full
 | Inventory | Live | Core workflows and stock-level browsing exist |
 | Accounting | Live | Manual journals, payment accounts, fiscal years implemented |
 | Sales | Live | Sales, quotations, registers, payments, returns implemented |
-| Purchases | Planned | Permissions reserved, no active module yet |
+| Purchases | Live | Purchases, payments, returns implemented |
+| Expenses | Live | Expense recording with accounting integration |
 | Optional Modules | Planned | Not implemented yet |
 
 ### 1.4 Important Deltas From v10
@@ -639,6 +641,7 @@ Only after the commercial core is stable:
 - Inventory
 - Accounting
 - Sales
+- Purchases
 
 ### Frontend Areas With Active Views
 
@@ -649,10 +652,10 @@ Only after the commercial core is stable:
 - Inventory
 - Accounting
 - Sales
+- Purchases
 
 ### Planned But Not Yet Built
 
-- Purchases
 - Expenses
 - Reports
 - Loyalty

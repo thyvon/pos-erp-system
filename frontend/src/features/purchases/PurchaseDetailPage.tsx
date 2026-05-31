@@ -23,7 +23,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
-import { ArrowBack, DeleteOutlined, EditOutlined, LocalShippingOutlined, PaymentsOutlined } from '@/components/ui/icons'
+import { ArrowBack, CompareArrowsOutlined, DeleteOutlined, EditOutlined, LocalShippingOutlined, PaymentsOutlined } from '@/components/ui/icons'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
@@ -31,9 +31,11 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { UnitConversionBadge } from '@/features/sales/components/UnitConversionBadge'
 import { PurchaseReceiveDialog } from './PurchaseReceiveDialog'
 import { PurchasePaymentDialog } from './PurchasePaymentDialog'
+import { PurchaseReturnDialog } from './PurchaseReturnDialog'
 
 import { useDefaultExchangeRateQuery, usePaymentAccountsQuery } from '@/features/accounting/hooks'
 import {
+  useCreatePurchaseReturnMutation,
   useDeletePurchaseMutation,
   usePurchaseQuery,
   useReceivePurchaseMutation,
@@ -46,7 +48,7 @@ import { useCurrencyFormatter } from '@/features/settings/useAppCurrency'
 import { useAuthStore } from '@/stores/authStore'
 import { formatAppDate, formatAppDateTime } from '@/utils/dateFormat'
 import { formatMoney } from '@/utils/formatMoney'
-import type { PurchaseItem, PurchasePayment, PurchasePaymentCorrectionPayload, PurchasePaymentPayload, ReceivePurchasePayload } from '@/types/purchase'
+import type { PurchaseItem, PurchasePayment, PurchasePaymentCorrectionPayload, PurchasePaymentPayload, PurchaseReturnPayload, ReceivePurchasePayload } from '@/types/purchase'
 
 interface PurchaseDetailPageProps {
   purchaseId: string
@@ -116,6 +118,7 @@ export function PurchaseDetailPage({ purchaseId }: PurchaseDetailPageProps) {
   const can = useAuthStore((state) => state.can)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [receiveOpen, setReceiveOpen] = useState(false)
+  const [returnOpen, setReturnOpen] = useState(false)
   const [paymentOpen, setPaymentOpen] = useState(false)
   const [editingPayment, setEditingPayment] = useState<PurchasePayment | null>(null)
   const [historyOpen, setHistoryOpen] = useState(false)
@@ -128,10 +131,11 @@ export function PurchaseDetailPage({ purchaseId }: PurchaseDetailPageProps) {
   const defaultExchangeRateQuery = useDefaultExchangeRateQuery('USD', 'KHR')
   const deletePurchase = useDeletePurchaseMutation()
   const receivePurchase = useReceivePurchaseMutation()
+  const createReturn = useCreatePurchaseReturnMutation()
   const recordPayment = useRecordPurchasePaymentMutation()
   const updatePayment = useUpdatePurchasePaymentMutation()
   const deletePayment = useDeletePurchasePaymentMutation()
-  const isMutating = deletePurchase.isPending || receivePurchase.isPending || recordPayment.isPending || updatePayment.isPending || deletePayment.isPending
+  const isMutating = deletePurchase.isPending || receivePurchase.isPending || createReturn.isPending || recordPayment.isPending || updatePayment.isPending || deletePayment.isPending
 
   const purchase = purchaseQuery.data
   const paymentAccounts = paymentAccountsQuery.data?.data ?? []
@@ -139,6 +143,7 @@ export function PurchaseDetailPage({ purchaseId }: PurchaseDetailPageProps) {
   const canEdit = can('purchases.edit') && purchase && ['draft', 'confirmed'].includes(purchase.status)
   const canDelete = can('purchases.delete') && purchase && ['draft', 'confirmed', 'cancelled'].includes(purchase.status)
   const canReceive = can('purchases.receive') && purchase && ['confirmed', 'partially_received'].includes(purchase.status)
+  const canReturn = can('purchases.return') && purchase && ['received', 'partially_received'].includes(purchase.status)
   const canRecordPayment = !!purchase
     && can('payments.create')
     && ['confirmed', 'partially_received', 'received'].includes(purchase.status)
@@ -161,6 +166,12 @@ export function PurchaseDetailPage({ purchaseId }: PurchaseDetailPageProps) {
     await receivePurchase.mutateAsync({ id: purchaseId, payload })
     enqueueSnackbar(t('messages.received'), { variant: 'success' })
     setReceiveOpen(false)
+  }
+
+  const handleReturn = async (payload: PurchaseReturnPayload) => {
+    await createReturn.mutateAsync({ purchaseId, payload })
+    enqueueSnackbar(t('messages.returnRecorded', { defaultValue: 'Purchase return recorded successfully' }), { variant: 'success' })
+    setReturnOpen(false)
   }
 
   const handlePayment = async (payload: PurchasePaymentPayload) => {
@@ -245,6 +256,17 @@ export function PurchaseDetailPage({ purchaseId }: PurchaseDetailPageProps) {
               disabled={isMutating}
             >
               {t('detail.receive')}
+            </Button>
+          )}
+          {canReturn && (
+            <Button
+              variant="contained"
+              color="warning"
+              startIcon={<CompareArrowsOutlined />}
+              onClick={() => setReturnOpen(true)}
+              disabled={isMutating}
+            >
+              {t('returns.actions.record')}
             </Button>
           )}
           {canEdit && (
@@ -551,6 +573,14 @@ export function PurchaseDetailPage({ purchaseId }: PurchaseDetailPageProps) {
         isSaving={receivePurchase.isPending}
         onClose={() => setReceiveOpen(false)}
         onSubmit={handleReceive}
+      />
+
+      <PurchaseReturnDialog
+        open={returnOpen}
+        purchase={purchase}
+        isSaving={createReturn.isPending}
+        onClose={() => setReturnOpen(false)}
+        onSubmit={handleReturn}
       />
 
       <PurchasePaymentDialog

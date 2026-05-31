@@ -39,7 +39,10 @@ import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
 import { useDefaultExchangeRateQuery, usePaymentAccountsQuery } from '@/features/accounting/hooks'
-import { useCustomersQuery } from '@/features/customers/hooks'
+import { useCreateCustomerMutation, useCustomersQuery } from '@/features/customers/hooks'
+import { CustomerFormDialog } from '@/features/customers/CustomerFormDialog'
+import { useCustomerGroupsQuery } from '@/features/customer-groups/hooks'
+import { useCustomFieldsQuery } from '@/features/custom-fields/hooks'
 import { UnitConversionBadge } from '@/features/sales/components/UnitConversionBadge'
 import { UnitToggle } from '@/features/sales/components/UnitToggle'
 import { InventoryProductLookupPicker } from '@/features/inventory/components/InventoryProductLookupPicker'
@@ -75,7 +78,7 @@ import type { PaymentAccount } from '@/types/accounting'
 import type { InventoryProductLookupItem } from '@/types/inventory'
 import type { Sale, SaleItem } from '@/types/sales'
 import type { Warehouse } from '@/types/warehouse'
-import type { Customer } from '@/types/customer'
+import type { Customer, CustomerPayload } from '@/types/customer'
 import type { PriceGroup } from '@/types/priceGroup'
 import type { TaxRate } from '@/types/taxRate'
 
@@ -237,15 +240,18 @@ function InstructionTooltip({ title }: { title: string }) {
 }
 
 export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
-  const { t } = useTranslation(['sales', 'common'])
+  const { t } = useTranslation(['sales', 'common', 'customers'])
   const router = useRouter()
   const { enqueueSnackbar } = useSnackbar()
   const can = useAuthStore((state) => state.can)
+  const canCreateCustomer = can('customers.create')
   const [serverError, setServerError] = useState('')
   const [clientRequestId, setClientRequestId] = useState(() => createClientRequestId())
   const [removedPaymentIds, setRemovedPaymentIds] = useState<string[]>([])
   const isEdit = !!saleId
   const isQuotationMode = mode === 'quotation'
+  const [customerDialogOpen, setCustomerDialogOpen] = useState(false)
+  const [createdCustomer, setCreatedCustomer] = useState<Customer | null>(null)
   const currency = useAppCurrency()
   const currencyFormatter = useCurrencyFormatter()
 
@@ -256,6 +262,9 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
   const createSale = useCreateSaleMutation()
   const createQuotation = useCreateQuotationMutation()
   const updateSaleWithPayments = useUpdateSaleWithPaymentsMutation()
+  const customerGroupsQuery = useCustomerGroupsQuery({ per_page: 100 })
+  const customerCustomFieldsQuery = useCustomFieldsQuery({ module: 'customer', per_page: 100 })
+  const createCustomer = useCreateCustomerMutation()
   const [isSubmittingSale, setIsSubmittingSale] = useState(false)
   const isSaving = isSubmittingSale || createSale.isPending || createQuotation.isPending || updateSaleWithPayments.isPending
 
@@ -288,7 +297,13 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
   const defaultExchangeRateQuery = useDefaultExchangeRateQuery('USD', 'KHR')
 
   const warehouses = useMemo(() => warehousesQuery.data?.data ?? [], [warehousesQuery.data?.data])
-  const customers = customersQuery.data?.data ?? []
+  const customers = useMemo(() => {
+    const baseCustomers = customersQuery.data?.data ?? []
+    if (!createdCustomer || baseCustomers.some((c) => c.id === createdCustomer.id)) {
+      return baseCustomers
+    }
+    return [createdCustomer, ...baseCustomers]
+  }, [createdCustomer, customersQuery.data?.data])
   const priceGroups = priceGroupsQuery.data?.data ?? []
   const taxRates = taxRatesQuery.data?.data ?? []
   const paymentAccounts = useMemo(
@@ -325,9 +340,9 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
     [currentSale?.payments],
   )
   const existingPaymentById = useMemo(() => new Map(existingPayments.map((payment) => [payment.id, payment])), [existingPayments])
-  const canManageExistingPayments = isEdit && can('payments.edit') && currentSaleStatus === 'completed'
-  const canDeleteExistingPayments = isEdit && can('payments.delete') && currentSaleStatus === 'completed'
-  const canAddPaymentLines = isEdit ? can('payments.create') && currentSaleStatus === 'completed' : true
+  const canManageExistingPayments = isEdit && can('payments.edit') && !!currentSaleStatus && ['draft', 'confirmed', 'completed'].includes(currentSaleStatus)
+  const canDeleteExistingPayments = isEdit && can('payments.delete') && !!currentSaleStatus && ['draft', 'confirmed', 'completed'].includes(currentSaleStatus)
+  const canAddPaymentLines = isEdit ? can('payments.create') && !!currentSaleStatus && ['draft', 'confirmed', 'completed'].includes(currentSaleStatus) : true
   const editPaymentLimit = totals.total
   const canTakeDirectPayment = !isQuotationMode
     && (saleType === 'invoice' || saleType === 'pos_sale')
@@ -472,6 +487,14 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
     setValue(`items.${index}.unit_price`, nextPrice, { shouldDirty: true, shouldValidate: true })
   }
 
+  const handleCreateCustomer = async (payload: CustomerPayload) => {
+    const customer = await createCustomer.mutateAsync(payload)
+    setCreatedCustomer(customer)
+    setValue('customer_id', customer.id, { shouldDirty: true, shouldValidate: true })
+    enqueueSnackbar(t('customers:messages.created'), { variant: 'success' })
+    setCustomerDialogOpen(false)
+  }
+
   const submitForm = async (values: SaleFormValues) => {
     if (isSubmittingSale) return
 
@@ -573,6 +596,7 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
   }
 
   return (
+    <>
     <Stack spacing={3}>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ justifyContent: 'space-between' }}>
         <Box>
@@ -644,29 +668,53 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
                     />
                   )}
                 />
-                <Controller
-                  name="customer_id"
-                  control={control}
-                  render={({ field }) => (
-                    <Autocomplete
-                      options={customers}
-                      value={customers.find((customer) => customer.id === field.value) ?? null}
-                      loading={customersQuery.isLoading}
-                      getOptionLabel={customerLabel}
-                      isOptionEqualToValue={(option, value) => option.id === value.id}
-                      onBlur={field.onBlur}
-                      onChange={(_, customer) => field.onChange(customer?.id ?? '')}
-                      renderInput={(params) => (
-                        <TextField
-                          {...params}
-                          label={t('fields.customer')}
-                          error={!!errors.customer_id}
-                          helperText={errors.customer_id?.message || t('labels.walkInCustomer')}
-                        />
-                      )}
-                    />
+                <Stack direction="row" spacing={1} sx={{ alignItems: 'flex-start' }}>
+                  <Controller
+                    name="customer_id"
+                    control={control}
+                    render={({ field }) => (
+                      <Autocomplete
+                        options={customers}
+                        value={customers.find((customer) => customer.id === field.value) ?? null}
+                        loading={customersQuery.isLoading}
+                        getOptionLabel={customerLabel}
+                        isOptionEqualToValue={(option, value) => option.id === value.id}
+                        onBlur={field.onBlur}
+                        onChange={(_, customer) => field.onChange(customer?.id ?? '')}
+                        sx={{ flexGrow: 1 }}
+                        renderInput={(params) => (
+                          <TextField
+                            {...params}
+                            label={t('fields.customer')}
+                            error={!!errors.customer_id}
+                            helperText={errors.customer_id?.message || t('labels.walkInCustomer')}
+                          />
+                        )}
+                      />
+                    )}
+                  />
+                  {canCreateCustomer && (
+                    <Tooltip title={t('common:buttons.create')}>
+                      <IconButton
+                        aria-label={t('common:buttons.create')}
+                        size="small"
+                        color="primary"
+                        onClick={() => setCustomerDialogOpen(true)}
+                        sx={{
+                          width: 'var(--app-control-height)',
+                          height: 'var(--app-control-height)',
+                          minWidth: 'var(--app-control-height)',
+                          minHeight: 'var(--app-control-height)',
+                          border: 1,
+                          borderColor: 'divider',
+                          flex: '0 0 auto',
+                        }}
+                      >
+                        <Add fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
                   )}
-                />
+                </Stack>
                 <Controller
                   name="sale_date"
                   control={control}
@@ -748,7 +796,7 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
                         <TableCell sx={itemColumnSx.tax}>{t('items.tax')}</TableCell>
                         <TableCell sx={itemColumnSx.notes}>{t('fields.notes')}</TableCell>
                         <TableCell sx={itemColumnSx.total} align="right">{t('items.total')}</TableCell>
-                        <TableCell sx={itemColumnSx.actions} align="right">{t('columns.actions')}</TableCell>
+                        <TableCell sx={itemColumnSx.actions} align="center">{t('columns.actions')}</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -846,7 +894,7 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
                               )} />
                             </TableCell>
                             <TableCell align="right" sx={itemColumnSx.total}>{currencyFormatter.format(lineTotals[index] ?? lineTotal(field, taxScope))}</TableCell>
-                            <TableCell align="right" sx={itemColumnSx.actions}>
+                            <TableCell align="center" sx={itemColumnSx.actions}>
                               <Tooltip title={t('actions.removeItem')}>
                                 <span>
                                   <IconButton size="small" color="error" disabled={isSaving} onClick={() => remove(index)}>
@@ -1026,7 +1074,7 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
                                 <TableCell sx={directPaymentColumnSx.method}>{t('payment.method')}</TableCell>
                                 <TableCell sx={directPaymentColumnSx.reference}>{t('payment.reference')}</TableCell>
                                 <TableCell sx={directPaymentColumnSx.converted} align="right">{t('payment.converted')}</TableCell>
-                                <TableCell sx={directPaymentColumnSx.actions} align="right">{t('columns.actions')}</TableCell>
+                                <TableCell sx={directPaymentColumnSx.actions} align="center">{t('columns.actions')}</TableCell>
                               </TableRow>
                             </TableHead>
                             <TableBody>
@@ -1161,7 +1209,7 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
                                         </Typography>
                                       )}
                                     </TableCell>
-                                    <TableCell align="right" sx={directPaymentColumnSx.actions}>
+                                    <TableCell align="center" sx={directPaymentColumnSx.actions}>
                                       <Tooltip title={t('payment.removeLine')}>
                                         <span>
                                           <IconButton
@@ -1306,5 +1354,18 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
         </Stack>
       </Box>
     </Stack>
+    <CustomerFormDialog
+      key={customerDialogOpen ? 'sale-customer-open' : 'sale-customer-closed'}
+      open={customerDialogOpen}
+      customer={null}
+      customerGroups={customerGroupsQuery.data?.data ?? []}
+      isLoadingCustomerGroups={customerGroupsQuery.isLoading}
+      customFields={customerCustomFieldsQuery.data?.data ?? []}
+      isLoadingCustomFields={customerCustomFieldsQuery.isLoading}
+      isSaving={createCustomer.isPending}
+      onClose={() => setCustomerDialogOpen(false)}
+      onSubmit={handleCreateCustomer}
+    />
+    </>
   )
 }

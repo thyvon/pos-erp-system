@@ -203,7 +203,7 @@ export default function RackLocationsPage() {
                   <TableCell>{t('columns.warehouse')}</TableCell>
                   <TableCell>{t('columns.branch')}</TableCell>
                   <TableCell>{t('columns.description')}</TableCell>
-                  <TableCell align="right">{t('columns.actions')}</TableCell>
+                  <TableCell align="center">{t('columns.actions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -251,7 +251,7 @@ export default function RackLocationsPage() {
                         {rackLocation.description || '-'}
                       </Typography>
                     </TableCell>
-                    <TableCell align="right">
+                    <TableCell align="center">
                       <RowActions
                         editLabel={t('common:buttons.edit')}
                         deleteLabel={t('common:buttons.delete')}

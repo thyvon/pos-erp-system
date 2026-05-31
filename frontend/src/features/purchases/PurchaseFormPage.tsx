@@ -285,9 +285,11 @@ export function PurchaseFormPage({ purchaseId }: PurchaseFormPageProps) {
         <Stack spacing={3}>
           {serverError && <Alert severity="error">{serverError}</Alert>}
 
-          <Card>
+          <Card variant="outlined">
             <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
               <Stack spacing={2.5}>
+                <Typography variant="subtitle2">{t('form.orderDetails')}</Typography>
+
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr' }, gap: 2 }}>
                   <Controller
                     name="warehouse_id"
@@ -430,171 +432,183 @@ export function PurchaseFormPage({ purchaseId }: PurchaseFormPageProps) {
                     )}
                   />
                 </Box>
+              </Stack>
+            </CardContent>
+          </Card>
 
-                <Stack spacing={1.5}>
-                  <Typography variant="subtitle2">{t('form.items')}</Typography>
+          <Card variant="outlined">
+            <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+              <Stack spacing={2.5}>
+                <Typography variant="subtitle2">{t('form.items')}</Typography>
 
-                  <InventoryProductLookupPicker
-                    warehouseId={warehouseId || undefined}
-                    disabled={!warehouseId || isSaving}
-                    onSelect={addLookupItem}
-                  />
+                <InventoryProductLookupPicker
+                  warehouseId={warehouseId || undefined}
+                  disabled={!warehouseId || isSaving}
+                  onSelect={addLookupItem}
+                />
 
-                  {typeof errors.items?.message === 'string' && <Alert severity="error">{errors.items.message}</Alert>}
+                {typeof errors.items?.message === 'string' && <Alert severity="error">{errors.items.message}</Alert>}
 
-                  <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1, overflowX: 'auto' }}>
-                    <Table sx={{ minWidth: 1300, tableLayout: 'fixed' }}>
-                      <TableHead>
+                <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1, overflowX: 'auto' }}>
+                  <Table sx={{ minWidth: 1300, tableLayout: 'fixed' }}>
+                    <TableHead>
+                      <TableRow>
+                        <TableCell sx={{ width: 260, minWidth: 260 }}>{t('form.product')}</TableCell>
+                        <TableCell sx={{ width: 110, minWidth: 110 }} align="right">{t('form.quantity')}</TableCell>
+                        <TableCell sx={{ width: 110, minWidth: 110 }}>{t('form.subUnit')}</TableCell>
+                        <TableCell sx={{ width: 140, minWidth: 140 }} align="right">{t('form.unitCost')}</TableCell>
+                        <TableCell sx={{ width: 140, minWidth: 140 }}>{t('form.discountType')}</TableCell>
+                        <TableCell sx={{ width: 120, minWidth: 120 }} align="right">{t('form.discountAmount')}</TableCell>
+                        <TableCell sx={{ width: 150, minWidth: 150 }}>{t('form.tax')}</TableCell>
+                        <TableCell sx={{ width: 120, minWidth: 120 }} align="right">{t('form.subtotal')}</TableCell>
+                        <TableCell sx={{ width: 72, minWidth: 72 }} align="center">{t('common:buttons.actions')}</TableCell>
+                      </TableRow>
+                    </TableHead>
+                    <TableBody>
+                      {itemFields.length === 0 && (
                         <TableRow>
-                          <TableCell sx={{ width: 260, minWidth: 260 }}>{t('form.product')}</TableCell>
-                          <TableCell sx={{ width: 110, minWidth: 110 }} align="right">{t('form.quantity')}</TableCell>
-                          <TableCell sx={{ width: 110, minWidth: 110 }}>{t('form.subUnit')}</TableCell>
-                          <TableCell sx={{ width: 140, minWidth: 140 }} align="right">{t('form.unitCost')}</TableCell>
-                          <TableCell sx={{ width: 140, minWidth: 140 }}>{t('form.discountType')}</TableCell>
-                          <TableCell sx={{ width: 120, minWidth: 120 }} align="right">{t('form.discountAmount')}</TableCell>
-                          <TableCell sx={{ width: 150, minWidth: 150 }}>{t('form.tax')}</TableCell>
-                          <TableCell sx={{ width: 120, minWidth: 120 }} align="right">{t('form.subtotal')}</TableCell>
-                          <TableCell sx={{ width: 72, minWidth: 72 }} align="right">{t('common:buttons.actions')}</TableCell>
+                          <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
+                            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                              {t('empty')}
+                            </Typography>
+                          </TableCell>
                         </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {itemFields.length === 0 && (
-                          <TableRow>
-                            <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
-                              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                {t('empty')}
-                              </Typography>
-                            </TableCell>
-                          </TableRow>
-                        )}
-                        {itemFields.map((field, index) => {
-                          const calc = lineCalculations[index] ?? { lineSubtotal: 0, lineDiscounted: 0, lineTax: 0, lineTotal: 0 }
+                      )}
+                      {itemFields.map((field, index) => {
+                        const calc = lineCalculations[index] ?? { lineSubtotal: 0, lineDiscounted: 0, lineTax: 0, lineTotal: 0 }
 
-                          return (
-                            <TableRow key={field.fieldId}>
-                              <TableCell>
-                                <Stack spacing={0.25}>
-                                  <Typography variant="body2">{field.product_label || '-'}</Typography>
-                                  <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+                        return (
+                          <TableRow key={field.fieldId}>
+                            <TableCell>
+                              <Stack spacing={0.25}>
+                                <Typography variant="body2">{field.product_label || '-'}</Typography>
+                                <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+                                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                    {field.sku || '-'}
+                                  </Typography>
+                                  {watchedItems[index]?.sub_unit_id && watchedItems[index]?.conversion_factor ? (
+                                    <UnitConversionBadge
+                                      conversionFactor={watchedItems[index].conversion_factor}
+                                      baseUnitLabel={field.unit_name ?? ''}
+                                      subUnitLabel={field.unit_label ?? ''}
+                                      quantity={Number(watchedItems[index]?.quantity ?? 0)}
+                                    />
+                                  ) : field.unit_name ? (
                                     <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                      {field.sku || '-'}
+                                      · {field.unit_name}
                                     </Typography>
-                                    {watchedItems[index]?.sub_unit_id && watchedItems[index]?.conversion_factor ? (
-                                      <UnitConversionBadge
-                                        conversionFactor={watchedItems[index].conversion_factor}
-                                        baseUnitLabel={field.unit_name ?? ''}
-                                        subUnitLabel={field.unit_label ?? ''}
-                                        quantity={Number(watchedItems[index]?.quantity ?? 0)}
-                                      />
-                                    ) : field.unit_name ? (
-                                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                        · {field.unit_name}
-                                      </Typography>
-                                    ) : null}
-                                  </Stack>
-                                  {field.stock_tracking && field.stock_tracking !== 'none' && (
-                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                      {field.stock_tracking}
-                                    </Typography>
-                                  )}
+                                  ) : null}
                                 </Stack>
-                              </TableCell>
-                              <TableCell align="right">
-                                <Controller
-                                  name={`items.${index}.quantity`}
-                                  control={control}
-                                  render={({ field: f }) => (
-                                    <TextField {...f} fullWidth type="number" error={!!errors.items?.[index]?.quantity} helperText={errors.items?.[index]?.quantity?.message} required slotProps={{ htmlInput: { min: 0.0001, step: 0.0001 } }} />
-                                  )}
-                                />
-                              </TableCell>
-                              <TableCell>
-                                {watchedItems[index]?._default_sub_unit_id ? (
-                                  <Select
-                                    fullWidth
-                                    value={watchedItems[index]?.sub_unit_id ?? '__none__'}
-                                    onChange={(e) => {
-                                      const val = e.target.value === '__none__' ? null : e.target.value
-                                      setValue(`items.${index}.sub_unit_id`, val)
-                                      if (val) {
-                                        setValue(`items.${index}.unit_label`, watchedItems[index]?.unit_label || field.unit_name)
-                                      }
-                                    }}
-                                  >
-                                    <MenuItem value="__none__">
-                                      {watchedItems[index]?.unit_name ?? t('form.noSubUnit')}
-                                    </MenuItem>
-                                    <MenuItem value={watchedItems[index]?._default_sub_unit_id ?? ''}>
-                                      {watchedItems[index]?.unit_label || t('form.subUnit')}
-                                    </MenuItem>
-                                  </Select>
-                                ) : (
-                                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                    —
+                                {field.stock_tracking && field.stock_tracking !== 'none' && (
+                                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                                    {field.stock_tracking}
                                   </Typography>
                                 )}
-                              </TableCell>
-                              <TableCell align="right">
-                                <Controller
-                                  name={`items.${index}.unit_cost`}
-                                  control={control}
-                                  render={({ field: f }) => (
-                                    <TextField {...f} fullWidth type="number" error={!!errors.items?.[index]?.unit_cost} helperText={errors.items?.[index]?.unit_cost?.message} required slotProps={{ htmlInput: { min: 0, step: 0.01 } }} />
+                              </Stack>
+                            </TableCell>
+                            <TableCell align="right">
+                              <Controller
+                                name={`items.${index}.quantity`}
+                                control={control}
+                                render={({ field: f }) => (
+                                  <TextField {...f} fullWidth type="number" error={!!errors.items?.[index]?.quantity} helperText={errors.items?.[index]?.quantity?.message} required slotProps={{ htmlInput: { min: 0.0001, step: 0.0001 } }} />
+                                )}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              {watchedItems[index]?._default_sub_unit_id ? (
+                                <Select
+                                  fullWidth
+                                  value={watchedItems[index]?.sub_unit_id ?? '__none__'}
+                                  onChange={(e) => {
+                                    const val = e.target.value === '__none__' ? null : e.target.value
+                                    setValue(`items.${index}.sub_unit_id`, val)
+                                    if (val) {
+                                      setValue(`items.${index}.unit_label`, watchedItems[index]?.unit_label || field.unit_name)
+                                    }
+                                  }}
+                                >
+                                  <MenuItem value="__none__">
+                                    {watchedItems[index]?.unit_name ?? t('form.noSubUnit')}
+                                  </MenuItem>
+                                  <MenuItem value={watchedItems[index]?._default_sub_unit_id ?? ''}>
+                                    {watchedItems[index]?.unit_label || t('form.subUnit')}
+                                  </MenuItem>
+                                </Select>
+                              ) : (
+                                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                  —
+                                </Typography>
+                              )}
+                            </TableCell>
+                            <TableCell align="right">
+                              <Controller
+                                name={`items.${index}.unit_cost`}
+                                control={control}
+                                render={({ field: f }) => (
+                                  <TextField {...f} fullWidth type="number" error={!!errors.items?.[index]?.unit_cost} helperText={errors.items?.[index]?.unit_cost?.message} required slotProps={{ htmlInput: { min: 0, step: 0.01 } }} />
+                                )}
+                              />
+                            </TableCell>
+                            <TableCell>
+                              <Controller name={`items.${index}.discount_type`} control={control} render={({ field: f }) => (
+                                <TextField {...f} fullWidth value={f.value ?? ''} select>
+                                  <MenuItem value="">{t('form.noDiscount')}</MenuItem>
+                                  {discountTypes.map((type) => <MenuItem key={type} value={type}>{t(`discountTypes.${type}`)}</MenuItem>)}
+                                </TextField>
+                              )} />
+                            </TableCell>
+                            <TableCell align="right">
+                              <Controller name={`items.${index}.discount_amount`} control={control} render={({ field: f }) => (
+                                <TextField {...f} fullWidth value={f.value ?? ''} type="number" slotProps={{ htmlInput: { min: 0, step: 0.01 } }} />
+                              )} />
+                            </TableCell>
+                            <TableCell>
+                              <Controller name={`items.${index}.tax_rate_id`} control={control} render={({ field: f }) => (
+                                <Autocomplete
+                                  fullWidth
+                                  options={taxRates}
+                                  value={taxRates.find((rate) => rate.id === f.value) ?? null}
+                                  loading={taxRatesQuery.isLoading}
+                                  getOptionLabel={taxRateLabel}
+                                  isOptionEqualToValue={(option, value) => option.id === value.id}
+                                  disabled={taxScope === 'sale'}
+                                  onBlur={f.onBlur}
+                                  onChange={(_, rate) => applyTaxRate(index, rate?.id ?? '')}
+                                  renderInput={(params) => (
+                                    <TextField
+                                      {...params}
+                                      error={!!errors.items?.[index]?.tax_rate_id}
+                                      helperText={errors.items?.[index]?.tax_rate_id?.message}
+                                    />
                                   )}
                                 />
-                              </TableCell>
-                              <TableCell>
-                                <Controller name={`items.${index}.discount_type`} control={control} render={({ field: f }) => (
-                                  <TextField {...f} fullWidth value={f.value ?? ''} select>
-                                    <MenuItem value="">{t('form.noDiscount')}</MenuItem>
-                                    {discountTypes.map((type) => <MenuItem key={type} value={type}>{t(`discountTypes.${type}`)}</MenuItem>)}
-                                  </TextField>
-                                )} />
-                              </TableCell>
-                              <TableCell align="right">
-                                <Controller name={`items.${index}.discount_amount`} control={control} render={({ field: f }) => (
-                                  <TextField {...f} fullWidth value={f.value ?? ''} type="number" slotProps={{ htmlInput: { min: 0, step: 0.01 } }} />
-                                )} />
-                              </TableCell>
-                              <TableCell>
-                                <Controller name={`items.${index}.tax_rate_id`} control={control} render={({ field: f }) => (
-                                  <Autocomplete
-                                    fullWidth
-                                    options={taxRates}
-                                    value={taxRates.find((rate) => rate.id === f.value) ?? null}
-                                    loading={taxRatesQuery.isLoading}
-                                    getOptionLabel={taxRateLabel}
-                                    isOptionEqualToValue={(option, value) => option.id === value.id}
-                                    disabled={taxScope === 'sale'}
-                                    onBlur={f.onBlur}
-                                    onChange={(_, rate) => applyTaxRate(index, rate?.id ?? '')}
-                                    renderInput={(params) => (
-                                      <TextField
-                                        {...params}
-                                        error={!!errors.items?.[index]?.tax_rate_id}
-                                        helperText={errors.items?.[index]?.tax_rate_id?.message}
-                                      />
-                                    )}
-                                  />
-                                )} />
-                              </TableCell>
-                              <TableCell align="right">
-                                <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                  {calc.lineTotal.toFixed(2)}
-                                </Typography>
-                              </TableCell>
-                              <TableCell align="right">
-                                <IconButton size="small" color="error" disabled={isSaving} onClick={() => remove(index)}>
-                                  <DeleteOutlined />
-                                </IconButton>
-                              </TableCell>
-                            </TableRow>
-                          )
-                        })}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </Stack>
+                              )} />
+                            </TableCell>
+                            <TableCell align="right">
+                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
+                                {calc.lineTotal.toFixed(2)}
+                              </Typography>
+                            </TableCell>
+                            <TableCell align="center">
+                              <IconButton size="small" color="error" disabled={isSaving} onClick={() => remove(index)}>
+                                <DeleteOutlined />
+                              </IconButton>
+                            </TableCell>
+                          </TableRow>
+                        )
+                      })}
+                    </TableBody>
+                  </Table>
+                </TableContainer>
+              </Stack>
+            </CardContent>
+          </Card>
+
+          <Card variant="outlined">
+            <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+              <Stack spacing={2.5}>
+                <Typography variant="subtitle2">{t('form.pricing')}</Typography>
 
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr 1fr' }, gap: 2 }}>
                   <Controller name="discount_type" control={control} render={({ field }) => (
@@ -691,7 +705,13 @@ export function PurchaseFormPage({ purchaseId }: PurchaseFormPageProps) {
                     <Typography variant="h6" sx={{ fontWeight: 800 }}>{totals.total.toFixed(2)}</Typography>
                   </Box>
                 </Box>
+              </Stack>
+            </CardContent>
+          </Card>
 
+          <Card variant="outlined">
+            <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+              <Stack spacing={2.5}>
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
                   <Controller
                     name="notes"

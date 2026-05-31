@@ -25,6 +25,7 @@ class DefaultSettings
             ['group' => 'invoice', 'key' => 'show_previous_due', 'value' => '0', 'type' => 'boolean', 'is_encrypted' => false],
             ['group' => 'invoice', 'key' => 'terms_conditions', 'value' => '', 'type' => 'string', 'is_encrypted' => false],
             ['group' => 'invoice', 'key' => 'footer_note', 'value' => '', 'type' => 'string', 'is_encrypted' => false],
+            ['group' => 'invoice', 'key' => 'invoice_layout', 'value' => 'classic', 'type' => 'string', 'is_encrypted' => false],
 
             ['group' => 'pos', 'key' => 'default_warehouse_id', 'value' => null, 'type' => 'string', 'is_encrypted' => false],
             ['group' => 'pos', 'key' => 'allow_discount', 'value' => '1', 'type' => 'boolean', 'is_encrypted' => false],

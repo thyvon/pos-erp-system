@@ -325,7 +325,7 @@ export function StockAdjustmentFormDialog({
                       <TableCell align="right">{t('adjustments.fields.quantity')}</TableCell>
                       <TableCell align="right">{t('adjustments.fields.unitCost')}</TableCell>
                       <TableCell>{t('adjustments.fields.notes')}</TableCell>
-                      <TableCell align="right">{t('adjustments.columns.actions')}</TableCell>
+                      <TableCell align="center">{t('adjustments.columns.actions')}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -415,7 +415,7 @@ export function StockAdjustmentFormDialog({
                             )}
                           />
                         </TableCell>
-                        <TableCell align="right" sx={{ width: 64 }}>
+                        <TableCell align="center" sx={{ width: 64 }}>
                           <Tooltip title={t('adjustments.actions.removeItem')}>
                             <IconButton color="error" disabled={isSaving} onClick={() => remove(index)}>
                               <DeleteOutlined />

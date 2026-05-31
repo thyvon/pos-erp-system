@@ -156,7 +156,7 @@ export default function StockLevelsPage() {
                   <TableCell align="right">{t('stockLevels.columns.reserved')}</TableCell>
                   <TableCell align="right">{t('stockLevels.columns.available')}</TableCell>
                   <TableCell>{t('stockLevels.columns.updatedAt')}</TableCell>
-                  <TableCell align="right">{t('stockLevels.columns.actions')}</TableCell>
+                  <TableCell align="center">{t('stockLevels.columns.actions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -188,7 +188,7 @@ export default function StockLevelsPage() {
                     <TableCell align="right">{formatQuantity(level.reserved_quantity)}</TableCell>
                     <TableCell align="right">{formatQuantity(level.available_qty)}</TableCell>
                     <TableCell>{formatAppDateTime(level.updated_at, dateFormat, i18n.language)}</TableCell>
-                    <TableCell align="right">
+                    <TableCell align="center">
                       <RowActions
                         viewLabel={t('stockLevels.actions.view')}
                         editLabel=""

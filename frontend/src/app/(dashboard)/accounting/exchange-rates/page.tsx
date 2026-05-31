@@ -173,7 +173,7 @@ export default function ExchangeRatesPage() {
                   <TableCell>{t('exchangeRates.columns.effectiveDate')}</TableCell>
                   <TableCell>{t('exchangeRates.columns.status')}</TableCell>
                   <TableCell>{t('exchangeRates.columns.updatedAt')}</TableCell>
-                  <TableCell align="right">{t('exchangeRates.columns.actions')}</TableCell>
+                  <TableCell align="center">{t('exchangeRates.columns.actions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -206,7 +206,7 @@ export default function ExchangeRatesPage() {
                       />
                     </TableCell>
                     <TableCell>{formatAppDateTime(rate.updated_at, dateFormat, i18n.language)}</TableCell>
-                    <TableCell align="right">
+                    <TableCell align="center">
                       <RowActions
                         editLabel={t('common:buttons.edit')}
                         deleteLabel={t('common:buttons.delete')}

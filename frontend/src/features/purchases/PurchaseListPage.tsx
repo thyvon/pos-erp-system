@@ -302,7 +302,7 @@ export default function PurchasesPage() {
                   <TableCell>{t('columns.status')}</TableCell>
                   <TableCell>{t('columns.payment')}</TableCell>
                   <TableCell align="right">{t('columns.total')}</TableCell>
-                  <TableCell align="right">{t('common:buttons.actions')}</TableCell>
+                  <TableCell align="center">{t('common:buttons.actions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -334,7 +334,7 @@ export default function PurchasesPage() {
                       <Chip size="small" label={t(`paymentStatuses.${purchase.payment_status}`, { defaultValue: purchase.payment_status })} variant="outlined" />
                     </TableCell>
                     <TableCell align="right">{formatMoney(purchase.total_amount, currencyFormatter)}</TableCell>
-                    <TableCell align="right">
+                    <TableCell align="center">
                       <RowActions
                         viewLabel={t('common:buttons.view')}
                         editLabel={t('common:buttons.edit')}

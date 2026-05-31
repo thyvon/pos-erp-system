@@ -387,7 +387,7 @@ export function StockTransferFormPage({ transferId }: StockTransferFormPageProps
                         <TableCell sx={itemColumnSx.quantity} align="right">{t('transfers.fields.quantity')}</TableCell>
                         <TableCell sx={itemColumnSx.unitCost} align="right">{t('transfers.fields.unitCost')}</TableCell>
                         <TableCell sx={itemColumnSx.notes}>{t('transfers.fields.notes')}</TableCell>
-                        <TableCell sx={itemColumnSx.actions} align="right">{t('transfers.columns.actions')}</TableCell>
+                        <TableCell sx={itemColumnSx.actions} align="center">{t('transfers.columns.actions')}</TableCell>
                       </TableRow>
                     </TableHead>
                     <TableBody>
@@ -467,7 +467,7 @@ export function StockTransferFormPage({ transferId }: StockTransferFormPageProps
                               )}
                             />
                           </TableCell>
-                          <TableCell align="right" sx={itemColumnSx.actions}>
+                          <TableCell align="center" sx={itemColumnSx.actions}>
                             <Tooltip title={t('transfers.actions.removeItem')}>
                               <span>
                                 <IconButton

@@ -66,6 +66,8 @@ export default {
     purchaseCreate: 'Create Purchase',
     purchaseEdit: 'Edit Purchase',
     purchaseDetail: 'Purchase detail',
+    purchaseReturns: 'Purchase Returns',
+    purchaseReturnDetail: 'Purchase return detail',
     customers: 'Customers',
     suppliers: 'Suppliers',
     products: 'Product Catalog',

@@ -847,29 +847,33 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
       noValidate
       onSubmit={handleSubmit(submitForm)}
       sx={{
-        minHeight: '100vh',
+        height: '100dvh',
         bgcolor: isGlassSurface
           ? 'transparent'
           : (theme) => alpha(theme.palette.primary.main, theme.palette.mode === 'dark' ? 0.06 : 0.035),
         color: 'text.primary',
+        overflow: 'hidden',
       }}
     >
       <Box
         sx={{
-          minHeight: '100vh',
+          height: '100%',
           display: 'grid',
           gridTemplateRows: 'auto minmax(0, 1fr) auto',
         }}
       >
         <Box
           sx={{
+            position: 'sticky',
+            top: 0,
+            zIndex: 10,
             px: { xs: 2, md: 3 },
             py: 1,
             minHeight: layoutMetrics.topbarHeight,
             display: 'flex',
             alignItems: 'center',
             borderBottom: `1px solid ${posTopbarColors.border}`,
-            bgcolor: posTopbarColors.bg,
+            bgcolor: isGlassSurface ? alpha(posTopbarColors.bg, 0.95) : posTopbarColors.bg,
             color: posTopbarColors.text,
             backdropFilter: isGlassSurface ? 'blur(18px) saturate(160%)' : 'blur(8px)',
             WebkitBackdropFilter: isGlassSurface ? 'blur(18px) saturate(160%)' : 'blur(8px)',
@@ -947,6 +951,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
         <Box
           sx={{
             minHeight: 0,
+            overflow: 'hidden',
             display: 'grid',
             gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 3fr) minmax(430px, 2fr)' },
           }}
@@ -1080,6 +1085,9 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
         </Box>
         <Box
           sx={{
+            position: 'sticky',
+            bottom: 0,
+            zIndex: 10,
             px: 2,
             py: 1,
             borderTop: 1,
@@ -1108,7 +1116,6 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
               minWidth: 0,
               overflowX: 'auto',
               overflowY: 'hidden',
-              scrollbarWidth: 'thin',
               pb: 0.25,
             }}
           >
@@ -1133,7 +1140,6 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
               justifyContent: { md: 'flex-end' },
               overflowX: 'auto',
               overflowY: 'hidden',
-              scrollbarWidth: 'thin',
               pb: 0.25,
             }}
           >
@@ -1231,7 +1237,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
                   <TableCell>{t('columns.status')}</TableCell>
                   <TableCell>{t('columns.payment')}</TableCell>
                   <TableCell align="right">{t('columns.total')}</TableCell>
-                  <TableCell align="right">{t('columns.actions')}</TableCell>
+                  <TableCell align="center">{t('columns.actions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -1266,7 +1272,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
                       />
                     </TableCell>
                     <TableCell align="right">{formatMoney(sale.total_amount, currencyFormatter)}</TableCell>
-                    <TableCell align="right">
+                    <TableCell align="center">
                       <RowActions
                         viewLabel={t('common:buttons.view')}
                         editLabel={t('common:buttons.edit')}

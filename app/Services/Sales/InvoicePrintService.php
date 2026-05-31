@@ -1,0 +1,60 @@
+<?php
+
+namespace App\Services\Sales;
+
+use App\Models\Sale;
+use App\Models\Business;
+use App\Services\Foundation\SettingsService;
+use App\Support\Sales\InvoiceTemplateRegistry;
+use Barryvdh\DomPDF\Facade\Pdf;
+
+class InvoicePrintService
+{
+    public function __construct(
+        protected SettingsService $settings,
+    ) {}
+
+    public function getTemplates(): array
+    {
+        return InvoiceTemplateRegistry::all();
+    }
+
+    public function resolveTemplate(?string $template): string
+    {
+        if ($template && InvoiceTemplateRegistry::exists($template)) {
+            return $template;
+        }
+        return (string) $this->settings->get('invoice', 'invoice_layout', InvoiceTemplateRegistry::default());
+    }
+
+    public function renderHtml(Sale $sale, ?string $template = null): string
+    {
+        $template = $this->resolveTemplate($template);
+        $business = $sale->business;
+        $settings = $this->getInvoiceSettings($sale);
+
+        $view = InvoiceTemplateRegistry::view($template);
+
+        return view($view, compact('sale', 'business', 'settings'))->render();
+    }
+
+    public function renderPdf(Sale $sale, ?string $template = null): \Barryvdh\DomPDF\PDF
+    {
+        $html = $this->renderHtml($sale, $template);
+
+        return Pdf::loadHTML($html)
+            ->setPaper('a4')
+            ->setOption('isRemoteEnabled', true)
+            ->setOption('isHtml5ParserEnabled', true);
+    }
+
+    protected function getInvoiceSettings(Sale $sale): array
+    {
+        $businessId = $sale->business_id;
+        $defaults = $this->settings->getGroup('invoice');
+
+        $branchOverrides = $sale->branch?->invoice_settings ?? [];
+
+        return array_merge($defaults, $branchOverrides);
+    }
+}

@@ -162,7 +162,7 @@ export default function UnitsPage() {
                   <TableCell>{t('columns.unit')}</TableCell>
                   <TableCell>{t('columns.decimal')}</TableCell>
                   <TableCell>{t('columns.subUnits')}</TableCell>
-                  <TableCell align="right">{t('columns.actions')}</TableCell>
+                  <TableCell align="center">{t('columns.actions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -211,7 +211,7 @@ export default function UnitsPage() {
                         </Typography>
                       )}
                     </TableCell>
-                    <TableCell align="right">
+                    <TableCell align="center">
                       <RowActions
                         editLabel={t('common:buttons.edit')}
                         deleteLabel={t('common:buttons.delete')}

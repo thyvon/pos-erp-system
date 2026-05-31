@@ -220,7 +220,7 @@ export default function StockLotsPage() {
                   <TableCell align="right">{t('lots.columns.reserved')}</TableCell>
                   <TableCell>{t('lots.columns.expiryDate')}</TableCell>
                   <TableCell>{t('lots.columns.receivedAt')}</TableCell>
-                  <TableCell align="right">{t('lots.columns.actions')}</TableCell>
+                  <TableCell align="center">{t('lots.columns.actions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -263,7 +263,7 @@ export default function StockLotsPage() {
                     <TableCell align="right">{formatQuantity(lot.qty_reserved)}</TableCell>
                     <TableCell>{formatAppDate(lot.expiry_date, dateFormat, i18n.language)}</TableCell>
                     <TableCell>{formatAppDateTime(lot.received_at, dateFormat, i18n.language)}</TableCell>
-                    <TableCell align="right">
+                    <TableCell align="center">
                       <RowActions
                         viewLabel={t('lots.actions.view')}
                         editLabel={t('lots.actions.updateStatus')}

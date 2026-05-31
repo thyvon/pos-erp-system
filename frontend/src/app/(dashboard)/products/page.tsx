@@ -170,7 +170,7 @@ export default function ProductsPage() {
                   <TableCell>{t('columns.category')}</TableCell>
                   <TableCell>{t('columns.inventory')}</TableCell>
                   <TableCell>{t('columns.status')}</TableCell>
-                  <TableCell align="right">{t('columns.actions')}</TableCell>
+                  <TableCell align="center">{t('columns.actions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -205,7 +205,7 @@ export default function ProductsPage() {
                         variant="outlined"
                       />
                     </TableCell>
-                    <TableCell align="right">
+                    <TableCell align="center">
                       <RowActions
                         viewLabel={t('actions.view')}
                         editLabel={t('common:buttons.edit')}

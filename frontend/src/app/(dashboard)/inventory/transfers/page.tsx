@@ -244,7 +244,7 @@ export default function StockTransfersPage() {
                   <TableCell>{t('transfers.columns.status')}</TableCell>
                   <TableCell>{t('transfers.columns.items')}</TableCell>
                   <TableCell>{t('transfers.columns.createdBy')}</TableCell>
-                  <TableCell align="right">{t('transfers.columns.actions')}</TableCell>
+                  <TableCell align="center">{t('transfers.columns.actions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -286,7 +286,7 @@ export default function StockTransfersPage() {
                     </TableCell>
                     <TableCell>{transfer.items?.length ?? 0}</TableCell>
                     <TableCell>{transfer.creator?.name || '-'}</TableCell>
-                    <TableCell align="right">
+                    <TableCell align="center">
                       <RowActions
                         viewLabel={t('transfers.actions.view')}
                         editLabel={t('common:buttons.edit')}

@@ -197,7 +197,7 @@ export default function CategoriesPage() {
                   <TableCell>{t('columns.shortCode')}</TableCell>
                   <TableCell>{t('columns.sortOrder')}</TableCell>
                   <TableCell>{t('columns.children')}</TableCell>
-                  <TableCell align="right">{t('columns.actions')}</TableCell>
+                  <TableCell align="center">{t('columns.actions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -227,7 +227,7 @@ export default function CategoriesPage() {
                     <TableCell>{category.short_code || '-'}</TableCell>
                     <TableCell>{category.sort_order}</TableCell>
                     <TableCell>{category.children_count}</TableCell>
-                    <TableCell align="right">
+                    <TableCell align="center">
                       <RowActions
                         editLabel={t('common:buttons.edit')}
                         deleteLabel={t('common:buttons.delete')}

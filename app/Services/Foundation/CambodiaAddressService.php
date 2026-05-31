@@ -12,22 +12,22 @@ class CambodiaAddressService
 {
     public function provinces(array $filters = []): Collection
     {
-        return $this->local('province', $filters);
+        return $this->localOrFetch('province', $filters);
     }
 
     public function districts(array $filters = []): Collection
     {
-        return $this->local('district', $filters);
+        return $this->localOrFetch('district', $filters);
     }
 
     public function communes(array $filters = []): Collection
     {
-        return $this->local('commune', $filters);
+        return $this->localOrFetch('commune', $filters);
     }
 
     public function villages(array $filters = []): Collection
     {
-        return $this->local('village', $filters);
+        return $this->localOrFetch('village', $filters);
     }
 
     public function syncFromSource(): array
@@ -112,6 +112,37 @@ class CambodiaAddressService
                 'villages' => (int) ($counts['village'] ?? 0),
             ],
         ];
+    }
+
+    protected function localOrFetch(string $type, array $filters): Collection
+    {
+        $result = $this->local($type, $filters);
+
+        if ($result->isEmpty() && ! CambodiaAddressDivision::where('type', $type)->exists()) {
+            $this->syncSingle($type);
+
+            $result = $this->local($type, $filters);
+        }
+
+        return $result;
+    }
+
+    protected function syncSingle(string $type): void
+    {
+        $resource = $type === 'province' ? 'provinces' : $type.'s';
+        $items = $this->fetchFromSource($resource, []);
+        $syncedAt = now();
+        $divisions = [];
+
+        foreach ($items as $index => $item) {
+            if (! is_array($item)) {
+                continue;
+            }
+
+            $divisions[$item['id'] ?? $item['code'] ?? $index] = $this->normalizeDivision($item, $type, $index + 1, $syncedAt);
+        }
+
+        $this->upsertDivisions($divisions, $syncedAt);
     }
 
     protected function local(string $type, array $filters): Collection

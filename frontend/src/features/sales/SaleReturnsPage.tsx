@@ -207,7 +207,7 @@ export function SaleReturnsPage() {
                   <TableCell>{t('columns.status')}</TableCell>
                   <TableCell align="right">{t('returns.columns.items')}</TableCell>
                   <TableCell align="right">{t('columns.total')}</TableCell>
-                  <TableCell align="right">{t('columns.actions')}</TableCell>
+                  <TableCell align="center">{t('columns.actions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -228,7 +228,7 @@ export function SaleReturnsPage() {
                     </TableCell>
                     <TableCell align="right">{saleReturn.items_count.toLocaleString()}</TableCell>
                     <TableCell align="right">{formatMoney(saleReturn.total_amount, currencyFormatter)}</TableCell>
-                    <TableCell align="right">
+                    <TableCell align="center">
                       <RowActions
                         viewLabel={t('common:buttons.view')}
                         editLabel={t('common:buttons.edit')}

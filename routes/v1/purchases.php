@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\V1\Purchases\PurchaseController;
+use App\Http\Controllers\Api\V1\Purchases\PurchaseReturnController;
 use App\Models\Purchase;
 use App\Models\PurchasePayment;
 use Illuminate\Support\Facades\Route;
@@ -15,4 +16,8 @@ return static function (): void {
     Route::post('purchases/{purchase}/payments', [PurchaseController::class, 'recordPayment'])->middleware('can:recordPayment,purchase');
     Route::put('purchases/{purchase}/payments/{purchasePayment}', [PurchaseController::class, 'updatePayment'])->middleware('can:updatePayment,purchase');
     Route::delete('purchases/{purchase}/payments/{purchasePayment}', [PurchaseController::class, 'deletePayment'])->middleware('can:deletePayment,purchase');
+
+    Route::get('purchase-returns', [PurchaseReturnController::class, 'index'])->middleware('can:purchases.return');
+    Route::get('purchase-returns/{purchaseReturn}', [PurchaseReturnController::class, 'show'])->middleware('can:purchases.return');
+    Route::post('purchases/{purchase}/returns', [PurchaseReturnController::class, 'store'])->middleware('can:purchases.return');
 };

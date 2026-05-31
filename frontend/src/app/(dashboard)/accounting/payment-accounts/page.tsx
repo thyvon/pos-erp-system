@@ -257,7 +257,7 @@ export default function PaymentAccountsPage() {
                   <TableCell align="right">{t('paymentAccounts.columns.openingBalance')}</TableCell>
                   <TableCell align="right">{t('paymentAccounts.columns.currentBalance')}</TableCell>
                   <TableCell>{t('paymentAccounts.columns.status')}</TableCell>
-                  <TableCell align="right">{t('paymentAccounts.columns.actions')}</TableCell>
+                  <TableCell align="center">{t('paymentAccounts.columns.actions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -293,7 +293,7 @@ export default function PaymentAccountsPage() {
                         variant="outlined"
                       />
                     </TableCell>
-                    <TableCell align="right">
+                    <TableCell align="center">
                       <RowActions
                         editLabel={t('common:buttons.edit')}
                         deleteLabel={t('common:buttons.delete')}

@@ -481,7 +481,7 @@ export function StockCountEntryPage({ countId }: StockCountEntryPageProps) {
                     <TableCell align="right" sx={{ width: 140 }}>{t('counts.fields.unitCost')}</TableCell>
                     <TableCell sx={{ width: 180 }}>{t('counts.columns.countedBy')}</TableCell>
                     <TableCell sx={{ width: 190 }}>{t('counts.columns.countedAt')}</TableCell>
-                    <TableCell align="right" sx={{ width: 100 }}>{t('counts.columns.actions')}</TableCell>
+                    <TableCell align="center" sx={{ width: 100 }}>{t('counts.columns.actions')}</TableCell>
                   </TableRow>
                 </TableHead>
                 <TableBody>
@@ -505,7 +505,7 @@ export function StockCountEntryPage({ countId }: StockCountEntryPageProps) {
                       <TableCell align="right">{formatQuantity(entry.unit_cost)}</TableCell>
                       <TableCell>{entry.creator?.name ?? '-'}</TableCell>
                       <TableCell>{formatAppDateTime(entry.created_at, dateFormat, i18n.language)}</TableCell>
-                      <TableCell align="right">
+                      <TableCell align="center">
                         {canRecordEntries ? (
                           <Tooltip title={t('counts.actions.editEntry')}>
                             <span>

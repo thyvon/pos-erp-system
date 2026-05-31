@@ -383,7 +383,7 @@ export function PurchasePaymentDialog({
                       <TableCell sx={paymentColumnSx.method}>{t('payment.method')}</TableCell>
                       <TableCell sx={paymentColumnSx.reference}>{t('payment.reference')}</TableCell>
                       <TableCell sx={paymentColumnSx.converted} align="right">{t('payment.converted')}</TableCell>
-                      {!isEdit && <TableCell sx={paymentColumnSx.actions} align="right">{t('columns.actions')}</TableCell>}
+                      {!isEdit && <TableCell sx={paymentColumnSx.actions} align="center">{t('columns.actions')}</TableCell>}
                     </TableRow>
                   </TableHead>
                   <TableBody>
@@ -504,7 +504,7 @@ export function PurchasePaymentDialog({
                           )}
                         </TableCell>
                         {!isEdit && (
-                          <TableCell align="right" sx={paymentColumnSx.actions}>
+                          <TableCell align="center" sx={paymentColumnSx.actions}>
                             <Tooltip title={t('payment.removeLine')}>
                               <span>
                                 <IconButton

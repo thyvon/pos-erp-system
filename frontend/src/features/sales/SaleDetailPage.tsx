@@ -23,12 +23,13 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
-import { ArrowBack, CheckCircleOutlined, Close, CompareArrowsOutlined, DeleteOutlined, EditOutlined, PaymentsOutlined, PointOfSaleOutlined } from '@/components/ui/icons'
+import { ArrowBack, CheckCircleOutlined, Close, CompareArrowsOutlined, DeleteOutlined, EditOutlined, PaymentsOutlined, PointOfSaleOutlined, ReceiptLongOutlined } from '@/components/ui/icons'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { UnitConversionBadge } from '@/features/sales/components/UnitConversionBadge'
+import { InvoicePrintDialog } from './components/InvoicePrintDialog'
 import { SaleCancelDialog } from './SaleCancelDialog'
 import { SalePaymentDialog } from './SalePaymentDialog'
 import { SaleReturnDialog } from './SaleReturnDialog'
@@ -131,6 +132,7 @@ export function SaleDetailPage({ saleId }: SaleDetailPageProps) {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [paymentOpen, setPaymentOpen] = useState(false)
   const [returnOpen, setReturnOpen] = useState(false)
+  const [printOpen, setPrintOpen] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
   const saleQuery = useSaleQuery(saleId)
   const paymentAccountsQuery = usePaymentAccountsQuery({ status: 'active', per_page: 100 })
@@ -231,6 +233,7 @@ export function SaleDetailPage({ saleId }: SaleDetailPageProps) {
               <ArrowBack />
             </IconButton>
           </Tooltip>
+          <PointOfSaleOutlined color="primary" />
           <Box>
             <Typography variant="h4">{sale.sale_number}</Typography>
             <Typography variant="body2" sx={{ color: 'text.secondary' }}>
@@ -252,6 +255,9 @@ export function SaleDetailPage({ saleId }: SaleDetailPageProps) {
               {t('common:buttons.edit')}
             </Button>
           )}
+          <Button startIcon={<ReceiptLongOutlined />} variant="outlined" onClick={() => setPrintOpen(true)}>
+            {t('print.title')}
+          </Button>
           {canPay && (
             <Button startIcon={<PaymentsOutlined />} variant="contained" onClick={() => setPaymentOpen(true)}>
               {t('actions.recordPayment')}
@@ -607,6 +613,11 @@ export function SaleDetailPage({ saleId }: SaleDetailPageProps) {
         confirmColor="error"
         onClose={() => setDeleteOpen(false)}
         onConfirm={handleDelete}
+      />
+      <InvoicePrintDialog
+        open={printOpen}
+        sale={sale}
+        onClose={() => setPrintOpen(false)}
       />
     </Stack>
   )

@@ -1,5 +1,5 @@
 import { apiClient } from '@/api/client'
-import type { Purchase, PurchaseFilters, PurchasePayload, PurchasePaymentCorrectionPayload, PurchasePaymentDeletePayload, PurchasePaymentPayload, PurchasePaymentResult, PurchasePaymentCorrectionResult, PurchasePaymentDeleteResult, ReceivePurchasePayload } from '@/types/purchase'
+import type { Purchase, PurchaseFilters, PurchasePayload, PurchasePaymentCorrectionPayload, PurchasePaymentDeletePayload, PurchasePaymentPayload, PurchasePaymentResult, PurchasePaymentCorrectionResult, PurchasePaymentDeleteResult, PurchaseReturn, PurchaseReturnFilters, PurchaseReturnPayload, ReceivePurchasePayload } from '@/types/purchase'
 
 export const purchasesApi = {
   list: (filters: PurchaseFilters = {}) => apiClient.getPaginated<Purchase>('/v1/purchases', filters),
@@ -16,4 +16,11 @@ export const purchasesApi = {
     apiClient.put<PurchasePaymentCorrectionResult, PurchasePaymentCorrectionPayload>(`/v1/purchases/${purchaseId}/payments/${paymentId}`, payload),
   deletePayment: (purchaseId: string, paymentId: string, payload: PurchasePaymentDeletePayload = {}) =>
     apiClient.delete<PurchasePaymentDeleteResult>(`/v1/purchases/${purchaseId}/payments/${paymentId}`, { data: payload }),
+}
+
+export const purchaseReturnsApi = {
+  list: (filters: PurchaseReturnFilters = {}) => apiClient.getPaginated<PurchaseReturn>('/v1/purchase-returns', filters),
+  show: (id: string) => apiClient.get<PurchaseReturn>(`/v1/purchase-returns/${id}`),
+  create: (purchaseId: string, payload: PurchaseReturnPayload) =>
+    apiClient.post<PurchaseReturn, PurchaseReturnPayload>(`/v1/purchases/${purchaseId}/returns`, payload),
 }

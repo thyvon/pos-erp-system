@@ -232,3 +232,86 @@ export interface PurchasePaymentDeleteResult {
   reversed_payment: PurchasePayment
   reversal_journal: unknown
 }
+
+export interface PurchaseReturnItemPayload {
+  purchase_item_id: string
+  quantity: number
+  lot_id?: string | null
+  serial_ids?: string[]
+}
+
+export interface PurchaseReturnPayload {
+  return_date: string
+  notes?: string | null
+  items: PurchaseReturnItemPayload[]
+}
+
+export interface PurchaseReturnItem {
+  id: string
+  purchase_return_id: string
+  purchase_item_id: string
+  product_id: string
+  variation_id: string | null
+  quantity: string | null
+  unit_cost: string | null
+  total_amount: string | null
+  serial_ids: string[] | null
+  lot_id: string | null
+  product?: {
+    id: string
+    name: string
+  } | null
+  variation?: {
+    id: string
+    name: string
+  } | null
+  lot?: {
+    id: string
+    lot_number: string
+  } | null
+}
+
+export interface PurchaseReturn {
+  id: string
+  business_id: string
+  purchase_id: string
+  branch_id: string
+  warehouse_id: string
+  return_number: string
+  status: 'completed' | string
+  return_date: string | null
+  total_amount: string | null
+  notes: string | null
+  purchase?: {
+    id: string
+    purchase_number: string
+    status: PurchaseStatus
+  } | null
+  branch?: {
+    id: string
+    name: string
+  } | null
+  warehouse?: {
+    id: string
+    name: string
+  } | null
+  creator?: {
+    id: string
+    name: string
+  } | null
+  items_count: number
+  items?: PurchaseReturnItem[]
+  created_at: string
+  updated_at: string
+}
+
+export interface PurchaseReturnFilters {
+  search?: string
+  purchase_id?: string
+  branch_id?: string
+  warehouse_id?: string
+  date_from?: string | null
+  date_to?: string | null
+  page?: number
+  per_page?: number
+}

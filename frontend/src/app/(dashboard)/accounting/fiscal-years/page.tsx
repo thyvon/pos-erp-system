@@ -210,7 +210,7 @@ export default function FiscalYearsPage() {
                   <TableCell>{t('fiscalYears.columns.status')}</TableCell>
                   <TableCell align="right">{t('fiscalYears.columns.journals')}</TableCell>
                   <TableCell>{t('fiscalYears.columns.closedAt')}</TableCell>
-                  <TableCell align="right">{t('fiscalYears.columns.actions')}</TableCell>
+                  <TableCell align="center">{t('fiscalYears.columns.actions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
@@ -236,7 +236,7 @@ export default function FiscalYearsPage() {
                     </TableCell>
                     <TableCell align="right">{year.journal_count ?? 0}</TableCell>
                     <TableCell>{formatAppDateTime(year.closed_at, dateFormat, i18n.language)}</TableCell>
-                    <TableCell align="right">
+                    <TableCell align="center">
                       <RowActions
                         editLabel={t('common:buttons.edit')}
                         deleteLabel={t('common:buttons.delete')}
