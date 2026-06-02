@@ -1,20 +1,22 @@
 import { z } from 'zod'
 
+const optionalText = z.string().trim().max(500).optional().or(z.literal(''))
+const requiredNumber = z.coerce.number().positive('Amount must be positive')
+
 export const expenseSchema = z.object({
   branch_id: z.string().uuid('Branch is required'),
   expense_account_id: z.string().uuid('Expense account is required'),
   payment_account_id: z.string().uuid('Payment account is required'),
   expense_date: z.string().min(1, 'Expense date is required'),
-  reference_no: z.string().max(80).optional().or(z.literal('')),
+  reference_no: z.string().trim().max(80).optional().or(z.literal('')),
   description: z.string().min(1, 'Description is required').max(500),
-  amount: z
-    .number()
-    .positive('Amount must be positive'),
+  amount: requiredNumber,
   payment_method: z.string().optional().or(z.literal('')),
-  notes: z.string().optional().or(z.literal('')),
+  notes: optionalText,
 })
 
-export type ExpenseFormInput = z.infer<typeof expenseSchema>
+export type ExpenseFormInput = z.input<typeof expenseSchema>
+export type ExpenseFormValues = z.output<typeof expenseSchema>
 
 export const emptyExpenseValues: ExpenseFormInput = {
   branch_id: '',
@@ -23,7 +25,7 @@ export const emptyExpenseValues: ExpenseFormInput = {
   expense_date: '',
   reference_no: '',
   description: '',
-  amount: '' as unknown as number,
+  amount: '',
   payment_method: '',
   notes: '',
 }

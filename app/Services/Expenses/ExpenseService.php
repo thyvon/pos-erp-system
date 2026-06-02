@@ -6,6 +6,7 @@ use App\Exceptions\Domain\DomainException;
 use App\Models\AccountTransaction;
 use App\Models\ChartOfAccount;
 use App\Models\Expense;
+use App\Models\Journal;
 use App\Models\PaymentAccount;
 use App\Models\User;
 use App\Repositories\Expenses\ExpenseRepository;
@@ -33,10 +34,6 @@ class ExpenseService
         return DB::transaction(function () use ($businessId, $data, $actor): Expense {
             $expenseAccount = $this->resolveExpenseAccount($businessId, $data['expense_account_id']);
             $paymentAccount = $this->resolvePaymentAccount($businessId, $data['payment_account_id']);
-
-            if (!$paymentAccount->coa_account_id) {
-                throw new DomainException('Payment account is not linked to a chart of account.', 422);
-            }
 
             /** @var Expense $expense */
             $expense = $this->expenses->create([
@@ -75,16 +72,22 @@ class ExpenseService
     public function update(string $businessId, Expense $expense, array $data, ?User $actor = null): Expense
     {
         return DB::transaction(function () use ($businessId, $expense, $data, $actor): Expense {
-            $oldValues = $this->auditPayload($expense);
+            /** @var Expense $lockedExpense */
+            $lockedExpense = Expense::withoutGlobalScopes()
+                ->with(['branch', 'expenseAccount', 'paymentAccount', 'creator'])
+                ->where('business_id', $businessId)
+                ->whereKey($expense->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $oldValues = $this->auditPayload($lockedExpense);
 
             $expenseAccount = $this->resolveExpenseAccount($businessId, $data['expense_account_id']);
             $paymentAccount = $this->resolvePaymentAccount($businessId, $data['payment_account_id']);
 
-            if (!$paymentAccount->coa_account_id) {
-                throw new DomainException('Payment account is not linked to a chart of account.', 422);
-            }
+            $this->reverseExpenseAccounting($businessId, $lockedExpense, 'Expense updated', $actor);
 
-            $this->expenses->update($expense, [
+            $this->expenses->update($lockedExpense, [
                 'branch_id' => $data['branch_id'],
                 'expense_account_id' => $expenseAccount->id,
                 'payment_account_id' => $paymentAccount->id,
@@ -96,33 +99,45 @@ class ExpenseService
                 'notes' => $data['notes'] ?? null,
             ]);
 
-            $expense->load(['expenseAccount', 'paymentAccount']);
+            $lockedExpense->refresh()->load(['expenseAccount', 'paymentAccount']);
+            $this->recordAccountTransaction($businessId, $lockedExpense, $paymentAccount);
+            $this->postJournal($businessId, $lockedExpense, $paymentAccount, $actor);
 
             $this->auditService->log(
                 'updated',
                 Expense::class,
-                $expense->id,
+                $lockedExpense->id,
                 $actor,
                 $businessId,
                 $oldValues,
-                $this->auditPayload($expense),
+                $this->auditPayload($lockedExpense),
             );
 
-            return $expense->load(['branch', 'expenseAccount', 'paymentAccount', 'creator']);
+            return $lockedExpense->load(['branch', 'expenseAccount', 'paymentAccount', 'creator']);
         });
     }
 
     public function delete(string $businessId, Expense $expense, User $actor): void
     {
         DB::transaction(function () use ($businessId, $expense, $actor): void {
-            $oldValues = $this->auditPayload($expense);
+            /** @var Expense $lockedExpense */
+            $lockedExpense = Expense::withoutGlobalScopes()
+                ->with(['branch', 'expenseAccount', 'paymentAccount', 'creator'])
+                ->where('business_id', $businessId)
+                ->whereKey($expense->id)
+                ->lockForUpdate()
+                ->firstOrFail();
 
-            $this->expenses->delete($expense);
+            $oldValues = $this->auditPayload($lockedExpense);
+
+            $this->reverseExpenseAccounting($businessId, $lockedExpense, 'Expense deleted', $actor);
+
+            $this->expenses->delete($lockedExpense);
 
             $this->auditService->log(
                 'deleted',
                 Expense::class,
-                $expense->id,
+                $lockedExpense->id,
                 $actor,
                 $businessId,
                 $oldValues,
@@ -142,6 +157,20 @@ class ExpenseService
             'reference_id' => $expense->id,
             'transaction_date' => $expense->expense_date,
             'note' => 'Expense: ' . $expense->description,
+        ]);
+    }
+
+    protected function reverseAccountTransaction(string $businessId, Expense $expense, string $reason): void
+    {
+        AccountTransaction::create([
+            'business_id' => $businessId,
+            'payment_account_id' => $expense->payment_account_id,
+            'type' => 'credit',
+            'amount' => $expense->amount,
+            'reference_type' => Expense::class,
+            'reference_id' => $expense->id,
+            'transaction_date' => $expense->expense_date,
+            'note' => 'Reversal for expense: '.$reason,
         ]);
     }
 
@@ -170,6 +199,26 @@ class ExpenseService
         ], $actor);
     }
 
+    protected function reverseExpenseAccounting(string $businessId, Expense $expense, string $reason, ?User $actor): void
+    {
+        /** @var Journal|null $journal */
+        $journal = Journal::withoutGlobalScopes()
+            ->where('business_id', $businessId)
+            ->where('type', 'expense')
+            ->where('reference_type', Expense::class)
+            ->where('reference_id', $expense->id)
+            ->whereNull('reversed_by_id')
+            ->lockForUpdate()
+            ->first();
+
+        if (! $journal) {
+            throw new DomainException('The original expense journal could not be found.', 422);
+        }
+
+        $this->reverseAccountTransaction($businessId, $expense, $reason);
+        $this->accountingService->reverseJournal($businessId, $journal, $reason, $actor);
+    }
+
     protected function resolveExpenseAccount(string $businessId, string $accountId): ChartOfAccount
     {
         $account = ChartOfAccount::where('business_id', $businessId)
@@ -177,7 +226,7 @@ class ExpenseService
             ->where('type', 'expense')
             ->first();
 
-        if (!$account) {
+        if (! $account) {
             throw new DomainException('Expense account not found.', 404);
         }
 
@@ -190,8 +239,16 @@ class ExpenseService
             ->where('id', $accountId)
             ->first();
 
-        if (!$account) {
+        if (! $account) {
             throw new DomainException('Payment account not found.', 404);
+        }
+
+        if (! $account->is_active) {
+            throw new DomainException('Payment account is inactive.', 422);
+        }
+
+        if (! $account->coa_account_id) {
+            throw new DomainException('Payment account is not linked to a chart of account.', 422);
         }
 
         return $account;

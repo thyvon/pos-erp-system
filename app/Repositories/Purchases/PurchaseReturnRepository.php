@@ -3,7 +3,9 @@
 namespace App\Repositories\Purchases;
 
 use App\Models\PurchaseReturn;
+use App\Models\User;
 use App\Repositories\BaseRepository;
+use App\Support\BranchAccess;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class PurchaseReturnRepository extends BaseRepository
@@ -13,7 +15,7 @@ class PurchaseReturnRepository extends BaseRepository
         parent::__construct($model);
     }
 
-    public function paginateFiltered(array $filters): LengthAwarePaginator
+    public function paginateFiltered(array $filters, ?User $user = null): LengthAwarePaginator
     {
         $perPage = max(1, min((int) ($filters['per_page'] ?? 15), 100));
 
@@ -53,6 +55,9 @@ class PurchaseReturnRepository extends BaseRepository
                 filled($filters['date_to'] ?? null),
                 fn ($query) => $query->whereDate('return_date', '<=', $filters['date_to'])
             )
+            ->where(function ($query) use ($user): void {
+                BranchAccess::scopeBranchQuery($query, $user, 'branch_id');
+            })
             ->orderByDesc('return_date')
             ->orderByDesc('created_at');
 

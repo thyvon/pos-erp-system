@@ -12,30 +12,19 @@ import {
   Card,
   CardContent,
   CircularProgress,
-  FormControl,
-  FormHelperText,
   IconButton,
-  InputLabel,
   MenuItem,
-  Select,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   TextField,
   Tooltip,
   Typography,
 } from '@mui/material'
-import { Add, ArrowBack, DeleteOutlined } from '@/components/ui/icons'
+import { Add, ArrowBack } from '@/components/ui/icons'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
-import { UnitConversionBadge } from '@/features/sales/components/UnitConversionBadge'
-import { InventoryProductLookupPicker } from '@/features/inventory/components/InventoryProductLookupPicker'
+import PageLoader from '@/components/ui/PageLoader'
 import { SupplierFormDialog } from '@/features/suppliers/SupplierFormDialog'
 import { useCreateSupplierMutation, useSuppliersQuery } from '@/features/suppliers/hooks'
 import { useWarehousesQuery } from '@/features/warehouses/hooks'
@@ -45,9 +34,11 @@ import type { InventoryProductLookupItem } from '@/types/inventory'
 import { useCreatePurchaseMutation, usePurchaseQuery, useUpdatePurchaseMutation } from './hooks'
 import { buildPurchasePayload, emptyPurchaseValues, valuesFromPurchase } from './formHelpers'
 import { purchaseSchema, type PurchaseFormInput, type PurchaseFormValues } from './schema'
+import { PurchaseItemsTable } from './components/PurchaseItemsTable'
+import { PurchaseNotesPanel } from './components/PurchaseNotesPanel'
+import { PurchasePricingPanel } from './components/PurchasePricingPanel'
 import type { Supplier, SupplierPayload } from '@/types/supplier'
 import type { Warehouse } from '@/types/warehouse'
-import type { TaxRate } from '@/types/taxRate'
 import { useTaxRatesQuery } from '@/features/tax-rates/hooks'
 
 interface PurchaseFormPageProps {
@@ -60,12 +51,6 @@ function warehouseLabel(warehouse: Warehouse) {
 
 function supplierLabel(supplier: Supplier) {
   return [supplier.name, supplier.code, supplier.company].filter(Boolean).join(' / ')
-}
-
-const discountTypes = ['fixed', 'percentage'] as const
-
-function taxRateLabel(rate: TaxRate) {
-  return `${rate.name} (${rate.rate}${rate.type === 'percentage' ? '%' : ''})`
 }
 
 function discountAmount(type: string | null | undefined, amount: unknown, base: number) {
@@ -98,13 +83,6 @@ export function PurchaseFormPage({ purchaseId }: PurchaseFormPageProps) {
 
   const taxRatesQuery = useTaxRatesQuery({ is_active: true, per_page: 100 })
   const taxRates = taxRatesQuery.data?.data ?? []
-
-  const applyTaxRate = (index: number, taxRateId: string) => {
-    const taxRate = taxRates.find((item) => item.id === taxRateId)
-    setValue(`items.${index}.tax_rate_id`, taxRateId)
-    setValue(`items.${index}.tax_rate_type`, taxRate?.type ?? null)
-    setValue(`items.${index}.tax_rate`, taxRate?.rate ?? 0)
-  }
 
   const {
     control,
@@ -256,11 +234,7 @@ export function PurchaseFormPage({ purchaseId }: PurchaseFormPageProps) {
   }
 
   if (isEdit && purchaseQuery.isLoading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-        <CircularProgress />
-      </Box>
-    )
+    return <PageLoader />
   }
 
   return (
@@ -438,313 +412,44 @@ export function PurchaseFormPage({ purchaseId }: PurchaseFormPageProps) {
 
           <Card variant="outlined">
             <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
-              <Stack spacing={2.5}>
-                <Typography variant="subtitle2">{t('form.items')}</Typography>
-
-                <InventoryProductLookupPicker
-                  warehouseId={warehouseId || undefined}
-                  disabled={!warehouseId || isSaving}
-                  onSelect={addLookupItem}
-                />
-
+              <Stack spacing={2}>
                 {typeof errors.items?.message === 'string' && <Alert severity="error">{errors.items.message}</Alert>}
-
-                <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1, overflowX: 'auto' }}>
-                  <Table sx={{ minWidth: 1300, tableLayout: 'fixed' }}>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell sx={{ width: 260, minWidth: 260 }}>{t('form.product')}</TableCell>
-                        <TableCell sx={{ width: 110, minWidth: 110 }} align="right">{t('form.quantity')}</TableCell>
-                        <TableCell sx={{ width: 110, minWidth: 110 }}>{t('form.subUnit')}</TableCell>
-                        <TableCell sx={{ width: 140, minWidth: 140 }} align="right">{t('form.unitCost')}</TableCell>
-                        <TableCell sx={{ width: 140, minWidth: 140 }}>{t('form.discountType')}</TableCell>
-                        <TableCell sx={{ width: 120, minWidth: 120 }} align="right">{t('form.discountAmount')}</TableCell>
-                        <TableCell sx={{ width: 150, minWidth: 150 }}>{t('form.tax')}</TableCell>
-                        <TableCell sx={{ width: 120, minWidth: 120 }} align="right">{t('form.subtotal')}</TableCell>
-                        <TableCell sx={{ width: 72, minWidth: 72 }} align="center">{t('common:buttons.actions')}</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {itemFields.length === 0 && (
-                        <TableRow>
-                          <TableCell colSpan={9} align="center" sx={{ py: 4 }}>
-                            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                              {t('empty')}
-                            </Typography>
-                          </TableCell>
-                        </TableRow>
-                      )}
-                      {itemFields.map((field, index) => {
-                        const calc = lineCalculations[index] ?? { lineSubtotal: 0, lineDiscounted: 0, lineTax: 0, lineTotal: 0 }
-
-                        return (
-                          <TableRow key={field.fieldId}>
-                            <TableCell>
-                              <Stack spacing={0.25}>
-                                <Typography variant="body2">{field.product_label || '-'}</Typography>
-                                <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
-                                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                    {field.sku || '-'}
-                                  </Typography>
-                                  {watchedItems[index]?.sub_unit_id && watchedItems[index]?.conversion_factor ? (
-                                    <UnitConversionBadge
-                                      conversionFactor={watchedItems[index].conversion_factor}
-                                      baseUnitLabel={field.unit_name ?? ''}
-                                      subUnitLabel={field.unit_label ?? ''}
-                                      quantity={Number(watchedItems[index]?.quantity ?? 0)}
-                                    />
-                                  ) : field.unit_name ? (
-                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                      · {field.unit_name}
-                                    </Typography>
-                                  ) : null}
-                                </Stack>
-                                {field.stock_tracking && field.stock_tracking !== 'none' && (
-                                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                    {field.stock_tracking}
-                                  </Typography>
-                                )}
-                              </Stack>
-                            </TableCell>
-                            <TableCell align="right">
-                              <Controller
-                                name={`items.${index}.quantity`}
-                                control={control}
-                                render={({ field: f }) => (
-                                  <TextField {...f} fullWidth type="number" error={!!errors.items?.[index]?.quantity} helperText={errors.items?.[index]?.quantity?.message} required slotProps={{ htmlInput: { min: 0.0001, step: 0.0001 } }} />
-                                )}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              {watchedItems[index]?._default_sub_unit_id ? (
-                                <Select
-                                  fullWidth
-                                  value={watchedItems[index]?.sub_unit_id ?? '__none__'}
-                                  onChange={(e) => {
-                                    const val = e.target.value === '__none__' ? null : e.target.value
-                                    setValue(`items.${index}.sub_unit_id`, val)
-                                    if (val) {
-                                      setValue(`items.${index}.unit_label`, watchedItems[index]?.unit_label || field.unit_name)
-                                    }
-                                  }}
-                                >
-                                  <MenuItem value="__none__">
-                                    {watchedItems[index]?.unit_name ?? t('form.noSubUnit')}
-                                  </MenuItem>
-                                  <MenuItem value={watchedItems[index]?._default_sub_unit_id ?? ''}>
-                                    {watchedItems[index]?.unit_label || t('form.subUnit')}
-                                  </MenuItem>
-                                </Select>
-                              ) : (
-                                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                                  —
-                                </Typography>
-                              )}
-                            </TableCell>
-                            <TableCell align="right">
-                              <Controller
-                                name={`items.${index}.unit_cost`}
-                                control={control}
-                                render={({ field: f }) => (
-                                  <TextField {...f} fullWidth type="number" error={!!errors.items?.[index]?.unit_cost} helperText={errors.items?.[index]?.unit_cost?.message} required slotProps={{ htmlInput: { min: 0, step: 0.01 } }} />
-                                )}
-                              />
-                            </TableCell>
-                            <TableCell>
-                              <Controller name={`items.${index}.discount_type`} control={control} render={({ field: f }) => (
-                                <TextField {...f} fullWidth value={f.value ?? ''} select>
-                                  <MenuItem value="">{t('form.noDiscount')}</MenuItem>
-                                  {discountTypes.map((type) => <MenuItem key={type} value={type}>{t(`discountTypes.${type}`)}</MenuItem>)}
-                                </TextField>
-                              )} />
-                            </TableCell>
-                            <TableCell align="right">
-                              <Controller name={`items.${index}.discount_amount`} control={control} render={({ field: f }) => (
-                                <TextField {...f} fullWidth value={f.value ?? ''} type="number" slotProps={{ htmlInput: { min: 0, step: 0.01 } }} />
-                              )} />
-                            </TableCell>
-                            <TableCell>
-                              <Controller name={`items.${index}.tax_rate_id`} control={control} render={({ field: f }) => (
-                                <Autocomplete
-                                  fullWidth
-                                  options={taxRates}
-                                  value={taxRates.find((rate) => rate.id === f.value) ?? null}
-                                  loading={taxRatesQuery.isLoading}
-                                  getOptionLabel={taxRateLabel}
-                                  isOptionEqualToValue={(option, value) => option.id === value.id}
-                                  disabled={taxScope === 'sale'}
-                                  onBlur={f.onBlur}
-                                  onChange={(_, rate) => applyTaxRate(index, rate?.id ?? '')}
-                                  renderInput={(params) => (
-                                    <TextField
-                                      {...params}
-                                      error={!!errors.items?.[index]?.tax_rate_id}
-                                      helperText={errors.items?.[index]?.tax_rate_id?.message}
-                                    />
-                                  )}
-                                />
-                              )} />
-                            </TableCell>
-                            <TableCell align="right">
-                              <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                                {calc.lineTotal.toFixed(2)}
-                              </Typography>
-                            </TableCell>
-                            <TableCell align="center">
-                              <IconButton size="small" color="error" disabled={isSaving} onClick={() => remove(index)}>
-                                <DeleteOutlined />
-                              </IconButton>
-                            </TableCell>
-                          </TableRow>
-                        )
-                      })}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
+                <PurchaseItemsTable
+                  control={control}
+                  errors={errors}
+                  itemFields={itemFields}
+                  watchedItems={watchedItems}
+                  warehouseId={warehouseId}
+                  isSaving={isSaving}
+                  taxScope={taxScope}
+                  taxRates={taxRates}
+                  isTaxRatesLoading={taxRatesQuery.isLoading}
+                  lineCalculations={lineCalculations}
+                  setValue={setValue}
+                  remove={remove}
+                  onSelectProduct={addLookupItem}
+                />
               </Stack>
             </CardContent>
           </Card>
 
           <Card variant="outlined">
             <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
-              <Stack spacing={2.5}>
-                <Typography variant="subtitle2">{t('form.pricing')}</Typography>
-
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr 1fr' }, gap: 2 }}>
-                  <Controller name="discount_type" control={control} render={({ field }) => (
-                    <TextField {...field} value={field.value ?? ''} select label={t('form.discountType')} error={!!errors.discount_type} helperText={errors.discount_type?.message}>
-                      <MenuItem value="">{t('form.noDiscount')}</MenuItem>
-                      {discountTypes.map((type) => <MenuItem key={type} value={type}>{t(`discountTypes.${type}`)}</MenuItem>)}
-                    </TextField>
-                  )} />
-                  <Controller
-                    name="discount_amount"
-                    control={control}
-                    render={({ field }) => (
-                      <TextField
-                        {...field}
-                        value={field.value ?? ''}
-                        type="number"
-                        label={t('form.discount')}
-                        error={!!errors.discount_amount}
-                        helperText={errors.discount_amount?.message}
-                        slotProps={{ htmlInput: { min: 0, step: 0.01 } }}
-                      />
-                    )}
-                  />
-                  <Controller
-                    name="shipping_charges"
-                    control={control}
-                    render={({ field }) => (
-                      <TextField
-                        {...field}
-                        value={field.value ?? ''}
-                        type="number"
-                        label={t('form.shipping')}
-                        error={!!errors.shipping_charges}
-                        helperText={errors.shipping_charges?.message}
-                        slotProps={{ htmlInput: { min: 0, step: 0.01 } }}
-                      />
-                    )}
-                  />
-                  <FormControl error={!!errors.tax_scope}>
-                    <InputLabel id="purchase-tax-scope-label">{t('form.taxScope')}</InputLabel>
-                    <Controller name="tax_scope" control={control} render={({ field }) => (
-                      <Select {...field} labelId="purchase-tax-scope-label" label={t('form.taxScope')}>
-                        <MenuItem value="line">{t('form.taxScopeLine')}</MenuItem>
-                        <MenuItem value="sale">{t('form.taxScopeSale')}</MenuItem>
-                      </Select>
-                    )} />
-                    <FormHelperText>{errors.tax_scope?.message}</FormHelperText>
-                  </FormControl>
-                </Box>
-
-                {taxScope === 'sale' && (
-                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
-                    <Controller name="tax_rate_id" control={control} render={({ field }) => (
-                      <Autocomplete
-                        options={taxRates}
-                        value={taxRates.find((rate) => rate.id === field.value) ?? null}
-                        loading={taxRatesQuery.isLoading}
-                        getOptionLabel={taxRateLabel}
-                        isOptionEqualToValue={(option, value) => option.id === value.id}
-                        onBlur={field.onBlur}
-                        onChange={(_, taxRate) => {
-                          field.onChange(taxRate?.id ?? '')
-                          setValue('tax_rate_type', taxRate?.type ?? null)
-                          setValue('tax_rate', taxRate?.rate ?? 0)
-                        }}
-                        renderInput={(params) => (
-                          <TextField
-                            {...params}
-                            label={t('form.tax')}
-                            error={!!errors.tax_rate_id}
-                            helperText={errors.tax_rate_id?.message || t('form.noTax')}
-                          />
-                        )}
-                      />
-                    )} />
-                  </Box>
-                )}
-
-                <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 2 }}>
-                  <Box>
-                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>{t('form.subtotal')}</Typography>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{totals.subtotal.toFixed(2)}</Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>{t('form.taxAmount')}</Typography>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{totals.tax.toFixed(2)}</Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>{t('form.shippingAmount')}</Typography>
-                    <Typography variant="subtitle1" sx={{ fontWeight: 600 }}>{totals.shipping.toFixed(2)}</Typography>
-                  </Box>
-                  <Box>
-                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>{t('form.total')}</Typography>
-                    <Typography variant="h6" sx={{ fontWeight: 800 }}>{totals.total.toFixed(2)}</Typography>
-                  </Box>
-                </Box>
-              </Stack>
+              <PurchasePricingPanel
+                control={control}
+                errors={errors}
+                taxScope={taxScope}
+                taxRates={taxRates}
+                isTaxRatesLoading={taxRatesQuery.isLoading}
+                totals={totals}
+                setValue={setValue}
+              />
             </CardContent>
           </Card>
 
           <Card variant="outlined">
             <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
-              <Stack spacing={2.5}>
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
-                  <Controller
-                    name="notes"
-                    control={control}
-                    render={({ field }) => (
-                      <TextField
-                        {...field}
-                        value={field.value ?? ''}
-                        label={t('form.notes')}
-                        multiline
-                        minRows={2}
-                        error={!!errors.notes}
-                        helperText={errors.notes?.message}
-                      />
-                    )}
-                  />
-                  <Controller
-                    name="staff_note"
-                    control={control}
-                    render={({ field }) => (
-                      <TextField
-                        {...field}
-                        value={field.value ?? ''}
-                        label={t('form.staffNote')}
-                        multiline
-                        minRows={2}
-                        error={!!errors.staff_note}
-                        helperText={errors.staff_note?.message}
-                      />
-                    )}
-                  />
-                </Box>
-              </Stack>
+              <PurchaseNotesPanel control={control} errors={errors} />
             </CardContent>
           </Card>
 

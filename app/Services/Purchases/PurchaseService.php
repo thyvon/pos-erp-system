@@ -10,6 +10,7 @@ use App\Models\Purchase;
 use App\Models\PurchaseItem;
 use App\Models\StockLot;
 use App\Models\StockSerial;
+use App\Models\SubUnit;
 use App\Models\Supplier;
 use App\Models\User;
 use App\Models\Warehouse;
@@ -238,10 +239,13 @@ class PurchaseService
             throw new DomainException('Purchase item product is missing.', 422);
         }
 
+        $this->validatePurchaseItemSubUnit($item);
+        $inventoryQuantity = $this->inventoryQuantityFromPurchaseItem($item, $quantity);
+
         match ($product->stock_tracking) {
-            'lot' => $this->receiveLotTrackedItem($businessId, $purchase, $item, $receiveLine, $quantity, $actor),
+            'lot' => $this->receiveLotTrackedItem($businessId, $purchase, $item, $receiveLine, $quantity, $inventoryQuantity, $actor),
             'serial' => $this->receiveSerialTrackedItem($businessId, $purchase, $item, $receiveLine, $quantity, $actor),
-            default => $this->recordReceiptMovement($businessId, $purchase, $item, $quantity, $actor, $receiveLine['notes'] ?? null),
+            default => $this->recordReceiptMovement($businessId, $purchase, $item, $inventoryQuantity, $actor, $receiveLine['notes'] ?? null),
         };
 
         $item->received_quantity = number_format((float) $item->received_quantity + $quantity, 4, '.', '');
@@ -254,6 +258,7 @@ class PurchaseService
         PurchaseItem $item,
         array $receiveLine,
         float $quantity,
+        float $inventoryQuantity,
         ?User $actor = null,
     ): void {
         if (blank($receiveLine['lot_number'] ?? null)) {
@@ -284,8 +289,8 @@ class PurchaseService
                 'manufacture_date' => $receiveLine['manufacture_date'] ?? null,
                 'expiry_date' => $receiveLine['expiry_date'] ?? null,
                 'received_at' => $purchase->received_at ?? now(),
-                'unit_cost' => $item->unit_cost,
-                'qty_received' => number_format($quantity, 4, '.', ''),
+                'unit_cost' => $this->baseUnitCostFromPurchaseItem($item),
+                'qty_received' => number_format($inventoryQuantity, 4, '.', ''),
                 'qty_on_hand' => 0,
                 'qty_reserved' => 0,
                 'status' => 'active',
@@ -293,11 +298,11 @@ class PurchaseService
                 'created_by' => $actor?->id,
             ]);
         } else {
-            $lot->qty_received = number_format((float) $lot->qty_received + $quantity, 4, '.', '');
+            $lot->qty_received = number_format((float) $lot->qty_received + $inventoryQuantity, 4, '.', '');
             $lot->save();
         }
 
-        $this->recordReceiptMovement($businessId, $purchase, $item, $quantity, $actor, $receiveLine['notes'] ?? null, $lot->id);
+        $this->recordReceiptMovement($businessId, $purchase, $item, $inventoryQuantity, $actor, $receiveLine['notes'] ?? null, $lot->id);
     }
 
     protected function receiveSerialTrackedItem(
@@ -359,7 +364,7 @@ class PurchaseService
             'serial_id' => $serialId,
             'type' => 'purchase_receipt',
             'quantity' => $quantity,
-            'unit_cost' => $item->unit_cost,
+            'unit_cost' => $this->baseUnitCostFromPurchaseItem($item),
             'reference_type' => Purchase::class,
             'reference_id' => $purchase->id,
             'notes' => $notes ?? $purchase->notes,
@@ -410,6 +415,11 @@ class PurchaseService
     {
         $quantity = round((float) $data['quantity'], 4);
         $unitCost = round((float) $data['unit_cost'], 4);
+
+        if ($quantity < round((float) $item->received_quantity, 4)) {
+            throw new DomainException('Purchase item quantity cannot be less than the already received quantity.', 422);
+        }
+
         $lineSubtotal = round($quantity * $unitCost, 2);
         $discountAmount = round((float) ($data['discount_amount'] ?? 0), 2);
         $taxableAmount = max(0, $lineSubtotal - $discountAmount);
@@ -436,6 +446,8 @@ class PurchaseService
     {
         $product = $this->resolveProduct($businessId, $data['product_id']);
         $variation = $this->resolveVariation($businessId, $product, $data['variation_id'] ?? null);
+        $subUnit = $this->resolveSubUnit($businessId, $product, $variation, $data['sub_unit_id'] ?? null);
+        $this->validateSubUnitEligibility($product, $subUnit);
         $quantity = round((float) $data['quantity'], 4);
         $unitCost = round((float) $data['unit_cost'], 4);
         $lineSubtotal = round($quantity * $unitCost, 2);
@@ -449,7 +461,7 @@ class PurchaseService
         $purchase->items()->create([
             'product_id' => $product->id,
             'variation_id' => $variation?->id,
-            'sub_unit_id' => $data['sub_unit_id'] ?? null,
+            'sub_unit_id' => $subUnit?->id,
             'quantity' => $quantity,
             'received_quantity' => 0,
             'unit_cost' => $unitCost,
@@ -468,6 +480,8 @@ class PurchaseService
         foreach ($items as $item) {
             $product = $this->resolveProduct($businessId, $item['product_id']);
             $variation = $this->resolveVariation($businessId, $product, $item['variation_id'] ?? null);
+            $subUnit = $this->resolveSubUnit($businessId, $product, $variation, $item['sub_unit_id'] ?? null);
+            $this->validateSubUnitEligibility($product, $subUnit);
             $quantity = round((float) $item['quantity'], 4);
             $unitCost = round((float) $item['unit_cost'], 4);
             $lineSubtotal = round($quantity * $unitCost, 2);
@@ -481,7 +495,7 @@ class PurchaseService
             $purchase->items()->create([
                 'product_id' => $product->id,
                 'variation_id' => $variation?->id,
-                'sub_unit_id' => $item['sub_unit_id'] ?? null,
+                'sub_unit_id' => $subUnit?->id,
                 'quantity' => $quantity,
                 'received_quantity' => 0,
                 'unit_cost' => $unitCost,
@@ -594,6 +608,96 @@ class PurchaseService
         }
 
         return $variation;
+    }
+
+    protected function resolveSubUnit(
+        string $businessId,
+        Product $product,
+        ?ProductVariation $variation,
+        ?string $subUnitId
+    ): ?SubUnit {
+        if (! filled($subUnitId)) {
+            return null;
+        }
+
+        /** @var SubUnit|null $subUnit */
+        $subUnit = SubUnit::query()
+            ->where('business_id', $businessId)
+            ->find($subUnitId);
+
+        if (! $subUnit) {
+            throw new DomainException('Selected sub unit is invalid for this purchase line.', 422);
+        }
+
+        $expectedSubUnitId = $variation?->sub_unit_id ?: $product->sub_unit_id;
+
+        if (! $expectedSubUnitId || (string) $expectedSubUnitId !== (string) $subUnit->id) {
+            throw new DomainException('Selected sub unit is not configured for this product line.', 422);
+        }
+
+        return $subUnit;
+    }
+
+    protected function validateSubUnitEligibility(Product $product, ?SubUnit $subUnit): void
+    {
+        if ($subUnit === null) {
+            return;
+        }
+
+        if (in_array($product->stock_tracking, ['lot', 'serial'], true)) {
+            throw new DomainException("Tracked product {$product->name} must be purchased in the base unit.", 422);
+        }
+    }
+
+    protected function validatePurchaseItemSubUnit(PurchaseItem $item): void
+    {
+        $subUnit = $item->relationLoaded('subUnit')
+            ? $item->subUnit
+            : ($item->sub_unit_id ? SubUnit::query()->find($item->sub_unit_id) : null);
+
+        if ($subUnit === null) {
+            return;
+        }
+
+        $product = $item->product;
+        $variation = $item->variation;
+
+        if (! $product) {
+            throw new DomainException('Purchase item product is missing.', 422);
+        }
+
+        $expectedSubUnitId = $variation?->sub_unit_id ?: $product->sub_unit_id;
+
+        if (! $expectedSubUnitId || (string) $expectedSubUnitId !== (string) $subUnit->id) {
+            throw new DomainException('Purchase item sub unit is no longer configured for this product line.', 422);
+        }
+
+        $this->validateSubUnitEligibility($product, $subUnit);
+    }
+
+    protected function conversionFactorFromSubUnit(?SubUnit $subUnit): float
+    {
+        $factor = (float) ($subUnit?->conversion_factor ?? 1);
+
+        return $factor > 0 ? $factor : 1.0;
+    }
+
+    protected function inventoryQuantityFromPurchaseItem(PurchaseItem $item, float $quantity): float
+    {
+        $subUnit = $item->relationLoaded('subUnit')
+            ? $item->subUnit
+            : ($item->sub_unit_id ? SubUnit::query()->find($item->sub_unit_id) : null);
+
+        return round($quantity * $this->conversionFactorFromSubUnit($subUnit), 4);
+    }
+
+    protected function baseUnitCostFromPurchaseItem(PurchaseItem $item): float
+    {
+        $subUnit = $item->relationLoaded('subUnit')
+            ? $item->subUnit
+            : ($item->sub_unit_id ? SubUnit::query()->find($item->sub_unit_id) : null);
+
+        return round((float) $item->unit_cost / $this->conversionFactorFromSubUnit($subUnit), 4);
     }
 
     protected function ensureWarehouseBelongsToBranch(Warehouse $warehouse, Branch $branch): void

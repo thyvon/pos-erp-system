@@ -9,6 +9,7 @@ use App\Models\PurchaseReturn;
 use App\Models\PurchaseReturnItem;
 use App\Models\StockLot;
 use App\Models\StockSerial;
+use App\Models\SubUnit;
 use App\Models\User;
 use App\Repositories\Purchases\PurchaseReturnRepository;
 use App\Services\Inventory\StockMovementService;
@@ -24,27 +25,30 @@ class PurchaseReturnService
     ) {
     }
 
-    public function paginate(array $filters): LengthAwarePaginator
+    public function paginate(array $filters, ?User $user = null): LengthAwarePaginator
     {
-        return $this->purchaseReturns->paginateFiltered($filters);
+        return $this->purchaseReturns->paginateFiltered($filters, $user);
     }
 
-    public function show(string $id): PurchaseReturn
+    public function show(string $id, ?User $user = null): PurchaseReturn
     {
-        return $this->loadPurchaseReturn(
-            $this->purchaseReturns->findOrFail($id)
-        );
+        $purchaseReturn = $this->purchaseReturns->findOrFail($id);
+        $this->ensureUserCanAccessBranch($user, $purchaseReturn->branch_id);
+
+        return $this->loadPurchaseReturn($purchaseReturn);
     }
 
     public function create(string $businessId, Purchase $purchase, array $data, ?User $actor = null): PurchaseReturn
     {
         return DB::transaction(function () use ($businessId, $purchase, $data, $actor): PurchaseReturn {
             $lockedPurchase = Purchase::withoutGlobalScopes()
-                ->with(['items.product', 'returns.items'])
+                ->with(['items.product', 'items.variation', 'items.subUnit', 'returns.items'])
                 ->where('business_id', $businessId)
                 ->whereKey($purchase->id)
                 ->lockForUpdate()
                 ->firstOrFail();
+
+            $this->ensureUserCanAccessBranch($actor, $lockedPurchase->branch_id);
 
             if (! in_array($lockedPurchase->status, ['received', 'partially_received'], true)) {
                 throw new DomainException('Only received or partially received purchases can accept return documents.', 422);
@@ -106,6 +110,8 @@ class PurchaseReturnService
                 $businessId, $purchase, $purchaseItem, $item, $previousReturns, $quantity
             );
 
+            $inventoryQuantity = $this->inventoryQuantityFromPurchaseItem($purchaseItem, $quantity);
+            $baseUnitCost = $this->baseUnitCostFromPurchaseItem($purchaseItem);
             $lineTotal = round(((float) $purchaseItem->unit_cost) * $quantity, 2);
 
             return [
@@ -120,6 +126,8 @@ class PurchaseReturnService
                     'serial_ids' => $serialIds === [] ? null : $serialIds,
                 ],
                 'purchase_item' => $purchaseItem,
+                'inventory_quantity' => $inventoryQuantity,
+                'base_unit_cost' => $baseUnitCost,
                 'lot_id' => $lotId,
                 'serial_ids' => $serialIds,
             ];
@@ -149,7 +157,7 @@ class PurchaseReturnService
 
             $receivedSerials = StockSerial::where('purchase_item_id', $purchaseItem->id)
                 ->where('business_id', $businessId)
-                ->pluck('id', 'serial_id')
+                ->pluck('id', 'id')
                 ->all();
 
             $alreadyReturnedSerialIds = $previousReturns
@@ -185,7 +193,7 @@ class PurchaseReturnService
                 ->where('lot_id', $lotId)
                 ->sum('quantity');
 
-            $availableLotQty = (float) $purchaseLots->get($lotId)->quantity;
+            $availableLotQty = (float) $purchaseLots->get($lotId)->qty_on_hand;
 
             if ($quantity > round($availableLotQty - $previousReturnedLotQty, 4)) {
                 throw new DomainException('Returned lot quantity exceeds what is available in this lot.', 422);
@@ -213,7 +221,7 @@ class PurchaseReturnService
                     'variation_id' => $purchaseItem->variation_id,
                     'serial_id' => $serialId,
                     'quantity' => 1,
-                    'unit_cost' => $item->unit_cost,
+                    'unit_cost' => $linePayload['base_unit_cost'],
                     'warehouse_id' => $purchaseReturn->warehouse_id,
                     'reference_type' => PurchaseReturn::class,
                     'reference_id' => $purchaseReturn->id,
@@ -228,8 +236,8 @@ class PurchaseReturnService
         $movementData = [
             'product_id' => $purchaseItem->product_id,
             'variation_id' => $purchaseItem->variation_id,
-            'quantity' => $item->quantity,
-            'unit_cost' => $item->unit_cost,
+            'quantity' => $linePayload['inventory_quantity'],
+            'unit_cost' => $linePayload['base_unit_cost'],
             'warehouse_id' => $purchaseReturn->warehouse_id,
             'reference_type' => PurchaseReturn::class,
             'reference_id' => $purchaseReturn->id,
@@ -262,6 +270,38 @@ class PurchaseReturnService
         return sprintf('%s%05d', $prefix, $next);
     }
 
+    protected function ensureUserCanAccessBranch(?User $user, string $branchId): void
+    {
+        if ($user && ! $user->hasBranchAccess($branchId)) {
+            throw new DomainException('You cannot manage purchase returns outside your assigned branches.', 403);
+        }
+    }
+
+    protected function conversionFactorFromSubUnit(?SubUnit $subUnit): float
+    {
+        $factor = (float) ($subUnit?->conversion_factor ?? 1);
+
+        return $factor > 0 ? $factor : 1.0;
+    }
+
+    protected function inventoryQuantityFromPurchaseItem(PurchaseItem $item, float $quantity): float
+    {
+        $subUnit = $item->relationLoaded('subUnit')
+            ? $item->subUnit
+            : ($item->sub_unit_id ? SubUnit::query()->find($item->sub_unit_id) : null);
+
+        return round($quantity * $this->conversionFactorFromSubUnit($subUnit), 4);
+    }
+
+    protected function baseUnitCostFromPurchaseItem(PurchaseItem $item): float
+    {
+        $subUnit = $item->relationLoaded('subUnit')
+            ? $item->subUnit
+            : ($item->sub_unit_id ? SubUnit::query()->find($item->sub_unit_id) : null);
+
+        return round((float) $item->unit_cost / $this->conversionFactorFromSubUnit($subUnit), 4);
+    }
+
     protected function loadPurchaseReturn(PurchaseReturn $purchaseReturn): PurchaseReturn
     {
         return $purchaseReturn->load([
@@ -271,6 +311,8 @@ class PurchaseReturnService
             'creator',
             'items.purchaseItem.product',
             'items.purchaseItem.variation',
+            'items.product',
+            'items.variation',
             'items.lot',
         ])->loadCount('items');
     }

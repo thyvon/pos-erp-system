@@ -32,16 +32,16 @@ class PurchaseReturnController extends BaseApiController
             'per_page',
         ]);
 
-        $items = $this->purchaseReturns->paginate($filters);
+        $items = $this->purchaseReturns->paginate($filters, $request->user());
 
         return $this->paginated($items, PurchaseReturnResource::class);
     }
 
-    public function show(string $id): JsonResponse
+    public function show(Request $request, string $id): JsonResponse
     {
         Gate::authorize('purchases.return');
 
-        $purchaseReturn = $this->purchaseReturns->show($id);
+        $purchaseReturn = $this->purchaseReturns->show($id, $request->user());
 
         return $this->success(new PurchaseReturnResource($purchaseReturn));
     }

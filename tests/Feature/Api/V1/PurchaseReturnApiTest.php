@@ -6,9 +6,13 @@ use App\Models\Branch;
 use App\Models\Business;
 use App\Models\Product;
 use App\Models\Purchase;
+use App\Models\PurchaseReturn;
 use App\Models\StockLevel;
 use App\Models\StockMovement;
+use App\Models\StockSerial;
+use App\Models\SubUnit;
 use App\Models\Supplier;
+use App\Models\Unit;
 use App\Models\User;
 use App\Models\Warehouse;
 use Database\Seeders\RolePermissionSeeder;
@@ -139,6 +143,110 @@ class PurchaseReturnApiTest extends TestCase
         $response->assertJsonPath('data.0.return_number', 'PRT-2026-00001');
     }
 
+    public function test_purchase_return_list_is_limited_to_assigned_branches(): void
+    {
+        [$business, $admin, $branch, $warehouse, $supplier, $product] = $this->makePurchaseContext();
+        $otherBranch = Branch::factory()->for($business)->create();
+        $otherWarehouse = Warehouse::factory()->forBranch($otherBranch)->create();
+
+        $visiblePurchase = $this->makeReceivedPurchase($business, $branch, $warehouse, $supplier, $product, 'PO-VISIBLE', 2);
+        $hiddenPurchase = $this->makeReceivedPurchase($business, $otherBranch, $otherWarehouse, $supplier, $product, 'PO-HIDDEN', 2);
+
+        PurchaseReturn::withoutGlobalScopes()->create([
+            'business_id' => $business->id,
+            'purchase_id' => $visiblePurchase->id,
+            'branch_id' => $branch->id,
+            'warehouse_id' => $warehouse->id,
+            'return_number' => 'PRT-2026-00001',
+            'status' => 'completed',
+            'return_date' => '2026-06-01',
+            'total_amount' => 10,
+            'created_by' => $admin->id,
+        ]);
+        PurchaseReturn::withoutGlobalScopes()->create([
+            'business_id' => $business->id,
+            'purchase_id' => $hiddenPurchase->id,
+            'branch_id' => $otherBranch->id,
+            'warehouse_id' => $otherWarehouse->id,
+            'return_number' => 'PRT-2026-00002',
+            'status' => 'completed',
+            'return_date' => '2026-06-01',
+            'total_amount' => 10,
+            'created_by' => $admin->id,
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $response = $this->getJson('/api/v1/purchase-returns');
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonFragment(['return_number' => 'PRT-2026-00001'])
+            ->assertJsonMissing(['return_number' => 'PRT-2026-00002']);
+    }
+
+    public function test_purchase_return_converts_sub_unit_quantity_to_base_stock_quantity(): void
+    {
+        [$business, $admin, $branch, $warehouse, $supplier, $product] = $this->makePurchaseContext();
+        $unit = Unit::factory()->for($business)->create([
+            'name' => 'Return Bottle',
+            'short_name' => 'rbtl',
+        ]);
+        $subUnit = SubUnit::factory()->for($business)->for($unit, 'parentUnit')->create([
+            'name' => 'Return Case',
+            'short_name' => 'rcase',
+            'conversion_factor' => 12,
+        ]);
+        $product->forceFill([
+            'unit_id' => $unit->id,
+            'sub_unit_id' => $subUnit->id,
+        ])->save();
+        $purchase = $this->makeReceivedPurchase($business, $branch, $warehouse, $supplier, $product, 'PO-SUB-RETURN', 2);
+        $purchaseItem = $purchase->items()->firstOrFail();
+        $purchaseItem->forceFill([
+            'sub_unit_id' => $subUnit->id,
+            'quantity' => 2,
+            'received_quantity' => 2,
+            'unit_cost' => 120,
+            'total_amount' => 240,
+        ])->save();
+        StockLevel::where('warehouse_id', $warehouse->id)
+            ->where('product_id', $product->id)
+            ->update(['quantity' => 24]);
+
+        Sanctum::actingAs($admin);
+
+        $response = $this->postJson("/api/v1/purchases/{$purchase->id}/returns", [
+            'return_date' => '2026-06-01',
+            'items' => [
+                [
+                    'purchase_item_id' => $purchaseItem->id,
+                    'quantity' => 1,
+                ],
+            ],
+        ]);
+
+        $response
+            ->assertCreated()
+            ->assertJsonPath('data.total_amount', '120.00')
+            ->assertJsonPath('data.items.0.quantity', '1.0000')
+            ->assertJsonPath('data.items.0.unit_cost', '120.0000');
+
+        $this->assertDatabaseHas('stock_movements', [
+            'reference_type' => 'App\Models\PurchaseReturn',
+            'product_id' => $product->id,
+            'warehouse_id' => $warehouse->id,
+            'quantity' => '12.0000',
+            'unit_cost' => '10.0000',
+            'type' => 'purchase_return',
+        ]);
+        $this->assertSame('12.0000', StockLevel::where('warehouse_id', $warehouse->id)
+            ->where('product_id', $product->id)
+            ->firstOrFail()
+            ->quantity);
+    }
+
     public function test_user_without_purchases_return_permission_cannot_create_return(): void
     {
         [$business, $admin, $branch, $warehouse, $supplier, $product] = $this->makePurchaseContext();
@@ -205,6 +313,56 @@ class PurchaseReturnApiTest extends TestCase
             ->assertJson([
                 'message' => 'Serial-tracked purchase items require serial_ids when returned.',
             ]);
+    }
+
+    public function test_serial_tracked_purchase_return_moves_selected_serial_out_of_stock(): void
+    {
+        [$business, $admin, $branch, $warehouse, $supplier, $product] = $this->makePurchaseContext([
+            'stock_tracking' => 'serial',
+        ]);
+        $purchase = $this->makeReceivedPurchase($business, $branch, $warehouse, $supplier, $product, 'PO-007', 2);
+        $purchaseItem = $purchase->items()->firstOrFail();
+        $serial = StockSerial::withoutGlobalScopes()->create([
+            'business_id' => $business->id,
+            'product_id' => $product->id,
+            'warehouse_id' => $warehouse->id,
+            'supplier_id' => $supplier->id,
+            'serial_number' => 'SER-RETURN-001',
+            'status' => 'in_stock',
+            'purchase_item_id' => $purchaseItem->id,
+            'unit_cost' => 10,
+            'received_at' => now(),
+            'created_by' => $admin->id,
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $this->postJson("/api/v1/purchases/{$purchase->id}/returns", [
+            'return_date' => '2026-06-01',
+            'items' => [
+                [
+                    'purchase_item_id' => $purchaseItem->id,
+                    'quantity' => 1,
+                    'serial_ids' => [$serial->id],
+                ],
+            ],
+        ])->assertCreated()
+            ->assertJsonPath('data.items.0.serial_ids.0', $serial->id);
+
+        $serial->refresh();
+        $this->assertSame('returned', $serial->status);
+        $this->assertNull($serial->warehouse_id);
+        $this->assertDatabaseHas('stock_movements', [
+            'reference_type' => 'App\Models\PurchaseReturn',
+            'product_id' => $product->id,
+            'serial_id' => $serial->id,
+            'quantity' => '1.0000',
+            'type' => 'purchase_return',
+        ]);
+        $this->assertSame('1.0000', StockLevel::where('warehouse_id', $warehouse->id)
+            ->where('product_id', $product->id)
+            ->firstOrFail()
+            ->quantity);
     }
 
     protected function makePurchaseContext(array $productOverrides = []): array

@@ -60,6 +60,7 @@ export default {
     description: 'បរិយាយ',
     amount: 'ទឹកប្រាក់',
     paymentMethod: 'វិធីសាស្រ្តទូទាត់',
+    noPaymentMethod: 'គ្មានវិធីសាស្រ្តទូទាត់',
     notes: 'កំណត់ចំណាំ',
   },
   paymentMethods: {

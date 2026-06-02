@@ -60,6 +60,7 @@ export default {
     description: 'Description',
     amount: 'Amount',
     paymentMethod: 'Payment Method',
+    noPaymentMethod: 'No payment method',
     notes: 'Notes',
   },
   paymentMethods: {

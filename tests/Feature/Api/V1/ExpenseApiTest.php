@@ -6,6 +6,7 @@ use App\Models\Branch;
 use App\Models\Business;
 use App\Models\ChartOfAccount;
 use App\Models\Expense;
+use App\Models\Journal;
 use App\Models\PaymentAccount;
 use App\Models\User;
 use Database\Seeders\RolePermissionSeeder;
@@ -176,20 +177,20 @@ class ExpenseApiTest extends TestCase
     {
         [$business, $admin, $branch, $expenseAccount, $paymentAccount] = $this->makeExpenseContext();
 
-        $expense = Expense::withoutGlobalScopes()->create([
-            'business_id' => $business->id,
+        Sanctum::actingAs($admin);
+
+        $createResponse = $this->postJson('/api/v1/expenses', [
             'branch_id' => $branch->id,
             'expense_account_id' => $expenseAccount->id,
             'payment_account_id' => $paymentAccount->id,
             'expense_date' => '2026-06-01',
             'description' => 'Original description',
             'amount' => 100,
-            'created_by' => $admin->id,
-        ]);
+        ])->assertCreated();
 
-        Sanctum::actingAs($admin);
+        $expenseId = $createResponse->json('data.id');
 
-        $response = $this->putJson("/api/v1/expenses/{$expense->id}", [
+        $response = $this->putJson("/api/v1/expenses/{$expenseId}", [
             'branch_id' => $branch->id,
             'expense_account_id' => $expenseAccount->id,
             'payment_account_id' => $paymentAccount->id,
@@ -205,8 +206,35 @@ class ExpenseApiTest extends TestCase
 
         $this->assertDatabaseHas('audit_logs', [
             'auditable_type' => Expense::class,
-            'auditable_id' => $expense->id,
+            'auditable_id' => $expenseId,
             'event' => 'updated',
+        ]);
+
+        $this->assertSame(2, Journal::withoutGlobalScopes()
+            ->where('business_id', $business->id)
+            ->where('type', 'expense')
+            ->where('reference_type', Expense::class)
+            ->where('reference_id', $expenseId)
+            ->count());
+        $this->assertSame(1, Journal::withoutGlobalScopes()
+            ->where('business_id', $business->id)
+            ->where('type', 'reversal')
+            ->count());
+        $this->assertDatabaseHas('account_transactions', [
+            'business_id' => $business->id,
+            'payment_account_id' => $paymentAccount->id,
+            'reference_type' => Expense::class,
+            'reference_id' => $expenseId,
+            'type' => 'credit',
+            'amount' => '100.00',
+        ]);
+        $this->assertDatabaseHas('account_transactions', [
+            'business_id' => $business->id,
+            'payment_account_id' => $paymentAccount->id,
+            'reference_type' => Expense::class,
+            'reference_id' => $expenseId,
+            'type' => 'debit',
+            'amount' => '200.00',
         ]);
     }
 
@@ -214,30 +242,61 @@ class ExpenseApiTest extends TestCase
     {
         [$business, $admin, $branch, $expenseAccount, $paymentAccount] = $this->makeExpenseContext();
 
-        $expense = Expense::withoutGlobalScopes()->create([
-            'business_id' => $business->id,
+        Sanctum::actingAs($admin);
+
+        $createResponse = $this->postJson('/api/v1/expenses', [
             'branch_id' => $branch->id,
             'expense_account_id' => $expenseAccount->id,
             'payment_account_id' => $paymentAccount->id,
             'expense_date' => '2026-06-01',
             'description' => 'To be deleted',
             'amount' => 50,
-            'created_by' => $admin->id,
-        ]);
+        ])->assertCreated();
 
-        Sanctum::actingAs($admin);
+        $expenseId = $createResponse->json('data.id');
 
-        $response = $this->deleteJson("/api/v1/expenses/{$expense->id}");
+        $response = $this->deleteJson("/api/v1/expenses/{$expenseId}");
 
         $response->assertOk();
 
-        $this->assertSoftDeleted('expenses', ['id' => $expense->id]);
+        $this->assertSoftDeleted('expenses', ['id' => $expenseId]);
 
         $this->assertDatabaseHas('audit_logs', [
             'auditable_type' => Expense::class,
-            'auditable_id' => $expense->id,
+            'auditable_id' => $expenseId,
             'event' => 'deleted',
         ]);
+
+        $this->assertDatabaseHas('journals', [
+            'business_id' => $business->id,
+            'type' => 'reversal',
+            'reference_type' => Journal::class,
+        ]);
+        $this->assertDatabaseHas('account_transactions', [
+            'business_id' => $business->id,
+            'payment_account_id' => $paymentAccount->id,
+            'reference_type' => Expense::class,
+            'reference_id' => $expenseId,
+            'type' => 'credit',
+            'amount' => '50.00',
+        ]);
+    }
+
+    public function test_expense_creation_rejects_inactive_payment_account(): void
+    {
+        [$business, $admin, $branch, $expenseAccount, $paymentAccount] = $this->makeExpenseContext();
+        $paymentAccount->forceFill(['is_active' => false])->save();
+
+        Sanctum::actingAs($admin);
+
+        $this->postJson('/api/v1/expenses', [
+            'branch_id' => $branch->id,
+            'expense_account_id' => $expenseAccount->id,
+            'payment_account_id' => $paymentAccount->id,
+            'expense_date' => '2026-06-01',
+            'description' => 'Inactive payment account',
+            'amount' => 100,
+        ])->assertStatus(422);
     }
 
     public function test_user_without_expense_permission_cannot_create(): void

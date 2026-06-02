@@ -148,7 +148,10 @@
 
 - [x] Purchase document backend foundation added with purchases/purchase_items tables, models, policy, repository, service, requests, resources, `/api/v1/purchases` routes, branch access checks, generated PO numbers, line totals, and focused API tests.
 - [x] Purchase receiving backend added with `/api/v1/purchases/{purchase}/receive`, receive validation, stock movement posting, received quantities, purchase status updates, lot creation, serial creation, receiver metadata, and focused API tests.
-- [ ] Purchase API focused tests are written but blocked locally because the PHP SQLite driver is missing from the test environment.
+- [x] Purchase UoM handling now validates product-configured sub-units, blocks sub-unit buying for lot/serial tracked products, converts received sub-unit quantities into base inventory quantities, and posts base-unit receipt costs.
+- [x] Purchase Return backend now preserves branch access on list/show/store, converts sub-unit return quantities to base inventory movements, validates selected serial returns, and exposes return item product/variation details.
+- [x] Purchase API focused tests verified after enabling the PHP SQLite driver.
+- [x] Full backend suite re-verified after Purchase UoM, Purchase Return, and Expense accounting hardening with `php artisan test` passing 206 tests and 895 assertions.
 
 ## Purchases Frontend
 
@@ -158,11 +161,25 @@
 - [x] Zod schemas (`purchaseSchema`, `purchaseItemSchema`, `receivePurchaseSchema`, `receivePurchaseItemSchema`) and form helpers (`emptyPurchaseValues`, `valuesFromPurchase`, `buildPurchasePayload`) are present.
 - [x] Purchases list page with search, status/payment/branch/warehouse/supplier/date filters, paginated table, row actions (view/edit/delete), and delete confirmation is present.
 - [x] Purchases create/edit form with warehouse/supplier autocompletes, item line table, totals calculation, discount/shipping/notes fields, and status selection is present.
+- [x] Purchases create/edit form now splits item lines, pricing totals, and notes into focused typed components under `frontend/src/features/purchases/components/`.
 - [x] Purchases detail page with header info, items table, summary, notes, and action buttons (receive/edit/delete) is present.
 - [x] Purchase receive dialog with per-item quantity/lot/serial entry is present.
 - [x] Sidebar navigation (`/purchases`), breadcrumbs, and route pages (list, create, detail, edit) are registered.
 - [x] English and Khmer translations are complete with namespace registered in i18n.
 - [x] Frontend type-check, lint (0 new errors), and build verified.
+
+## Expenses Frontend
+
+- [x] Expenses generated frontend reviewed against Sales/Purchases patterns, shared API hooks, route wrappers, permissions, table states, dialogs, and translations.
+- [x] Expense form dialog refactored from manual local state to the existing Zod schema plus React Hook Form pattern, with server field-error mapping.
+- [x] Expense payment account selection now follows accounting requirements by showing active linked payment accounts only.
+- [x] Expense list uses the supported edit dialog flow instead of routing the edit action to the detail page.
+- [x] Expense list/detail dates now use the shared business date-format display helpers.
+- [x] Expense detail loading, error, back action, edit, and delete controls now follow shared UI patterns.
+- [x] English and Khmer Expenses translations updated for new form copy.
+- [x] Expenses frontend type-check, lint, and build verified; lint still reports only the existing anonymous-default-export translation warnings.
+- [x] Expense backend accounting lifecycle now reverses and reposts journals/payment-account transactions on update, reverses them on delete, and rejects inactive or unlinked payment accounts.
+- [x] Focused Purchase, Purchase Return, Expense, Unit, and Sales backend suites verified after enabling the PHP SQLite PDO driver.
 
 ## Frontend UI Consistency
 

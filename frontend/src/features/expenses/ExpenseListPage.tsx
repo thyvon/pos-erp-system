@@ -31,10 +31,12 @@ import { RowActions } from '@/components/ui/RowActions'
 import { TableStateRow } from '@/components/ui/TableStateRow'
 import { SearchableFilterSelect } from '@/components/ui/SearchableFilterSelect'
 import { useBranchesQuery } from '@/features/branches/hooks'
+import { useAppDateFormat } from '@/features/settings/useAppDateFormat'
 import { useCurrencyFormatter } from '@/features/settings/useAppCurrency'
 import { useAuthStore } from '@/stores/authStore'
+import { formatAppDate } from '@/utils/dateFormat'
 import { formatMoney } from '@/utils/formatMoney'
-import { useExpensesQuery, useDeleteExpenseMutation, useCreateExpenseMutation } from './hooks'
+import { useExpensesQuery, useDeleteExpenseMutation, useCreateExpenseMutation, useUpdateExpenseMutation } from './hooks'
 import { ExpenseFormDialog } from './ExpenseFormDialog'
 import type { Expense, ExpenseFilters, ExpensePayload } from '@/types/expense'
 import type { Branch } from '@/types/branch'
@@ -42,7 +44,7 @@ import type { Branch } from '@/types/branch'
 const rowsPerPageOptions = [10, 25, 50]
 
 export default function ExpensesPage() {
-  const { t } = useTranslation(['expenses', 'common'])
+  const { t, i18n } = useTranslation(['expenses', 'common'])
   const router = useRouter()
   const { enqueueSnackbar } = useSnackbar()
   const can = useAuthStore((state) => state.can)
@@ -55,6 +57,8 @@ export default function ExpensesPage() {
   const [page, setPage] = useState(0)
   const [perPage, setPerPage] = useState(10)
   const [dialogOpen, setDialogOpen] = useState(false)
+  const [editTarget, setEditTarget] = useState<Expense | null>(null)
+  const dateFormat = useAppDateFormat()
   const currencyFormatter = useCurrencyFormatter()
 
   const filters: ExpenseFilters = useMemo(
@@ -72,6 +76,7 @@ export default function ExpensesPage() {
   const expensesQuery = useExpensesQuery(filters)
   const deleteMutation = useDeleteExpenseMutation()
   const createMutation = useCreateExpenseMutation()
+  const updateMutation = useUpdateExpenseMutation()
 
   const branchesQuery = useBranchesQuery({ is_active: true, per_page: 100 })
   const branches = branchesQuery.data?.data ?? []
@@ -98,6 +103,14 @@ export default function ExpensesPage() {
     const result = await createMutation.mutateAsync(payload)
     enqueueSnackbar(t('messages.created'), { variant: 'success' })
     router.push(`/expenses/${result.id}`)
+  }
+
+  const handleEditSubmit = async (payload: ExpensePayload) => {
+    if (!editTarget) return
+
+    await updateMutation.mutateAsync({ id: editTarget.id, payload })
+    enqueueSnackbar(t('messages.updated'), { variant: 'success' })
+    setEditTarget(null)
   }
 
   return (
@@ -236,7 +249,7 @@ export default function ExpensesPage() {
                 )}
                 {(expensesQuery.data?.data ?? []).map((expense: Expense) => (
                   <TableRow key={expense.id} hover>
-                    <TableCell>{expense.expense_date}</TableCell>
+                    <TableCell>{formatAppDate(expense.expense_date, dateFormat, i18n.language)}</TableCell>
                     <TableCell>
                       <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
                         {expense.reference_no || '-'}
@@ -267,7 +280,7 @@ export default function ExpensesPage() {
                         showEdit={canEdit}
                         showDelete={canDelete}
                         onView={() => router.push(`/expenses/${expense.id}`)}
-                        onEdit={() => router.push(`/expenses/${expense.id}`)}
+                        onEdit={() => setEditTarget(expense)}
                         onDelete={() => setDeleteTarget(expense)}
                       />
                     </TableCell>
@@ -309,6 +322,14 @@ export default function ExpensesPage() {
         isSaving={createMutation.isPending}
         onClose={() => setDialogOpen(false)}
         onSubmit={handleCreateSubmit}
+      />
+
+      <ExpenseFormDialog
+        open={!!editTarget}
+        expense={editTarget}
+        isSaving={updateMutation.isPending}
+        onClose={() => setEditTarget(null)}
+        onSubmit={handleEditSubmit}
       />
     </Stack>
   )

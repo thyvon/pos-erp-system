@@ -13,7 +13,9 @@ use App\Models\StockLevel;
 use App\Models\StockLot;
 use App\Models\StockMovement;
 use App\Models\StockSerial;
+use App\Models\SubUnit;
 use App\Models\Supplier;
+use App\Models\Unit;
 use App\Models\User;
 use App\Models\Warehouse;
 use Database\Seeders\RolePermissionSeeder;
@@ -192,6 +194,95 @@ class PurchaseApiTest extends TestCase
             'quantity' => '1.0000',
         ]);
         $this->assertSame('1.0000', StockLevel::query()->firstOrFail()->quantity);
+    }
+
+    public function test_confirmed_purchase_receives_sub_unit_as_base_stock_quantity(): void
+    {
+        [$business, $admin, $branch, $warehouse, $supplier, $product] = $this->makePurchaseContext();
+
+        $unit = Unit::factory()->for($business)->create([
+            'name' => 'Purchase Bottle',
+            'short_name' => 'pbtl',
+        ]);
+        $subUnit = SubUnit::factory()->for($business)->for($unit, 'parentUnit')->create([
+            'name' => 'Case',
+            'short_name' => 'case',
+            'conversion_factor' => 12,
+        ]);
+        $product->forceFill([
+            'unit_id' => $unit->id,
+            'sub_unit_id' => $subUnit->id,
+        ])->save();
+
+        Sanctum::actingAs($admin);
+
+        $purchaseResponse = $this->postJson('/api/v1/purchases', [
+            'branch_id' => $branch->id,
+            'warehouse_id' => $warehouse->id,
+            'supplier_id' => $supplier->id,
+            'status' => 'confirmed',
+            'purchase_date' => '2026-05-28',
+            'items' => [
+                [
+                    'product_id' => $product->id,
+                    'sub_unit_id' => $subUnit->id,
+                    'quantity' => 2,
+                    'unit_cost' => 120,
+                ],
+            ],
+        ])->assertCreated();
+
+        $purchaseId = $purchaseResponse->json('data.id');
+        $itemId = $purchaseResponse->json('data.items.0.id');
+
+        $this->postJson("/api/v1/purchases/{$purchaseId}/receive", [
+            'items' => [
+                [
+                    'purchase_item_id' => $itemId,
+                    'quantity' => 1,
+                ],
+            ],
+        ])->assertOk()
+            ->assertJsonPath('data.status', 'partially_received')
+            ->assertJsonPath('data.items.0.received_quantity', '1.0000');
+
+        $this->assertDatabaseHas('stock_movements', [
+            'business_id' => $business->id,
+            'product_id' => $product->id,
+            'warehouse_id' => $warehouse->id,
+            'type' => 'purchase_receipt',
+            'quantity' => '12.0000',
+            'unit_cost' => '10.0000',
+        ]);
+        $this->assertSame('12.0000', StockLevel::query()->firstOrFail()->quantity);
+    }
+
+    public function test_purchase_rejects_sub_unit_not_configured_for_product(): void
+    {
+        [$business, $admin, $branch, $warehouse, $supplier, $product] = $this->makePurchaseContext();
+
+        $unit = Unit::factory()->for($business)->create();
+        $subUnit = SubUnit::factory()->for($business)->for($unit, 'parentUnit')->create([
+            'conversion_factor' => 12,
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $this->postJson('/api/v1/purchases', [
+            'branch_id' => $branch->id,
+            'warehouse_id' => $warehouse->id,
+            'supplier_id' => $supplier->id,
+            'status' => 'confirmed',
+            'purchase_date' => '2026-05-28',
+            'items' => [
+                [
+                    'product_id' => $product->id,
+                    'sub_unit_id' => $subUnit->id,
+                    'quantity' => 1,
+                    'unit_cost' => 120,
+                ],
+            ],
+        ])->assertStatus(422);
     }
 
     public function test_lot_tracked_purchase_receive_creates_lot(): void

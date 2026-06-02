@@ -3,12 +3,13 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
+  Alert,
   Box,
   Button,
   Card,
   CardContent,
-  CircularProgress,
   Divider,
+  IconButton,
   Stack,
   Table,
   TableBody,
@@ -16,14 +17,18 @@ import {
   TableContainer,
   TableHead,
   TableRow,
+  Tooltip,
   Typography,
 } from '@mui/material'
-import { ArrowBack, EditOutlined } from '@/components/ui/icons'
+import { ArrowBack, DeleteOutlined, EditOutlined } from '@/components/ui/icons'
 import { useTranslation } from 'react-i18next'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useSnackbar } from 'notistack'
 import { toAppApiError } from '@/api/errors'
+import PageLoader from '@/components/ui/PageLoader'
+import { useAppDateFormat } from '@/features/settings/useAppDateFormat'
 import { useCurrencyFormatter } from '@/features/settings/useAppCurrency'
+import { formatAppDate, formatAppDateTime } from '@/utils/dateFormat'
 import { formatMoney } from '@/utils/formatMoney'
 import { useAuthStore } from '@/stores/authStore'
 import { useExpenseQuery, useDeleteExpenseMutation, useUpdateExpenseMutation } from './hooks'
@@ -35,12 +40,13 @@ interface ExpenseDetailPageProps {
 }
 
 export function ExpenseDetailPage({ expenseId }: ExpenseDetailPageProps) {
-  const { t } = useTranslation(['expenses', 'common'])
+  const { t, i18n } = useTranslation(['expenses', 'common'])
   const router = useRouter()
   const { enqueueSnackbar } = useSnackbar()
   const can = useAuthStore((state) => state.can)
   const currencyFormatter = useCurrencyFormatter()
-  const { data: expense, isLoading } = useExpenseQuery(expenseId)
+  const dateFormat = useAppDateFormat()
+  const { data: expense, isLoading, isError, error } = useExpenseQuery(expenseId)
   const deleteMutation = useDeleteExpenseMutation()
   const updateMutation = useUpdateExpenseMutation()
   const [deleteOpen, setDeleteOpen] = useState(false)
@@ -63,11 +69,11 @@ export function ExpenseDetailPage({ expenseId }: ExpenseDetailPageProps) {
   }
 
   if (isLoading) {
-    return (
-      <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-        <CircularProgress />
-      </Box>
-    )
+    return <PageLoader />
+  }
+
+  if (isError) {
+    return <Alert severity="error">{toAppApiError(error).message}</Alert>
   }
 
   if (!expense) {
@@ -80,17 +86,14 @@ export function ExpenseDetailPage({ expenseId }: ExpenseDetailPageProps) {
 
   return (
     <>
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-        <Button
-          size="small"
-          variant="text"
-          startIcon={<ArrowBack />}
-          onClick={() => router.push('/expenses')}
-        >
-          {t('detail.back')}
-        </Button>
-        <Typography variant="h5">{t('detail.title')}</Typography>
-      </Box>
+      <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', mb: 2 }}>
+        <Tooltip title={t('detail.back')}>
+          <IconButton size="small" onClick={() => router.push('/expenses')} aria-label={t('detail.back')}>
+            <ArrowBack />
+          </IconButton>
+        </Tooltip>
+        <Typography variant="h4">{t('detail.title')}</Typography>
+      </Stack>
 
       <Card>
         <CardContent>
@@ -109,7 +112,6 @@ export function ExpenseDetailPage({ expenseId }: ExpenseDetailPageProps) {
               <Box sx={{ display: 'flex', gap: 1 }}>
                 {can('expenses.edit') && (
                   <Button
-                    size="small"
                     variant="outlined"
                     startIcon={<EditOutlined />}
                     onClick={() => setEditOpen(true)}
@@ -119,9 +121,9 @@ export function ExpenseDetailPage({ expenseId }: ExpenseDetailPageProps) {
                 )}
                 {can('expenses.delete') && (
                   <Button
-                    size="small"
                     variant="outlined"
                     color="error"
+                    startIcon={<DeleteOutlined />}
                     onClick={() => setDeleteOpen(true)}
                   >
                     {t('common:buttons.delete')}
@@ -143,7 +145,7 @@ export function ExpenseDetailPage({ expenseId }: ExpenseDetailPageProps) {
                 <TableBody>
                   <TableRow>
                     <TableCell variant="head">{t('detail.expenseDate')}</TableCell>
-                    <TableCell>{expense.expense_date}</TableCell>
+                    <TableCell>{formatAppDate(expense.expense_date, dateFormat, i18n.language)}</TableCell>
                   </TableRow>
                   <TableRow>
                     <TableCell variant="head">{t('detail.branch')}</TableCell>
@@ -187,7 +189,7 @@ export function ExpenseDetailPage({ expenseId }: ExpenseDetailPageProps) {
                   </TableRow>
                   <TableRow>
                     <TableCell variant="head">{t('detail.createdAt')}</TableCell>
-                    <TableCell>{expense.created_at}</TableCell>
+                    <TableCell>{formatAppDateTime(expense.created_at, dateFormat, i18n.language)}</TableCell>
                   </TableRow>
                 </TableBody>
               </Table>

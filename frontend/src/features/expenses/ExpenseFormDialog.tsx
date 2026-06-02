@@ -1,6 +1,8 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { Controller, useForm } from 'react-hook-form'
 import {
   Alert,
   Autocomplete,
@@ -18,13 +20,13 @@ import {
   Stack,
   TextField,
 } from '@mui/material'
-import dayjs from 'dayjs'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
 import { useBranchesQuery } from '@/features/branches/hooks'
 import { useChartOfAccountsQuery } from '@/features/accounting/hooks'
 import { usePaymentAccountsQuery } from '@/features/accounting/hooks'
+import { emptyExpenseValues, expenseSchema, valuesFromExpense, type ExpenseFormInput, type ExpenseFormValues } from './schema'
 import type { Expense, ExpensePayload } from '@/types/expense'
 import type { ChartOfAccount, PaymentAccount } from '@/types/accounting'
 import type { Branch } from '@/types/branch'
@@ -39,206 +41,262 @@ interface ExpenseFormDialogProps {
   onSubmit: (payload: ExpensePayload) => Promise<void>
 }
 
-function today() {
-  return dayjs().format('YYYY-MM-DD')
-}
-
-function createInitialState(expense?: Expense | null) {
+function buildExpensePayload(values: ExpenseFormValues): ExpensePayload {
   return {
-    branchId: expense?.branch_id ?? '',
-    expenseAccountId: expense?.expense_account_id ?? '',
-    paymentAccountId: expense?.payment_account_id ?? '',
-    expenseDate: expense?.expense_date ?? today(),
-    referenceNo: expense?.reference_no ?? '',
-    description: expense?.description ?? '',
-    amount: expense ? (typeof expense.amount === 'string' ? parseFloat(expense.amount) : expense.amount) : ('' as number | ''),
-    paymentMethod: expense?.payment_method ?? '',
-    notes: expense?.notes ?? '',
+    branch_id: values.branch_id,
+    expense_account_id: values.expense_account_id,
+    payment_account_id: values.payment_account_id,
+    expense_date: values.expense_date,
+    reference_no: values.reference_no || null,
+    description: values.description.trim(),
+    amount: values.amount,
+    payment_method: values.payment_method || null,
+    notes: values.notes || null,
   }
 }
 
 export function ExpenseFormDialog({ open, expense, isSaving, onClose, onSubmit }: ExpenseFormDialogProps) {
   const { t } = useTranslation(['expenses', 'common'])
   const isEdit = !!expense
-
-  const [state, setState] = useState(createInitialState(expense))
-  const [errors, setErrors] = useState<Record<string, string>>({})
   const [serverError, setServerError] = useState('')
 
   const branchesQuery = useBranchesQuery({ is_active: true, per_page: 100 })
   const { data: coaData } = useChartOfAccountsQuery({ type: 'expense', per_page: 200 })
-  const { data: paymentAccountData } = usePaymentAccountsQuery({ per_page: 200 })
+  const { data: paymentAccountData } = usePaymentAccountsQuery({ status: 'active', per_page: 200 })
 
-  const formKey = useMemo(() => (open ? (expense?.id ?? 'create') : 'closed'), [open, expense?.id])
+  const formValues = useMemo<ExpenseFormInput>(
+    () => (expense ? valuesFromExpense(expense) : emptyExpenseValues),
+    [expense],
+  )
 
   const branches: Branch[] = branchesQuery.data?.data ?? []
   const expenseAccounts: ChartOfAccount[] = coaData?.data ?? []
-  const paymentAccounts: PaymentAccount[] = paymentAccountData?.data ?? []
+  const paymentAccounts: PaymentAccount[] = (paymentAccountData?.data ?? []).filter((account) => account.chart_of_account)
 
-  const update = (field: string, value: unknown) => setState((prev) => ({ ...prev, [field]: value }))
+  const {
+    control,
+    handleSubmit,
+    reset,
+    setError,
+    formState: { errors },
+  } = useForm<ExpenseFormInput, unknown, ExpenseFormValues>({
+    resolver: zodResolver(expenseSchema),
+    defaultValues: emptyExpenseValues,
+  })
 
-  const validate = (): boolean => {
-    const newErrors: Record<string, string> = {}
-    if (!state.branchId) newErrors.branch_id = t('common:required')
-    if (!state.expenseAccountId) newErrors.expense_account_id = t('common:required')
-    if (!state.paymentAccountId) newErrors.payment_account_id = t('common:required')
-    if (!state.expenseDate) newErrors.expense_date = t('common:required')
-    if (!state.description.trim()) newErrors.description = t('common:required')
-    if (state.amount === '' || Number(state.amount) <= 0) newErrors.amount = t('common:required')
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+  useEffect(() => {
+    if (open) {
+      reset(formValues)
+    }
+  }, [formValues, open, reset])
+
+  const handleClose = () => {
+    setServerError('')
+    onClose()
   }
 
-  const handleSubmit = async () => {
-    if (!validate()) return
+  const submitForm = async (values: ExpenseFormValues) => {
     setServerError('')
 
-    const payload: ExpensePayload = {
-      branch_id: state.branchId,
-      expense_account_id: state.expenseAccountId,
-      payment_account_id: state.paymentAccountId,
-      expense_date: state.expenseDate,
-      reference_no: state.referenceNo || null,
-      description: state.description.trim(),
-      amount: Number(state.amount),
-      payment_method: state.paymentMethod || null,
-      notes: state.notes || null,
-    }
-
     try {
-      await onSubmit(payload)
-      onClose()
+      await onSubmit(buildExpensePayload(values))
+      handleClose()
     } catch (err) {
-      setServerError(toAppApiError(err).message)
+      const apiError = toAppApiError(err)
+      if (apiError.fieldErrors) {
+        Object.entries(apiError.fieldErrors).forEach(([field, messages]) => {
+          setError(field as keyof ExpenseFormInput, {
+            type: 'server',
+            message: messages[0],
+          })
+        })
+      }
+      setServerError(apiError.message)
     }
   }
 
   return (
-    <Dialog key={formKey} open={open} onClose={isSaving ? undefined : onClose} fullWidth maxWidth="md">
-      <Box component="form" noValidate onSubmit={(e: React.FormEvent) => { e.preventDefault(); handleSubmit() }}>
+    <Dialog open={open} onClose={isSaving ? undefined : handleClose} fullWidth maxWidth="md">
+      <Box component="form" noValidate onSubmit={handleSubmit(submitForm)}>
         <DialogTitle>{isEdit ? t('form.edit') : t('form.create')}</DialogTitle>
         <DialogContent dividers>
           <Stack spacing={2.5} sx={{ pt: 0.5 }}>
             {serverError && <Alert severity="error">{serverError}</Alert>}
 
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, minmax(0, 1fr))' }, gap: 2 }}>
-              <Autocomplete
-                options={branches}
-                loading={branchesQuery.isLoading}
-                value={branches.find((b) => b.id === state.branchId) ?? null}
-                onChange={(_, v) => update('branchId', v?.id ?? '')}
-                getOptionLabel={(b: Branch) => b.name}
-                isOptionEqualToValue={(a: Branch, b: Branch) => a.id === b.id}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label={t('form.branch')}
-                    required
-                    error={!!errors.branch_id}
-                    helperText={errors.branch_id}
+              <Controller
+                name="branch_id"
+                control={control}
+                render={({ field }) => (
+                  <Autocomplete
+                    options={branches}
+                    loading={branchesQuery.isLoading}
+                    value={branches.find((branch) => branch.id === field.value) ?? null}
+                    onChange={(_, value) => field.onChange(value?.id ?? '')}
+                    getOptionLabel={(branch: Branch) => branch.name}
+                    isOptionEqualToValue={(option: Branch, value: Branch) => option.id === value.id}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label={t('form.branch')}
+                        required
+                        error={!!errors.branch_id}
+                        helperText={errors.branch_id?.message}
+                      />
+                    )}
                   />
                 )}
               />
-              <Autocomplete
-                options={expenseAccounts}
-                value={expenseAccounts.find((a) => a.id === state.expenseAccountId) ?? null}
-                onChange={(_, v) => update('expenseAccountId', v?.id ?? '')}
-                getOptionLabel={(a: ChartOfAccount) => `${a.code} - ${a.name}`}
-                isOptionEqualToValue={(a: ChartOfAccount, b: ChartOfAccount) => a.id === b.id}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label={t('form.expenseAccount')}
-                    required
-                    error={!!errors.expense_account_id}
-                    helperText={errors.expense_account_id}
+              <Controller
+                name="expense_account_id"
+                control={control}
+                render={({ field }) => (
+                  <Autocomplete
+                    options={expenseAccounts}
+                    value={expenseAccounts.find((account) => account.id === field.value) ?? null}
+                    onChange={(_, value) => field.onChange(value?.id ?? '')}
+                    getOptionLabel={(account: ChartOfAccount) => `${account.code} - ${account.name}`}
+                    isOptionEqualToValue={(option: ChartOfAccount, value: ChartOfAccount) => option.id === value.id}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label={t('form.expenseAccount')}
+                        required
+                        error={!!errors.expense_account_id}
+                        helperText={errors.expense_account_id?.message}
+                      />
+                    )}
                   />
                 )}
               />
-              <Autocomplete
-                options={paymentAccounts}
-                value={paymentAccounts.find((a) => a.id === state.paymentAccountId) ?? null}
-                onChange={(_, v) => update('paymentAccountId', v?.id ?? '')}
-                getOptionLabel={(a: PaymentAccount) => a.name}
-                isOptionEqualToValue={(a: PaymentAccount, b: PaymentAccount) => a.id === b.id}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label={t('form.paymentAccount')}
-                    required
-                    error={!!errors.payment_account_id}
-                    helperText={errors.payment_account_id}
+              <Controller
+                name="payment_account_id"
+                control={control}
+                render={({ field }) => (
+                  <Autocomplete
+                    options={paymentAccounts}
+                    value={paymentAccounts.find((account) => account.id === field.value) ?? null}
+                    onChange={(_, value) => field.onChange(value?.id ?? '')}
+                    getOptionLabel={(account: PaymentAccount) => account.name}
+                    isOptionEqualToValue={(option: PaymentAccount, value: PaymentAccount) => option.id === value.id}
+                    renderInput={(params) => (
+                      <TextField
+                        {...params}
+                        label={t('form.paymentAccount')}
+                        required
+                        error={!!errors.payment_account_id}
+                        helperText={errors.payment_account_id?.message}
+                      />
+                    )}
                   />
                 )}
               />
             </Box>
 
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(3, minmax(0, 1fr))' }, gap: 2 }}>
-              <AppDatePicker
-                label={t('form.expenseDate')}
-                value={state.expenseDate}
-                onChange={(v) => update('expenseDate', v ?? '')}
-                required
+              <Controller
+                name="expense_date"
+                control={control}
+                render={({ field }) => (
+                  <AppDatePicker
+                    label={t('form.expenseDate')}
+                    value={field.value}
+                    onChange={(value) => field.onChange(value ?? '')}
+                    required
+                  />
+                )}
               />
-              <TextField
-                label={t('form.referenceNo')}
-                value={state.referenceNo}
-                onChange={(e) => update('referenceNo', e.target.value)}
-                error={!!errors.reference_no}
-                helperText={errors.reference_no}
+              <Controller
+                name="reference_no"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    value={field.value ?? ''}
+                    label={t('form.referenceNo')}
+                    error={!!errors.reference_no}
+                    helperText={errors.reference_no?.message}
+                  />
+                )}
               />
-              <FormControl error={!!errors.payment_method}>
-                <InputLabel id="payment-method-label">{t('form.paymentMethod')}</InputLabel>
-                <Select
-                  labelId="payment-method-label"
-                  label={t('form.paymentMethod')}
-                  value={state.paymentMethod}
-                  onChange={(e) => update('paymentMethod', e.target.value)}
-                >
-                  <MenuItem value="">--</MenuItem>
-                  {paymentMethods.map((m) => (
-                    <MenuItem key={m} value={m}>
-                      {t(`paymentMethods.${m}`)}
-                    </MenuItem>
-                  ))}
-                </Select>
-                <FormHelperText>{errors.payment_method}</FormHelperText>
-              </FormControl>
+              <Controller
+                name="payment_method"
+                control={control}
+                render={({ field }) => (
+                  <FormControl error={!!errors.payment_method}>
+                    <InputLabel id="payment-method-label">{t('form.paymentMethod')}</InputLabel>
+                    <Select
+                      {...field}
+                      value={field.value ?? ''}
+                      labelId="payment-method-label"
+                      label={t('form.paymentMethod')}
+                    >
+                      <MenuItem value="">{t('form.noPaymentMethod')}</MenuItem>
+                      {paymentMethods.map((method) => (
+                        <MenuItem key={method} value={method}>
+                          {t(`paymentMethods.${method}`)}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                    <FormHelperText>{errors.payment_method?.message}</FormHelperText>
+                  </FormControl>
+                )}
+              />
             </Box>
 
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '2fr 1fr' }, gap: 2 }}>
-              <TextField
-                label={t('form.description')}
-                value={state.description}
-                onChange={(e) => update('description', e.target.value)}
-                error={!!errors.description}
-                helperText={errors.description}
-                required
-                multiline
-                minRows={2}
+              <Controller
+                name="description"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label={t('form.description')}
+                    error={!!errors.description}
+                    helperText={errors.description?.message}
+                    required
+                    multiline
+                    minRows={2}
+                  />
+                )}
               />
-              <TextField
-                label={t('form.amount')}
-                type="number"
-                value={state.amount === '' ? '' : state.amount}
-                onChange={(e) => update('amount', e.target.value === '' ? '' : parseFloat(e.target.value))}
-                error={!!errors.amount}
-                helperText={errors.amount}
-                required
+              <Controller
+                name="amount"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    label={t('form.amount')}
+                    type="number"
+                    value={field.value ?? ''}
+                    error={!!errors.amount}
+                    helperText={errors.amount?.message}
+                    required
+                    slotProps={{ htmlInput: { min: 0, step: 0.01 } }}
+                  />
+                )}
               />
             </Box>
 
-            <TextField
-              label={t('form.notes')}
-              value={state.notes}
-              onChange={(e) => update('notes', e.target.value)}
-              multiline
-              minRows={2}
+            <Controller
+              name="notes"
+              control={control}
+              render={({ field }) => (
+                <TextField
+                  {...field}
+                  value={field.value ?? ''}
+                  label={t('form.notes')}
+                  error={!!errors.notes}
+                  helperText={errors.notes?.message}
+                  multiline
+                  minRows={2}
+                />
+              )}
             />
           </Stack>
         </DialogContent>
         <DialogActions sx={{ px: 3, py: 2 }}>
-          <Button onClick={onClose} disabled={isSaving}>
+          <Button onClick={handleClose} disabled={isSaving}>
             {t('common:buttons.cancel')}
           </Button>
           <Button type="submit" variant="contained" disabled={isSaving}>
