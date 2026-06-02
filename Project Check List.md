@@ -167,6 +167,10 @@
 ## Frontend UI Consistency
 
 - [x] Frontend shared and page-level icons now use Solar icons through a single local icon module, including sidebar navigation and common actions.
+- [x] Cash Registers dashboard route page slimmed to a thin wrapper, with the feature implementation moved into `frontend/src/features/sales/CashRegistersPage.tsx`.
+- [x] Sales and POS form default/value mapping deduplicated into shared Sales form helpers while preserving POS-specific form behavior; frontend type-check and lint verified.
+- [x] API error display hardened so UI extracts backend messages reliably, avoids vague raw Network Error copy, keeps raw 500 exception internals hidden in production, and has focused exception-rendering test coverage.
+- [x] Invoice print architecture fixed to use standard API template responses, authenticated Axios PDF blob download/preview, centralized invoice relationship loading, and focused invoice API test coverage.
 - [x] Solar icon frontend change verified with `npm.cmd run type-check`, `npm.cmd run lint`, and `npm.cmd run build`.
 - [x] Shared theme now aligns default button and outlined input heights while preserving compact small controls for dense tables.
 - [x] Layout settings now include persisted Small, Normal, and Large size options, with Normal matching the previous default theme density.

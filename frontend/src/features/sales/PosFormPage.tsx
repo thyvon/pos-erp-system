@@ -61,11 +61,12 @@ import {
   createClientRequestId,
   directPaymentLineBaseAmount,
   discountAmount,
+  emptySaleFormValues,
   formatUsdKhrAmount,
   lineTotal,
   newDirectPaymentLine,
-  paymentToDirectPaymentLine,
   round,
+  saleFormValuesFromSale,
   taxAmount,
   toNumber,
 } from './formHelpers'
@@ -79,7 +80,7 @@ import {
   useSalesQuery,
   useUpdateSaleWithPaymentsMutation,
 } from './hooks'
-import type { CashRegister, Sale, SaleFilters, SaleItem } from '@/types/sales'
+import type { CashRegister, SaleFilters } from '@/types/sales'
 import type { Customer, CustomerPayload } from '@/types/customer'
 import type { InventoryProductLookupItem } from '@/types/inventory'
 import type { PriceGroup } from '@/types/priceGroup'
@@ -115,101 +116,6 @@ const footerButtonSx = {
 } as const
 
 const recentTransactionRowsPerPageOptions = [10, 25, 50]
-
-function today() {
-  return dayjs().format('YYYY-MM-DD')
-}
-
-function emptyValues(): SaleFormInput {
-  return {
-    branch_id: '',
-    warehouse_id: '',
-    customer_id: '',
-    cash_register_session_id: '',
-    type: 'pos_sale',
-    sale_date: today(),
-    due_date: '',
-    price_group_id: '',
-    discount_type: null,
-    discount_amount: 0,
-    tax_scope: 'line',
-    tax_rate_id: '',
-    tax_rate_type: null,
-    tax_rate: 0,
-    tax_type: 'exclusive',
-    shipping_charges: 0,
-    direct_payment_enabled: true,
-    direct_payments: [newDirectPaymentLine()],
-    notes: '',
-    staff_note: '',
-    items: [],
-  }
-}
-
-function itemName(item: SaleItem) {
-  return [item.product?.name, item.variation?.name].filter(Boolean).join(' / ') || item.product_id
-}
-
-function valuesFromSale(sale: Sale | null | undefined): SaleFormInput {
-  if (!sale) return emptyValues()
-
-  const completedPayments = (sale.payments ?? []).filter((payment) => payment.status === 'completed')
-
-  return {
-    branch_id: sale.branch_id,
-    warehouse_id: sale.warehouse_id,
-    customer_id: sale.customer_id ?? '',
-    cash_register_session_id: sale.cash_register_session_id ?? '',
-    type: 'pos_sale',
-    sale_date: sale.sale_date ?? today(),
-    due_date: sale.due_date ?? '',
-    price_group_id: sale.price_group?.id ?? '',
-    discount_type: sale.discount_type === 'fixed' || sale.discount_type === 'percentage' ? sale.discount_type : null,
-    discount_amount: toNumber(sale.discount_amount),
-    tax_scope: sale.tax_scope === 'sale' ? 'sale' : 'line',
-    tax_rate_id: sale.tax_rate_id ?? '',
-    tax_rate_type: sale.tax_rate_type === 'fixed' || sale.tax_rate_type === 'percentage' ? sale.tax_rate_type : null,
-    tax_rate: toNumber(sale.tax_rate),
-    tax_type: sale.tax_type === 'inclusive' ? 'inclusive' : 'exclusive',
-    shipping_charges: toNumber(sale.shipping_charges),
-    direct_payment_enabled: sale.status === 'completed',
-    direct_payments: completedPayments.length > 0
-      ? completedPayments.map(paymentToDirectPaymentLine)
-      : [newDirectPaymentLine()],
-    notes: sale.notes ?? '',
-    staff_note: sale.staff_note ?? '',
-    items: (sale.items ?? []).map((item) => ({
-      product_id: item.product_id,
-      variation_id: item.variation_id ?? null,
-      sub_unit_id: item.sub_unit_id ?? null,
-      unit_id: item.product?.unit?.id ?? null,
-      sub_unit_label: item.sub_unit?.short_name ?? item.product?.sub_unit?.short_name ?? item.variation?.sub_unit?.short_name ?? null,
-      _base_unit_label: item.product?.unit?.short_name ?? null,
-      _sub_unit_option_id: item.product?.sub_unit?.id ?? item.variation?.sub_unit?.id ?? null,
-      _base_unit_price: toNumber(item.variation?.selling_price ?? item.product?.selling_price),
-      _sub_unit_price: toNumber(item.variation?.sub_unit_selling_price ?? item.product?.sub_unit_selling_price ?? item.variation?.selling_price ?? item.product?.selling_price),
-      _conversion_factor: item.sub_unit?.conversion_factor ?? null,
-      lot_id: item.lots?.[0]?.lot_id ?? null,
-      serial_id: item.serials?.[0]?.serial_id ?? null,
-      product_label: itemName(item),
-      sku: item.variation?.sku ?? item.product?.sku ?? null,
-      lot_number: item.lots?.[0]?.lot?.lot_number ?? null,
-      serial_number: item.serials?.[0]?.serial?.serial_number ?? null,
-      unit_label: item.sub_unit?.short_name ?? item.product?.unit?.short_name ?? null,
-      available_quantity: null,
-      quantity: toNumber(item.quantity, 1),
-      unit_price: toNumber(item.unit_price),
-      discount_type: item.discount_type === 'fixed' || item.discount_type === 'percentage' ? item.discount_type : null,
-      discount_amount: toNumber(item.discount_amount),
-      tax_rate_id: item.tax_rate_id ?? '',
-      tax_rate_type: item.tax_rate_type === 'fixed' || item.tax_rate_type === 'percentage' ? item.tax_rate_type : null,
-      tax_rate: toNumber(item.tax_rate),
-      tax_type: item.tax_type === 'inclusive' ? 'inclusive' : 'exclusive',
-      unit_cost: toNumber(item.unit_cost),
-      notes: item.notes ?? '',
-    })),
-  }
-}
 
 function priceGroupLabel(group: PriceGroup) {
   return group.name
@@ -349,7 +255,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
     formState: { errors },
   } = useForm<SaleFormInput, unknown, SaleFormValues>({
     resolver: zodResolver(saleFormSchema),
-    defaultValues: emptyValues(),
+    defaultValues: emptySaleFormValues({ type: 'pos_sale', directPaymentEnabled: true }),
   })
 
   const { fields: itemFields, append, remove } = useFieldArray({ control, name: 'items', keyName: 'fieldId' })
@@ -435,7 +341,6 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
   }, [saleDiscountType, saleDiscountValue, saleTaxRate, saleTaxRateType, saleTaxType, shippingCharges, taxScope, watchedItems])
 
   const {
-    paymentBase,
     totalDisplay,
     paymentDisplay,
     remainingDisplay,
@@ -449,7 +354,6 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
     const chg = Math.max(0, round(base - totals.total))
     const suspended = saleType === 'suspended'
     return {
-      paymentBase: base,
       totalDisplay: formatUsdKhrAmount(totals.total, defaultExchangeRateValue),
       paymentDisplay: formatUsdKhrAmount(base, defaultExchangeRateValue),
       remainingDisplay: formatUsdKhrAmount(rem, defaultExchangeRateValue),
@@ -468,7 +372,11 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
       return
     }
 
-    reset(valuesFromSale(currentSale))
+    reset(saleFormValuesFromSale(currentSale, {
+      emptyType: 'pos_sale',
+      forceType: 'pos_sale',
+      directPaymentEnabled: (sale) => sale.status === 'completed',
+    }))
   }, [currentSale, reset, router])
 
   useEffect(() => {
@@ -775,7 +683,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
       if (isEdit) {
         router.push('/pos')
       } else {
-        reset(emptyValues())
+        reset(emptySaleFormValues({ type: 'pos_sale', directPaymentEnabled: true }))
         setClientRequestId(createClientRequestId())
       }
       setEditingItemIndex(null)
@@ -1104,7 +1012,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
             variant="outlined"
             color="error"
             disabled={isSaving}
-            onClick={() => reset(emptyValues())}
+            onClick={() => reset(emptySaleFormValues({ type: 'pos_sale', directPaymentEnabled: true }))}
             sx={{ ...footerButtonSx, minWidth: 132 }}
           >
             {t('common:buttons.cancel')}

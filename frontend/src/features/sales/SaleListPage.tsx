@@ -41,12 +41,11 @@ import { useAuthStore } from '@/stores/authStore'
 import { formatAppDate } from '@/utils/dateFormat'
 import { formatMoney } from '@/utils/formatMoney'
 import { useWarehousesQuery } from '@/features/warehouses/hooks'
-import type { Sale, SaleFilters, SaleStatus, SalePaymentStatus, SaleType } from '@/types/sales'
+import type { Sale, SaleFilters, SaleStatus, SaleType } from '@/types/sales'
 
 const rowsPerPageOptions = [10, 25, 50]
 const saleStatuses: SaleStatus[] = ['quotation', 'confirmed', 'partially_shipped', 'shipped', 'completed', 'cancelled']
 const saleTypes: SaleType[] = ['quotation', 'invoice', 'pos_sale']
-const paymentStatuses: SalePaymentStatus[] = ['unpaid', 'partial', 'paid']
 const deletableStatuses: SaleStatus[] = ['quotation', 'confirmed']
 
 export default function SaleListPage() {

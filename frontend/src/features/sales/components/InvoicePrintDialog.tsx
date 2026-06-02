@@ -22,6 +22,7 @@ import {
 } from '@mui/material'
 import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
+import { toAppApiError } from '@/api/errors'
 import { invoicePrintApi } from '../api'
 import type { Sale } from '@/types/sales'
 
@@ -35,6 +36,8 @@ export function InvoicePrintDialog({ open, sale, onClose }: InvoicePrintDialogPr
   const { t } = useTranslation(['sales', 'common'])
   const [selectedTemplate, setSelectedTemplate] = useState('')
   const [printMode, setPrintMode] = useState<'download' | 'preview'>('download')
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
 
   const templatesQuery = useQuery({
     queryKey: ['invoice-templates'],
@@ -42,16 +45,44 @@ export function InvoicePrintDialog({ open, sale, onClose }: InvoicePrintDialogPr
     enabled: open,
   })
 
-  const templates = templatesQuery.data?.data ?? []
+  const templates = templatesQuery.data ?? []
   const activeTemplate = selectedTemplate || templates[0]?.id || ''
 
-  const handleAction = () => {
-    if (printMode === 'download') {
-      window.open(invoicePrintApi.downloadUrl(sale.id, activeTemplate), '_blank')
-    } else {
-      window.open(invoicePrintApi.viewUrl(sale.id, activeTemplate), '_blank')
+  const handleAction = async () => {
+    setErrorMessage('')
+    setIsProcessing(true)
+
+    const previewWindow = printMode === 'preview' ? window.open('', '_blank', 'noopener,noreferrer') : null
+
+    try {
+      const blob = printMode === 'download'
+        ? await invoicePrintApi.downloadPdf(sale.id, activeTemplate)
+        : await invoicePrintApi.viewPdf(sale.id, activeTemplate)
+      const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }))
+
+      if (printMode === 'download') {
+        const link = document.createElement('a')
+        link.href = url
+        link.download = `${sale.sale_number.replace(/[\\/]/g, '-')}.pdf`
+        document.body.appendChild(link)
+        link.click()
+        link.remove()
+        URL.revokeObjectURL(url)
+      } else if (previewWindow) {
+        previewWindow.location.href = url
+        window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
+      } else {
+        window.open(url, '_blank', 'noopener,noreferrer')
+        window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
+      }
+
+      onClose()
+    } catch (error) {
+      previewWindow?.close()
+      setErrorMessage(toAppApiError(error).message)
+    } finally {
+      setIsProcessing(false)
     }
-    onClose()
   }
 
   return (
@@ -59,6 +90,11 @@ export function InvoicePrintDialog({ open, sale, onClose }: InvoicePrintDialogPr
       <DialogTitle>{t('print.title')}</DialogTitle>
       <DialogContent dividers>
         <Stack spacing={3} sx={{ pt: 0.5 }}>
+          {errorMessage && (
+            <FormHelperText error sx={{ m: 0 }}>
+              {errorMessage}
+            </FormHelperText>
+          )}
           {templatesQuery.isLoading ? (
             <Box sx={{ display: 'flex', justifyContent: 'center', py: 3 }}>
               <CircularProgress size={24} />
@@ -109,9 +145,13 @@ export function InvoicePrintDialog({ open, sale, onClose }: InvoicePrintDialogPr
         </Stack>
       </DialogContent>
       <DialogActions sx={{ px: 3, py: 2 }}>
-        <Button onClick={onClose}>{t('common:buttons.cancel')}</Button>
-        <Button variant="contained" onClick={handleAction} disabled={!activeTemplate || templatesQuery.isLoading}>
-          {t('print.proceed')}
+        <Button onClick={onClose} disabled={isProcessing}>{t('common:buttons.cancel')}</Button>
+        <Button
+          variant="contained"
+          onClick={handleAction}
+          disabled={!activeTemplate || templatesQuery.isLoading || isProcessing}
+        >
+          {isProcessing ? <CircularProgress size={20} /> : t('print.proceed')}
         </Button>
       </DialogActions>
     </Dialog>

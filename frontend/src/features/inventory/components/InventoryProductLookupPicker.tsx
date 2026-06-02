@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Autocomplete,
   Box,
@@ -61,16 +61,16 @@ export function InventoryProductLookupPicker({
   const [inputValue, setInputValue] = useState('')
   const [isResolving, setIsResolving] = useState(false)
   const lookupQuery = useInventoryProductLookupQuery(inputValue, warehouseId)
-  const options = lookupQuery.data ?? []
+  const options = useMemo(() => lookupQuery.data ?? [], [lookupQuery.data])
 
-  const pickItem = (item: InventoryProductLookupItem | null) => {
+  const pickItem = useCallback((item: InventoryProductLookupItem | null) => {
     if (!item) return
 
     onSelect(item)
     setInputValue('')
-  }
+  }, [onSelect])
 
-  const pickBestMatch = (items: InventoryProductLookupItem[]) => {
+  const pickBestMatch = useCallback((items: InventoryProductLookupItem[]) => {
     const exactMatch = findExactLookupMatch(items, inputValue)
 
     if (exactMatch) {
@@ -84,13 +84,17 @@ export function InventoryProductLookupPicker({
     }
 
     return false
-  }
+  }, [inputValue, pickItem])
 
   useEffect(() => {
     if (inputValue.trim() && options.length > 0 && !lookupQuery.isFetching) {
-      pickBestMatch(options)
+      const timeoutId = window.setTimeout(() => {
+        pickBestMatch(options)
+      }, 0)
+
+      return () => window.clearTimeout(timeoutId)
     }
-  }, [options, lookupQuery.isFetching])
+  }, [inputValue, lookupQuery.isFetching, options, pickBestMatch])
 
   const resolveSubmittedTerm = async () => {
     const term = inputValue.trim()

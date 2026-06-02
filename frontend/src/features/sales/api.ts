@@ -1,3 +1,4 @@
+import api from '@/api/axios'
 import { apiClient } from '@/api/client'
 import type {
   CashRegister,
@@ -24,6 +25,16 @@ import type {
   SaleWithPaymentsPayload,
   UpdateCashRegisterPayload,
 } from '@/types/sales'
+
+export interface InvoiceTemplateOption {
+  id: string
+  name: string
+  description: string
+}
+
+function invoiceParams(template?: string) {
+  return template ? { template } : undefined
+}
 
 export const salesApi = {
   list: (filters: SaleFilters = {}) => apiClient.getPaginated<Sale>('/v1/sales', filters),
@@ -63,18 +74,30 @@ export const saleReturnsApi = {
 }
 
 export const invoicePrintApi = {
-  getTemplates: () => apiClient.get<{ data: Array<{ id: string; name: string; description: string }> }>('/v1/invoice-templates'),
-  previewUrl: (saleId: string, template?: string) => {
-    const params = template ? `?template=${template}` : ''
-    return `/v1/sales/${saleId}/invoice-preview${params}`
+  getTemplates: () => apiClient.get<InvoiceTemplateOption[]>('/v1/invoice-templates'),
+  previewHtml: async (saleId: string, template?: string) => {
+    const response = await api.get<string>(`/v1/sales/${saleId}/invoice-preview`, {
+      params: invoiceParams(template),
+      responseType: 'text',
+    })
+
+    return response.data
   },
-  downloadUrl: (saleId: string, template?: string) => {
-    const params = template ? `?template=${template}` : ''
-    return `/v1/sales/${saleId}/invoice-download${params}`
+  downloadPdf: async (saleId: string, template?: string) => {
+    const response = await api.get<Blob>(`/v1/sales/${saleId}/invoice-download`, {
+      params: invoiceParams(template),
+      responseType: 'blob',
+    })
+
+    return response.data
   },
-  viewUrl: (saleId: string, template?: string) => {
-    const params = template ? `?template=${template}` : ''
-    return `/v1/sales/${saleId}/invoice-view${params}`
+  viewPdf: async (saleId: string, template?: string) => {
+    const response = await api.get<Blob>(`/v1/sales/${saleId}/invoice-view`, {
+      params: invoiceParams(template),
+      responseType: 'blob',
+    })
+
+    return response.data
   },
 }
 

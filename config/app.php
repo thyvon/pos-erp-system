@@ -43,6 +43,19 @@ return [
 
     /*
     |--------------------------------------------------------------------------
+    | API Exception Messages
+    |--------------------------------------------------------------------------
+    |
+    | Raw exception messages may expose internals. They can be enabled for
+    | local/staging diagnostics, but production always returns safe messages.
+    |
+    */
+
+    'expose_exception_messages' => env('APP_ENV') !== 'production'
+        && (bool) env('API_EXPOSE_EXCEPTION_MESSAGES', env('APP_DEBUG', false)),
+
+    /*
+    |--------------------------------------------------------------------------
     | Application URL
     |--------------------------------------------------------------------------
     |

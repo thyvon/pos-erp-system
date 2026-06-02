@@ -1,6 +1,6 @@
 import axios, { AxiosInstance, AxiosResponse } from 'axios'
 
-function resolveApiBaseUrl() {
+export function resolveApiBaseUrl() {
   const configuredUrl = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'
   const trimmedUrl = configuredUrl.replace(/\/+$/, '')
 

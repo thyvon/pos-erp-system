@@ -29,6 +29,15 @@ class InvoicePrintService
 
     public function renderHtml(Sale $sale, ?string $template = null): string
     {
+        $sale->loadMissing([
+            'business',
+            'branch',
+            'customer',
+            'creator',
+            'items.product',
+            'items.variation',
+        ]);
+
         $template = $this->resolveTemplate($template);
         $business = $sale->business;
         $settings = $this->getInvoiceSettings($sale);

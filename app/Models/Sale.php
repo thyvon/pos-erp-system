@@ -75,6 +75,11 @@ class Sale extends BaseModel
         return $this->belongsTo(Branch::class);
     }
 
+    public function business(): BelongsTo
+    {
+        return $this->belongsTo(Business::class);
+    }
+
     public function warehouse(): BelongsTo
     {
         return $this->belongsTo(Warehouse::class);

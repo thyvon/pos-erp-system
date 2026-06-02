@@ -177,6 +177,8 @@ export default function Breadcrumbs() {
             ? (quotationQuery.data?.sale_number ?? t('breadcrumbs.quotationDetail'))
             : isPurchaseRouteWithId && index === 1
             ? (purchaseQuery.data?.purchase_number ?? t('breadcrumbs.purchaseDetail'))
+            : isPurchaseReturnRouteWithId && index === 1
+            ? (purchaseReturnQuery.data?.return_number ?? t('breadcrumbs.purchaseReturnDetail'))
             : labelKey
             ? t(`breadcrumbs.${labelKey}`)
             : value.charAt(0).toUpperCase() + value.slice(1)
@@ -195,7 +197,8 @@ export default function Breadcrumbs() {
             || (isSaleRouteWithId && index === 1)
             || (isSaleReturnRouteWithId && index === 1)
             || (isQuotationRouteWithId && index === 1)
-            || (isPurchaseRouteWithId && index === 1) ? (
+            || (isPurchaseRouteWithId && index === 1)
+            || (isPurchaseReturnRouteWithId && index === 1) ? (
             <Typography
               key={to}
               variant="body2"

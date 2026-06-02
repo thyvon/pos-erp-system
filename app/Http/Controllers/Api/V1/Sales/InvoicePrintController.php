@@ -18,13 +18,14 @@ class InvoicePrintController extends BaseApiController
 
     public function templates(): JsonResponse
     {
-        return response()->json([
-            'data' => collect(InvoiceTemplateRegistry::all())->map(fn ($t, $key) => [
+        return $this->success(
+            collect(InvoiceTemplateRegistry::all())->map(fn ($t, $key) => [
                 'id' => $key,
                 'name' => $t['name'],
                 'description' => $t['description'],
             ])->values(),
-        ]);
+            'Invoice templates loaded.'
+        );
     }
 
     public function preview(Sale $sale, Request $request): Response

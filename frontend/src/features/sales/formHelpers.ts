@@ -1,5 +1,7 @@
 import type { PaymentAccount } from '@/types/accounting'
 import type {
+  Sale,
+  SaleItem,
   SalePayment,
   SalePaymentCorrectionLinePayload,
   SalePaymentDeletionLinePayload,
@@ -31,6 +33,18 @@ interface SalePaymentChangePayloads {
   payments: SalePaymentLinePayload[]
 }
 
+interface EmptySaleFormValuesOptions {
+  type?: SaleFormInput['type']
+  directPaymentEnabled?: boolean
+  cashRegisterSessionId?: string
+}
+
+interface SaleFormValuesFromSaleOptions {
+  emptyType?: SaleFormInput['type']
+  forceType?: SaleFormInput['type']
+  directPaymentEnabled?: (sale: Sale, completedPaymentCount: number) => boolean
+}
+
 export function toNumber(value: unknown, fallback = 0) {
   if (value === null || value === undefined || value === '') return fallback
   const numeric = Number(value)
@@ -43,6 +57,44 @@ export function round(value: number) {
 
 export function createClientRequestId() {
   return globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`
+}
+
+export function todayDateString() {
+  return new Date().toISOString().slice(0, 10)
+}
+
+export function saleItemName(item: SaleItem) {
+  return [item.product?.name, item.variation?.name].filter(Boolean).join(' / ') || item.product_id
+}
+
+export function emptySaleFormValues({
+  type = 'invoice',
+  directPaymentEnabled = false,
+  cashRegisterSessionId = '',
+}: EmptySaleFormValuesOptions = {}): SaleFormInput {
+  return {
+    branch_id: '',
+    warehouse_id: '',
+    customer_id: '',
+    cash_register_session_id: cashRegisterSessionId,
+    type,
+    sale_date: todayDateString(),
+    due_date: '',
+    price_group_id: '',
+    discount_type: null,
+    discount_amount: 0,
+    tax_scope: 'line',
+    tax_rate_id: '',
+    tax_rate_type: null,
+    tax_rate: 0,
+    tax_type: 'exclusive',
+    shipping_charges: 0,
+    direct_payment_enabled: directPaymentEnabled,
+    direct_payments: [newDirectPaymentLine()],
+    notes: '',
+    staff_note: '',
+    items: [],
+  }
 }
 
 export function newDirectPaymentLine(paymentAccounts: PaymentAccount[] = []): DirectPaymentLineInput {
@@ -63,6 +115,79 @@ export function paymentToDirectPaymentLine(payment: SalePayment): DirectPaymentL
     payment_amount: toNumber(payment.payment_amount ?? payment.amount),
     method: payment.method ?? 'cash',
     reference: payment.reference ?? '',
+  }
+}
+
+export function saleFormValuesFromSale(
+  sale: Sale | null | undefined,
+  {
+    emptyType = 'invoice',
+    forceType,
+    directPaymentEnabled,
+  }: SaleFormValuesFromSaleOptions = {},
+): SaleFormInput {
+  if (!sale) return emptySaleFormValues({ type: emptyType })
+
+  const completedPayments = (sale.payments ?? []).filter((payment) => payment.status === 'completed')
+  const saleType = ['invoice', 'pos_sale', 'draft', 'suspended', 'quotation'].includes(sale.type)
+    ? sale.type as SaleFormInput['type']
+    : emptyType
+
+  return {
+    branch_id: sale.branch_id,
+    warehouse_id: sale.warehouse_id,
+    customer_id: sale.customer_id ?? '',
+    cash_register_session_id: sale.cash_register_session_id ?? '',
+    type: forceType ?? saleType,
+    sale_date: sale.sale_date ?? todayDateString(),
+    due_date: sale.due_date ?? '',
+    price_group_id: sale.price_group?.id ?? '',
+    discount_type: sale.discount_type === 'fixed' || sale.discount_type === 'percentage' ? sale.discount_type : null,
+    discount_amount: toNumber(sale.discount_amount),
+    tax_scope: sale.tax_scope === 'sale' ? 'sale' : 'line',
+    tax_rate_id: sale.tax_rate_id ?? '',
+    tax_rate_type: sale.tax_rate_type === 'fixed' || sale.tax_rate_type === 'percentage' ? sale.tax_rate_type : null,
+    tax_rate: toNumber(sale.tax_rate),
+    tax_type: sale.tax_type === 'inclusive' ? 'inclusive' : 'exclusive',
+    shipping_charges: toNumber(sale.shipping_charges),
+    direct_payment_enabled: directPaymentEnabled
+      ? directPaymentEnabled(sale, completedPayments.length)
+      : completedPayments.length > 0,
+    direct_payments: completedPayments.length > 0
+      ? completedPayments.map(paymentToDirectPaymentLine)
+      : [newDirectPaymentLine()],
+    notes: sale.notes ?? '',
+    staff_note: sale.staff_note ?? '',
+    items: (sale.items ?? []).map((item) => ({
+      product_id: item.product_id,
+      variation_id: item.variation_id ?? null,
+      sub_unit_id: item.sub_unit_id ?? null,
+      unit_id: item.product?.unit?.id ?? null,
+      sub_unit_label: item.sub_unit?.short_name ?? item.product?.sub_unit?.short_name ?? item.variation?.sub_unit?.short_name ?? null,
+      _base_unit_label: item.product?.unit?.short_name ?? null,
+      _sub_unit_option_id: item.product?.sub_unit?.id ?? item.variation?.sub_unit?.id ?? null,
+      _base_unit_price: toNumber(item.variation?.selling_price ?? item.product?.selling_price),
+      _sub_unit_price: toNumber(item.variation?.sub_unit_selling_price ?? item.product?.sub_unit_selling_price ?? item.variation?.selling_price ?? item.product?.selling_price),
+      _conversion_factor: item.sub_unit?.conversion_factor ?? null,
+      lot_id: item.lots?.[0]?.lot_id ?? null,
+      serial_id: item.serials?.[0]?.serial_id ?? null,
+      product_label: saleItemName(item),
+      sku: item.variation?.sku ?? item.product?.sku ?? null,
+      lot_number: item.lots?.[0]?.lot?.lot_number ?? null,
+      serial_number: item.serials?.[0]?.serial?.serial_number ?? null,
+      unit_label: item.sub_unit?.short_name ?? item.product?.unit?.short_name ?? null,
+      available_quantity: null,
+      quantity: toNumber(item.quantity, 1),
+      unit_price: toNumber(item.unit_price),
+      discount_type: item.discount_type === 'fixed' || item.discount_type === 'percentage' ? item.discount_type : null,
+      discount_amount: toNumber(item.discount_amount),
+      tax_rate_id: item.tax_rate_id ?? '',
+      tax_rate_type: item.tax_rate_type === 'fixed' || item.tax_rate_type === 'percentage' ? item.tax_rate_type : null,
+      tax_rate: toNumber(item.tax_rate),
+      tax_type: item.tax_type === 'inclusive' ? 'inclusive' : 'exclusive',
+      unit_cost: toNumber(item.unit_cost),
+      notes: item.notes ?? '',
+    })),
   }
 }
 

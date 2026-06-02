@@ -80,11 +80,16 @@ return Application::configure(basePath: dirname(__DIR__))
                 ? $exception->getStatusCode()
                 : 500;
 
+            $exposeExceptionMessage = (bool) config('app.expose_exception_messages');
+            $exceptionMessage = trim($exception->getMessage());
+
             $message = match ($status) {
                 401 => __('Unauthenticated.'),
                 403 => __('You do not have permission.'),
                 404 => __('Record not found.'),
-                default => $status >= 500 ? __('An unexpected error occurred.') : ($exception->getMessage() ?: __('Request failed.')),
+                default => $status >= 500
+                    ? ($exposeExceptionMessage && $exceptionMessage !== '' ? $exceptionMessage : __('An unexpected error occurred.'))
+                    : ($exceptionMessage !== '' ? $exceptionMessage : __('Request failed.')),
             };
 
             return response()->json([
