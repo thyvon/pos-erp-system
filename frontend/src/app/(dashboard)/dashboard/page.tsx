@@ -78,7 +78,7 @@ export default function DashboardPage() {
       >
         {stats.map((item) => (
           <Card key={item.title}>
-            <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+            <CardContent>
               <Stack direction="row" sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }}>
                 <Box>
                   <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1 }}>
@@ -119,7 +119,7 @@ export default function DashboardPage() {
         }}
       >
         <Card>
-          <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+          <CardContent>
             <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
               <Box>
                 <Typography variant="subtitle1">Sales performance</Typography>
@@ -152,7 +152,7 @@ export default function DashboardPage() {
         </Card>
 
         <Card>
-          <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+          <CardContent>
             <Typography variant="subtitle1" sx={{ mb: 2 }}>
               Quick actions
             </Typography>

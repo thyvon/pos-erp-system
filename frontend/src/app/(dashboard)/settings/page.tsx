@@ -23,6 +23,7 @@ import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { useCambodiaAddressSyncStatusQuery, useSyncCambodiaAddressMutation } from '@/features/address/hooks'
+import { BusinessProfileSettingsCard } from '@/features/settings/BusinessProfileSettingsCard'
 import { SETTINGS_GROUPS } from '@/features/settings/definitions'
 import { useSettingsGroupQuery, useUpdateSettingsGroupMutation } from '@/features/settings/hooks'
 import { useAuthStore } from '@/stores/authStore'
@@ -49,13 +50,17 @@ export default function SettingsPage() {
   const { enqueueSnackbar } = useSnackbar()
   const can = useAuthStore((state) => state.can)
   const canEdit = can('settings.edit')
+  const canViewBusiness = can('businesses.index')
+  const canEditBusiness = can('businesses.edit')
   const [activeGroup, setActiveGroup] = useState<SettingsGroupKey>('general')
   const activeDefinition = useMemo(
     () => SETTINGS_GROUPS.find((group) => group.key === activeGroup) ?? SETTINGS_GROUPS[0],
     [activeGroup]
   )
-  const settingsQuery = useSettingsGroupQuery(activeGroup)
+  const isBusinessProfileGroup = activeGroup === 'business_profile'
+  const settingsQuery = useSettingsGroupQuery(activeGroup, !isBusinessProfileGroup)
   const updateSettings = useUpdateSettingsGroupMutation(activeGroup)
+  const activeCanEdit = isBusinessProfileGroup ? canEditBusiness : canEdit
   const addressSyncStatusQuery = useCambodiaAddressSyncStatusQuery(activeGroup === 'system')
   const syncCambodiaAddress = useSyncCambodiaAddressMutation()
   const [draftByGroup, setDraftByGroup] = useState<Partial<Record<SettingsGroupKey, Record<string, unknown>>>>({})
@@ -85,6 +90,8 @@ export default function SettingsPage() {
   }
 
   const handleSubmit = async () => {
+    if (isBusinessProfileGroup) return
+
     const payload: SettingsGroupValues = {}
     activeDefinition.fields.forEach((field) => {
       payload[field.key] = valueForSubmit(getDraftValue(field), field)
@@ -179,8 +186,8 @@ export default function SettingsPage() {
           </Typography>
         </Box>
         <Chip
-          label={canEdit ? t('editable') : t('readOnly')}
-          color={canEdit ? 'success' : 'default'}
+          label={activeCanEdit ? t('editable') : t('readOnly')}
+          color={activeCanEdit ? 'success' : 'default'}
           size="small"
         />
       </Stack>
@@ -207,15 +214,22 @@ export default function SettingsPage() {
               </Typography>
             </Box>
 
-            {settingsQuery.isError && (
+            {settingsQuery.isError && !isBusinessProfileGroup && (
               <Alert severity="error">{toAppApiError(settingsQuery.error).message}</Alert>
             )}
 
-            {settingsQuery.isLoading ? (
+            {isBusinessProfileGroup && (
+              <BusinessProfileSettingsCard
+                canView={canViewBusiness}
+                canEdit={canEditBusiness}
+              />
+            )}
+
+            {!isBusinessProfileGroup && settingsQuery.isLoading ? (
               <Stack sx={{ alignItems: 'center', py: 5 }}>
                 <CircularProgress />
               </Stack>
-            ) : (
+            ) : !isBusinessProfileGroup ? (
               <Box
                 sx={{
                   display: 'grid',
@@ -225,7 +239,7 @@ export default function SettingsPage() {
               >
                 {activeDefinition.fields.map(renderField)}
               </Box>
-            )}
+            ) : null}
 
             {activeGroup === 'system' && (
               <Box
@@ -270,7 +284,7 @@ export default function SettingsPage() {
               </Box>
             )}
 
-            {canEdit && (
+            {canEdit && !isBusinessProfileGroup && (
               <Stack direction="row" sx={{ justifyContent: 'flex-end' }}>
                 <Button
                   variant="contained"

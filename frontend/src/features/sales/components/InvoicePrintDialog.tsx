@@ -144,7 +144,7 @@ export function InvoicePrintDialog({ open, sale, onClose }: InvoicePrintDialogPr
           )}
         </Stack>
       </DialogContent>
-      <DialogActions sx={{ px: 3, py: 2 }}>
+      <DialogActions>
         <Button onClick={onClose} disabled={isProcessing}>{t('common:buttons.cancel')}</Button>
         <Button
           variant="contained"

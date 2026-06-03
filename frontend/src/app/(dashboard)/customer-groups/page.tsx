@@ -131,7 +131,7 @@ export default function CustomerGroupsPage() {
       </Stack>
 
       <Card>
-        <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+        <CardContent>
           <TextField
             value={search}
             onChange={(event) => {

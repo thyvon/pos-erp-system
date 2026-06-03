@@ -132,7 +132,7 @@ export default function ExchangeRatesPage() {
       </Stack>
 
       <Box sx={{ bgcolor: 'background.paper', borderRadius: 1, border: 1, borderColor: 'divider' }}>
-        <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+        <CardContent>
           <Stack
             direction={{ xs: 'column', lg: 'row' }}
             spacing={2}

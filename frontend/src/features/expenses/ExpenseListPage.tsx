@@ -137,7 +137,7 @@ export default function ExpensesPage() {
       </Stack>
 
       <Card>
-        <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+        <CardContent>
           <Stack spacing={2} sx={{ mb: 2.5 }}>
             <Stack
               direction={{ xs: 'column', lg: 'row' }}

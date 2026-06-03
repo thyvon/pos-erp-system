@@ -12,11 +12,18 @@ import {
   IconButton,
   Popover,
   alpha,
+  type SxProps,
+  type Theme,
 } from '@mui/material'
 import { useAuthStore } from '@/stores/authStore'
 import { useLogoutMutation } from '@/features/auth/hooks'
 
-export default function AccountPopover() {
+interface AccountPopoverProps {
+  avatarBorderColor?: string
+  buttonSx?: SxProps<Theme>
+}
+
+export default function AccountPopover({ avatarBorderColor, buttonSx }: AccountPopoverProps) {
   const router = useRouter()
   const user = useAuthStore((state) => state.user)
   const logoutMutation = useLogoutMutation()
@@ -40,20 +47,23 @@ export default function AccountPopover() {
     <>
       <IconButton
         onClick={handleOpen}
-        sx={{
-          p: 0,
-          ...(open && {
-            '&:before': {
-              zIndex: 1,
-              content: "''",
-              width: '100%',
-              height: '100%',
-              borderRadius: '50%',
-              position: 'absolute',
-              bgcolor: (theme) => alpha(theme.palette.grey[900], 0.08),
-            },
-          }),
-        }}
+        sx={[
+          {
+            p: 0,
+            ...(open && {
+              '&:before': {
+                zIndex: 1,
+                content: "''",
+                width: '100%',
+                height: '100%',
+                borderRadius: '50%',
+                position: 'absolute',
+                bgcolor: (theme) => alpha(theme.palette.grey[900], 0.08),
+              },
+            }),
+          },
+          ...(Array.isArray(buttonSx) ? buttonSx : buttonSx ? [buttonSx] : []),
+        ]}
       >
         <Avatar
           src={user?.avatar_url || ''}
@@ -61,7 +71,7 @@ export default function AccountPopover() {
           sx={{
             width: 36,
             height: 36,
-            border: (theme) => `solid 2px ${theme.palette.background.default}`,
+            border: (theme) => `solid 2px ${avatarBorderColor ?? theme.palette.background.default}`,
           }}
         />
       </IconButton>
@@ -80,7 +90,6 @@ export default function AccountPopover() {
               ml: 0.75,
               width: 220,
               overflow: 'inherit',
-              backdropFilter: 'blur(20px)',
               backgroundColor: (theme) => alpha(theme.palette.background.paper, 0.9),
               border: (theme) => `solid 1px ${theme.palette.divider}`,
               '& .MuiMenuItem-root': {

@@ -1,6 +1,7 @@
 export type SettingValue = string | number | boolean | null | Record<string, unknown> | unknown[]
 
 export type SettingsGroupKey =
+  | 'business_profile'
   | 'general'
   | 'invoice'
   | 'pos'

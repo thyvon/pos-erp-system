@@ -2,6 +2,10 @@ import type { SettingsGroupDefinition } from '@/types/settings'
 
 export const SETTINGS_GROUPS: SettingsGroupDefinition[] = [
   {
+    key: 'business_profile',
+    fields: [],
+  },
+  {
     key: 'general',
     fields: [
       { key: 'currency', type: 'text' },

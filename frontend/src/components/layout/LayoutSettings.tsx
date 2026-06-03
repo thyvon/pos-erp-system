@@ -37,7 +37,6 @@ import {
   BORDER_RADIUS_STEP,
   ENGLISH_FONT_OPTIONS,
   LAYOUT_SIZE_OPTIONS,
-  SURFACE_STYLE_OPTIONS,
   THEME_COLOR_PRESETS,
 } from '@/theme'
 
@@ -79,8 +78,6 @@ export default function LayoutSettings() {
     setColorPreset,
     layoutSize,
     setLayoutSize,
-    surfaceStyle,
-    setSurfaceStyle,
     borderRadiusLevel,
     setBorderRadiusLevel,
     sidebarTheme,
@@ -98,11 +95,17 @@ export default function LayoutSettings() {
       anchor="right"
       open={settingsOpen}
       onClose={() => setSettingsOpen(false)}
+      sx={{
+        zIndex: (theme) => theme.zIndex.modal + 1,
+      }}
       slotProps={{
         paper: {
           sx: {
             width: { xs: '100%', sm: 360 },
+            maxWidth: '100vw',
+            height: '100dvh',
             bgcolor: 'background.paper',
+            zIndex: (theme) => theme.zIndex.modal + 1,
           },
         },
       }}
@@ -113,16 +116,17 @@ export default function LayoutSettings() {
           sx={{
             alignItems: 'center',
             justifyContent: 'space-between',
-            px: 2.5,
-            py: 2,
+            px: 2,
+            py: 1.5,
+            flexShrink: 0,
           }}
         >
           <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', minWidth: 0 }}>
             <Box
               sx={{
-                width: 42,
-                height: 42,
-                borderRadius: 1.25,
+                width: 36,
+                height: 36,
+                borderRadius: 1,
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -143,15 +147,20 @@ export default function LayoutSettings() {
             variant="text"
             color="inherit"
             onClick={() => setSettingsOpen(false)}
-            sx={{ minWidth: 40, width: 40, height: 40, p: 0 }}
+            sx={{
+              minWidth: 'var(--app-control-height)',
+              width: 'var(--app-control-height)',
+              height: 'var(--app-control-height)',
+              p: 0,
+            }}
           >
             <Close fontSize="small" />
           </Button>
         </Stack>
 
-        <Divider />
+        <Divider sx={{ flexShrink: 0 }} />
 
-        <Stack spacing={3} sx={{ p: 2.5 }}>
+        <Stack spacing={2.5} sx={{ p: 2, overflowY: 'auto', overflowX: 'hidden' }}>
           <Box>
             <SectionTitle
               icon={<LightModeOutlined fontSize="small" />}
@@ -176,26 +185,6 @@ export default function LayoutSettings() {
                   {t('layoutSettings.dark')}
                 </Box>
               </ToggleButton>
-            </ToggleButtonGroup>
-          </Box>
-
-          <Box>
-            <SectionTitle
-              icon={<PaletteOutlined fontSize="small" />}
-              label={t('layoutSettings.surfaceStyle')}
-            />
-            <ToggleButtonGroup
-              exclusive
-              fullWidth
-              value={surfaceStyle}
-              onChange={(_, value) => value && setSurfaceStyle(value)}
-              size="small"
-            >
-              {SURFACE_STYLE_OPTIONS.map((option) => (
-                <ToggleButton key={option.value} value={option.value}>
-                  {t(option.labelKey)}
-                </ToggleButton>
-              ))}
             </ToggleButtonGroup>
           </Box>
 
@@ -238,7 +227,7 @@ export default function LayoutSettings() {
                     variant="outlined"
                     onClick={() => setColorPreset(preset.value)}
                     sx={{
-                      minHeight: 78,
+                      minHeight: 64,
                       p: 1,
                       flexDirection: 'column',
                       gap: 0.75,
@@ -255,7 +244,7 @@ export default function LayoutSettings() {
                     <Box
                       sx={{
                         width: '100%',
-                        height: 28,
+                        height: 22,
                         borderRadius: 1,
                         bgcolor: preset.main,
                         background: `linear-gradient(135deg, ${preset.dark} 0%, ${preset.main} 52%, ${preset.light} 100%)`,

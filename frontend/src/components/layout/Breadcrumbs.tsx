@@ -42,6 +42,8 @@ const BREADCRUMB_KEY_MAP: Record<string, string> = {
   '/accounting/fiscal-years': 'fiscalYears',
   '/expenses': 'expenses',
   '/reports': 'reports',
+  '/roles': 'roles',
+  '/businesses': 'businesses',
   '/users': 'users',
   '/branches': 'branches',
   '/warehouses': 'warehouses',

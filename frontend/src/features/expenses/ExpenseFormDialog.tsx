@@ -295,7 +295,7 @@ export function ExpenseFormDialog({ open, expense, isSaving, onClose, onSubmit }
             />
           </Stack>
         </DialogContent>
-        <DialogActions sx={{ px: 3, py: 2 }}>
+        <DialogActions>
           <Button onClick={handleClose} disabled={isSaving}>
             {t('common:buttons.cancel')}
           </Button>

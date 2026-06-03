@@ -18,6 +18,7 @@ import {
   BoxMinimalistic,
   BranchingPathsDown,
   Buildings2,
+  Buildings3,
   CalculatorMinimalistic,
   CardTransfer,
   CheckCircle,
@@ -151,6 +152,7 @@ export const AccountBalanceWalletOutlined = createIcon(WalletMoney)
 export const AccountTreeOutlined = createIcon(BranchingPathsDown)
 export const Add = createIcon(AddCircle)
 export const ArrowBack = createIcon(AltArrowLeft)
+export const BusinessOutlined = createIcon(Buildings3)
 export const Brightness4 = createIcon(MoonStars)
 export const Brightness7 = createIcon(Sun2)
 export const CalculateOutlined = createIcon(CalculatorMinimalistic)

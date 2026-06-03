@@ -441,7 +441,7 @@ export function SalePaymentDialog({
             </Stack>
           </Stack>
         </DialogContent>
-        <DialogActions sx={{ px: 3, py: 2 }}>
+        <DialogActions>
           <Button variant="outlined" onClick={closeDialog} disabled={isSaving}>
             {t('common:buttons.cancel')}
           </Button>

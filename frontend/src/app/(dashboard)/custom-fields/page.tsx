@@ -143,7 +143,7 @@ export default function CustomFieldsPage() {
       </Stack>
 
       <Card>
-        <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+        <CardContent>
           <Stack
             direction={{ xs: 'column', md: 'row' }}
             spacing={2}

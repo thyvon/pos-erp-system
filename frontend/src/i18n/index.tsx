@@ -24,6 +24,8 @@ import enPriceGroups from './en/priceGroups'
 import enBranches from './en/branches'
 import enWarehouses from './en/warehouses'
 import enUsers from './en/users'
+import enRoles from './en/roles'
+import enBusinesses from './en/businesses'
 import enSettings from './en/settings'
 import enCustomFields from './en/customFields'
 import enTaxRates from './en/taxRates'
@@ -51,6 +53,8 @@ import kmPriceGroups from './km/priceGroups'
 import kmBranches from './km/branches'
 import kmWarehouses from './km/warehouses'
 import kmUsers from './km/users'
+import kmRoles from './km/roles'
+import kmBusinesses from './km/businesses'
 import kmSettings from './km/settings'
 import kmCustomFields from './km/customFields'
 import kmTaxRates from './km/taxRates'
@@ -80,6 +84,8 @@ const resources = {
     branches: enBranches,
     warehouses: enWarehouses,
     users: enUsers,
+    roles: enRoles,
+    businesses: enBusinesses,
     settings: enSettings,
     customFields: enCustomFields,
     taxRates: enTaxRates,
@@ -108,6 +114,8 @@ const resources = {
     branches: kmBranches,
     warehouses: kmWarehouses,
     users: kmUsers,
+    roles: kmRoles,
+    businesses: kmBusinesses,
     settings: kmSettings,
     customFields: kmCustomFields,
     taxRates: kmTaxRates,

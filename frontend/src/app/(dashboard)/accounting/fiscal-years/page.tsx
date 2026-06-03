@@ -141,7 +141,7 @@ export default function FiscalYearsPage() {
           ['closed', summary?.closed_years ?? 0],
         ].map(([key, value]) => (
           <Card key={key}>
-            <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
+            <CardContent>
               <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                 {t(`fiscalYears.summary.${key}`)}
               </Typography>
@@ -154,7 +154,7 @@ export default function FiscalYearsPage() {
       </Box>
 
       <Card>
-        <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+        <CardContent>
           <Stack
             direction={{ xs: 'column', lg: 'row' }}
             spacing={2}

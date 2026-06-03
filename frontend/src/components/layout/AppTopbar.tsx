@@ -33,41 +33,36 @@ export default function AppTopbar() {
     toggleSettings,
     toggleTheme,
     layoutSize,
-    surfaceStyle,
   } = useUIStore()
 
   const layoutMetrics = getLayoutMetrics(layoutSize)
+  const isDenseLayout = layoutSize === 'compact' || layoutSize === 'small'
+  const actionButtonSize = isDenseLayout ? 36 : 40
+  const collapseButtonSize = isDenseLayout ? 32 : 36
   const drawerWidth = sidebarOpen ? layoutMetrics.sidebarWidth : layoutMetrics.sidebarCollapsedWidth
   const resolvedTopbarTheme = topbarTheme === 'inherit' ? theme.palette.mode : topbarTheme
   const topbarIsDark = resolvedTopbarTheme === 'dark'
-  const isGlassSurface = surfaceStyle === 'glass'
+  const lightShellPaper = '#FFFFFF'
+  const topbarPrimaryIcon = topbarIsDark ? theme.palette.primary.light : theme.palette.primary.main
   const topbarColors = {
-    bg: isGlassSurface
-      ? topbarIsDark
-        ? alpha('#111827', 0.72)
-        : alpha(theme.palette.common.white, 0.58)
-      : topbarIsDark
+    bg: topbarIsDark
       ? alpha('#111827', 0.94)
       : resolvedTopbarTheme === 'light'
-        ? alpha(theme.palette.common.white, 0.92)
+        ? alpha(lightShellPaper, 0.96)
         : alpha(theme.palette.background.default, 0.86),
     border: topbarIsDark
-      ? alpha('#ffffff', isGlassSurface ? 0.16 : 0.12)
-      : alpha(theme.palette.grey[500], isGlassSurface ? 0.18 : 0.12),
-    icon: topbarIsDark ? alpha('#ffffff', 0.82) : theme.palette.text.primary,
-    iconMuted: topbarIsDark ? alpha('#ffffff', 0.72) : theme.palette.text.secondary,
+      ? alpha('#ffffff', 0.12)
+      : alpha('#919EAB', 0.24),
+    icon: topbarPrimaryIcon,
+    iconMuted: alpha(topbarPrimaryIcon, topbarIsDark ? 0.84 : 0.88),
     buttonBg: topbarIsDark
-      ? alpha('#ffffff', isGlassSurface ? 0.1 : 0.08)
-      : alpha(theme.palette.grey[500], isGlassSurface ? 0.12 : 0.08),
-    buttonHover: topbarIsDark ? alpha('#ffffff', 0.14) : alpha(theme.palette.primary.main, 0.08),
-    floatingBg: isGlassSurface
-      ? topbarIsDark
-        ? alpha('#111827', 0.76)
-        : alpha(theme.palette.common.white, 0.72)
-      : topbarIsDark
-        ? '#111827'
-        : theme.palette.background.paper,
-    floatingBorder: topbarIsDark ? alpha('#ffffff', 0.16) : theme.palette.divider,
+      ? alpha(topbarPrimaryIcon, 0.12)
+      : alpha(topbarPrimaryIcon, 0.08),
+    buttonHover: alpha(topbarPrimaryIcon, topbarIsDark ? 0.2 : 0.14),
+    floatingBg: topbarIsDark
+      ? '#111827'
+      : lightShellPaper,
+    floatingBorder: topbarIsDark ? alpha('#ffffff', 0.16) : alpha('#919EAB', 0.24),
   }
 
   return (
@@ -80,8 +75,6 @@ export default function AppTopbar() {
         transition: theme.transitions.create(['width', 'margin'], {
           duration: theme.transitions.duration.shorter,
         }),
-        backdropFilter: isGlassSurface ? 'blur(18px) saturate(160%)' : 'blur(8px)',
-        WebkitBackdropFilter: isGlassSurface ? 'blur(18px) saturate(160%)' : 'blur(8px)',
         backgroundColor: topbarColors.bg,
         borderBottom: `1px solid ${topbarColors.border}`,
         overflow: 'visible',
@@ -92,12 +85,12 @@ export default function AppTopbar() {
           onClick={() => setSidebarOpen(!sidebarOpen)}
           sx={{
             position: 'absolute',
-            left: -18,
+            left: -(collapseButtonSize / 2),
             top: '50%',
             transform: 'translateY(-50%)',
             zIndex: theme.zIndex.drawer + 2,
-            width: 36,
-            height: 36,
+            width: collapseButtonSize,
+            height: collapseButtonSize,
             borderRadius: 1,
             color: topbarColors.iconMuted,
             bgcolor: topbarColors.floatingBg,
@@ -105,7 +98,7 @@ export default function AppTopbar() {
             boxShadow: (theme) => theme.shadows[2],
             display: { xs: 'none', lg: 'inline-flex' },
             '&:hover': {
-              color: topbarIsDark ? theme.palette.primary.light : theme.palette.primary.main,
+              color: topbarPrimaryIcon,
               bgcolor: topbarColors.floatingBg,
             },
           }}
@@ -118,7 +111,7 @@ export default function AppTopbar() {
       <Toolbar
         sx={{
           minHeight: layoutMetrics.topbarHeight,
-          px: { lg: 5 },
+          px: { xs: 1.5, sm: 2, lg: 3 },
         }}
       >
         <IconButton
@@ -142,8 +135,8 @@ export default function AppTopbar() {
           <IconButton
             onClick={toggleTheme}
             sx={{
-              width: 40,
-              height: 40,
+              width: actionButtonSize,
+              height: actionButtonSize,
               color: topbarColors.icon,
               bgcolor: topbarColors.buttonBg,
               '&:hover': { bgcolor: topbarColors.buttonHover },
@@ -155,8 +148,8 @@ export default function AppTopbar() {
           <IconButton
             onClick={toggleSettings}
             sx={{
-              width: 40,
-              height: 40,
+              width: actionButtonSize,
+              height: actionButtonSize,
               color: topbarColors.icon,
               bgcolor: topbarColors.buttonBg,
               '&:hover': { bgcolor: topbarColors.buttonHover },
@@ -166,7 +159,7 @@ export default function AppTopbar() {
           </IconButton>
 
           <NotificationsPopover
-            activeColor={topbarIsDark ? theme.palette.primary.light : theme.palette.primary.main}
+            activeColor={topbarPrimaryIcon}
             buttonSx={{
               color: topbarColors.icon,
               bgcolor: topbarColors.buttonBg,
@@ -174,7 +167,13 @@ export default function AppTopbar() {
             }}
           />
 
-          <AccountPopover />
+          <AccountPopover
+            buttonSx={{
+              bgcolor: topbarColors.buttonBg,
+              '&:hover': { bgcolor: topbarColors.buttonHover },
+            }}
+            avatarBorderColor={topbarColors.floatingBg}
+          />
         </Stack>
       </Toolbar>
     </AppBar>

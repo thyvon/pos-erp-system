@@ -40,7 +40,11 @@ export default function NotificationsPopover({ buttonSx, activeColor }: Notifica
       <IconButton
         onClick={handleOpen}
         sx={[
-          { width: 40, height: 40, color: open ? activeColor ?? 'primary.main' : undefined },
+          {
+            width: 'var(--app-control-height)',
+            height: 'var(--app-control-height)',
+            color: open ? activeColor ?? 'primary.main' : undefined,
+          },
           ...(Array.isArray(buttonSx) ? buttonSx : buttonSx ? [buttonSx] : []),
         ]}
       >
@@ -63,7 +67,6 @@ export default function NotificationsPopover({ buttonSx, activeColor }: Notifica
               width: { xs: 'calc(100vw - 32px)', sm: 360 },
               display: 'flex',
               flexDirection: 'column',
-              backdropFilter: 'blur(20px)',
               backgroundColor: (theme) => alpha(theme.palette.background.paper, 0.9),
               border: (theme) => `solid 1px ${theme.palette.divider}`,
             },

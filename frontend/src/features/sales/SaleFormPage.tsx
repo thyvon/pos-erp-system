@@ -529,7 +529,7 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
           {serverError && <Alert severity="error">{serverError}</Alert>}
 
           <Card variant="outlined">
-            <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+            <CardContent>
               <Stack spacing={2.5}>
               <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1.3fr) minmax(0, 1fr) 180px 180px' }, gap: 2 }}>
                 <Controller
@@ -674,7 +674,7 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
           </Card>
 
           <Card variant="outlined">
-            <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+            <CardContent>
               <Stack spacing={2.5}>
                 <Box>
                   <Typography variant="subtitle2">{t('form.items')}</Typography>
@@ -817,7 +817,7 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
           </Card>
 
           <Card variant="outlined">
-            <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+            <CardContent>
               <Stack spacing={2.5}>
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr 1fr' }, gap: 2 }}>
                 <Controller name="discount_type" control={control} render={({ field }) => (
@@ -907,7 +907,7 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
 
           {showPaymentSection && (
             <Card variant="outlined">
-              <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+              <CardContent>
                 <Stack spacing={1.5}>
                   {canTakeDirectPayment && (
                     <>
@@ -1233,7 +1233,7 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
           )}
 
           <Card variant="outlined">
-            <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+            <CardContent>
               <Stack spacing={2.5}>
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
                   <Controller name="notes" control={control} render={({ field }) => (

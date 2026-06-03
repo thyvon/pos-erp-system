@@ -260,7 +260,7 @@ export function StockCountEntryPage({ countId }: StockCountEntryPageProps) {
       {serverError && <Alert severity="error">{serverError}</Alert>}
 
       <Card>
-        <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+        <CardContent>
           <Stack spacing={2}>
             <Box>
               <Typography variant="subtitle2">{t('counts.entries.formTitle')}</Typography>
@@ -338,7 +338,7 @@ export function StockCountEntryPage({ countId }: StockCountEntryPageProps) {
       </Card>
 
       <Card>
-        <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+        <CardContent>
           <Stack spacing={2}>
             <Stack
               direction={{ xs: 'column', sm: 'row' }}
@@ -438,7 +438,7 @@ export function StockCountEntryPage({ countId }: StockCountEntryPageProps) {
       </Card>
 
       <Card>
-        <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+        <CardContent>
           <Stack spacing={2}>
             <Stack
               direction={{ xs: 'column', sm: 'row' }}
@@ -576,7 +576,7 @@ export function StockCountEntryPage({ countId }: StockCountEntryPageProps) {
             </Stack>
           )}
         </DialogContent>
-        <DialogActions sx={{ px: 3, py: 2 }}>
+        <DialogActions>
           <Button variant="outlined" disabled={updateEntry.isPending} onClick={closeEditEntry}>
             {t('common:buttons.cancel')}
           </Button>

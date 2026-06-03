@@ -148,7 +148,7 @@ export default function StockAdjustmentsPage() {
       </Stack>
 
       <Card>
-        <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+        <CardContent>
           <Stack
             direction={{ xs: 'column', lg: 'row' }}
             spacing={2}

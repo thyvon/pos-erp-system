@@ -112,7 +112,7 @@ export function StockCountFormPage() {
       {optionsQuery.isError && <Alert severity="error">{toAppApiError(optionsQuery.error).message}</Alert>}
 
       <Card>
-        <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+        <CardContent>
           <Box component="form" noValidate onSubmit={handleSubmit(submitForm)}>
             <Stack spacing={2.5}>
               {serverError && <Alert severity="error">{serverError}</Alert>}

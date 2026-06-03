@@ -14,11 +14,13 @@ class UpdateBusinessRequest extends FormRequest
 
     public function rules(): array
     {
+        $businessId = $this->user()?->business_id;
+
         return [
             'name' => ['sometimes', 'required', 'string', 'max:255'],
             'legal_name' => ['nullable', 'string', 'max:255'],
             'tax_id' => ['nullable', 'string', 'max:50'],
-            'email' => ['sometimes', 'required', 'email', 'max:255'],
+            'email' => ['sometimes', 'required', 'email', 'max:255', Rule::unique('businesses', 'email')->ignore($businessId)],
             'phone' => ['nullable', 'string', 'max:20'],
             'currency' => ['sometimes', 'required', 'string', 'size:3'],
             'timezone' => ['sometimes', 'required', 'string', 'max:100'],
@@ -28,6 +30,10 @@ class UpdateBusinessRequest extends FormRequest
             'address' => ['nullable', 'array'],
             'address.line1' => ['nullable', 'string', 'max:255'],
             'address.line2' => ['nullable', 'string', 'max:255'],
+            'address.village' => ['nullable', 'string', 'max:100'],
+            'address.commune' => ['nullable', 'string', 'max:100'],
+            'address.district' => ['nullable', 'string', 'max:100'],
+            'address.province_city' => ['nullable', 'string', 'max:100'],
             'address.city' => ['nullable', 'string', 'max:100'],
             'address.state' => ['nullable', 'string', 'max:100'],
             'address.postal_code' => ['nullable', 'string', 'max:30'],

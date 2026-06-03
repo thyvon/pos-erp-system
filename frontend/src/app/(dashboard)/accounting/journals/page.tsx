@@ -134,7 +134,7 @@ export default function JournalsPage() {
           ['volume', formatMoney(summary?.posted_volume ?? 0, currencyFormatter)],
         ].map(([key, value]) => (
           <Card key={key}>
-            <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
+            <CardContent>
               <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                 {t(`journals.summary.${key}`)}
               </Typography>
@@ -147,7 +147,7 @@ export default function JournalsPage() {
       </Box>
 
       <Card>
-        <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+        <CardContent>
           <Stack
             direction={{ xs: 'column', lg: 'row' }}
             spacing={2}
@@ -367,7 +367,7 @@ export default function JournalsPage() {
             </Stack>
           )}
         </DialogContent>
-        <DialogActions sx={{ px: 3, py: 2 }}>
+        <DialogActions>
           {canManage && selectedJournal?.status === 'posted' && (
             <Button
               color="warning"

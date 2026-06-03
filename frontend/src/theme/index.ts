@@ -6,14 +6,13 @@ import { buildPalette, THEME_COLOR_PRESETS, type ThemeColorPreset } from './pale
 export { THEME_COLOR_PRESETS }
 export type { ThemeColorPreset }
 
-export const SIDEBAR_WIDTH = 280
-export const SIDEBAR_COLLAPSED_WIDTH = 88
-export const TOPBAR_HEIGHT = 64
-export const CONTENT_MAX_WIDTH = 1440
+export const SIDEBAR_WIDTH = 264
+export const SIDEBAR_COLLAPSED_WIDTH = 76
+export const TOPBAR_HEIGHT = 56
+export const CONTENT_MAX_WIDTH = 1360
 
 export type FontPreset = 'publicSans' | 'inter' | 'dmSans' | 'nunitoSans'
 export type LayoutSize = 'compact' | 'small' | 'normal' | 'large'
-export type SurfaceStyle = 'solid' | 'glass'
 export type BorderRadiusLevel = number
 
 export const BORDER_RADIUS_MIN = 0
@@ -42,23 +41,18 @@ export const LAYOUT_SIZE_OPTIONS: Array<{ value: LayoutSize; labelKey: string }>
   { value: 'large', labelKey: 'layoutSettings.large' },
 ]
 
-export const SURFACE_STYLE_OPTIONS: Array<{ value: SurfaceStyle; labelKey: string }> = [
-  { value: 'solid', labelKey: 'layoutSettings.surfaceSolid' },
-  { value: 'glass', labelKey: 'layoutSettings.surfaceGlass' },
-]
-
 const LAYOUT_METRICS_PRESETS: Record<LayoutSize, LayoutMetrics> = {
   compact: {
-    sidebarWidth: 252,
-    sidebarCollapsedWidth: 72,
-    topbarHeight: 56,
-    contentMaxWidth: 1320,
+    sidebarWidth: 236,
+    sidebarCollapsedWidth: 68,
+    topbarHeight: 52,
+    contentMaxWidth: 1240,
   },
   small: {
-    sidebarWidth: 268,
-    sidebarCollapsedWidth: 80,
-    topbarHeight: 60,
-    contentMaxWidth: 1380,
+    sidebarWidth: 248,
+    sidebarCollapsedWidth: 72,
+    topbarHeight: 54,
+    contentMaxWidth: 1320,
   },
   normal: {
     sidebarWidth: SIDEBAR_WIDTH,
@@ -67,10 +61,10 @@ const LAYOUT_METRICS_PRESETS: Record<LayoutSize, LayoutMetrics> = {
     contentMaxWidth: CONTENT_MAX_WIDTH,
   },
   large: {
-    sidebarWidth: 300,
-    sidebarCollapsedWidth: 96,
-    topbarHeight: 72,
-    contentMaxWidth: 1560,
+    sidebarWidth: 284,
+    sidebarCollapsedWidth: 84,
+    topbarHeight: 62,
+    contentMaxWidth: 1480,
   },
 }
 
@@ -100,14 +94,14 @@ const LAYOUT_SIZE_PRESETS: Record<LayoutSize, {
 }> = {
   compact: {
     spacing: 6,
-    controlHeight: 42,
+    controlHeight: 36,
     smallControlHeight: 30,
-    largeControlHeight: 48,
+    largeControlHeight: 42,
     typography: {
-      h1: '2rem',
-      h2: '1.625rem',
-      h3: '1.25rem',
-      h4: '1.0625rem',
+      h1: '1.75rem',
+      h2: '1.5rem',
+      h3: '1.1875rem',
+      h4: '1rem',
       h5: '0.9375rem',
       h6: '0.875rem',
       subtitle1: '0.875rem',
@@ -120,14 +114,14 @@ const LAYOUT_SIZE_PRESETS: Record<LayoutSize, {
   },
   small: {
     spacing: 7,
-    controlHeight: 48,
-    smallControlHeight: 34,
-    largeControlHeight: 52,
+    controlHeight: 40,
+    smallControlHeight: 32,
+    largeControlHeight: 46,
     typography: {
-      h1: '2.25rem',
-      h2: '1.875rem',
-      h3: '1.375rem',
-      h4: '1.125rem',
+      h1: '2rem',
+      h2: '1.625rem',
+      h3: '1.25rem',
+      h4: '1.0625rem',
       h5: '1rem',
       h6: '0.9375rem',
       subtitle1: '0.9375rem',
@@ -140,19 +134,19 @@ const LAYOUT_SIZE_PRESETS: Record<LayoutSize, {
   },
   normal: {
     spacing: 8,
-    controlHeight: 54,
-    smallControlHeight: 36,
-    largeControlHeight: 56,
+    controlHeight: 44,
+    smallControlHeight: 34,
+    largeControlHeight: 50,
     typography: {
-      h1: '2.5rem',
-      h2: '2rem',
-      h3: '1.5rem',
-      h4: '1.25rem',
-      h5: '1.125rem',
+      h1: '2.25rem',
+      h2: '1.875rem',
+      h3: '1.375rem',
+      h4: '1.1875rem',
+      h5: '1.0625rem',
       h6: '1rem',
-      subtitle1: '1rem',
+      subtitle1: '0.9375rem',
       subtitle2: '0.875rem',
-      body1: '1rem',
+      body1: '0.9375rem',
       body2: '0.875rem',
       caption: '0.75rem',
       overline: '0.75rem',
@@ -160,22 +154,22 @@ const LAYOUT_SIZE_PRESETS: Record<LayoutSize, {
   },
   large: {
     spacing: 9,
-    controlHeight: 60,
-    smallControlHeight: 40,
-    largeControlHeight: 64,
+    controlHeight: 50,
+    smallControlHeight: 38,
+    largeControlHeight: 56,
     typography: {
-      h1: '2.75rem',
-      h2: '2.25rem',
-      h3: '1.625rem',
-      h4: '1.375rem',
-      h5: '1.25rem',
-      h6: '1.125rem',
-      subtitle1: '1.0625rem',
+      h1: '2.5rem',
+      h2: '2rem',
+      h3: '1.5rem',
+      h4: '1.25rem',
+      h5: '1.125rem',
+      h6: '1.0625rem',
+      subtitle1: '1rem',
       subtitle2: '0.9375rem',
-      body1: '1.0625rem',
+      body1: '1rem',
       body2: '0.9375rem',
-      caption: '0.8125rem',
-      overline: '0.8125rem',
+      caption: '0.75rem',
+      overline: '0.75rem',
     },
   },
 }
@@ -201,21 +195,9 @@ export function createAppTheme(
   fontPreset: FontPreset = 'publicSans',
   colorPreset: ThemeColorPreset = 'default',
   layoutSize: LayoutSize = 'normal',
-  borderRadiusLevel: BorderRadiusLevel = DEFAULT_BORDER_RADIUS_LEVEL,
-  surfaceStyle: SurfaceStyle = 'solid'
+  borderRadiusLevel: BorderRadiusLevel = DEFAULT_BORDER_RADIUS_LEVEL
 ): Theme {
-  const basePalette = buildPalette(mode, colorPreset)
-  const isGlassSurface = surfaceStyle === 'glass'
-  const palette = isGlassSurface
-    ? {
-        ...basePalette,
-        background: {
-          default: mode === 'light' ? alpha('#F1F5F9', 0.74) : alpha('#0F172A', 0.78),
-          paper: mode === 'light' ? alpha('#FFFFFF', 0.74) : alpha('#111827', 0.74),
-        },
-        divider: mode === 'light' ? alpha('#64748B', 0.22) : alpha('#FFFFFF', 0.16),
-      }
-    : basePalette
+  const palette = buildPalette(mode, colorPreset)
   const primaryMain =
     palette.primary && 'main' in palette.primary ? palette.primary.main : '#00A76F'
   const fontFamily = resolveFontFamily(fontPreset)
@@ -226,14 +208,8 @@ export function createAppTheme(
   const isCompactLayout = layoutSize === 'compact'
   const inputLabelOffset = Math.max((sizePreset.controlHeight - 22) / 2, 7)
   const smallInputLabelOffset = Math.max((sizePreset.smallControlHeight - 20) / 2, 5)
-  const glassFilter = 'blur(18px) saturate(160%)'
-  const appBackground = mode === 'light'
-    ? 'linear-gradient(135deg, #F8FAFC 0%, #EEF4F8 42%, #F7FAFC 100%)'
-    : 'linear-gradient(135deg, #111827 0%, #0F172A 52%, #1F2937 100%)'
-  const glassBorder = mode === 'light' ? alpha('#64748B', 0.18) : alpha('#FFFFFF', 0.14)
-  const glassInputBg = mode === 'light' ? alpha('#FFFFFF', 0.58) : alpha('#111827', 0.52)
   const solidInputBg = mode === 'light' ? '#F9FAFB' : alpha('#FFFFFF', 0.04)
-  const inputBackground = isGlassSurface ? glassInputBg : solidInputBg
+  const inputBackground = solidInputBg
 
   return createTheme({
     palette,
@@ -295,8 +271,8 @@ export function createAppTheme(
             width: '100%',
             height: '100%',
             backgroundColor: palette.background?.default,
-            backgroundImage: isGlassSurface ? appBackground : 'none',
-            backgroundAttachment: isGlassSurface ? 'fixed' : 'initial',
+            backgroundImage: 'none',
+            backgroundAttachment: 'initial',
             color: palette.text?.primary,
             fontFamily,
             '--app-control-height': `${sizePreset.controlHeight}px`,
@@ -320,18 +296,30 @@ export function createAppTheme(
           root: {
             textTransform: 'none',
             fontWeight: 700,
+            fontSize: sizePreset.typography.body2,
             borderRadius: controlRadius,
             minHeight: sizePreset.controlHeight,
-            padding: '6px 16px',
+            padding: '5px 14px',
+            lineHeight: 1.4,
           },
           sizeSmall: {
             minHeight: sizePreset.smallControlHeight,
-            padding: '4px 10px',
+            padding: '3px 10px',
           },
           sizeLarge: {
             minHeight: sizePreset.largeControlHeight,
-            padding: '8px 18px',
+            padding: '6px 16px',
           },
+        },
+      },
+      MuiTextField: {
+        defaultProps: {
+          variant: 'outlined',
+        },
+      },
+      MuiFormControl: {
+        defaultProps: {
+          variant: 'outlined',
         },
       },
       MuiOutlinedInput: {
@@ -342,12 +330,6 @@ export function createAppTheme(
             height: sizePreset.controlHeight,
             minHeight: sizePreset.controlHeight,
             alignItems: 'center',
-            ...(isGlassSurface
-              ? {
-                  backdropFilter: glassFilter,
-                  WebkitBackdropFilter: glassFilter,
-                }
-              : {}),
             '&:hover .MuiOutlinedInput-notchedOutline': {
               borderColor: primaryMain,
             },
@@ -476,12 +458,6 @@ export function createAppTheme(
             minHeight: sizePreset.controlHeight,
             paddingTop: 0,
             paddingBottom: 0,
-            ...(isGlassSurface
-              ? {
-                  backdropFilter: glassFilter,
-                  WebkitBackdropFilter: glassFilter,
-                }
-              : {}),
             '&:hover .MuiPickersOutlinedInput-notchedOutline': {
               borderColor: primaryMain,
             },
@@ -512,13 +488,7 @@ export function createAppTheme(
         styleOverrides: {
           root: {
             position: 'relative',
-            backgroundColor: isGlassSurface ? palette.background?.paper : undefined,
-            border: isGlassSurface ? `1px solid ${glassBorder}` : undefined,
-            backdropFilter: isGlassSurface ? glassFilter : undefined,
-            WebkitBackdropFilter: isGlassSurface ? glassFilter : undefined,
-            boxShadow: isGlassSurface
-              ? `0 18px 42px -18px ${alpha('#0F172A', mode === 'light' ? 0.22 : 0.5)}`
-              : `0 0 2px 0 ${alpha('#919EAB', 0.2)}, 0 12px 24px -4px ${alpha('#919EAB', 0.12)}`,
+            boxShadow: `0 0 2px 0 ${alpha('#919EAB', 0.2)}, 0 12px 24px -4px ${alpha('#919EAB', 0.12)}`,
             borderRadius: controlRadius,
             zIndex: 0,
           },
@@ -533,6 +503,16 @@ export function createAppTheme(
           },
         ],
       },
+      MuiCardContent: {
+        styleOverrides: {
+          root: {
+            padding: isCompactLayout ? 16 : isDenseLayout ? 18 : 20,
+            '&:last-child': {
+              paddingBottom: isCompactLayout ? 16 : isDenseLayout ? 18 : 20,
+            },
+          },
+        },
+      },
       MuiPaper: {
         defaultProps: {
           elevation: 0,
@@ -540,10 +520,6 @@ export function createAppTheme(
         styleOverrides: {
           root: {
             backgroundImage: 'none',
-            backgroundColor: isGlassSurface ? palette.background?.paper : undefined,
-            borderColor: isGlassSurface ? glassBorder : undefined,
-            backdropFilter: isGlassSurface ? glassFilter : undefined,
-            WebkitBackdropFilter: isGlassSurface ? glassFilter : undefined,
           },
         },
       },
@@ -581,6 +557,9 @@ export function createAppTheme(
       MuiTableCell: {
         styleOverrides: {
           root: {
+            '&:not(.MuiTableCell-alignCenter):not(.MuiTableCell-alignRight)': {
+              textAlign: 'left',
+            },
             ...(isDenseLayout
               ? {
                   padding: isCompactLayout ? '4px 10px' : '6px 12px',
@@ -588,7 +567,9 @@ export function createAppTheme(
               : {}),
           },
           head: {
-            textAlign: 'center',
+            '&:not(.MuiTableCell-alignCenter):not(.MuiTableCell-alignRight)': {
+              textAlign: 'left',
+            },
             ...(isDenseLayout
               ? {
                   paddingTop: isCompactLayout ? 6 : 8,
@@ -608,6 +589,13 @@ export function createAppTheme(
       },
       MuiChip: {
         styleOverrides: {
+          root: {
+            fontWeight: 600,
+          },
+          sizeSmall: {
+            height: isCompactLayout ? 22 : 24,
+            fontSize: sizePreset.typography.caption,
+          },
           outlined: ({ ownerState, theme }) => {
             const color = ownerState.color ?? 'default'
 
@@ -635,6 +623,69 @@ export function createAppTheme(
         styleOverrides: {
           root: {
             borderRadius: iconButtonRadius,
+            width: sizePreset.controlHeight,
+            height: sizePreset.controlHeight,
+            padding: 6,
+          },
+          sizeSmall: {
+            width: sizePreset.smallControlHeight,
+            height: sizePreset.smallControlHeight,
+            padding: 4,
+          },
+        },
+      },
+      MuiMenuItem: {
+        styleOverrides: {
+          root: {
+            minHeight: isDenseLayout ? 34 : 38,
+            fontSize: sizePreset.typography.body2,
+            gap: 8,
+          },
+        },
+      },
+      MuiListItemText: {
+        styleOverrides: {
+          primary: {
+            fontSize: sizePreset.typography.body2,
+          },
+          secondary: {
+            fontSize: sizePreset.typography.caption,
+          },
+        },
+      },
+      MuiToolbar: {
+        styleOverrides: {
+          root: {
+            minHeight: `${getLayoutMetrics(layoutSize).topbarHeight}px !important`,
+          },
+        },
+      },
+      MuiDialog: {
+        styleOverrides: {
+          paper: {
+            borderRadius: controlRadius,
+          },
+        },
+      },
+      MuiDialogTitle: {
+        styleOverrides: {
+          root: {
+            padding: isDenseLayout ? '16px 20px 8px' : '18px 22px 10px',
+            fontSize: sizePreset.typography.h6,
+          },
+        },
+      },
+      MuiDialogContent: {
+        styleOverrides: {
+          root: {
+            padding: isDenseLayout ? '10px 20px' : '12px 22px',
+          },
+        },
+      },
+      MuiDialogActions: {
+        styleOverrides: {
+          root: {
+            padding: isDenseLayout ? '12px 20px 16px' : '14px 22px 18px',
           },
         },
       },
@@ -664,10 +715,6 @@ export function createAppTheme(
         styleOverrides: {
           paper: {
             borderRadius: controlRadius,
-            backgroundColor: isGlassSurface ? palette.background?.paper : undefined,
-            border: isGlassSurface ? `1px solid ${glassBorder}` : undefined,
-            backdropFilter: isGlassSurface ? glassFilter : undefined,
-            WebkitBackdropFilter: isGlassSurface ? glassFilter : undefined,
           },
         },
       },
@@ -676,9 +723,6 @@ export function createAppTheme(
           paper: {
             border: 'none',
             backgroundImage: 'none',
-            backgroundColor: isGlassSurface ? palette.background?.paper : undefined,
-            backdropFilter: isGlassSurface ? glassFilter : undefined,
-            WebkitBackdropFilter: isGlassSurface ? glassFilter : undefined,
           },
         },
       },

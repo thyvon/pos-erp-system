@@ -18,11 +18,10 @@ export function Providers({ children }: { children: React.ReactNode }) {
   const colorPreset = useUIStore((s) => s.colorPreset)
   const layoutSize = useUIStore((s) => s.layoutSize)
   const borderRadiusLevel = useUIStore((s) => s.borderRadiusLevel)
-  const surfaceStyle = useUIStore((s) => s.surfaceStyle)
   const language = useUIStore((s) => s.language)
   const theme = useMemo(
-    () => createAppTheme(themeMode, fontPreset, colorPreset, layoutSize, borderRadiusLevel, surfaceStyle),
-    [borderRadiusLevel, colorPreset, fontPreset, layoutSize, surfaceStyle, themeMode]
+    () => createAppTheme(themeMode, fontPreset, colorPreset, layoutSize, borderRadiusLevel),
+    [borderRadiusLevel, colorPreset, fontPreset, layoutSize, themeMode]
   )
   const queryClient = useMemo(() => createQueryClient(), [])
 

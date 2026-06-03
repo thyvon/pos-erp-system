@@ -348,7 +348,7 @@ export function PurchaseReceiveDialog({ open, purchase, isSaving, onClose, onSub
           </TableContainer>
         </Stack>
       </DialogContent>
-      <DialogActions sx={{ px: 3, py: 2 }}>
+      <DialogActions>
         <Button variant="outlined" onClick={onClose} disabled={isSaving}>{t('common:buttons.cancel')}</Button>
         <Button variant="contained" onClick={submit} disabled={isSaving || fields.length === 0}>
           {isSaving ? <CircularProgress size={20} color="inherit" sx={{ mr: 1 }} /> : null}

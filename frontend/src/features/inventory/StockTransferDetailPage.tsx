@@ -193,7 +193,7 @@ export function StockTransferDetailPage({ transferId }: StockTransferDetailPageP
       {transfer && !transferQuery.isLoading && (
         <Stack spacing={3}>
           <Card>
-            <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+            <CardContent>
               <Stack spacing={2.5}>
                 <Box
                   sx={{
@@ -259,7 +259,7 @@ export function StockTransferDetailPage({ transferId }: StockTransferDetailPageP
           </Card>
 
           <Card>
-            <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+            <CardContent>
               <Stack spacing={2.5}>
                 <Stack
                   direction={{ xs: 'column', sm: 'row' }}

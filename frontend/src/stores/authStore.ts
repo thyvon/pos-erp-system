@@ -14,6 +14,7 @@ interface AuthState {
 interface AuthActions {
   setAuth: (user: User, token: string, business?: Business | null) => void
   setUser: (user: User) => void
+  setBusiness: (business: Business) => void
   logout: () => void
   logoutLocal: () => void
   setLoading: (loading: boolean) => void
@@ -56,6 +57,10 @@ export const useAuthStore = create<AuthStore>()(
       },
 
       setUser: (user) => set({ user, business: user.business ?? null, isLoggedIn: true }),
+      setBusiness: (business) => set((state) => ({
+        business,
+        user: state.user ? { ...state.user, business } : state.user,
+      })),
 
       logout: () => {
         get().logoutLocal()

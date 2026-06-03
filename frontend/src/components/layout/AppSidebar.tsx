@@ -21,6 +21,7 @@ import {
 } from '@mui/material'
 import {
   DashboardOutlined,
+  BusinessOutlined,
   PeopleOutlined,
   LocalShippingOutlined,
   Inventory2Outlined,
@@ -30,6 +31,7 @@ import {
   AccountBalanceWalletOutlined,
   PaymentsOutlined,
   PeopleAltOutlined,
+  LockOutlined,
   SettingsOutlined,
   TuneOutlined,
   PercentOutlined,
@@ -44,6 +46,8 @@ import {
   LocalAtmOutlined,
   PaletteOutlined,
   StraightenOutlined,
+  FactCheckOutlined,
+  TrendingUpOutlined,
   ExpandLess,
   ExpandMore,
 } from '@/components/ui/icons'
@@ -56,7 +60,9 @@ interface NavItem {
   path?: string
   icon: React.ReactNode
   adminOnly?: boolean
-  children?: { key: string; path: string }[]
+  superAdminOnly?: boolean
+  permissions?: string[]
+  children?: { key: string; path: string; permissions?: string[] }[]
 }
 
 
@@ -70,57 +76,57 @@ const NAV_CONFIG: NavSection[] = [
     key: 'overview',
     items: [
       { key: 'dashboard', path: '/dashboard', icon: <DashboardOutlined /> },
-      { key: 'pos', path: '/pos', icon: <PointOfSaleOutlined /> },
-      { key: 'sales', path: '/sales', icon: <PointOfSaleOutlined /> },
-      { key: 'quotations', path: '/quotations', icon: <ReceiptLongOutlined /> },
-      { key: 'saleReturns', path: '/sale-returns', icon: <CompareArrowsOutlined /> },
-      { key: 'cashRegisters', path: '/cash-registers', icon: <AccountBalanceWalletOutlined /> },
-      { key: 'purchases', path: '/purchases', icon: <LocalShippingOutlined /> },
-      { key: 'purchaseReturns', path: '/purchase-returns', icon: <CompareArrowsOutlined /> },
     ],
   },
   {
-    key: 'foundation',
+    key: 'sales',
     items: [
-      { key: 'branches', path: '/branches', icon: <AccountTreeOutlined /> },
-      { key: 'warehouses', path: '/warehouses', icon: <WarehouseOutlined /> },
-      { key: 'users', path: '/users', icon: <PeopleAltOutlined />, adminOnly: true },
-      { key: 'settings', path: '/settings', icon: <SettingsOutlined /> },
-      { key: 'customFields', path: '/custom-fields', icon: <TuneOutlined /> },
+      { key: 'pos', path: '/pos', icon: <PointOfSaleOutlined />, permissions: ['sales.create'] },
+      { key: 'sales', path: '/sales', icon: <ReceiptLongOutlined />, permissions: ['sales.index'] },
+      { key: 'quotations', path: '/quotations', icon: <ReceiptLongOutlined />, permissions: ['sales.index'] },
+      { key: 'saleReturns', path: '/sale-returns', icon: <CompareArrowsOutlined />, permissions: ['sales.return'] },
+      { key: 'cashRegisters', path: '/cash-registers', icon: <AccountBalanceWalletOutlined />, permissions: ['sales.index'] },
+    ],
+  },
+  {
+    key: 'purchasing',
+    items: [
+      { key: 'purchases', path: '/purchases', icon: <LocalShippingOutlined />, permissions: ['purchases.index'] },
+      { key: 'purchaseReturns', path: '/purchase-returns', icon: <CompareArrowsOutlined />, permissions: ['purchases.return'] },
     ],
   },
   {
     key: 'contacts',
     items: [
-      { key: 'taxRates', path: '/tax-rates', icon: <PercentOutlined /> },
-      { key: 'taxGroups', path: '/tax-groups', icon: <CalculateOutlined /> },
-      { key: 'customerGroups', path: '/customer-groups', icon: <GroupsOutlined /> },
-      { key: 'customers', path: '/customers', icon: <PeopleOutlined /> },
-      { key: 'suppliers', path: '/suppliers', icon: <LocalShippingOutlined /> },
+      { key: 'customers', path: '/customers', icon: <PeopleOutlined />, permissions: ['customers.index'] },
+      { key: 'suppliers', path: '/suppliers', icon: <LocalShippingOutlined />, permissions: ['suppliers.index'] },
+      { key: 'customerGroups', path: '/customer-groups', icon: <GroupsOutlined />, permissions: ['customer_groups.index'] },
+    ],
+  },
+  {
+    key: 'catalog',
+    items: [
+      { key: 'products', path: '/products', icon: <Inventory2Outlined />, permissions: ['products.index'] },
+      { key: 'categories', path: '/categories', icon: <CategoryOutlined />, permissions: ['categories.index'] },
+      { key: 'brands', path: '/brands', icon: <LocalOfferOutlined />, permissions: ['brands.index'] },
+      { key: 'units', path: '/units', icon: <StraightenOutlined />, permissions: ['units.index'] },
+      { key: 'variationTemplates', path: '/variation-templates', icon: <PaletteOutlined />, permissions: ['variation_templates.index'] },
+      { key: 'priceGroups', path: '/price-groups', icon: <LocalAtmOutlined />, permissions: ['price_groups.index'] },
+      { key: 'taxRates', path: '/tax-rates', icon: <PercentOutlined />, permissions: ['tax_rates.index'] },
+      { key: 'taxGroups', path: '/tax-groups', icon: <CalculateOutlined />, permissions: ['tax_groups.index'] },
     ],
   },
   {
     key: 'inventory',
     items: [
-      { key: 'categories', path: '/categories', icon: <CategoryOutlined /> },
-      { key: 'brands', path: '/brands', icon: <LocalOfferOutlined /> },
-      { key: 'units', path: '/units', icon: <StraightenOutlined /> },
-      { key: 'variationTemplates', path: '/variation-templates', icon: <PaletteOutlined /> },
-      { key: 'rackLocations', path: '/rack-locations', icon: <WarehouseOutlined /> },
-      { key: 'priceGroups', path: '/price-groups', icon: <LocalAtmOutlined /> },
-      { key: 'products', path: '/products', icon: <Inventory2Outlined /> },
-      {
-        key: 'warehouse',
-        icon: <WarehouseOutlined />,
-        children: [
-          { key: 'stockLevels', path: '/inventory/stock' },
-          { key: 'stockLots', path: '/inventory/lots' },
-          { key: 'stockSerials', path: '/inventory/serials' },
-          { key: 'transfers', path: '/inventory/transfers' },
-          { key: 'adjustments', path: '/inventory/adjustments' },
-          { key: 'cycleCounts', path: '/inventory/counts' },
-        ],
-      },
+      { key: 'warehouses', path: '/warehouses', icon: <WarehouseOutlined />, permissions: ['warehouses.index'] },
+      { key: 'rackLocations', path: '/rack-locations', icon: <StraightenOutlined />, permissions: ['rack_locations.index'] },
+      { key: 'stockLevels', path: '/inventory/stock', icon: <TrendingUpOutlined />, permissions: ['inventory.index'] },
+      { key: 'stockLots', path: '/inventory/lots', icon: <Inventory2Outlined />, permissions: ['inventory.index'] },
+      { key: 'stockSerials', path: '/inventory/serials', icon: <ReceiptLongOutlined />, permissions: ['inventory.index'] },
+      { key: 'transfers', path: '/inventory/transfers', icon: <CompareArrowsOutlined />, permissions: ['inventory.index'] },
+      { key: 'adjustments', path: '/inventory/adjustments', icon: <TuneOutlined />, permissions: ['inventory.index'] },
+      { key: 'cycleCounts', path: '/inventory/counts', icon: <FactCheckOutlined />, permissions: ['inventory.index'] },
     ],
   },
   {
@@ -129,21 +135,33 @@ const NAV_CONFIG: NavSection[] = [
       {
         key: 'accounting',
         icon: <AccountBalanceOutlined />,
+        permissions: ['accounting.index', 'accounting.journals', 'accounting.coa', 'payments.create'],
         children: [
-          { key: 'journalEntries', path: '/accounting/journals' },
-          { key: 'chartOfAccounts', path: '/accounting/coa' },
-          { key: 'paymentAccounts', path: '/accounting/payment-accounts' },
-          { key: 'exchangeRates', path: '/accounting/exchange-rates' },
-          { key: 'fiscalYears', path: '/accounting/fiscal-years' },
+          { key: 'journalEntries', path: '/accounting/journals', permissions: ['accounting.index', 'accounting.journals'] },
+          { key: 'chartOfAccounts', path: '/accounting/coa', permissions: ['accounting.index', 'accounting.coa', 'accounting.journals'] },
+          { key: 'paymentAccounts', path: '/accounting/payment-accounts', permissions: ['accounting.index', 'payments.create'] },
+          { key: 'exchangeRates', path: '/accounting/exchange-rates', permissions: ['accounting.index', 'payments.create'] },
+          { key: 'fiscalYears', path: '/accounting/fiscal-years', permissions: ['accounting.index', 'accounting.journals'] },
         ],
       },
-      { key: 'expenses', path: '/expenses', icon: <PaymentsOutlined /> },
+      { key: 'expenses', path: '/expenses', icon: <PaymentsOutlined />, permissions: ['expenses.index'] },
+    ],
+  },
+  {
+    key: 'foundation',
+    items: [
+      { key: 'branches', path: '/branches', icon: <AccountTreeOutlined />, permissions: ['branches.index'] },
+      { key: 'businesses', path: '/businesses', icon: <BusinessOutlined />, superAdminOnly: true, permissions: ['businesses.index'] },
+      { key: 'users', path: '/users', icon: <PeopleAltOutlined />, permissions: ['users.index'] },
+      { key: 'roles', path: '/roles', icon: <LockOutlined />, permissions: ['roles.index'] },
+      { key: 'customFields', path: '/custom-fields', icon: <TuneOutlined />, permissions: ['custom_fields.index'] },
+      { key: 'settings', path: '/settings', icon: <SettingsOutlined />, permissions: ['settings.index'] },
     ],
   },
   {
     key: 'system',
     items: [
-      { key: 'auditLogs', path: '/audit-logs', icon: <HistoryOutlined />, adminOnly: true },
+      { key: 'auditLogs', path: '/audit-logs', icon: <HistoryOutlined />, permissions: ['audit_logs.index'] },
     ],
   },
 ]
@@ -159,49 +177,87 @@ export default function AppSidebar() {
   const router = useRouter()
   const theme = useTheme()
   const isDesktop = useMediaQuery(theme.breakpoints.up('lg'))
-  const { sidebarOpen, setSidebarOpen, mobileSidebarOpen, setMobileSidebarOpen, sidebarTheme, layoutSize, surfaceStyle } = useUIStore()
-  const { isAdmin } = useAuthStore()
+  const { sidebarOpen, setSidebarOpen, mobileSidebarOpen, setMobileSidebarOpen, sidebarTheme, layoutSize } = useUIStore()
+  const { user, isSuperAdmin } = useAuthStore()
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({})
   const expanded = isDesktop ? sidebarOpen : true
   const layoutMetrics = getLayoutMetrics(layoutSize)
+  const isCompactLayout = layoutSize === 'compact'
+  const isDenseLayout = layoutSize === 'compact' || layoutSize === 'small'
+  const navItemHeight = isCompactLayout ? 34 : isDenseLayout ? 38 : 42
+  const childNavItemHeight = isCompactLayout ? 32 : isDenseLayout ? 36 : 40
+  const logoSize = isCompactLayout ? 32 : isDenseLayout ? 36 : 40
   const drawerWidth = expanded ? layoutMetrics.sidebarWidth : layoutMetrics.sidebarCollapsedWidth
   const resolvedSidebarTheme = sidebarTheme === 'inherit' ? theme.palette.mode : sidebarTheme
   const sidebarIsDark = resolvedSidebarTheme === 'dark'
-  const isGlassSurface = surfaceStyle === 'glass'
+  const lightShellText = '#1C252E'
+  const lightShellMuted = '#637381'
+  const lightShellDisabled = '#919EAB'
+  const lightShellPaper = '#FFFFFF'
+  const sidebarPrimaryIcon = sidebarIsDark ? theme.palette.primary.light : theme.palette.primary.main
   const sidebarColors = {
-    bg: isGlassSurface
-      ? sidebarIsDark
-        ? alpha('#111827', 0.72)
-        : alpha(theme.palette.common.white, 0.58)
-      : sidebarIsDark
+    bg: sidebarIsDark
+      ? alpha('#111827', 0.94)
+      : resolvedSidebarTheme === 'light'
+        ? alpha(lightShellPaper, 0.96)
+        : alpha(theme.palette.background.default, 0.86),
+    paper: sidebarIsDark
         ? alpha('#111827', 0.94)
         : resolvedSidebarTheme === 'light'
-          ? alpha(theme.palette.common.white, 0.92)
-          : alpha(theme.palette.background.default, 0.86),
-    paper: isGlassSurface
-      ? sidebarIsDark
-        ? alpha('#111827', 0.72)
-        : alpha(theme.palette.common.white, 0.58)
-      : sidebarIsDark
-        ? alpha('#111827', 0.94)
-        : resolvedSidebarTheme === 'light'
-          ? alpha(theme.palette.common.white, 0.92)
+          ? alpha(lightShellPaper, 0.96)
           : alpha(theme.palette.background.default, 0.86),
     border: sidebarIsDark
-      ? alpha('#ffffff', isGlassSurface ? 0.18 : 0.14)
-      : alpha(theme.palette.grey[500], isGlassSurface ? 0.22 : 0.18),
-    text: sidebarIsDark ? '#f9fafb' : theme.palette.text.primary,
-    muted: sidebarIsDark ? alpha('#ffffff', 0.72) : theme.palette.text.secondary,
-    disabled: sidebarIsDark ? alpha('#ffffff', 0.42) : theme.palette.text.disabled,
-    hover: sidebarIsDark ? alpha('#ffffff', 0.08) : alpha(theme.palette.grey[500], 0.08),
-    selected: sidebarIsDark ? alpha(theme.palette.primary.light, 0.18) : alpha(theme.palette.primary.main, 0.08),
-    selectedHover: sidebarIsDark ? alpha(theme.palette.primary.light, 0.24) : alpha(theme.palette.primary.main, 0.12),
-    selectedText: sidebarIsDark ? theme.palette.primary.light : theme.palette.primary.main,
+      ? alpha('#ffffff', 0.14)
+      : alpha('#919EAB', 0.24),
+    text: sidebarIsDark ? '#f9fafb' : lightShellText,
+    muted: sidebarIsDark ? alpha('#ffffff', 0.72) : lightShellMuted,
+    disabled: sidebarIsDark ? alpha('#ffffff', 0.42) : lightShellDisabled,
+    icon: alpha(sidebarPrimaryIcon, sidebarIsDark ? 0.84 : 0.88),
+    hover: sidebarIsDark ? alpha('#ffffff', 0.08) : alpha('#919EAB', 0.08),
+    selected: theme.palette.primary.main,
+    selectedHover: theme.palette.primary.dark,
+    selectedText: theme.palette.primary.contrastText,
   }
+
+  const hasAnyPermission = useMemo(() => {
+    const permissions = new Set(user?.permissions ?? [])
+    const superAdmin = isSuperAdmin()
+
+    return (requiredPermissions?: string[]) => {
+      if (superAdmin) return true
+      if (!requiredPermissions || requiredPermissions.length === 0) return true
+
+      return requiredPermissions.some((permission) => permissions.has(permission))
+    }
+  }, [isSuperAdmin, user?.permissions])
+
+  const canViewItem = useMemo(() => {
+    const superAdmin = isSuperAdmin()
+
+    return (item: NavItem) => {
+      if (item.superAdminOnly && !superAdmin) return false
+      return hasAnyPermission(item.permissions)
+    }
+  }, [hasAnyPermission, isSuperAdmin])
+
+  const visibleSections = useMemo(() => {
+    return NAV_CONFIG
+      .map((section) => ({
+        ...section,
+        items: section.items
+          .filter((item) => canViewItem(item))
+          .map((item) => ({
+            ...item,
+            children: item.children?.filter((child) => hasAnyPermission(child.permissions)),
+          }))
+          .filter((item) => !item.children || item.children.length > 0),
+      }))
+      .filter((section) => section.items.length > 0)
+  }, [canViewItem, hasAnyPermission])
 
   const activeParentMenus = useMemo(() => {
     const nextOpenMenus: Record<string, boolean> = {}
-    NAV_CONFIG.forEach((section) => {
+    visibleSections.forEach((section) => {
       section.items.forEach((item) => {
         if (item.children?.some((child) => isRouteActive(pathname, child.path))) {
           nextOpenMenus[item.key] = true
@@ -209,7 +265,7 @@ export default function AppSidebar() {
       })
     })
     return nextOpenMenus
-  }, [pathname])
+  }, [pathname, visibleSections])
 
   const handleToggleMenu = (key: string) => {
     if (!sidebarOpen) {
@@ -223,9 +279,7 @@ export default function AppSidebar() {
     if (!isDesktop) setMobileSidebarOpen(false)
   }
 
-  const renderNavItem = (item: NavItem & { adminOnly?: boolean }) => {
-    if (item.adminOnly && !isAdmin()) return null
-
+  const renderNavItem = (item: NavItem) => {
     const hasChildren = !!item.children
     const isOpen = activeParentMenus[item.key] || openMenus[item.key]
     const active = isRouteActive(pathname, item.path)
@@ -239,11 +293,11 @@ export default function AppSidebar() {
           onClick={() => (hasChildren ? handleToggleMenu(item.key) : navigateTo(item.path!))}
           selected={active}
           sx={{
-            minHeight: 44,
-            px: expanded ? 1.5 : 0,
-            py: 1,
+            minHeight: navItemHeight,
+            px: expanded ? 1.25 : 0,
+            py: isDenseLayout ? 0.5 : 0.75,
             borderRadius: 1,
-            mb: 0.5,
+            mb: 0.25,
             justifyContent: expanded ? 'initial' : 'center',
             color: active ? sidebarColors.text : sidebarColors.muted,
             bgcolor: active ? sidebarColors.selected : 'transparent',
@@ -264,10 +318,10 @@ export default function AppSidebar() {
               minWidth: 0,
               mr: expanded ? 1.5 : 0,
               justifyContent: 'center',
-              color: active ? sidebarColors.selectedText : 'inherit',
+              color: active ? sidebarColors.selectedText : sidebarColors.icon,
               '& svg': {
-                width: 22,
-                height: 22,
+                width: isDenseLayout ? 20 : 22,
+                height: isDenseLayout ? 20 : 22,
               },
             }}
           >
@@ -285,7 +339,11 @@ export default function AppSidebar() {
                   </Typography>
                 }
               />
-              {hasChildren && (isOpen ? <ExpandLess /> : <ExpandMore />)}
+              {hasChildren && (
+                isOpen
+                  ? <ExpandLess sx={{ color: active ? sidebarColors.selectedText : sidebarColors.icon }} />
+                  : <ExpandMore sx={{ color: active ? sidebarColors.selectedText : sidebarColors.icon }} />
+              )}
             </>
           )}
         </ListItemButton>
@@ -302,9 +360,9 @@ export default function AppSidebar() {
                     onClick={() => navigateTo(child.path)}
                     selected={childActive}
                     sx={{
-                      minHeight: 40,
+                      minHeight: childNavItemHeight,
                       borderRadius: 1,
-                      mb: 0.5,
+                      mb: 0.25,
                       color: childActive ? sidebarColors.selectedText : sidebarColors.muted,
                       bgcolor: childActive ? sidebarColors.selected : 'transparent',
                       '&:hover': {
@@ -364,17 +422,15 @@ export default function AppSidebar() {
           overflow: 'visible',
           backgroundColor: sidebarColors.paper,
           borderRight: `1px dashed ${sidebarColors.border}`,
-          backdropFilter: isGlassSurface ? 'blur(18px) saturate(160%)' : 'none',
-          WebkitBackdropFilter: isGlassSurface ? 'blur(18px) saturate(160%)' : 'none',
-          px: 1.5,
+          px: isDenseLayout ? 1 : 1.25,
         },
       }}
     >
       <Stack
-        spacing={3}
+        spacing={isDenseLayout ? 2 : 2.5}
         sx={{
-          px: expanded ? 1 : 0,
-          py: 3,
+          px: expanded ? 0.75 : 0,
+          py: isDenseLayout ? 2 : 2.5,
           display: 'flex',
         }}
       >
@@ -384,13 +440,13 @@ export default function AppSidebar() {
             alignItems: 'center',
             justifyContent: expanded ? 'flex-start' : 'center',
             gap: 1.5,
-            minHeight: 40,
+            minHeight: logoSize,
           }}
         >
           <Box
             sx={{
-              width: 40,
-              height: 40,
+              width: logoSize,
+              height: logoSize,
               borderRadius: 1,
               bgcolor: 'primary.main',
               display: 'flex',
@@ -398,7 +454,7 @@ export default function AppSidebar() {
               justifyContent: 'center',
               color: 'white',
               fontWeight: 800,
-              fontSize: 20,
+              fontSize: isDenseLayout ? 17 : 20,
             }}
           >
             E
@@ -424,14 +480,14 @@ export default function AppSidebar() {
           },
         }}
       >
-        {NAV_CONFIG.map((section) => (
-          <Box key={section.key} sx={{ mb: 2 }}>
+        {visibleSections.map((section) => (
+          <Box key={section.key} sx={{ mb: isDenseLayout ? 1.25 : 1.75 }}>
             {expanded && (
               <Typography
                 variant="overline"
                 sx={{
-                  px: 1.5,
-                  mb: 1,
+                  px: 1.25,
+                  mb: 0.75,
                   display: 'block',
                   color: sidebarColors.disabled,
                   fontWeight: 700,

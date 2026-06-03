@@ -524,7 +524,7 @@ export function PurchaseDetailPage({ purchaseId }: PurchaseDetailPageProps) {
                           <TableCell sx={{ width: 170 }} align="right">{t('payment.converted')}</TableCell>
                           <TableCell sx={{ width: 140 }}>{t('payment.status')}</TableCell>
                           <TableCell sx={{ width: 170 }}>{t('payment.reference')}</TableCell>
-                          <TableCell sx={{ width: 100 }} align="right">{t('detail.actions')}</TableCell>
+                          <TableCell sx={{ width: 100 }} align="center">{t('detail.actions')}</TableCell>
                         </TableRow>
                       </TableHead>
                       <TableBody>
@@ -537,8 +537,8 @@ export function PurchaseDetailPage({ purchaseId }: PurchaseDetailPageProps) {
                             <TableCell align="right">{formatMoney(payment.amount, currencyFormatter)}</TableCell>
                             <TableCell>{t(`payment.${payment.status}`, { defaultValue: payment.status })}</TableCell>
                             <TableCell>{payment.reference || '-'}</TableCell>
-                            <TableCell align="right">
-                              <Stack direction="row" spacing={0.5} sx={{ justifyContent: 'flex-end' }}>
+                            <TableCell align="center">
+                              <Stack direction="row" spacing={0.5} sx={{ justifyContent: 'center' }}>
                                 {canCorrectPayment && payment.status === 'completed' && (
                                   <Tooltip title={t('payment.editAction')}>
                                     <IconButton size="small" onClick={() => setEditingPayment(payment)}>

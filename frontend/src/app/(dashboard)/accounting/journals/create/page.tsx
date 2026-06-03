@@ -134,7 +134,7 @@ export default function CreateJournalPage() {
       <Box component="form" noValidate onSubmit={handleSubmit(submitForm)}>
         <Stack spacing={3}>
           <Card>
-            <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+            <CardContent>
               <Stack spacing={2.5}>
                 {serverError && <Alert severity="error">{serverError}</Alert>}
                 {accountsQuery.isError && (
@@ -183,7 +183,7 @@ export default function CreateJournalPage() {
           </Card>
 
           <Card>
-            <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+            <CardContent>
               <Stack spacing={2.5}>
                 {errors.entries?.message && (
                   <Alert severity="error">{errors.entries.message}</Alert>

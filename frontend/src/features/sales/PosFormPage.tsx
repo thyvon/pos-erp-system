@@ -108,8 +108,8 @@ const taxScopes = ['line', 'sale'] as const
 const taxTypes = ['exclusive', 'inclusive'] as const
 
 const footerButtonSx = {
-  height: 40,
-  minHeight: 40,
+  height: 'var(--app-control-height)',
+  minHeight: 'var(--app-control-height)',
   whiteSpace: 'nowrap',
   flex: '0 0 auto',
   px: 1.5,
@@ -146,7 +146,6 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
   const setSettingsOpen = useUIStore((state) => state.setSettingsOpen)
   const topbarTheme = useUIStore((state) => state.topbarTheme)
   const layoutSize = useUIStore((state) => state.layoutSize)
-  const surfaceStyle = useUIStore((state) => state.surfaceStyle)
   const [serverError, setServerError] = useState('')
   const [productTab, setProductTab] = useState<PosProductTab>('featured')
   const [categoryId, setCategoryId] = useState('')
@@ -178,25 +177,20 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
   const layoutMetrics = getLayoutMetrics(layoutSize)
   const resolvedTopbarTheme = topbarTheme === 'inherit' ? theme.palette.mode : topbarTheme
   const topbarIsDark = resolvedTopbarTheme === 'dark'
-  const isGlassSurface = surfaceStyle === 'glass'
   const posTopbarColors = {
-    bg: isGlassSurface
-      ? topbarIsDark
-        ? alpha('#111827', 0.72)
-        : alpha(theme.palette.common.white, 0.58)
-      : topbarIsDark
+    bg: topbarIsDark
       ? alpha('#111827', 0.94)
       : resolvedTopbarTheme === 'light'
         ? alpha(theme.palette.common.white, 0.92)
         : alpha(theme.palette.background.default, 0.86),
     border: topbarIsDark
-      ? alpha('#ffffff', isGlassSurface ? 0.16 : 0.12)
-      : alpha(theme.palette.grey[500], isGlassSurface ? 0.18 : 0.12),
+      ? alpha('#ffffff', 0.12)
+      : alpha(theme.palette.grey[500], 0.12),
     text: topbarIsDark ? alpha('#ffffff', 0.9) : theme.palette.text.primary,
     muted: topbarIsDark ? alpha('#ffffff', 0.72) : theme.palette.text.secondary,
     buttonBg: topbarIsDark
-      ? alpha('#ffffff', isGlassSurface ? 0.1 : 0.08)
-      : alpha(theme.palette.grey[500], isGlassSurface ? 0.12 : 0.08),
+      ? alpha('#ffffff', 0.08)
+      : alpha(theme.palette.grey[500], 0.08),
     buttonHover: topbarIsDark ? alpha('#ffffff', 0.14) : alpha(theme.palette.primary.main, 0.08),
   }
   const posTopbarButtonSx = {
@@ -756,9 +750,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
       onSubmit={handleSubmit(submitForm)}
       sx={{
         height: '100dvh',
-        bgcolor: isGlassSurface
-          ? 'transparent'
-          : (theme) => alpha(theme.palette.primary.main, theme.palette.mode === 'dark' ? 0.06 : 0.035),
+        bgcolor: (theme) => alpha(theme.palette.primary.main, theme.palette.mode === 'dark' ? 0.06 : 0.035),
         color: 'text.primary',
         overflow: 'hidden',
       }}
@@ -781,10 +773,8 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
             display: 'flex',
             alignItems: 'center',
             borderBottom: `1px solid ${posTopbarColors.border}`,
-            bgcolor: isGlassSurface ? alpha(posTopbarColors.bg, 0.95) : posTopbarColors.bg,
+            bgcolor: posTopbarColors.bg,
             color: posTopbarColors.text,
-            backdropFilter: isGlassSurface ? 'blur(18px) saturate(160%)' : 'blur(8px)',
-            WebkitBackdropFilter: isGlassSurface ? 'blur(18px) saturate(160%)' : 'blur(8px)',
           }}
         >
           <Stack

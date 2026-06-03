@@ -10,10 +10,9 @@ import { AuthGate } from '@/components/auth/AuthGate'
 import { getLayoutMetrics } from '@/theme'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { contentStretch, layoutSize, surfaceStyle } = useUIStore()
+  const { contentStretch, layoutSize } = useUIStore()
   const theme = useTheme()
   const layoutMetrics = getLayoutMetrics(layoutSize)
-  const isGlassSurface = surfaceStyle === 'glass'
 
   return (
     <AuthGate>
@@ -21,7 +20,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         sx={{
           display: 'flex',
           minHeight: '100vh',
-          bgcolor: isGlassSurface ? 'transparent' : 'background.default',
+          bgcolor: 'background.default',
         }}
       >
         <AppSidebar />
@@ -48,8 +47,8 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
               width: '100%',
               maxWidth: contentStretch ? 'none' : layoutMetrics.contentMaxWidth,
               mx: 'auto',
-              px: { xs: 2, sm: 3, lg: 3 },
-              py: { xs: 2, sm: 3 },
+              px: { xs: 1.5, sm: 2.5, lg: 3 },
+              py: { xs: 1.5, sm: 2.5 },
               mt: `${layoutMetrics.topbarHeight}px`,
               minHeight: `calc(100vh - ${layoutMetrics.topbarHeight}px)`,
             }}

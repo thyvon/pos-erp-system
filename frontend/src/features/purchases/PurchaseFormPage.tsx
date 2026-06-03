@@ -260,7 +260,7 @@ export function PurchaseFormPage({ purchaseId }: PurchaseFormPageProps) {
           {serverError && <Alert severity="error">{serverError}</Alert>}
 
           <Card variant="outlined">
-            <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+            <CardContent>
               <Stack spacing={2.5}>
                 <Typography variant="subtitle2">{t('form.orderDetails')}</Typography>
 
@@ -411,7 +411,7 @@ export function PurchaseFormPage({ purchaseId }: PurchaseFormPageProps) {
           </Card>
 
           <Card variant="outlined">
-            <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+            <CardContent>
               <Stack spacing={2}>
                 {typeof errors.items?.message === 'string' && <Alert severity="error">{errors.items.message}</Alert>}
                 <PurchaseItemsTable
@@ -434,7 +434,7 @@ export function PurchaseFormPage({ purchaseId }: PurchaseFormPageProps) {
           </Card>
 
           <Card variant="outlined">
-            <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+            <CardContent>
               <PurchasePricingPanel
                 control={control}
                 errors={errors}
@@ -448,7 +448,7 @@ export function PurchaseFormPage({ purchaseId }: PurchaseFormPageProps) {
           </Card>
 
           <Card variant="outlined">
-            <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+            <CardContent>
               <PurchaseNotesPanel control={control} errors={errors} />
             </CardContent>
           </Card>

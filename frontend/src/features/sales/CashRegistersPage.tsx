@@ -154,7 +154,7 @@ function CashRegisterFormDialog({
             />
           </Stack>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
+        <DialogActions>
           <Button variant="outlined" onClick={onClose} disabled={isSaving}>
             {t('common:buttons.cancel')}
           </Button>
@@ -225,7 +225,7 @@ function OpenSessionDialog({
             />
           </Stack>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
+        <DialogActions>
           <Button variant="outlined" onClick={onClose} disabled={isSaving}>
             {t('common:buttons.cancel')}
           </Button>
@@ -306,7 +306,7 @@ function CloseSessionDialog({
             />
           </Stack>
         </DialogContent>
-        <DialogActions sx={{ px: 3, pb: 2 }}>
+        <DialogActions>
           <Button variant="outlined" onClick={onClose} disabled={isSaving}>
             {t('common:buttons.cancel')}
           </Button>
@@ -377,7 +377,7 @@ function SessionsDialog({
           </Table>
         </TableContainer>
       </DialogContent>
-      <DialogActions sx={{ px: 3, pb: 2 }}>
+      <DialogActions>
         <Button variant="outlined" onClick={onClose}>
           {t('common:buttons.close')}
         </Button>
@@ -524,7 +524,7 @@ export function CashRegistersPage() {
       >
         {(['total', 'active', 'open', 'inactive'] as const).map((key) => (
           <Card key={key}>
-            <CardContent sx={{ p: 2.5, '&:last-child': { pb: 2.5 } }}>
+            <CardContent>
               <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                 {t(`cashRegisters.summary.${key}`)}
               </Typography>
@@ -537,7 +537,7 @@ export function CashRegistersPage() {
       </Box>
 
       <Card>
-        <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+        <CardContent>
           <Stack
             direction={{ xs: 'column', lg: 'row' }}
             spacing={2}

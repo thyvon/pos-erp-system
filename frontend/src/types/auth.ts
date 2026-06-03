@@ -3,6 +3,19 @@ export interface AllowedBranch {
   name: string
 }
 
+export interface BusinessAddress {
+  line1?: string | null
+  line2?: string | null
+  village?: string | null
+  commune?: string | null
+  district?: string | null
+  province_city?: string | null
+  city?: string | null
+  state?: string | null
+  postal_code?: string | null
+  country?: string | null
+}
+
 export interface User {
   id: string
   business_id?: string
@@ -37,12 +50,16 @@ export interface Business {
   name: string
   legal_name: string | null
   email?: string | null
+  phone?: string | null
+  tax_id?: string | null
+  country?: string | null
   status?: string
   currency: string
   timezone: string
   locale: string
   date_format?: string
   logo_url?: string | null
+  address?: BusinessAddress | null
 }
 
 export interface AuthMeResponse {

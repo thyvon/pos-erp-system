@@ -435,7 +435,7 @@ export function ProductFormPage({ productId }: ProductFormPageProps) {
         <Box component="form" noValidate onSubmit={handleSubmit(submitForm, handleInvalid)}>
           <Stack spacing={3}>
             <Card>
-              <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+              <CardContent>
                 <Stack spacing={3}>
                   <ProductGeneralSection
                     control={control}
@@ -475,7 +475,7 @@ export function ProductFormPage({ productId }: ProductFormPageProps) {
 
             {type === 'variable' && (
               <Card>
-                <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+                <CardContent>
                   <ProductVariationsSection
                     control={control}
                     errors={errors}
@@ -495,7 +495,7 @@ export function ProductFormPage({ productId }: ProductFormPageProps) {
 
             {type === 'combo' && (
               <Card>
-                <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+                <CardContent>
                   <ProductComboSection
                     control={control}
                     errors={errors}

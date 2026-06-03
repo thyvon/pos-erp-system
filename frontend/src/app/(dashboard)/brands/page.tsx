@@ -129,7 +129,7 @@ export default function BrandsPage() {
       </Stack>
 
       <Card>
-        <CardContent sx={{ p: 3, '&:last-child': { pb: 3 } }}>
+        <CardContent>
           <TextField
             value={search}
             onChange={(event) => {
@@ -179,7 +179,12 @@ export default function BrandsPage() {
                         <Avatar
                           variant="rounded"
                           src={brand.image_url ?? undefined}
-                          sx={{ width: 40, height: 40, borderRadius: 1, bgcolor: 'action.hover' }}
+                          sx={{
+                            width: 'var(--app-control-height)',
+                            height: 'var(--app-control-height)',
+                            borderRadius: 1,
+                            bgcolor: 'action.hover',
+                          }}
                         >
                           <ImageOutlined fontSize="small" />
                         </Avatar>

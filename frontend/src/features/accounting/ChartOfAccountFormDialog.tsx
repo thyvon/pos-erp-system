@@ -292,7 +292,7 @@ export function ChartOfAccountFormDialog({
             />
           </Stack>
         </DialogContent>
-        <DialogActions sx={{ px: 3, py: 2 }}>
+        <DialogActions>
           <Button variant="outlined" onClick={onClose} disabled={isSaving}>
             {t('common:buttons.cancel')}
           </Button>
