@@ -16,7 +16,6 @@ import {
   useMediaQuery,
   Tooltip,
   Collapse,
-  alpha,
   Stack,
 } from '@mui/material'
 import {
@@ -53,7 +52,7 @@ import {
 } from '@/components/ui/icons'
 import { useAuthStore } from '@/stores/authStore'
 import { useUIStore } from '@/stores/uiStore'
-import { getLayoutMetrics } from '@/theme'
+import { buildLayoutSurfaceColors, getLayoutMetrics } from '@/theme'
 
 interface NavItem {
   key: string
@@ -188,36 +187,7 @@ export default function AppSidebar() {
   const childNavItemHeight = isCompactLayout ? 32 : isDenseLayout ? 36 : 40
   const logoSize = isCompactLayout ? 32 : isDenseLayout ? 36 : 40
   const drawerWidth = expanded ? layoutMetrics.sidebarWidth : layoutMetrics.sidebarCollapsedWidth
-  const resolvedSidebarTheme = sidebarTheme === 'inherit' ? theme.palette.mode : sidebarTheme
-  const sidebarIsDark = resolvedSidebarTheme === 'dark'
-  const lightShellText = '#1C252E'
-  const lightShellMuted = '#637381'
-  const lightShellDisabled = '#919EAB'
-  const lightShellPaper = '#FFFFFF'
-  const sidebarPrimaryIcon = sidebarIsDark ? theme.palette.primary.light : theme.palette.primary.main
-  const sidebarColors = {
-    bg: sidebarIsDark
-      ? alpha('#111827', 0.94)
-      : resolvedSidebarTheme === 'light'
-        ? alpha(lightShellPaper, 0.96)
-        : alpha(theme.palette.background.default, 0.86),
-    paper: sidebarIsDark
-        ? alpha('#111827', 0.94)
-        : resolvedSidebarTheme === 'light'
-          ? alpha(lightShellPaper, 0.96)
-          : alpha(theme.palette.background.default, 0.86),
-    border: sidebarIsDark
-      ? alpha('#ffffff', 0.14)
-      : alpha('#919EAB', 0.24),
-    text: sidebarIsDark ? '#f9fafb' : lightShellText,
-    muted: sidebarIsDark ? alpha('#ffffff', 0.72) : lightShellMuted,
-    disabled: sidebarIsDark ? alpha('#ffffff', 0.42) : lightShellDisabled,
-    icon: alpha(sidebarPrimaryIcon, sidebarIsDark ? 0.84 : 0.88),
-    hover: sidebarIsDark ? alpha('#ffffff', 0.08) : alpha('#919EAB', 0.08),
-    selected: theme.palette.primary.main,
-    selectedHover: theme.palette.primary.dark,
-    selectedText: theme.palette.primary.contrastText,
-  }
+  const sidebarColors = buildLayoutSurfaceColors(theme, sidebarTheme)
 
   const hasAnyPermission = useMemo(() => {
     const permissions = new Set(user?.permissions ?? [])
@@ -420,7 +390,7 @@ export default function AppSidebar() {
             duration: theme.transitions.duration.enteringScreen,
           }),
           overflow: 'visible',
-          backgroundColor: sidebarColors.paper,
+          background: sidebarColors.paper,
           borderRight: `1px dashed ${sidebarColors.border}`,
           px: isDenseLayout ? 1 : 1.25,
         },

@@ -33,7 +33,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         minHeight: '100vh',
         display: 'flex',
         width: '100%',
-        bgcolor: 'background.default',
+        background: 'transparent',
         color: 'text.primary',
       }}
     >
@@ -43,10 +43,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           width: { md: '48%', lg: '56%' },
           flexDirection: 'column',
           justifyContent: 'space-between',
-          bgcolor: (theme) =>
-            theme.palette.mode === 'light'
-              ? '#F4F6F8'
-              : '#111820',
+          bgcolor: (theme) => alpha(theme.palette.background.paper, theme.palette.mode === 'light' ? 0.5 : 0.24),
           borderRight: (theme) => `1px solid ${theme.palette.divider}`,
           px: { md: 5, lg: 8 },
           py: { md: 4, lg: 6 },
@@ -167,7 +164,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           alignItems: 'center',
           justifyContent: 'center',
           width: { xs: '100%', md: '52%', lg: '44%' },
-          bgcolor: 'background.paper',
+          bgcolor: (theme) => alpha(theme.palette.background.paper, theme.palette.mode === 'light' ? 0.72 : 0.44),
           px: { xs: 2.5, sm: 4, md: 6 },
           py: { xs: 4, md: 6 },
         }}

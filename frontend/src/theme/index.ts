@@ -1,10 +1,17 @@
 import { createTheme, Theme, alpha } from '@mui/material/styles'
 import type { Shadows } from '@mui/material/styles'
 import type {} from '@mui/x-date-pickers/themeAugmentation'
-import { buildPalette, THEME_COLOR_PRESETS, type ThemeColorPreset } from './palette'
+import {
+  buildPalette,
+  getThemeColorPreset,
+  THEME_COLOR_PRESETS,
+  type LayoutSurfaceTheme,
+  type NavigationColorPreset,
+  type ThemeColorPreset,
+} from './palette'
 
 export { THEME_COLOR_PRESETS }
-export type { ThemeColorPreset }
+export type { LayoutSurfaceTheme, ThemeColorPreset }
 
 export const SIDEBAR_WIDTH = 264
 export const SIDEBAR_COLLAPSED_WIDTH = 76
@@ -41,6 +48,35 @@ export const LAYOUT_SIZE_OPTIONS: Array<{ value: LayoutSize; labelKey: string }>
   { value: 'large', labelKey: 'layoutSettings.large' },
 ]
 
+const NAVIGATION_COLOR_PRESET_VALUES = ['default', 'blue', 'darkGreen'] as const satisfies readonly NavigationColorPreset[]
+
+function isNavigationColorPreset(value: ThemeColorPreset): value is NavigationColorPreset {
+  return NAVIGATION_COLOR_PRESET_VALUES.includes(value as NavigationColorPreset)
+}
+
+const NAVIGATION_COLOR_PRESETS = THEME_COLOR_PRESETS.filter((preset) =>
+  isNavigationColorPreset(preset.value)
+).map((preset) => ({
+  value: preset.value as NavigationColorPreset,
+  labelKey: preset.labelKey,
+  main: preset.main,
+  light: preset.light,
+  dark: preset.dark,
+}))
+
+export const LAYOUT_SURFACE_THEME_OPTIONS: Array<{
+  value: LayoutSurfaceTheme
+  labelKey: string
+  main: string
+  light: string
+  dark: string
+}> = [
+  { value: 'inherit', labelKey: 'layoutSettings.inherit', main: '#64748B', light: '#E2E8F0', dark: '#0F172A' },
+  { value: 'light', labelKey: 'layoutSettings.light', main: '#F8FAFC', light: '#FFFFFF', dark: '#CBD5E1' },
+  { value: 'dark', labelKey: 'layoutSettings.dark', main: '#111827', light: '#374151', dark: '#030712' },
+  ...NAVIGATION_COLOR_PRESETS,
+]
+
 const LAYOUT_METRICS_PRESETS: Record<LayoutSize, LayoutMetrics> = {
   compact: {
     sidebarWidth: 236,
@@ -70,6 +106,91 @@ const LAYOUT_METRICS_PRESETS: Record<LayoutSize, LayoutMetrics> = {
 
 export function getLayoutMetrics(layoutSize: LayoutSize = 'normal'): LayoutMetrics {
   return LAYOUT_METRICS_PRESETS[layoutSize] ?? LAYOUT_METRICS_PRESETS.normal
+}
+
+export function isLayoutSurfaceTheme(value: unknown): value is LayoutSurfaceTheme {
+  return typeof value === 'string' && LAYOUT_SURFACE_THEME_OPTIONS.some((option) => option.value === value)
+}
+
+export function buildLayoutSurfaceColors(theme: Theme, surfaceTheme: LayoutSurfaceTheme) {
+  const resolvedTheme = surfaceTheme === 'inherit' ? theme.palette.mode : surfaceTheme
+  const lightShellText = '#1C252E'
+  const lightShellMuted = '#637381'
+  const lightShellDisabled = '#919EAB'
+  const lightShellPaper = '#FFFFFF'
+
+  if (resolvedTheme === 'light') {
+    return {
+      isDark: false,
+      bg: alpha(lightShellPaper, 0.96),
+      paper: alpha(lightShellPaper, 0.96),
+      border: alpha(theme.palette.primary.main, 0.18),
+      text: lightShellText,
+      muted: lightShellMuted,
+      disabled: lightShellDisabled,
+      icon: alpha(theme.palette.primary.main, 0.88),
+      hover: alpha(theme.palette.primary.main, 0.08),
+      buttonBg: alpha(theme.palette.primary.main, 0.08),
+      buttonHover: alpha(theme.palette.primary.main, 0.14),
+      floatingBg: lightShellPaper,
+      floatingBorder: alpha(theme.palette.primary.main, 0.22),
+      selected: theme.palette.primary.main,
+      selectedHover: theme.palette.primary.dark,
+      selectedText: theme.palette.primary.contrastText,
+    }
+  }
+
+  if (resolvedTheme === 'dark') {
+    return {
+      isDark: true,
+      bg: alpha('#111827', 0.94),
+      paper: alpha('#111827', 0.94),
+      border: alpha(theme.palette.primary.light, 0.22),
+      text: '#f9fafb',
+      muted: alpha('#ffffff', 0.72),
+      disabled: alpha('#ffffff', 0.42),
+      icon: alpha(theme.palette.primary.light, 0.84),
+      hover: alpha(theme.palette.primary.light, 0.1),
+      buttonBg: alpha(theme.palette.primary.light, 0.12),
+      buttonHover: alpha(theme.palette.primary.light, 0.2),
+      floatingBg: '#111827',
+      floatingBorder: alpha(theme.palette.primary.light, 0.22),
+      selected: theme.palette.primary.main,
+      selectedHover: theme.palette.primary.dark,
+      selectedText: theme.palette.primary.contrastText,
+    }
+  }
+
+  const preset = getThemeColorPreset(resolvedTheme)
+
+  return {
+    isDark: true,
+    bg: preset.dark,
+    paper: preset.dark,
+    border: alpha(theme.palette.primary.light, 0.28),
+    text: '#ffffff',
+    muted: alpha('#ffffff', 0.74),
+    disabled: alpha('#ffffff', 0.46),
+    icon: alpha(theme.palette.primary.light, 0.92),
+    hover: alpha(theme.palette.primary.light, 0.12),
+    buttonBg: alpha(theme.palette.primary.light, 0.16),
+    buttonHover: alpha(theme.palette.primary.light, 0.26),
+    floatingBg: preset.dark,
+    floatingBorder: alpha(theme.palette.primary.light, 0.32),
+    selected: theme.palette.primary.main,
+    selectedHover: theme.palette.primary.dark,
+    selectedText: theme.palette.primary.contrastText,
+  }
+}
+
+export function buildAppBackground(theme: Theme) {
+  const primary = theme.palette.primary.main
+
+  if (theme.palette.mode === 'dark') {
+    return `linear-gradient(135deg, ${theme.palette.background.default} 0%, ${alpha(primary, 0.18)} 46%, ${alpha('#000000', 0.32)} 100%)`
+  }
+
+  return `linear-gradient(135deg, ${theme.palette.background.default} 0%, ${alpha(primary, 0.1)} 48%, ${alpha('#FFFFFF', 0.86)} 100%)`
 }
 
 const LAYOUT_SIZE_PRESETS: Record<LayoutSize, {
@@ -271,8 +392,10 @@ export function createAppTheme(
             width: '100%',
             height: '100%',
             backgroundColor: palette.background?.default,
-            backgroundImage: 'none',
-            backgroundAttachment: 'initial',
+            backgroundImage: buildAppBackground(theme),
+            backgroundAttachment: 'fixed',
+            backgroundRepeat: 'no-repeat',
+            backgroundSize: 'cover',
             color: palette.text?.primary,
             fontFamily,
             '--app-control-height': `${sizePreset.controlHeight}px`,

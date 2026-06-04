@@ -36,7 +36,6 @@ import {
   ToggleButtonGroup,
   Tooltip,
   Typography,
-  alpha,
   useTheme,
 } from '@mui/material'
 import dayjs from 'dayjs'
@@ -99,7 +98,7 @@ import { useTaxRatesQuery } from '@/features/tax-rates/hooks'
 import { useWarehousesQuery } from '@/features/warehouses/hooks'
 import { useAuthStore } from '@/stores/authStore'
 import { useUIStore } from '@/stores/uiStore'
-import { getLayoutMetrics } from '@/theme'
+import { buildLayoutSurfaceColors, getLayoutMetrics } from '@/theme'
 import { formatAppDate } from '@/utils/dateFormat'
 import { formatMoney } from '@/utils/formatMoney'
 
@@ -175,24 +174,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
   const dateFormat = useAppDateFormat()
   const debouncedProductGallerySearch = useDebouncedValue(productGallerySearch, 250)
   const layoutMetrics = getLayoutMetrics(layoutSize)
-  const resolvedTopbarTheme = topbarTheme === 'inherit' ? theme.palette.mode : topbarTheme
-  const topbarIsDark = resolvedTopbarTheme === 'dark'
-  const posTopbarColors = {
-    bg: topbarIsDark
-      ? alpha('#111827', 0.94)
-      : resolvedTopbarTheme === 'light'
-        ? alpha(theme.palette.common.white, 0.92)
-        : alpha(theme.palette.background.default, 0.86),
-    border: topbarIsDark
-      ? alpha('#ffffff', 0.12)
-      : alpha(theme.palette.grey[500], 0.12),
-    text: topbarIsDark ? alpha('#ffffff', 0.9) : theme.palette.text.primary,
-    muted: topbarIsDark ? alpha('#ffffff', 0.72) : theme.palette.text.secondary,
-    buttonBg: topbarIsDark
-      ? alpha('#ffffff', 0.08)
-      : alpha(theme.palette.grey[500], 0.08),
-    buttonHover: topbarIsDark ? alpha('#ffffff', 0.14) : alpha(theme.palette.primary.main, 0.08),
-  }
+  const posTopbarColors = buildLayoutSurfaceColors(theme, topbarTheme)
   const posTopbarButtonSx = {
     width: 'var(--app-small-control-height)',
     height: 'var(--app-small-control-height)',
@@ -750,7 +732,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
       onSubmit={handleSubmit(submitForm)}
       sx={{
         height: '100dvh',
-        bgcolor: (theme) => alpha(theme.palette.primary.main, theme.palette.mode === 'dark' ? 0.06 : 0.035),
+        background: 'transparent',
         color: 'text.primary',
         overflow: 'hidden',
       }}
@@ -773,7 +755,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
             display: 'flex',
             alignItems: 'center',
             borderBottom: `1px solid ${posTopbarColors.border}`,
-            bgcolor: posTopbarColors.bg,
+            background: posTopbarColors.bg,
             color: posTopbarColors.text,
           }}
         >

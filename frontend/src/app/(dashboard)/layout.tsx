@@ -20,7 +20,7 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
         sx={{
           display: 'flex',
           minHeight: '100vh',
-          bgcolor: 'background.default',
+          background: 'transparent',
         }}
       >
         <AppSidebar />

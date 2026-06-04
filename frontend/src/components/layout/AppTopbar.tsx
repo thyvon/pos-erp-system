@@ -7,7 +7,6 @@ import {
   Box,
   useTheme,
   Stack,
-  alpha,
   Tooltip,
 } from '@mui/material'
 import {
@@ -19,7 +18,7 @@ import {
   ChevronRight,
 } from '@/components/ui/icons'
 import { useUIStore } from '@/stores/uiStore'
-import { getLayoutMetrics } from '@/theme'
+import { buildLayoutSurfaceColors, getLayoutMetrics } from '@/theme'
 import AccountPopover from './AccountPopover'
 import NotificationsPopover from './NotificationsPopover'
 
@@ -40,30 +39,7 @@ export default function AppTopbar() {
   const actionButtonSize = isDenseLayout ? 36 : 40
   const collapseButtonSize = isDenseLayout ? 32 : 36
   const drawerWidth = sidebarOpen ? layoutMetrics.sidebarWidth : layoutMetrics.sidebarCollapsedWidth
-  const resolvedTopbarTheme = topbarTheme === 'inherit' ? theme.palette.mode : topbarTheme
-  const topbarIsDark = resolvedTopbarTheme === 'dark'
-  const lightShellPaper = '#FFFFFF'
-  const topbarPrimaryIcon = topbarIsDark ? theme.palette.primary.light : theme.palette.primary.main
-  const topbarColors = {
-    bg: topbarIsDark
-      ? alpha('#111827', 0.94)
-      : resolvedTopbarTheme === 'light'
-        ? alpha(lightShellPaper, 0.96)
-        : alpha(theme.palette.background.default, 0.86),
-    border: topbarIsDark
-      ? alpha('#ffffff', 0.12)
-      : alpha('#919EAB', 0.24),
-    icon: topbarPrimaryIcon,
-    iconMuted: alpha(topbarPrimaryIcon, topbarIsDark ? 0.84 : 0.88),
-    buttonBg: topbarIsDark
-      ? alpha(topbarPrimaryIcon, 0.12)
-      : alpha(topbarPrimaryIcon, 0.08),
-    buttonHover: alpha(topbarPrimaryIcon, topbarIsDark ? 0.2 : 0.14),
-    floatingBg: topbarIsDark
-      ? '#111827'
-      : lightShellPaper,
-    floatingBorder: topbarIsDark ? alpha('#ffffff', 0.16) : alpha('#919EAB', 0.24),
-  }
+  const topbarColors = buildLayoutSurfaceColors(theme, topbarTheme)
 
   return (
     <AppBar
@@ -75,7 +51,7 @@ export default function AppTopbar() {
         transition: theme.transitions.create(['width', 'margin'], {
           duration: theme.transitions.duration.shorter,
         }),
-        backgroundColor: topbarColors.bg,
+        background: topbarColors.bg,
         borderBottom: `1px solid ${topbarColors.border}`,
         overflow: 'visible',
       }}
@@ -92,13 +68,13 @@ export default function AppTopbar() {
             width: collapseButtonSize,
             height: collapseButtonSize,
             borderRadius: 1,
-            color: topbarColors.iconMuted,
+            color: topbarColors.icon,
             bgcolor: topbarColors.floatingBg,
             border: `1px solid ${topbarColors.floatingBorder}`,
             boxShadow: (theme) => theme.shadows[2],
             display: { xs: 'none', lg: 'inline-flex' },
             '&:hover': {
-              color: topbarPrimaryIcon,
+              color: topbarColors.icon,
               bgcolor: topbarColors.floatingBg,
             },
           }}
@@ -159,7 +135,7 @@ export default function AppTopbar() {
           </IconButton>
 
           <NotificationsPopover
-            activeColor={topbarPrimaryIcon}
+            activeColor={topbarColors.icon}
             buttonSx={{
               color: topbarColors.icon,
               bgcolor: topbarColors.buttonBg,

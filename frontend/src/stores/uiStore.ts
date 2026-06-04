@@ -2,14 +2,14 @@ import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
 import {
   DEFAULT_BORDER_RADIUS_LEVEL,
+  isLayoutSurfaceTheme,
   normalizeBorderRadiusLevel,
   type BorderRadiusLevel,
   type FontPreset,
+  type LayoutSurfaceTheme,
   type LayoutSize,
   type ThemeColorPreset,
 } from '@/theme'
-
-export type LayoutSurfaceTheme = 'inherit' | 'light' | 'dark'
 
 interface UIState {
   sidebarOpen: boolean
@@ -83,7 +83,7 @@ export const useUIStore = create<UIStore>()(
     {
       name: 'erp-ui',
       storage: createJSONStorage(() => localStorage),
-      version: 6,
+      version: 7,
       migrate: (persistedState) => {
         const previousState = persistedState as Partial<UIStore> & {
           borderRadiusPreset?: unknown
@@ -102,8 +102,8 @@ export const useUIStore = create<UIStore>()(
           borderRadiusLevel: normalizeBorderRadiusLevel(
             previousState.borderRadiusLevel ?? previousState.borderRadiusPreset
           ),
-          sidebarTheme: previousState.sidebarTheme ?? 'inherit',
-          topbarTheme: previousState.topbarTheme ?? 'inherit',
+          sidebarTheme: isLayoutSurfaceTheme(previousState.sidebarTheme) ? previousState.sidebarTheme : 'inherit',
+          topbarTheme: isLayoutSurfaceTheme(previousState.topbarTheme) ? previousState.topbarTheme : 'inherit',
         }
       },
     }
