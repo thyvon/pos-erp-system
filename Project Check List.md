@@ -233,6 +233,9 @@
 - [x] Shared form field labels, placeholders, select values, autocomplete text, and date-picker text are vertically centered across layout size settings; frontend type-check, lint, and build verified.
 - [x] Product variation and combo table inputs now use the shared default-height, full-width product form controls.
 - [x] Shared MUI table rows now use a global striped body-row style so standard system tables inherit consistent alternating row backgrounds without page-level duplication.
+- [x] Brand uploaded image previews now resolve Laravel `/storage` asset URLs through the configured API host so images show correctly in the Next frontend.
+- [x] Product detail, variation thumbnails, and POS product tiles now resolve Laravel `/storage` asset URLs through the configured API host.
+- [x] POS checkout now hides sale/due date fields, moves price group and notes behind a More toggle, and keeps payment anchored at the bottom of the sell-line panel.
 - [x] Agent rules now require small reusable shared components/hooks for repeated frontend patterns instead of duplicated page-level code.
 - [x] Customer edit now shows a visible validation message when the form blocks saving.
 - [x] Customer edit validation now accepts cleared nullable fields and names the first invalid field when save is blocked.

@@ -146,6 +146,9 @@ const sales = {
     noProducts: 'No products found.',
     totalPayable: 'Total payable',
     recentTransactions: 'Recent Transactions',
+    more: 'More',
+    showMoreDetails: 'Show more details',
+    hideMoreDetails: 'Hide more details',
     summary: {
       items: 'Items',
       edit: 'Edit',

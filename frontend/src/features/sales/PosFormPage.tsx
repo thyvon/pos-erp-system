@@ -11,6 +11,7 @@ import {
   Button,
   Chip,
   CircularProgress,
+  Collapse,
   Dialog,
   DialogActions,
   DialogContent,
@@ -42,7 +43,7 @@ import dayjs from 'dayjs'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
-import { AccountBalanceWalletOutlined, ArrowBack, CategoryOutlined, Close, PointOfSaleOutlined, Search, SettingsOutlined } from '@/components/ui/icons'
+import { AccountBalanceWalletOutlined, ArrowBack, CategoryOutlined, Close, ExpandLess, ExpandMore, PointOfSaleOutlined, Search, SettingsOutlined, TuneOutlined } from '@/components/ui/icons'
 import { RowActions } from '@/components/ui/RowActions'
 import { TableStateRow } from '@/components/ui/TableStateRow'
 import { useDefaultExchangeRateQuery, usePaymentAccountsQuery } from '@/features/accounting/hooks'
@@ -165,6 +166,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
   const [clientRequestId, setClientRequestId] = useState(() => createClientRequestId())
   const [removedPaymentIds, setRemovedPaymentIds] = useState<string[]>([])
   const [recentTransactionsOpen, setRecentTransactionsOpen] = useState(false)
+  const [moreDetailsOpen, setMoreDetailsOpen] = useState(false)
   const [recentTransactionsSearch, setRecentTransactionsSearch] = useState('')
   const [recentTransactionsPage, setRecentTransactionsPage] = useState(0)
   const [recentTransactionsPerPage, setRecentTransactionsPerPage] = useState(10)
@@ -836,8 +838,8 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
             gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 3fr) minmax(430px, 2fr)' },
           }}
         >
-          <Box sx={{ minWidth: 0, p: { xs: 2, md: 3 }, overflow: 'auto' }}>
-            <Stack spacing={2}>
+          <Box sx={{ minWidth: 0, minHeight: 0, p: { xs: 2, md: 3 }, overflow: 'hidden', display: 'flex' }}>
+            <Stack spacing={1.5} sx={{ minHeight: 0, flex: '1 1 auto' }}>
               {serverError && <Alert severity="error">{serverError}</Alert>}
 
               <PosHeaderFields
@@ -898,53 +900,53 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
                   onCurrencyChange={changeDirectPaymentCurrency}
                   onRemoveLine={removeDirectPaymentLine}
                 />
+                <Box sx={{ display: 'flex', justifyContent: 'center', px: 1.5, pb: 1.5 }}>
+                  <Button
+                    type="button"
+                    variant="outlined"
+                    size="small"
+                    startIcon={<TuneOutlined />}
+                    endIcon={moreDetailsOpen ? <ExpandLess /> : <ExpandMore />}
+                    onClick={() => setMoreDetailsOpen((open) => !open)}
+                    aria-expanded={moreDetailsOpen}
+                    aria-label={moreDetailsOpen ? t('pos.hideMoreDetails') : t('pos.showMoreDetails')}
+                  >
+                    {t('pos.more')}
+                  </Button>
+                </Box>
+                <Collapse in={moreDetailsOpen} timeout="auto" unmountOnExit>
+                  <Box
+                    sx={{
+                      display: 'grid',
+                      gridTemplateColumns: { xs: '1fr', md: 'minmax(220px, 0.8fr) minmax(0, 1fr) minmax(0, 1fr)' },
+                      gap: 1.5,
+                      p: 1.5,
+                      borderTop: 1,
+                      borderColor: 'divider',
+                      bgcolor: 'background.paper',
+                    }}
+                  >
+                    <Controller name="price_group_id" control={control} render={({ field }) => (
+                      <Autocomplete
+                        options={priceGroups}
+                        value={priceGroups.find((group) => group.id === field.value) ?? null}
+                        loading={priceGroupsQuery.isLoading}
+                        getOptionLabel={priceGroupLabel}
+                        isOptionEqualToValue={(option, value) => option.id === value.id}
+                        onBlur={field.onBlur}
+                        onChange={(_, group) => field.onChange(group?.id ?? '')}
+                        renderInput={(params) => <TextField {...params} label={t('fields.priceGroup')} error={!!errors.price_group_id} helperText={errors.price_group_id?.message || t('form.noPriceGroup')} />}
+                      />
+                    )} />
+                    <Controller name="notes" control={control} render={({ field }) => (
+                      <TextField {...field} value={field.value ?? ''} label={t('fields.notes')} error={!!errors.notes} helperText={errors.notes?.message} multiline minRows={2} />
+                    )} />
+                    <Controller name="staff_note" control={control} render={({ field }) => (
+                      <TextField {...field} value={field.value ?? ''} label={t('fields.staffNote')} error={!!errors.staff_note} helperText={errors.staff_note?.message} multiline minRows={2} />
+                    )} />
+                  </Box>
+                </Collapse>
               </PosCartSection>
-
-              <Box
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr)' },
-                  gap: 1.5,
-                  p: 2,
-                  border: 1,
-                  borderColor: 'divider',
-                  borderRadius: 1,
-                  bgcolor: 'background.paper',
-                }}
-              >
-                <Controller name="price_group_id" control={control} render={({ field }) => (
-                  <Autocomplete
-                    options={priceGroups}
-                    value={priceGroups.find((group) => group.id === field.value) ?? null}
-                    loading={priceGroupsQuery.isLoading}
-                    getOptionLabel={priceGroupLabel}
-                    isOptionEqualToValue={(option, value) => option.id === value.id}
-                    onBlur={field.onBlur}
-                    onChange={(_, group) => field.onChange(group?.id ?? '')}
-                    renderInput={(params) => <TextField {...params} label={t('fields.priceGroup')} error={!!errors.price_group_id} helperText={errors.price_group_id?.message || t('form.noPriceGroup')} />}
-                  />
-                )} />
-              </Box>
-
-              <Box
-                sx={{
-                  display: 'grid',
-                  gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' },
-                  gap: 1.5,
-                  p: 2,
-                  border: 1,
-                  borderColor: 'divider',
-                  borderRadius: 1,
-                  bgcolor: 'background.paper',
-                }}
-              >
-                <Controller name="notes" control={control} render={({ field }) => (
-                  <TextField {...field} value={field.value ?? ''} label={t('fields.notes')} error={!!errors.notes} helperText={errors.notes?.message} multiline minRows={2} />
-                )} />
-                <Controller name="staff_note" control={control} render={({ field }) => (
-                  <TextField {...field} value={field.value ?? ''} label={t('fields.staffNote')} error={!!errors.staff_note} helperText={errors.staff_note?.message} multiline minRows={2} />
-                )} />
-              </Box>
             </Stack>
           </Box>
 

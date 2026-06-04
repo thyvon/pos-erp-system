@@ -10,6 +10,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
+import { resolveAssetUrl } from '@/api/assets'
 import { DeleteOutlined, ImageOutlined, UploadOutlined } from '@/components/ui/icons'
 
 interface AppImageUploadProps {
@@ -52,7 +53,7 @@ export function AppImageUpload({
     }
   }, [objectUrl])
 
-  const previewUrl = useMemo(() => objectUrl || value || '', [objectUrl, value])
+  const previewUrl = useMemo(() => objectUrl || resolveAssetUrl(value) || '', [objectUrl, value])
 
   return (
     <Stack spacing={1.5}>
