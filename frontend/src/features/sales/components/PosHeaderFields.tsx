@@ -44,9 +44,12 @@ export function PosHeaderFields({
   return (
     <Box
       sx={{
+        flex: '0 0 auto',
         display: 'grid',
         gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1.2fr) minmax(0, 1fr)' },
-        gap: 1.5,
+        gap: 1.25,
+        p: { xs: 1, md: 1.5 },
+        boxSizing: 'border-box',
         bgcolor: 'background.paper',
       }}
     >
@@ -91,15 +94,15 @@ export function PosHeaderFields({
               onBlur={field.onBlur}
               onChange={(_, customer) => field.onChange(customer?.id ?? '')}
               sx={{ flex: '1 1 auto', minWidth: 0 }}
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    label={t('fields.customer')}
-                    placeholder={t('labels.walkInCustomer')}
-                    error={!!errors.customer_id}
-                    helperText={errors.customer_id?.message}
-                  />
-                )}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label={t('fields.customer')}
+                  placeholder={t('labels.walkInCustomer')}
+                  error={!!errors.customer_id}
+                  helperText={errors.customer_id?.message}
+                />
+              )}
             />
             {canCreateCustomer && (
               <Tooltip title={t('pos.actions.addCustomer')}>
