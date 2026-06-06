@@ -93,14 +93,18 @@ export function PosCartSection({
     <Box
       sx={{
         minHeight: 0,
+        height: '100%',
         flex: '1 1 auto',
         display: 'flex',
         flexDirection: 'column',
+        gap: 1.25,
+        p: { xs: 1, md: 1.5 },
+        boxSizing: 'border-box',
         bgcolor: 'background.paper',
         overflow: 'hidden',
       }}
     >
-      <Box>
+      <Box sx={{ flex: '0 0 auto' }}>
         <Stack spacing={1.5}>
           <InventoryProductLookupPicker
             warehouseId={warehouseId || undefined}
@@ -374,8 +378,9 @@ export function PosCartSection({
       <Box
         sx={{
           flex: '0 0 auto',
-          borderTop: 1,
+          border: 1,
           borderColor: 'divider',
+          borderRadius: 1,
           overflow: 'hidden',
         }}
       >
