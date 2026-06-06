@@ -42,7 +42,7 @@ export const salesApi = {
   create: (payload: SalePayload) => apiClient.post<Sale, SalePayload>('/v1/sales', payload),
   update: (id: string, payload: SalePayload) => apiClient.put<Sale, SalePayload>(`/v1/sales/${id}`, payload),
   updateWithPayments: (id: string, payload: SaleWithPaymentsPayload) =>
-    apiClient.put<Sale, SaleWithPaymentsPayload>(`/v1/sales/${id}/with-payments`, payload),
+    apiClient.post<Sale, SaleWithPaymentsPayload>(`/v1/sales/${id}/with-payments`, payload),
   delete: (id: string) => apiClient.delete<void>(`/v1/sales/${id}`),
   confirm: (id: string) => apiClient.post<Sale>(`/v1/sales/${id}/confirm`),
   complete: (id: string) => apiClient.post<Sale>(`/v1/sales/${id}/complete`),

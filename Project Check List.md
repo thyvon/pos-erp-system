@@ -238,6 +238,7 @@
 
 ## Foundation Frontend And API
 
+- [x] POS sale-with-payments save now uses a POST compatibility endpoint while preserving the existing PUT API route, avoiding production Docker/Nginx stacks that mishandle PUT payment updates; focused Sales API tests and frontend type-check verified.
 - [x] Customer update now correctly clears nullable fields such as contact details, customer group, date of birth, address, and notes.
 - [x] Cambodia address lookup API proxy added with cached provinces, districts, communes, and villages from Pumi.
 - [x] Supplier update now correctly clears nullable contact and address fields.

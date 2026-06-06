@@ -199,6 +199,38 @@ class SaleApiTest extends TestCase
             ->count());
     }
 
+    public function test_sale_with_payments_update_accepts_post_alias(): void
+    {
+        [$business, $branch, $warehouse, $product] = $this->saleEditFixtures(stockQuantity: 6);
+
+        $saleId = $this->postJson('/api/v1/sales', $this->salePayload($branch, $warehouse, $product, quantity: 3))
+            ->assertCreated()
+            ->json('data.id');
+
+        $this->postJson("/api/v1/sales/{$saleId}/confirm")->assertOk();
+        $this->postJson("/api/v1/sales/{$saleId}/complete")->assertOk();
+
+        $this->postJson("/api/v1/sales/{$saleId}/with-payments", $this->salePayload($branch, $warehouse, $product, quantity: 2))
+            ->assertOk()
+            ->assertJsonPath('data.status', 'completed')
+            ->assertJsonPath('data.items.0.quantity', '2.0000');
+
+        $this->assertDatabaseHas('stock_levels', [
+            'product_id' => $product->id,
+            'warehouse_id' => $warehouse->id,
+            'quantity' => '4.0000',
+            'reserved_quantity' => '0.0000',
+        ]);
+
+        $this->assertSame(1, Journal::withoutGlobalScopes()
+            ->where('business_id', $business->id)
+            ->where('type', 'sale')
+            ->where('reference_type', Sale::class)
+            ->where('reference_id', $saleId)
+            ->whereNull('reversed_by_id')
+            ->count());
+    }
+
     public function test_sale_edit_respects_sale_edit_lifetime_setting_without_status_gate(): void
     {
         [$business, $branch, $warehouse, $product] = $this->saleEditFixtures(stockQuantity: 6);
