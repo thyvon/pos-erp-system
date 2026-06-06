@@ -31,6 +31,7 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { UnitConversionBadge } from '@/features/sales/components/UnitConversionBadge'
 import { PurchaseReceiveDialog } from './PurchaseReceiveDialog'
 import { PurchasePaymentDialog } from './PurchasePaymentDialog'
+import { PurchasePaymentDeleteDialog } from './PurchasePaymentDeleteDialog'
 import { PurchaseReturnDialog } from './PurchaseReturnDialog'
 
 import { useDefaultExchangeRateQuery, usePaymentAccountsQuery } from '@/features/accounting/hooks'
@@ -188,9 +189,9 @@ export function PurchaseDetailPage({ purchaseId }: PurchaseDetailPageProps) {
     setEditingPayment(null)
   }
 
-  const handleDeletePayment = async () => {
+  const handleDeletePayment = async (reason: string) => {
     if (!purchase || !confirmPaymentDeleteId) return
-    await deletePayment.mutateAsync({ purchaseId: purchase.id, paymentId: confirmPaymentDeleteId })
+    await deletePayment.mutateAsync({ purchaseId: purchase.id, paymentId: confirmPaymentDeleteId, payload: { reason } })
     enqueueSnackbar(t('messages.paymentDeleted', { defaultValue: 'Payment deleted successfully' }), { variant: 'success' })
     setConfirmPaymentDeleteId(null)
   }
@@ -213,6 +214,9 @@ export function PurchaseDetailPage({ purchaseId }: PurchaseDetailPageProps) {
 
   const items = purchase.items ?? []
   const payments = purchase.payments ?? []
+  const returnedAmount = Number(purchase.returned_amount ?? 0)
+  const netPayableAmount = Number(purchase.net_payable_amount ?? Math.max(Number(purchase.total_amount ?? 0) - returnedAmount, 0))
+  const dueAmount = Number(purchase.due_amount ?? Math.max(netPayableAmount - Number(purchase.paid_amount ?? 0), 0))
 
   return (
     <Stack spacing={3}>
@@ -448,8 +452,8 @@ export function PurchaseDetailPage({ purchaseId }: PurchaseDetailPageProps) {
                   overflowX: 'auto',
                   '& .summary-grid': {
                     display: 'grid',
-                    gridTemplateColumns: 'repeat(7, minmax(136px, 1fr))',
-                    minWidth: 952,
+                    gridTemplateColumns: 'repeat(9, minmax(136px, 1fr))',
+                    minWidth: 1224,
                   },
                   '& .summary-cell': {
                     minHeight: 78,
@@ -476,8 +480,10 @@ export function PurchaseDetailPage({ purchaseId }: PurchaseDetailPageProps) {
                     [t('form.taxAmount'), formatMoney(purchase.tax_amount, currencyFormatter)],
                     [t('form.shippingAmount'), formatMoney(purchase.shipping_charges, currencyFormatter)],
                     [t('form.total'), formatMoney(purchase.total_amount, currencyFormatter), 'highlight-cell'],
+                    [t('detail.returnedAmount'), formatMoney(returnedAmount, currencyFormatter)],
+                    [t('detail.netPayableAmount'), formatMoney(netPayableAmount, currencyFormatter), 'highlight-cell'],
                     [t('detail.paidAmount'), formatMoney(purchase.paid_amount, currencyFormatter)],
-                    [t('detail.dueAmount'), formatMoney(Math.max(Number(purchase.total_amount ?? 0) - Number(purchase.paid_amount ?? 0), 0), currencyFormatter), 'highlight-cell'],
+                    [t('detail.dueAmount'), formatMoney(dueAmount, currencyFormatter), 'highlight-cell'],
                   ].map(([label, value, className]) => (
                     <Box
                       key={label}
@@ -608,17 +614,14 @@ export function PurchaseDetailPage({ purchaseId }: PurchaseDetailPageProps) {
         onConfirm={handleDelete}
       />
 
-      <ConfirmDialog
-        open={!!confirmPaymentDeleteId}
-        title={t('payment.deleteTitle')}
-        message={t('payment.deleteConfirm')}
-        confirmText={t('payment.deleteAction')}
-        cancelText={t('common:buttons.cancel')}
-        loading={deletePayment.isPending}
-        confirmColor="error"
-        onClose={() => setConfirmPaymentDeleteId(null)}
-        onConfirm={handleDeletePayment}
-      />
+      {confirmPaymentDeleteId && (
+        <PurchasePaymentDeleteDialog
+          open
+          isSaving={deletePayment.isPending}
+          onClose={() => setConfirmPaymentDeleteId(null)}
+          onConfirm={handleDeletePayment}
+        />
+      )}
     </Stack>
   )
 }

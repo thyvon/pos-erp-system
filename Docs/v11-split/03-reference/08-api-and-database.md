@@ -10,8 +10,10 @@ Current route groups:
 - inventory
 - accounting
 - sales
+- purchases
+- expenses
 
-This grouping should remain the API organization baseline for v11 work.
+This grouping should remain the API organization baseline for v11 work. Sellable module route groups should also be protected with `module:<key>` middleware when the route belongs to a module that can be licensed independently.
 
 ### 8.2 Database Progress
 
@@ -23,11 +25,12 @@ Current migrations cover:
 - inventory ledger and workflow tables
 - accounting
 - sales
+- purchases
+- expenses
+- module licensing through `business_modules`
 
 Not yet migrated as first-class modules in this repo:
 
-- purchases
-- expenses
 - reporting stores
 - loyalty
 - CRM
@@ -43,4 +46,3 @@ Not yet migrated as first-class modules in this repo:
 - Workflow header tables and ledger tables must not be confused with each other
 
 ---
-

@@ -2,6 +2,8 @@
 
 namespace App\Http\Resources\Purchases;
 
+use App\Models\StockLot;
+use App\Models\StockSerial;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -57,6 +59,42 @@ class PurchaseItemResource extends JsonResource
                 'rate' => $this->taxRate->rate,
                 'type' => $this->taxRate->type,
             ] : null),
+            'return_lots' => $this->when(
+                $this->product?->stock_tracking === 'lot',
+                fn () => StockLot::withoutGlobalScopes()
+                    ->where('business_id', $this->purchase?->business_id)
+                    ->where('warehouse_id', $this->purchase?->warehouse_id)
+                    ->where('product_id', $this->product_id)
+                    ->where('variation_id', $this->variation_id)
+                    ->where('status', 'active')
+                    ->where('qty_on_hand', '>', 0)
+                    ->orderBy('expiry_date')
+                    ->orderBy('lot_number')
+                    ->get()
+                    ->map(fn (StockLot $lot): array => [
+                        'id' => $lot->id,
+                        'lot_number' => $lot->lot_number,
+                        'qty_on_hand' => $lot->qty_on_hand,
+                        'expiry_date' => optional($lot->expiry_date)->toDateString(),
+                    ])
+                    ->values()
+                    ->all()
+            ),
+            'return_serials' => $this->when(
+                $this->product?->stock_tracking === 'serial',
+                fn () => StockSerial::withoutGlobalScopes()
+                    ->where('business_id', $this->purchase?->business_id)
+                    ->where('purchase_item_id', $this->id)
+                    ->where('status', 'in_stock')
+                    ->orderBy('serial_number')
+                    ->get()
+                    ->map(fn (StockSerial $serial): array => [
+                        'id' => $serial->id,
+                        'serial_number' => $serial->serial_number,
+                    ])
+                    ->values()
+                    ->all()
+            ),
         ];
     }
 }

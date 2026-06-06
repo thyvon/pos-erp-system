@@ -1,5 +1,6 @@
 import { create } from 'zustand'
 import { persist, createJSONStorage } from 'zustand/middleware'
+import { DEFAULT_ENABLED_MODULE_KEYS, type ModuleKey } from '@/core/modules/moduleRegistry'
 import { User, Business, AllowedBranch } from '@/types/auth'
 
 interface AuthState {
@@ -20,6 +21,7 @@ interface AuthActions {
   setLoading: (loading: boolean) => void
   setHasHydrated: (hasHydrated: boolean) => void
   can: (permission: string) => boolean
+  hasModule: (moduleKey: ModuleKey) => boolean
   hasRole: (role: string) => boolean
   isAdmin: () => boolean
   isSuperAdmin: () => boolean
@@ -82,6 +84,16 @@ export const useAuthStore = create<AuthStore>()(
         if (user.roles.includes('super_admin')) return true
         if (user.roles.includes('admin')) return true
         return user.permissions.includes(permission)
+      },
+
+      hasModule: (moduleKey) => {
+        const { user } = get()
+        if (!user) return false
+        if (user.roles.includes('super_admin')) return true
+
+        const enabledModules = user.enabled_modules ?? DEFAULT_ENABLED_MODULE_KEYS
+
+        return enabledModules.includes(moduleKey)
       },
 
       hasRole: (role: string) => {

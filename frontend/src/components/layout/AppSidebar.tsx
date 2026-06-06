@@ -50,18 +50,27 @@ import {
   ExpandLess,
   ExpandMore,
 } from '@/components/ui/icons'
+import type { ModuleKey } from '@/core/modules/moduleRegistry'
 import { useAuthStore } from '@/stores/authStore'
 import { useUIStore } from '@/stores/uiStore'
 import { buildLayoutSurfaceColors, getLayoutMetrics } from '@/theme'
 
+interface NavChildItem {
+  key: string
+  path: string
+  module?: ModuleKey
+  permissions?: string[]
+}
+
 interface NavItem {
   key: string
   path?: string
+  module?: ModuleKey
   icon: React.ReactNode
   adminOnly?: boolean
   superAdminOnly?: boolean
   permissions?: string[]
-  children?: { key: string; path: string; permissions?: string[] }[]
+  children?: NavChildItem[]
 }
 
 
@@ -80,52 +89,52 @@ const NAV_CONFIG: NavSection[] = [
   {
     key: 'sales',
     items: [
-      { key: 'pos', path: '/pos', icon: <PointOfSaleOutlined />, permissions: ['sales.create'] },
-      { key: 'sales', path: '/sales', icon: <ReceiptLongOutlined />, permissions: ['sales.index'] },
-      { key: 'quotations', path: '/quotations', icon: <ReceiptLongOutlined />, permissions: ['sales.index'] },
-      { key: 'saleReturns', path: '/sale-returns', icon: <CompareArrowsOutlined />, permissions: ['sales.return'] },
-      { key: 'cashRegisters', path: '/cash-registers', icon: <AccountBalanceWalletOutlined />, permissions: ['sales.index'] },
+      { key: 'pos', path: '/pos', module: 'sales', icon: <PointOfSaleOutlined />, permissions: ['sales.create'] },
+      { key: 'sales', path: '/sales', module: 'sales', icon: <ReceiptLongOutlined />, permissions: ['sales.index'] },
+      { key: 'quotations', path: '/quotations', module: 'sales', icon: <ReceiptLongOutlined />, permissions: ['sales.index'] },
+      { key: 'saleReturns', path: '/sale-returns', module: 'sales', icon: <CompareArrowsOutlined />, permissions: ['sales.return'] },
+      { key: 'cashRegisters', path: '/cash-registers', module: 'sales', icon: <AccountBalanceWalletOutlined />, permissions: ['sales.index'] },
     ],
   },
   {
     key: 'purchasing',
     items: [
-      { key: 'purchases', path: '/purchases', icon: <LocalShippingOutlined />, permissions: ['purchases.index'] },
-      { key: 'purchaseReturns', path: '/purchase-returns', icon: <CompareArrowsOutlined />, permissions: ['purchases.return'] },
+      { key: 'purchases', path: '/purchases', module: 'purchases', icon: <LocalShippingOutlined />, permissions: ['purchases.index'] },
+      { key: 'purchaseReturns', path: '/purchase-returns', module: 'purchases', icon: <CompareArrowsOutlined />, permissions: ['purchases.return'] },
     ],
   },
   {
     key: 'contacts',
     items: [
-      { key: 'customers', path: '/customers', icon: <PeopleOutlined />, permissions: ['customers.index'] },
-      { key: 'suppliers', path: '/suppliers', icon: <LocalShippingOutlined />, permissions: ['suppliers.index'] },
-      { key: 'customerGroups', path: '/customer-groups', icon: <GroupsOutlined />, permissions: ['customer_groups.index'] },
+      { key: 'customers', path: '/customers', module: 'contacts', icon: <PeopleOutlined />, permissions: ['customers.index'] },
+      { key: 'suppliers', path: '/suppliers', module: 'contacts', icon: <LocalShippingOutlined />, permissions: ['suppliers.index'] },
+      { key: 'customerGroups', path: '/customer-groups', module: 'contacts', icon: <GroupsOutlined />, permissions: ['customer_groups.index'] },
     ],
   },
   {
     key: 'catalog',
     items: [
-      { key: 'products', path: '/products', icon: <Inventory2Outlined />, permissions: ['products.index'] },
-      { key: 'categories', path: '/categories', icon: <CategoryOutlined />, permissions: ['categories.index'] },
-      { key: 'brands', path: '/brands', icon: <LocalOfferOutlined />, permissions: ['brands.index'] },
-      { key: 'units', path: '/units', icon: <StraightenOutlined />, permissions: ['units.index'] },
-      { key: 'variationTemplates', path: '/variation-templates', icon: <PaletteOutlined />, permissions: ['variation_templates.index'] },
-      { key: 'priceGroups', path: '/price-groups', icon: <LocalAtmOutlined />, permissions: ['price_groups.index'] },
-      { key: 'taxRates', path: '/tax-rates', icon: <PercentOutlined />, permissions: ['tax_rates.index'] },
-      { key: 'taxGroups', path: '/tax-groups', icon: <CalculateOutlined />, permissions: ['tax_groups.index'] },
+      { key: 'products', path: '/products', module: 'catalog', icon: <Inventory2Outlined />, permissions: ['products.index'] },
+      { key: 'categories', path: '/categories', module: 'catalog', icon: <CategoryOutlined />, permissions: ['categories.index'] },
+      { key: 'brands', path: '/brands', module: 'catalog', icon: <LocalOfferOutlined />, permissions: ['brands.index'] },
+      { key: 'units', path: '/units', module: 'catalog', icon: <StraightenOutlined />, permissions: ['units.index'] },
+      { key: 'variationTemplates', path: '/variation-templates', module: 'catalog', icon: <PaletteOutlined />, permissions: ['variation_templates.index'] },
+      { key: 'priceGroups', path: '/price-groups', module: 'catalog', icon: <LocalAtmOutlined />, permissions: ['price_groups.index'] },
+      { key: 'taxRates', path: '/tax-rates', module: 'catalog', icon: <PercentOutlined />, permissions: ['tax_rates.index'] },
+      { key: 'taxGroups', path: '/tax-groups', module: 'catalog', icon: <CalculateOutlined />, permissions: ['tax_groups.index'] },
     ],
   },
   {
     key: 'inventory',
     items: [
-      { key: 'warehouses', path: '/warehouses', icon: <WarehouseOutlined />, permissions: ['warehouses.index'] },
-      { key: 'rackLocations', path: '/rack-locations', icon: <StraightenOutlined />, permissions: ['rack_locations.index'] },
-      { key: 'stockLevels', path: '/inventory/stock', icon: <TrendingUpOutlined />, permissions: ['inventory.index'] },
-      { key: 'stockLots', path: '/inventory/lots', icon: <Inventory2Outlined />, permissions: ['inventory.index'] },
-      { key: 'stockSerials', path: '/inventory/serials', icon: <ReceiptLongOutlined />, permissions: ['inventory.index'] },
-      { key: 'transfers', path: '/inventory/transfers', icon: <CompareArrowsOutlined />, permissions: ['inventory.index'] },
-      { key: 'adjustments', path: '/inventory/adjustments', icon: <TuneOutlined />, permissions: ['inventory.index'] },
-      { key: 'cycleCounts', path: '/inventory/counts', icon: <FactCheckOutlined />, permissions: ['inventory.index'] },
+      { key: 'warehouses', path: '/warehouses', module: 'inventory', icon: <WarehouseOutlined />, permissions: ['warehouses.index'] },
+      { key: 'rackLocations', path: '/rack-locations', module: 'inventory', icon: <StraightenOutlined />, permissions: ['rack_locations.index'] },
+      { key: 'stockLevels', path: '/inventory/stock', module: 'inventory', icon: <TrendingUpOutlined />, permissions: ['inventory.index'] },
+      { key: 'stockLots', path: '/inventory/lots', module: 'inventory', icon: <Inventory2Outlined />, permissions: ['inventory.index'] },
+      { key: 'stockSerials', path: '/inventory/serials', module: 'inventory', icon: <ReceiptLongOutlined />, permissions: ['inventory.index'] },
+      { key: 'transfers', path: '/inventory/transfers', module: 'inventory', icon: <CompareArrowsOutlined />, permissions: ['inventory.index'] },
+      { key: 'adjustments', path: '/inventory/adjustments', module: 'inventory', icon: <TuneOutlined />, permissions: ['inventory.index'] },
+      { key: 'cycleCounts', path: '/inventory/counts', module: 'inventory', icon: <FactCheckOutlined />, permissions: ['inventory.index'] },
     ],
   },
   {
@@ -133,17 +142,18 @@ const NAV_CONFIG: NavSection[] = [
     items: [
       {
         key: 'accounting',
+        module: 'accounting',
         icon: <AccountBalanceOutlined />,
         permissions: ['accounting.index', 'accounting.journals', 'accounting.coa', 'payments.create'],
         children: [
-          { key: 'journalEntries', path: '/accounting/journals', permissions: ['accounting.index', 'accounting.journals'] },
-          { key: 'chartOfAccounts', path: '/accounting/coa', permissions: ['accounting.index', 'accounting.coa', 'accounting.journals'] },
-          { key: 'paymentAccounts', path: '/accounting/payment-accounts', permissions: ['accounting.index', 'payments.create'] },
-          { key: 'exchangeRates', path: '/accounting/exchange-rates', permissions: ['accounting.index', 'payments.create'] },
-          { key: 'fiscalYears', path: '/accounting/fiscal-years', permissions: ['accounting.index', 'accounting.journals'] },
+          { key: 'journalEntries', path: '/accounting/journals', module: 'accounting', permissions: ['accounting.index', 'accounting.journals'] },
+          { key: 'chartOfAccounts', path: '/accounting/coa', module: 'accounting', permissions: ['accounting.index', 'accounting.coa', 'accounting.journals'] },
+          { key: 'paymentAccounts', path: '/accounting/payment-accounts', module: 'accounting', permissions: ['accounting.index', 'payments.create'] },
+          { key: 'exchangeRates', path: '/accounting/exchange-rates', module: 'accounting', permissions: ['accounting.index', 'payments.create'] },
+          { key: 'fiscalYears', path: '/accounting/fiscal-years', module: 'accounting', permissions: ['accounting.index', 'accounting.journals'] },
         ],
       },
-      { key: 'expenses', path: '/expenses', icon: <PaymentsOutlined />, permissions: ['expenses.index'] },
+      { key: 'expenses', path: '/expenses', module: 'expenses', icon: <PaymentsOutlined />, permissions: ['expenses.index'] },
     ],
   },
   {
@@ -177,7 +187,7 @@ export default function AppSidebar() {
   const theme = useTheme()
   const isDesktop = useMediaQuery(theme.breakpoints.up('lg'))
   const { sidebarOpen, setSidebarOpen, mobileSidebarOpen, setMobileSidebarOpen, sidebarTheme, layoutSize } = useUIStore()
-  const { user, isSuperAdmin } = useAuthStore()
+  const { user, isSuperAdmin, hasModule } = useAuthStore()
   const [openMenus, setOpenMenus] = useState<Record<string, boolean>>({})
   const expanded = isDesktop ? sidebarOpen : true
   const layoutMetrics = getLayoutMetrics(layoutSize)
@@ -206,9 +216,10 @@ export default function AppSidebar() {
 
     return (item: NavItem) => {
       if (item.superAdminOnly && !superAdmin) return false
+      if (item.module && !hasModule(item.module)) return false
       return hasAnyPermission(item.permissions)
     }
-  }, [hasAnyPermission, isSuperAdmin])
+  }, [hasAnyPermission, hasModule, isSuperAdmin])
 
   const visibleSections = useMemo(() => {
     return NAV_CONFIG
@@ -218,12 +229,14 @@ export default function AppSidebar() {
           .filter((item) => canViewItem(item))
           .map((item) => ({
             ...item,
-            children: item.children?.filter((child) => hasAnyPermission(child.permissions)),
+            children: item.children?.filter((child) => (
+              (!child.module || hasModule(child.module)) && hasAnyPermission(child.permissions)
+            )),
           }))
           .filter((item) => !item.children || item.children.length > 0),
       }))
       .filter((section) => section.items.length > 0)
-  }, [canViewItem, hasAnyPermission])
+  }, [canViewItem, hasAnyPermission, hasModule])
 
   const activeParentMenus = useMemo(() => {
     const nextOpenMenus: Record<string, boolean> = {}

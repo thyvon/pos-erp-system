@@ -8,9 +8,9 @@ The active frontend has been restacked to Next.js/React. Current implemented fro
 - Dashboard shell
 - Protected dashboard layout, sidebar, topbar, breadcrumbs, account popover, settings panel, and notification popover shell
 - No-branch-access blocking page
-- Foundation, contacts/tax, catalog, inventory, accounting, and Sales list/detail/create/edit frontend slices
+- Foundation, contacts/tax, catalog, inventory, accounting, Sales list/detail/create/edit frontend slices, and Purchases list/create/detail/edit/returns frontend slices
 
-The backend APIs for foundation, contacts, catalog, inventory, accounting, and sales are live. Purchases has a backend document foundation only; purchase frontend pages are still pending and should not be exposed until implemented.
+The backend APIs for foundation, contacts, catalog, inventory, accounting, sales, and purchases are live. Purchase returns are exposed through the purchase detail return dialog plus `/purchase-returns` list/detail routes.
 
 ### 5.2 Frontend Architecture Rules
 
@@ -30,5 +30,12 @@ The backend APIs for foundation, contacts, catalog, inventory, accounting, and s
 - Admin and super-admin load unrestricted branch lists when needed
 - Users with zero branches are redirected to `/no-branch-access`
 - Sales, inventory, and future purchase flows filter branch and warehouse choices accordingly
+
+### 5.4 Module-Aware Frontend Rules
+
+- Authenticated users receive `enabled_modules` from the backend.
+- Sidebar visibility now requires both module enablement and permission where a nav item belongs to a sellable module.
+- Persisted users without `enabled_modules` fall back to the current live module set so existing sessions do not lose navigation before refresh.
+- Future standalone modules such as HRM should add frontend module metadata before exposing routes.
 
 ---

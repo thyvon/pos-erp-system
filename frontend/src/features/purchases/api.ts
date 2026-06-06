@@ -14,7 +14,7 @@ export const purchasesApi = {
     apiClient.post<PurchasePaymentResult, PurchasePaymentPayload>(`/v1/purchases/${id}/payments`, payload),
   updatePayment: (purchaseId: string, paymentId: string, payload: PurchasePaymentCorrectionPayload) =>
     apiClient.put<PurchasePaymentCorrectionResult, PurchasePaymentCorrectionPayload>(`/v1/purchases/${purchaseId}/payments/${paymentId}`, payload),
-  deletePayment: (purchaseId: string, paymentId: string, payload: PurchasePaymentDeletePayload = {}) =>
+  deletePayment: (purchaseId: string, paymentId: string, payload: PurchasePaymentDeletePayload) =>
     apiClient.delete<PurchasePaymentDeleteResult>(`/v1/purchases/${purchaseId}/payments/${paymentId}`, { data: payload }),
 }
 

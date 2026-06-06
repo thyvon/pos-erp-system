@@ -84,11 +84,13 @@ export function PosPaymentSection({
     <Box
       sx={{
         display: 'grid',
-        gridTemplateColumns: { xs: '1fr', md: '1fr 280px' },
+        gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1fr) minmax(220px, 260px)' },
         alignItems: 'stretch',
+        borderTop: 1,
+        borderColor: 'divider',
       }}
     >
-      <Box sx={{ p: 1.5 }}>
+      <Box sx={{ minWidth: 0, p: 1.5 }}>
         {canCapturePayment && (
           <Stack spacing={1.25}>
             <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
@@ -118,9 +120,14 @@ export function PosPaymentSection({
                   key={field.fieldId}
                   sx={{
                     display: 'grid',
-                    gridTemplateColumns: { xs: '1fr', md: 'minmax(180px, 1fr) 92px 150px 150px 48px' },
-                    gap: 1,
+                    gridTemplateColumns: {
+                      xs: '1fr',
+                      sm: 'repeat(2, minmax(0, 1fr))',
+                      md: 'repeat(4, minmax(140px, 1fr)) 44px',
+                    },
+                    gap: 1.5,
                     alignItems: 'start',
+                    minWidth: 0,
                   }}
                 >
                   <Controller
@@ -229,7 +236,19 @@ export function PosPaymentSection({
           </Stack>
         )}
       </Box>
-      <Box sx={{ p: 1.5, bgcolor: 'success.lighter', textAlign: 'center', display: 'grid', alignContent: 'center' }}>
+      <Box
+        sx={{
+          p: 1.5,
+          bgcolor: 'success.lighter',
+          textAlign: 'center',
+          display: 'grid',
+          alignContent: 'center',
+          borderTop: { xs: 1, lg: 0 },
+          borderLeft: { lg: 1 },
+          borderColor: 'divider',
+          minWidth: 0,
+        }}
+      >
         <Typography variant="caption" sx={{ color: 'success.dark', fontWeight: 800, textTransform: 'uppercase' }}>{t('pos.totalPayable')}</Typography>
         <Typography variant="h4" sx={{ color: 'success.dark', fontWeight: 900 }}>{totalDisplay.usd.replace('USD ', '')}</Typography>
         <Typography variant="body2" sx={{ color: 'success.dark' }}>{totalDisplay.khr}</Typography>

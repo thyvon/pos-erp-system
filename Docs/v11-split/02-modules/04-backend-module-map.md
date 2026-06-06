@@ -1,5 +1,16 @@
 ﻿## SECTION 4 - MODULE MAP: BACKEND
 
+### 4.0 Module Foundation
+
+Implemented:
+
+- `config/modules.php` defines sellable module keys and default-enabled behavior
+- `business_modules` stores per-business active/trial/expired/disabled module access, limits, and settings
+- `ModuleService` resolves enabled modules for auth responses and route middleware
+- `module:<key>` middleware gates current module route groups
+
+This is a licensing/access foundation only. Existing live code still lives in the current `app/Http`, `app/Services`, `app/Repositories`, and route domain folders. Build HRM as the first clean standalone module before migrating existing live modules.
+
 ### 4.1 Foundation Module
 
 Implemented backend areas:
@@ -109,12 +120,14 @@ Important current behavior:
 
 ### 4.7 Purchases
 
-Partially implemented:
+Implemented:
 
 - Purchases
 - Purchase items
 - Purchase document list/create/show/update/delete API
 - Purchase receiving API
+- Purchase payments with correction/deletion reversal journals
+- Purchase returns
 
 Important current behavior:
 
@@ -125,7 +138,10 @@ Important current behavior:
 - Purchase receiving posts `purchase_receipt` stock movements and updates received quantities
 - Lot-tracked receiving creates or updates stock lots
 - Serial-tracked receiving creates stock serials
-- Purchase returns, supplier payments, and accounting posting are not implemented yet
+- Purchase payments post accounting journals and payment-account transactions
+- Purchase payment correction/deletion reverses ledger history instead of hard-deleting it
+- Purchase returns post outbound stock movements, preserve branch access, support multiple return documents, and do not write unsupported purchase status values
+- Purchase receipt and purchase return AP/inventory accounting journals remain a stabilization target and should be implemented together; supplier credit/refund handling is a separate future feature
 
 ### 4.8 Deferred Backend Modules
 

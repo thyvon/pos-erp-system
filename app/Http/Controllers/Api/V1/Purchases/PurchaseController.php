@@ -62,7 +62,7 @@ class PurchaseController extends BaseApiController
         $this->authorize('view', $purchase);
 
         return $this->success(new PurchaseResource(
-            $purchase->load(['branch', 'warehouse.branch', 'supplier', 'creator', 'receiver', 'items.product.unit', 'items.variation', 'items.subUnit', 'items.taxRate', 'payments.paymentAccount', 'payments.replacedPayment', 'payments.reverser'])
+            $purchase->load(['branch', 'warehouse.branch', 'supplier', 'creator', 'receiver', 'returns', 'items.purchase', 'items.product.unit', 'items.variation', 'items.subUnit', 'items.taxRate', 'payments.paymentAccount', 'payments.replacedPayment', 'payments.reverser'])
         ));
     }
 
@@ -160,7 +160,7 @@ class PurchaseController extends BaseApiController
             $request->user()->business_id,
             $purchase,
             $purchasePayment,
-            $request->validated()['reason'] ?? 'Payment line removed',
+            $request->validated()['reason'],
             $request->user()
         );
 

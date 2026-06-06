@@ -29,9 +29,12 @@ import { RowActions } from '@/components/ui/RowActions'
 import { TableStateRow } from '@/components/ui/TableStateRow'
 import { useAuthStore } from '@/stores/authStore'
 import { BusinessFormDialog } from './BusinessFormDialog'
+import { BusinessModulesDialog } from './BusinessModulesDialog'
 import {
   useCreateManagedBusinessMutation,
+  useManagedBusinessModulesQuery,
   useManagedBusinessesQuery,
+  useUpdateManagedBusinessModulesMutation,
   useUpdateManagedBusinessMutation,
 } from './hooks'
 import type {
@@ -68,6 +71,7 @@ export function BusinessesPage() {
   const [perPage, setPerPage] = useState(10)
   const [formOpen, setFormOpen] = useState(false)
   const [editingBusiness, setEditingBusiness] = useState<ManagedBusiness | null>(null)
+  const [modulesBusiness, setModulesBusiness] = useState<ManagedBusiness | null>(null)
   const superAdmin = isSuperAdmin()
 
   const filters: ManagedBusinessFilters = useMemo(
@@ -82,8 +86,10 @@ export function BusinessesPage() {
   )
 
   const businessesQuery = useManagedBusinessesQuery(filters, superAdmin)
+  const modulesQuery = useManagedBusinessModulesQuery(modulesBusiness?.id ?? null, superAdmin && !!modulesBusiness)
   const createBusiness = useCreateManagedBusinessMutation()
   const updateBusiness = useUpdateManagedBusinessMutation()
+  const updateModules = useUpdateManagedBusinessModulesMutation()
   const businesses = businessesQuery.data?.data ?? []
   const meta = businessesQuery.data?.meta
   const canCreate = can('businesses.create')
@@ -99,6 +105,10 @@ export function BusinessesPage() {
     setFormOpen(true)
   }
 
+  const openModulesDialog = (business: ManagedBusiness) => {
+    setModulesBusiness(business)
+  }
+
   const handleSubmit = async (payload: ManagedBusinessPayload) => {
     if (editingBusiness) {
       await updateBusiness.mutateAsync({ id: editingBusiness.id, payload })
@@ -109,6 +119,14 @@ export function BusinessesPage() {
     await createBusiness.mutateAsync(payload)
     enqueueSnackbar(t('messages.created'), { variant: 'success' })
     setPage(0)
+  }
+
+  const handleModulesSubmit = async (modules: Parameters<typeof updateModules.mutateAsync>[0]['modules']) => {
+    if (!modulesBusiness) return
+
+    await updateModules.mutateAsync({ id: modulesBusiness.id, modules })
+    enqueueSnackbar(t('modules.messages.updated'), { variant: 'success' })
+    setModulesBusiness(null)
   }
 
   if (!superAdmin) {
@@ -280,10 +298,13 @@ export function BusinessesPage() {
                     </TableCell>
                     <TableCell align="center">
                       <RowActions
+                        viewLabel={t('modules.actions.manage')}
                         editLabel={t('common:buttons.edit')}
                         deleteLabel={t('common:buttons.delete')}
+                        showView={canEdit}
                         showEdit={canEdit}
                         showDelete={false}
+                        onView={() => openModulesDialog(business)}
                         onEdit={() => openEditForm(business)}
                       />
                     </TableCell>
@@ -315,6 +336,17 @@ export function BusinessesPage() {
         isSaving={createBusiness.isPending || updateBusiness.isPending}
         onClose={() => setFormOpen(false)}
         onSubmit={handleSubmit}
+      />
+
+      <BusinessModulesDialog
+        open={!!modulesBusiness}
+        business={modulesBusiness}
+        modules={modulesQuery.data ?? []}
+        isLoading={modulesQuery.isLoading}
+        isSaving={updateModules.isPending}
+        error={modulesQuery.error}
+        onClose={() => setModulesBusiness(null)}
+        onSubmit={handleModulesSubmit}
       />
     </Stack>
   )

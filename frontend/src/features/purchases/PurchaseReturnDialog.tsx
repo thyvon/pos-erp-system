@@ -60,11 +60,13 @@ export function PurchaseReturnDialog({ open, purchase, isSaving, onClose, onSubm
       .filter((line) => line.selected)
       .map((line) => ({
         purchase_item_id: line.purchase_item_id,
-        quantity: line.quantity,
+        quantity: purchase?.items?.find((item) => item.id === line.purchase_item_id)?.product?.stock_tracking === 'serial'
+          ? line.serial_ids.length
+          : line.quantity,
         lot_id: line.lot_id || null,
         serial_ids: line.serial_ids,
       }))
-  }, [lines])
+  }, [lines, purchase?.items])
 
   const estimatedTotal = useMemo(() => {
     return selectedPayloadLines.reduce((total, line) => {
@@ -76,6 +78,26 @@ export function PurchaseReturnDialog({ open, purchase, isSaving, onClose, onSubm
 
   const handleSubmit = async () => {
     setFormError('')
+
+    const invalidTrackedLine = lines
+      .filter((line) => line.selected)
+      .map((line) => ({
+        line,
+        item: purchase?.items?.find((purchaseItem) => purchaseItem.id === line.purchase_item_id),
+      }))
+      .find(({ line, item }) => {
+        const tracking = item?.product?.stock_tracking
+        return (tracking === 'lot' && !line.lot_id) || (tracking === 'serial' && line.serial_ids.length === 0)
+      })
+
+    if (invalidTrackedLine) {
+      setFormError(
+        invalidTrackedLine.item?.product?.stock_tracking === 'lot'
+          ? t('returns.form.lotRequired')
+          : t('returns.form.serialRequired')
+      )
+      return
+    }
 
     const payload: PurchaseReturnPayload = {
       return_date: returnDate,

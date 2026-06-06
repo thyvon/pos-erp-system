@@ -25,6 +25,7 @@
 
 ## Stabilization
 
+- [x] Full backend suite re-verified after module foundation and super-admin module management with `php artisan test` passing 214 tests and 930 assertions.
 - [x] Fixed product-filtered backend test failures by aligning tax tests with the real products schema and inventory lookup test with current branch-access rules.
 - [x] Stabilized full backend test suite for branch access, stock count live edits/removal/completion corrections, serial movement validation, supplier branch setup, and admin branch-bypass behavior.
 - [x] Full backend suite verified with `php artisan test` passing 149 tests and 564 assertions.
@@ -151,6 +152,9 @@
 - [x] Purchase receiving backend added with `/api/v1/purchases/{purchase}/receive`, receive validation, stock movement posting, received quantities, purchase status updates, lot creation, serial creation, receiver metadata, and focused API tests.
 - [x] Purchase UoM handling now validates product-configured sub-units, blocks sub-unit buying for lot/serial tracked products, converts received sub-unit quantities into base inventory quantities, and posts base-unit receipt costs.
 - [x] Purchase Return backend now preserves branch access on list/show/store, converts sub-unit return quantities to base inventory movements, validates selected serial returns, and exposes return item product/variation details.
+- [x] Purchase Return backend now supports multiple return documents without writing unsupported purchase status values, and lot returns can use the remaining current lot quantity after prior returns; focused Purchase Return and Purchase API suites verified.
+- [x] Purchase payments now respect net payable after completed purchase returns, preventing overpayment beyond `purchase total - completed returns`; focused Purchase and Purchase Return API suites verified.
+- [ ] Purchase receipt and purchase return AP/inventory accounting lifecycle: post receipt as `DR Inventory Asset / CR Accounts Payable` and return as `DR Accounts Payable / CR Inventory Asset`; keep supplier credits/refunds as a separate future feature.
 - [x] Purchase API focused tests verified after enabling the PHP SQLite driver.
 - [x] Full backend suite re-verified after Purchase UoM, Purchase Return, and Expense accounting hardening with `php artisan test` passing 206 tests and 895 assertions.
 
@@ -164,7 +168,10 @@
 - [x] Purchases create/edit form with warehouse/supplier autocompletes, item line table, totals calculation, discount/shipping/notes fields, and status selection is present.
 - [x] Purchases create/edit form now splits item lines, pricing totals, and notes into focused typed components under `frontend/src/features/purchases/components/`.
 - [x] Purchases detail page with header info, items table, summary, notes, and action buttons (receive/edit/delete) is present.
+- [x] Purchase detail summary now displays returned amount, net payable, and due amount from backend-calculated fields so payment limits after returns are visible to users; focused Purchase API test plus frontend type-check/lint/build verified.
 - [x] Purchase receive dialog with per-item quantity/lot/serial entry is present.
+- [x] Purchase return dialog now uses backend-provided valid lot and serial options for tracked purchase lines, with frontend validation before submit; focused Purchase/Purchase Return API tests plus frontend type-check/lint/build verified.
+- [x] Purchase payment deletion now requires an explicit reversal reason in the frontend and backend, with the reason stored on the reversed payment audit trail; focused Purchase API test, frontend type-check, and frontend lint verified.
 - [x] Sidebar navigation (`/purchases`), breadcrumbs, and route pages (list, create, detail, edit) are registered.
 - [x] English and Khmer translations are complete with namespace registered in i18n.
 - [x] Frontend type-check, lint (0 new errors), and build verified.
@@ -236,6 +243,8 @@
 - [x] Brand uploaded image previews now resolve Laravel `/storage` asset URLs through the configured API host so images show correctly in the Next frontend.
 - [x] Product detail, variation thumbnails, and POS product tiles now resolve Laravel `/storage` asset URLs through the configured API host.
 - [x] POS checkout now hides sale/due date fields, moves price group and notes behind a More toggle, and keeps payment anchored at the bottom of the sell-line panel.
+- [x] POS checkout layout reviewed and cleaned for desktop and iPad: product gallery now uses a drawer until wide desktop, cart table is narrower for landscape iPad/desktop, and portrait tablet/mobile uses compact cart cards; frontend type-check, lint, and build verified.
+- [x] Pending frosted shell/global overlay blur changes reviewed and removed to preserve the verified solid/translucent layout behavior; Next route types regenerated and frontend type-check, lint, and build verified.
 - [x] Agent rules now require small reusable shared components/hooks for repeated frontend patterns instead of duplicated page-level code.
 - [x] Customer edit now shows a visible validation message when the form blocks saving.
 - [x] Customer edit validation now accepts cleared nullable fields and names the first invalid field when save is blocked.
@@ -245,6 +254,9 @@
 
 ## Foundation Frontend And API
 
+- [x] Module registry foundation added with `config/modules.php`, `business_modules`, `ModuleService`, `module:<key>` middleware, auth `enabled_modules`, module-aware sidebar visibility, focused module-access tests, frontend type-check/lint/build verification, and docs updates.
+- [x] Modular restructure plan and build checklist added under `Docs/v11-split/04-roadmap/`, with the split index updated for step-by-step tracking.
+- [x] Super-admin module management added to Business Management with module state API, validation, resources, audit logging, enable/disable/trial/expire UI, limits/settings JSON editor, English/Khmer translations, focused backend tests, and frontend type-check/lint/build verification.
 - [x] POS sale-with-payments save now uses a POST compatibility endpoint while preserving the existing PUT API route, avoiding production Docker/Nginx stacks that mishandle PUT payment updates; focused Sales API tests and frontend type-check verified.
 - [x] Customer update now correctly clears nullable fields such as contact details, customer group, date of birth, address, and notes.
 - [x] Cambodia address lookup API proxy added with cached provinces, districts, communes, and villages from Pumi.

@@ -9,6 +9,7 @@ use App\Models\PaymentAccount;
 use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\PurchasePayment;
+use App\Models\PurchaseReturn;
 use App\Models\StockLevel;
 use App\Models\StockLot;
 use App\Models\StockMovement;
@@ -305,7 +306,11 @@ class PurchaseApiTest extends TestCase
             ],
         ]);
 
-        $response->assertOk()->assertJsonPath('data.status', 'received');
+        $response
+            ->assertOk()
+            ->assertJsonPath('data.status', 'received')
+            ->assertJsonPath('data.items.0.return_lots.0.lot_number', 'LOT-001')
+            ->assertJsonPath('data.items.0.return_lots.0.qty_on_hand', '1.0000');
 
         $lot = StockLot::query()->firstOrFail();
         $this->assertSame('LOT-001', $lot->lot_number);
@@ -333,7 +338,11 @@ class PurchaseApiTest extends TestCase
             ],
         ]);
 
-        $response->assertOk()->assertJsonPath('data.status', 'received');
+        $response
+            ->assertOk()
+            ->assertJsonPath('data.status', 'received')
+            ->assertJsonPath('data.items.0.return_serials.0.serial_number', 'SER-001')
+            ->assertJsonPath('data.items.0.return_serials.1.serial_number', 'SER-002');
 
         $this->assertSame(2, StockSerial::query()->count());
         $this->assertSame(2, StockMovement::query()->where('type', 'purchase_receipt')->count());
@@ -477,6 +486,68 @@ class PurchaseApiTest extends TestCase
             'event' => 'payment_recorded',
             'auditable_id' => $purchase->id,
         ]);
+    }
+
+    public function test_purchase_payment_respects_remaining_payable_after_returns(): void
+    {
+        [$business, $admin, $branch, $warehouse, $supplier, $product] = $this->makePurchaseContext();
+        $purchase = $this->makePurchase($business, $branch, $warehouse, $supplier, $product, 'PO-2026-00001', 'received', 5);
+        $purchase->items()->update(['received_quantity' => 5]);
+        PurchaseReturn::withoutGlobalScopes()->create([
+            'business_id' => $business->id,
+            'purchase_id' => $purchase->id,
+            'branch_id' => $branch->id,
+            'warehouse_id' => $warehouse->id,
+            'return_number' => 'PRT-2026-00001',
+            'status' => 'completed',
+            'return_date' => '2026-05-28',
+            'total_amount' => 20,
+            'created_by' => $admin->id,
+        ]);
+
+        $cashAccount = ChartOfAccount::withoutGlobalScopes()
+            ->where('business_id', $business->id)
+            ->where('code', '1110')
+            ->firstOrFail();
+
+        $paymentAccount = PaymentAccount::withoutGlobalScopes()->create([
+            'business_id' => $business->id,
+            'name' => 'Main Cash Drawer',
+            'account_type' => 'cash',
+            'opening_balance' => 0,
+            'coa_account_id' => $cashAccount->id,
+            'is_active' => true,
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $this->postJson("/api/v1/purchases/{$purchase->id}/payments", [
+            'payment_account_id' => $paymentAccount->id,
+            'amount' => 31,
+            'method' => 'cash',
+            'payment_date' => '2026-05-28',
+            'reference' => 'CASH-OVER',
+        ])->assertStatus(422);
+
+        $this->postJson("/api/v1/purchases/{$purchase->id}/payments", [
+            'payment_account_id' => $paymentAccount->id,
+            'amount' => 30,
+            'method' => 'cash',
+            'payment_date' => '2026-05-28',
+            'reference' => 'CASH-NET',
+        ])->assertCreated()
+            ->assertJsonPath('data.purchase.payment_status', 'paid')
+            ->assertJsonPath('data.purchase.returned_amount', '20.00')
+            ->assertJsonPath('data.purchase.net_payable_amount', '30.00')
+            ->assertJsonPath('data.purchase.due_amount', '0.00')
+            ->assertJsonPath('data.purchase.paid_amount', '30.00')
+            ->assertJsonPath('data.payment.amount', '30.00');
+
+        $this->getJson("/api/v1/purchases/{$purchase->id}")
+            ->assertOk()
+            ->assertJsonPath('data.returned_amount', '20.00')
+            ->assertJsonPath('data.net_payable_amount', '30.00')
+            ->assertJsonPath('data.due_amount', '0.00');
     }
 
     public function test_confirmed_purchase_payment_can_be_corrected_with_reversal_and_replacement(): void
@@ -633,6 +704,48 @@ class PurchaseApiTest extends TestCase
             'event' => 'deleted',
             'auditable_type' => 'App\\Models\\PurchasePayment',
             'auditable_id' => $paymentId,
+        ]);
+    }
+
+    public function test_purchase_payment_delete_requires_reason(): void
+    {
+        [$business, $admin, $branch, $warehouse, $supplier, $product] = $this->makePurchaseContext();
+        $purchase = $this->makePurchase($business, $branch, $warehouse, $supplier, $product, 'PO-2026-00001', 'confirmed');
+
+        $cashAccount = ChartOfAccount::withoutGlobalScopes()
+            ->where('business_id', $business->id)
+            ->where('code', '1110')
+            ->firstOrFail();
+
+        $paymentAccount = PaymentAccount::withoutGlobalScopes()->create([
+            'business_id' => $business->id,
+            'name' => 'Main Cash Drawer',
+            'account_type' => 'cash',
+            'opening_balance' => 0,
+            'coa_account_id' => $cashAccount->id,
+            'is_active' => true,
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $paymentResponse = $this->postJson("/api/v1/purchases/{$purchase->id}/payments", [
+            'payment_account_id' => $paymentAccount->id,
+            'amount' => 10,
+            'method' => 'cash',
+            'payment_date' => '2026-05-28',
+            'reference' => 'CASH-DELETE',
+        ])->assertCreated();
+
+        $paymentId = $paymentResponse->json('data.payment.id');
+
+        $this->deleteJson("/api/v1/purchases/{$purchase->id}/payments/{$paymentId}")
+            ->assertUnprocessable()
+            ->assertJsonValidationErrors(['reason']);
+
+        $this->assertDatabaseHas('purchase_payments', [
+            'id' => $paymentId,
+            'status' => 'completed',
+            'reversal_reason' => null,
         ]);
     }
 

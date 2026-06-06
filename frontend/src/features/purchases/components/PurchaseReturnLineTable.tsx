@@ -1,6 +1,7 @@
 'use client'
 
 import {
+  Autocomplete,
   Checkbox,
   Stack,
   Table,
@@ -48,6 +49,10 @@ function lineFor(lines: PurchaseReturnDraftLine[], itemId: string) {
   return lines.find((line) => line.purchase_item_id === itemId)
 }
 
+function lotLabel(lot: NonNullable<PurchaseItem['return_lots']>[number]) {
+  return `${lot.lot_number} (${formatQuantity(lot.qty_on_hand)})`
+}
+
 export function PurchaseReturnLineTable({ items, lines, disabled = false, onChange }: PurchaseReturnLineTableProps) {
   const { t } = useTranslation('purchases')
 
@@ -57,13 +62,14 @@ export function PurchaseReturnLineTable({ items, lines, disabled = false, onChan
 
   return (
     <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1, overflowX: 'auto' }}>
-      <Table sx={{ minWidth: 800, tableLayout: 'fixed' }}>
+      <Table sx={{ minWidth: 1080, tableLayout: 'fixed' }}>
         <TableHead>
           <TableRow>
             <TableCell sx={{ width: 64 }}>{t('returns.columns.select')}</TableCell>
             <TableCell sx={{ width: 300 }}>{t('create.items.product')}</TableCell>
             <TableCell sx={{ width: 120 }} align="right">{t('returns.columns.received')}</TableCell>
-            <TableCell sx={{ width: 150 }}>{t('returns.columns.lot')}</TableCell>
+            <TableCell sx={{ width: 220 }}>{t('returns.columns.lot')}</TableCell>
+            <TableCell sx={{ width: 240 }}>{t('returns.columns.serials')}</TableCell>
             <TableCell sx={{ width: 150 }} align="right">{t('returns.columns.returnQty')}</TableCell>
           </TableRow>
         </TableHead>
@@ -71,6 +77,14 @@ export function PurchaseReturnLineTable({ items, lines, disabled = false, onChan
           {items.map((item) => {
             const line = lineFor(lines, item.id)
             const receivedQty = toNumber(item.received_quantity ?? item.quantity)
+            const tracking = item.product?.stock_tracking ?? 'none'
+            const lotOptions = item.return_lots ?? []
+            const serialOptions = item.return_serials ?? []
+            const selectedLot = lotOptions.find((lot) => lot.id === line?.lot_id) ?? null
+            const selectedSerials = serialOptions.filter((serial) => line?.serial_ids.includes(serial.id))
+            const maxReturnQty = tracking === 'lot' && selectedLot
+              ? Math.min(receivedQty, toNumber(selectedLot.qty_on_hand))
+              : receivedQty
 
             return (
               <TableRow key={item.id} hover>
@@ -78,7 +92,10 @@ export function PurchaseReturnLineTable({ items, lines, disabled = false, onChan
                   <Checkbox
                     checked={!!line?.selected}
                     disabled={disabled}
-                    onChange={(event) => updateLine(item.id, { selected: event.target.checked })}
+                    onChange={(event) => updateLine(item.id, {
+                      selected: event.target.checked,
+                      quantity: tracking === 'serial' ? (line?.serial_ids.length ?? 0) : (line?.quantity ?? receivedQty),
+                    })}
                     slotProps={{ input: { 'aria-label': t('returns.actions.selectLine') } }}
                   />
                 </TableCell>
@@ -94,25 +111,65 @@ export function PurchaseReturnLineTable({ items, lines, disabled = false, onChan
                   <Typography variant="body2">{formatQuantity(receivedQty)}</Typography>
                 </TableCell>
                 <TableCell>
-                  <TextField
-                    size="small"
-                    placeholder={t('returns.fields.lotPlaceholder')}
-                    value={line?.lot_id ?? ''}
-                    disabled={disabled || !line?.selected}
-                    onChange={(event) => updateLine(item.id, { lot_id: event.target.value })}
-                    slotProps={{ input: { 'aria-label': t('returns.fields.lotPlaceholder') } }}
-                    fullWidth
-                  />
+                  {tracking === 'lot' ? (
+                    <Autocomplete
+                      size="small"
+                      options={lotOptions}
+                      value={selectedLot}
+                      disabled={disabled || !line?.selected}
+                      getOptionLabel={lotLabel}
+                      isOptionEqualToValue={(option, value) => option.id === value.id}
+                      onChange={(_, lot) => updateLine(item.id, {
+                        lot_id: lot?.id ?? '',
+                        quantity: Math.min(line?.quantity ?? receivedQty, lot ? toNumber(lot.qty_on_hand) : receivedQty),
+                      })}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          placeholder={t('returns.fields.lotPlaceholder')}
+                          helperText={lotOptions.length === 0 ? t('returns.fields.noLots') : undefined}
+                        />
+                      )}
+                    />
+                  ) : (
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>-</Typography>
+                  )}
+                </TableCell>
+                <TableCell>
+                  {tracking === 'serial' ? (
+                    <Autocomplete
+                      multiple
+                      size="small"
+                      options={serialOptions}
+                      value={selectedSerials}
+                      disabled={disabled || !line?.selected}
+                      getOptionLabel={(serial) => serial.serial_number}
+                      isOptionEqualToValue={(option, value) => option.id === value.id}
+                      onChange={(_, serials) => updateLine(item.id, {
+                        serial_ids: serials.map((serial) => serial.id),
+                        quantity: serials.length,
+                      })}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          placeholder={t('returns.fields.serialsPlaceholder')}
+                          helperText={serialOptions.length === 0 ? t('returns.fields.noSerials') : undefined}
+                        />
+                      )}
+                    />
+                  ) : (
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>-</Typography>
+                  )}
                 </TableCell>
                 <TableCell align="right">
                   <TextField
                     type="number"
                     size="small"
                     value={line?.quantity ?? 0}
-                    disabled={disabled || !line?.selected}
-                    onChange={(event) => updateLine(item.id, { quantity: Math.max(0, Number(event.target.value)) })}
+                    disabled={disabled || !line?.selected || tracking === 'serial'}
+                    onChange={(event) => updateLine(item.id, { quantity: Math.max(0, Math.min(maxReturnQty, Number(event.target.value))) })}
                     slotProps={{
-                      input: { inputProps: { min: 0, max: receivedQty, step: 'any' } },
+                      input: { inputProps: { min: 0, max: maxReturnQty, step: 'any' } },
                       htmlInput: { 'aria-label': t('returns.fields.returnQty') },
                     }}
                     sx={{ width: 120 }}

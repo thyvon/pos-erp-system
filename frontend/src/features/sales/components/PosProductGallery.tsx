@@ -82,9 +82,9 @@ export function PosProductGallery({
   const { t } = useTranslation(['sales'])
 
   return (
-    <Stack spacing={2}>
-      <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 1.5, bgcolor: 'background.paper' }}>
-        <Stack spacing={1.5}>
+    <Stack spacing={2} sx={{ minHeight: 0 }}>
+      <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 1.5, bgcolor: 'background.paper', minHeight: 0 }}>
+        <Stack spacing={1.5} sx={{ minHeight: 0 }}>
           <ToggleButtonGroup
             fullWidth
             exclusive
@@ -142,9 +142,9 @@ export function PosProductGallery({
           <Box
             sx={{
               display: 'grid',
-              gridTemplateColumns: { xs: 'repeat(2, minmax(0, 1fr))', xl: 'repeat(3, minmax(0, 1fr))' },
+              gridTemplateColumns: 'repeat(auto-fit, minmax(132px, 1fr))',
               gap: 1,
-              maxHeight: { xs: 'calc(100vh - 180px)', lg: 'calc(100vh - 390px)' },
+              maxHeight: { xs: 'calc(100vh - 180px)', xl: 'calc(100vh - 390px)' },
               overflowY: 'auto',
               pr: 0.5,
             }}
@@ -175,7 +175,7 @@ export function PosProductGallery({
                     overflow: 'hidden',
                     bgcolor: 'background.paper',
                     aspectRatio: '1 / 1',
-                    minHeight: 178,
+                    minHeight: 150,
                     display: 'flex',
                     alignItems: 'stretch',
                   }}

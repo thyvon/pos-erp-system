@@ -37,6 +37,7 @@ export interface User {
   roles: string[]
   direct_permissions?: string[]
   permissions: string[]
+  enabled_modules?: string[]
   allowed_branches: AllowedBranch[]
   branches?: Array<AllowedBranch & { code?: string; is_default?: boolean; is_active?: boolean }>
   branch_ids?: string[]

@@ -7,6 +7,15 @@
 - Inventory
 - Accounting
 - Sales
+- Purchases
+- Expenses
+
+### Module Foundation
+
+- Module registry and per-business `business_modules` licensing/access gate are present.
+- Current live module route groups are guarded by module middleware.
+- Auth payloads include `enabled_modules` for frontend module-aware navigation.
+- HRM remains the recommended first new standalone module.
 
 ### Frontend Areas With Active Views
 
@@ -17,11 +26,11 @@
 - Inventory
 - Accounting
 - Sales
+- Purchases
+- Expenses
 
 ### Planned But Not Yet Built
 
-- Purchases
-- Expenses
 - Reports
 - Loyalty
 - Commissions

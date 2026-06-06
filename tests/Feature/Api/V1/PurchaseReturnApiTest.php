@@ -8,6 +8,7 @@ use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\PurchaseReturn;
 use App\Models\StockLevel;
+use App\Models\StockLot;
 use App\Models\StockMovement;
 use App\Models\StockSerial;
 use App\Models\SubUnit;
@@ -86,7 +87,7 @@ class PurchaseReturnApiTest extends TestCase
         ]);
 
         $purchase->refresh();
-        $this->assertEquals('returned', $purchase->status);
+        $this->assertEquals('received', $purchase->status);
 
         $this->assertDatabaseHas('stock_movements', [
             'reference_type' => 'App\Models\PurchaseReturn',
@@ -186,6 +187,45 @@ class PurchaseReturnApiTest extends TestCase
             ->assertJsonMissing(['return_number' => 'PRT-2026-00002']);
     }
 
+    public function test_purchase_can_record_multiple_returns_until_received_quantity_is_used(): void
+    {
+        [$business, $admin, $branch, $warehouse, $supplier, $product] = $this->makePurchaseContext();
+        Sanctum::actingAs($admin);
+
+        $purchase = $this->makeReceivedPurchase($business, $branch, $warehouse, $supplier, $product, 'PO-MULTI-RETURN', 5);
+        $purchaseItem = $purchase->items()->firstOrFail();
+
+        $this->postJson("/api/v1/purchases/{$purchase->id}/returns", [
+            'return_date' => '2026-06-01',
+            'items' => [
+                ['purchase_item_id' => $purchaseItem->id, 'quantity' => 2],
+            ],
+        ])->assertCreated()
+            ->assertJsonPath('data.return_number', 'PRT-2026-00001');
+
+        $this->postJson("/api/v1/purchases/{$purchase->id}/returns", [
+            'return_date' => '2026-06-02',
+            'items' => [
+                ['purchase_item_id' => $purchaseItem->id, 'quantity' => 3],
+            ],
+        ])->assertCreated()
+            ->assertJsonPath('data.return_number', 'PRT-2026-00002');
+
+        $this->postJson("/api/v1/purchases/{$purchase->id}/returns", [
+            'return_date' => '2026-06-03',
+            'items' => [
+                ['purchase_item_id' => $purchaseItem->id, 'quantity' => 1],
+            ],
+        ])->assertStatus(422);
+
+        $purchase->refresh();
+        $this->assertSame('received', $purchase->status);
+        $this->assertSame('0.0000', StockLevel::where('warehouse_id', $warehouse->id)
+            ->where('product_id', $product->id)
+            ->firstOrFail()
+            ->quantity);
+    }
+
     public function test_purchase_return_converts_sub_unit_quantity_to_base_stock_quantity(): void
     {
         [$business, $admin, $branch, $warehouse, $supplier, $product] = $this->makePurchaseContext();
@@ -245,6 +285,56 @@ class PurchaseReturnApiTest extends TestCase
             ->where('product_id', $product->id)
             ->firstOrFail()
             ->quantity);
+    }
+
+    public function test_lot_tracked_purchase_can_return_remaining_lot_quantity_after_prior_return(): void
+    {
+        [$business, $admin, $branch, $warehouse, $supplier, $product] = $this->makePurchaseContext([
+            'stock_tracking' => 'lot',
+        ]);
+        Sanctum::actingAs($admin);
+
+        $purchase = $this->makeReceivedPurchase($business, $branch, $warehouse, $supplier, $product, 'PO-LOT-RETURN', 5);
+        $purchaseItem = $purchase->items()->firstOrFail();
+        $lot = StockLot::withoutGlobalScopes()->create([
+            'business_id' => $business->id,
+            'product_id' => $product->id,
+            'warehouse_id' => $warehouse->id,
+            'supplier_id' => $supplier->id,
+            'lot_number' => 'LOT-RETURN-001',
+            'received_at' => now(),
+            'unit_cost' => 10,
+            'qty_received' => 5,
+            'qty_on_hand' => 5,
+            'qty_reserved' => 0,
+            'status' => 'active',
+            'created_by' => $admin->id,
+        ]);
+
+        $this->postJson("/api/v1/purchases/{$purchase->id}/returns", [
+            'return_date' => '2026-06-01',
+            'items' => [
+                [
+                    'purchase_item_id' => $purchaseItem->id,
+                    'quantity' => 2,
+                    'lot_id' => $lot->id,
+                ],
+            ],
+        ])->assertCreated();
+
+        $this->postJson("/api/v1/purchases/{$purchase->id}/returns", [
+            'return_date' => '2026-06-02',
+            'items' => [
+                [
+                    'purchase_item_id' => $purchaseItem->id,
+                    'quantity' => 3,
+                    'lot_id' => $lot->id,
+                ],
+            ],
+        ])->assertCreated()
+            ->assertJsonPath('data.items.0.lot_id', $lot->id);
+
+        $this->assertSame('0.0000', $lot->refresh()->qty_on_hand);
     }
 
     public function test_user_without_purchases_return_permission_cannot_create_return(): void

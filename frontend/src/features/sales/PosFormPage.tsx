@@ -806,7 +806,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
                   size="small"
                   color={productGalleryOpen ? 'primary' : 'default'}
                   onClick={() => setProductGalleryOpen(true)}
-                  sx={{ ...posTopbarButtonSx, display: { lg: 'none' } }}
+                  sx={{ ...posTopbarButtonSx, display: { xl: 'none' } }}
                 >
                   <CategoryOutlined />
                 </IconButton>
@@ -834,12 +834,13 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
           sx={{
             minHeight: 0,
             overflow: 'hidden',
+            overflowX: 'auto',
             display: 'grid',
-            gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 3fr) minmax(430px, 2fr)' },
+            gridTemplateColumns: { xs: 'minmax(0, 1fr)', xl: 'minmax(720px, 1.5fr) minmax(380px, 440px)' },
           }}
         >
-          <Box sx={{ minWidth: 0, minHeight: 0, p: { xs: 2, md: 3 }, overflow: 'hidden', display: 'flex' }}>
-            <Stack spacing={1.5} sx={{ minHeight: 0, flex: '1 1 auto' }}>
+          <Box sx={{ minWidth: 0, minHeight: 0, overflow: 'hidden', display: 'flex' }}>
+            <Stack spacing={1.5} sx={{ minWidth: 0, minHeight: 0, flex: '1 1 auto' }}>
               {serverError && <Alert severity="error">{serverError}</Alert>}
 
               <PosHeaderFields
@@ -953,9 +954,9 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
           <Box
             sx={{
               minWidth: 0,
-              display: { xs: 'none', lg: 'block' },
-              borderLeftWidth: { lg: 1 },
-              borderLeftStyle: { lg: 'solid' },
+              display: { xs: 'none', xl: 'block' },
+              borderLeftWidth: { xl: 1 },
+              borderLeftStyle: { xl: 'solid' },
               borderLeftColor: 'divider',
               bgcolor: 'background.paper',
               p: 2,
@@ -1038,11 +1039,11 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
         anchor="right"
         open={productGalleryOpen}
         onClose={() => setProductGalleryOpen(false)}
-        sx={{ display: { xs: 'block', lg: 'none' } }}
+        sx={{ display: { xs: 'block', xl: 'none' } }}
         slotProps={{
           paper: {
             sx: {
-              width: { xs: 'min(92vw, 420px)', sm: 420 },
+              width: { xs: 'min(92vw, 420px)', sm: 420, md: 460 },
               p: 2,
             },
           },

@@ -10,6 +10,7 @@ use App\Models\Journal;
 use App\Models\PaymentAccount;
 use App\Models\Purchase;
 use App\Models\PurchasePayment;
+use App\Models\PurchaseReturn;
 use App\Models\User;
 use App\Services\Accounting\AccountingService;
 use App\Services\AuditService;
@@ -358,7 +359,31 @@ class PurchasePaymentService
 
     protected function outstandingAmount(Purchase $purchase): float
     {
-        return round(max(0, (float) $purchase->total_amount - (float) $purchase->paid_amount), 2);
+        return round(max(0, $this->payableAmount($purchase) - (float) $purchase->paid_amount), 2);
+    }
+
+    protected function payableAmount(Purchase $purchase): float
+    {
+        $returnedAmount = (float) PurchaseReturn::withoutGlobalScopes()
+            ->where('business_id', $purchase->business_id)
+            ->where('purchase_id', $purchase->id)
+            ->where('status', 'completed')
+            ->sum('total_amount');
+
+        return round(max(0, (float) $purchase->total_amount - $returnedAmount), 2);
+    }
+
+    protected function resolvePaymentStatus(Purchase $purchase): string
+    {
+        $paidAmount = round((float) $purchase->paid_amount, 2);
+
+        if ($paidAmount <= 0) {
+            return 'unpaid';
+        }
+
+        return $paidAmount >= $this->payableAmount($purchase)
+            ? 'paid'
+            : 'partial';
     }
 
     protected function applyPaymentLines(
@@ -456,9 +481,7 @@ class PurchasePaymentService
         }
 
         $purchase->paid_amount = round((float) $purchase->paid_amount + $paymentTotal, 2);
-        $purchase->payment_status = $purchase->paid_amount >= (float) $purchase->total_amount
-            ? 'paid'
-            : 'partial';
+        $purchase->payment_status = $this->resolvePaymentStatus($purchase);
         $purchase->save();
 
         return [
@@ -520,9 +543,7 @@ class PurchasePaymentService
         $payment->save();
 
         $purchase->paid_amount = round(max(0, (float) $purchase->paid_amount - (float) $payment->amount), 2);
-        $purchase->payment_status = $purchase->paid_amount <= 0
-            ? 'unpaid'
-            : ($purchase->paid_amount >= (float) $purchase->total_amount ? 'paid' : 'partial');
+        $purchase->payment_status = $this->resolvePaymentStatus($purchase);
         $purchase->save();
 
         return $reversalJournal;
@@ -536,6 +557,7 @@ class PurchasePaymentService
             'supplier',
             'creator',
             'receiver',
+            'returns',
             'items.product.unit',
             'items.variation',
             'items.subUnit',

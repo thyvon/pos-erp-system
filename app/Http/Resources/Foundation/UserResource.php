@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Foundation;
 
+use App\Services\Core\ModuleService;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -42,6 +43,7 @@ class UserResource extends JsonResource
             'roles' => $this->getRoleNames()->values(),
             'direct_permissions' => $this->permissions->pluck('name')->values(),
             'permissions' => $this->getAllPermissions()->pluck('name')->values(),
+            'enabled_modules' => app(ModuleService::class)->enabledKeysForBusiness($this->business_id),
             'allowed_branches' => $this->resolveAllowedBranches(),
             'branches' => $this->branches->map(fn ($branch) => [
                 'id' => $branch->id,

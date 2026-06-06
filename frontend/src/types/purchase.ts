@@ -46,6 +46,20 @@ export interface PurchaseItem {
   variation?: Pick<ProductVariation, 'id' | 'name' | 'sku'> | null
   sub_unit?: { id: string; name: string; short_name: string | null; conversion_factor: string | null } | null
   tax_rate_info?: { id: string; name: string; rate: string; type: string } | null
+  return_lots?: PurchaseReturnLotOption[]
+  return_serials?: PurchaseReturnSerialOption[]
+}
+
+export interface PurchaseReturnLotOption {
+  id: string
+  lot_number: string
+  qty_on_hand: string | number
+  expiry_date: string | null
+}
+
+export interface PurchaseReturnSerialOption {
+  id: string
+  serial_number: string
 }
 
 export interface Purchase {
@@ -75,6 +89,9 @@ export interface Purchase {
   shipping_charges: string
   total_amount: string
   paid_amount: string
+  returned_amount?: string
+  net_payable_amount?: string
+  due_amount?: string
   notes: string | null
   staff_note: string | null
   branch?: Pick<Branch, 'id' | 'name' | 'code'> | null
@@ -208,7 +225,7 @@ export interface PurchasePaymentCorrectionPayload extends PurchasePaymentLinePay
 }
 
 export interface PurchasePaymentDeletePayload {
-  reason?: string | null
+  reason: string
 }
 
 export interface PurchasePaymentResult {

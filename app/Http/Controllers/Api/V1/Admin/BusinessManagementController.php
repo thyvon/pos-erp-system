@@ -8,8 +8,10 @@ use Illuminate\Http\JsonResponse;
 use App\Http\Controllers\Api\V1\BaseApiController;
 use App\Services\Admin\SuperAdminBusinessService;
 use App\Http\Requests\Admin\StoreBusinessRequest;
+use App\Http\Resources\Admin\BusinessModuleResource;
 use App\Http\Resources\Admin\ManagedBusinessResource;
 use App\Http\Requests\Admin\UpdateManagedBusinessRequest;
+use App\Http\Requests\Admin\UpdateBusinessModulesRequest;
 
 class BusinessManagementController extends BaseApiController
 {
@@ -47,5 +49,26 @@ class BusinessManagementController extends BaseApiController
         $updatedBusiness = $this->businesses->update($business, $request->validated());
 
         return $this->success(new ManagedBusinessResource($updatedBusiness), 'Business updated successfully.');
+    }
+
+    public function modules(Business $business): JsonResponse
+    {
+        return $this->success(BusinessModuleResource::collection(
+            $this->businesses->moduleStates($business)
+        ));
+    }
+
+    public function updateModules(UpdateBusinessModulesRequest $request, Business $business): JsonResponse
+    {
+        $modules = $this->businesses->updateModules(
+            $business,
+            $request->validated(),
+            $request->user()
+        );
+
+        return $this->success(
+            BusinessModuleResource::collection($modules),
+            'Business modules updated successfully.'
+        );
     }
 }

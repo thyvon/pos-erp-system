@@ -70,4 +70,16 @@ Current implemented modules generally follow this pattern correctly:
 
 This pattern should remain the default for all new work.
 
+### 3.8 Module Registry and Licensing Gate
+
+The backend now has a module foundation for selling modules independently:
+
+- module definitions live in `config/modules.php`
+- per-business module state lives in `business_modules`
+- `ModuleService` resolves enabled modules with backward-compatible defaults for current live modules
+- `module:<key>` middleware gates module route groups after auth, tenant, and branch middleware
+- auth responses include `enabled_modules` so the frontend can hide disabled modules
+
+Current code remains in its existing domain folders. Do not move live modules in a big-bang restructure. HRM should be the first new standalone module built against this registry.
+
 ---

@@ -4,6 +4,38 @@ export default {
   actions: {
     new: 'អាជីវកម្មថ្មី',
   },
+  modules: {
+    title: 'គ្រប់គ្រងម៉ូឌុលសម្រាប់ {{name}}',
+    subtitle: 'បើក បិទ សាកល្បង ផុតកំណត់ និងកំណត់រចនាសម្ព័ន្ធម៉ូឌុលដែលអាជីវកម្មនេះអាចប្រើបាន។',
+    enabled: 'បានបើក',
+    actions: {
+      manage: 'គ្រប់គ្រងម៉ូឌុល',
+    },
+    columns: {
+      module: 'ម៉ូឌុល',
+      status: 'ស្ថានភាព',
+      startsAt: 'ចាប់ផ្តើម',
+      endsAt: 'បញ្ចប់',
+      limits: 'JSON កម្រិត',
+      settings: 'JSON ការកំណត់',
+    },
+    fields: {
+      limits: 'កម្រិត',
+      settings: 'ការកំណត់',
+    },
+    statuses: {
+      active: 'សកម្ម',
+      trial: 'សាកល្បង',
+      expired: 'ផុតកំណត់',
+      disabled: 'បានបិទ',
+    },
+    messages: {
+      updated: 'បានកែប្រែម៉ូឌុលអាជីវកម្មដោយជោគជ័យ។',
+    },
+    errors: {
+      invalidJson: 'កម្រិត និងការកំណត់ត្រូវតែជា JSON object ត្រឹមត្រូវ។',
+    },
+  },
   filters: {
     search: 'ស្វែងរកអាជីវកម្ម...',
     status: 'ស្ថានភាព',

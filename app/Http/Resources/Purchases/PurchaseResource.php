@@ -9,6 +9,16 @@ class PurchaseResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
+        $completedReturnAmount = $this->relationLoaded('returns')
+            ? round((float) $this->returns->where('status', 'completed')->sum('total_amount'), 2)
+            : null;
+        $netPayableAmount = $completedReturnAmount === null
+            ? null
+            : round(max(0, (float) $this->total_amount - $completedReturnAmount), 2);
+        $dueAmount = $netPayableAmount === null
+            ? null
+            : round(max(0, $netPayableAmount - (float) $this->paid_amount), 2);
+
         return [
             'id' => $this->id,
             'business_id' => $this->business_id,
@@ -36,6 +46,9 @@ class PurchaseResource extends JsonResource
             'shipping_charges' => $this->shipping_charges,
             'total_amount' => $this->total_amount,
             'paid_amount' => $this->paid_amount,
+            'returned_amount' => $this->when($completedReturnAmount !== null, number_format($completedReturnAmount, 2, '.', '')),
+            'net_payable_amount' => $this->when($netPayableAmount !== null, number_format($netPayableAmount, 2, '.', '')),
+            'due_amount' => $this->when($dueAmount !== null, number_format($dueAmount, 2, '.', '')),
             'notes' => $this->notes,
             'staff_note' => $this->staff_note,
             'created_at' => optional($this->created_at)->toISOString(),

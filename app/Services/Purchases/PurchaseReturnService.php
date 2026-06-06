@@ -75,9 +75,6 @@ class PurchaseReturnService
                 $this->recordReturnMovement($businessId, $purchaseReturn, $item, $linePayload, $actor);
             }
 
-            $lockedPurchase->status = 'returned';
-            $lockedPurchase->save();
-
             return $this->loadPurchaseReturn($purchaseReturn);
         });
     }
@@ -189,13 +186,9 @@ class PurchaseReturnService
                 throw new DomainException('Lot-tracked return items must specify a valid lot for this product and warehouse.', 422);
             }
 
-            $previousReturnedLotQty = (float) $previousReturns
-                ->where('lot_id', $lotId)
-                ->sum('quantity');
-
             $availableLotQty = (float) $purchaseLots->get($lotId)->qty_on_hand;
 
-            if ($quantity > round($availableLotQty - $previousReturnedLotQty, 4)) {
+            if ($quantity > round($availableLotQty, 4)) {
                 throw new DomainException('Returned lot quantity exceeds what is available in this lot.', 422);
             }
 

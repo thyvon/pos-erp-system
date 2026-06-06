@@ -4,6 +4,38 @@ export default {
   actions: {
     new: 'New business',
   },
+  modules: {
+    title: 'Manage modules for {{name}}',
+    subtitle: 'Enable, disable, trial, expire, and configure the modules this business can use.',
+    enabled: 'Enabled',
+    actions: {
+      manage: 'Manage modules',
+    },
+    columns: {
+      module: 'Module',
+      status: 'Status',
+      startsAt: 'Starts',
+      endsAt: 'Ends',
+      limits: 'Limits JSON',
+      settings: 'Settings JSON',
+    },
+    fields: {
+      limits: 'Limits',
+      settings: 'Settings',
+    },
+    statuses: {
+      active: 'Active',
+      trial: 'Trial',
+      expired: 'Expired',
+      disabled: 'Disabled',
+    },
+    messages: {
+      updated: 'Business modules updated successfully.',
+    },
+    errors: {
+      invalidJson: 'Limits and settings must be valid JSON objects.',
+    },
+  },
   filters: {
     search: 'Search businesses...',
     status: 'Status',

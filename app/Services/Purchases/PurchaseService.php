@@ -731,7 +731,7 @@ class PurchaseService
 
     protected function loadPurchase(Purchase $purchase): Purchase
     {
-        return $purchase->load(['branch', 'warehouse.branch', 'supplier', 'creator', 'receiver', 'items.product.unit', 'items.variation', 'items.subUnit', 'items.taxRate', 'payments.paymentAccount', 'payments.replacedPayment', 'payments.reverser']);
+        return $purchase->load(['branch', 'warehouse.branch', 'supplier', 'creator', 'receiver', 'returns', 'items.purchase', 'items.product.unit', 'items.variation', 'items.subUnit', 'items.taxRate', 'payments.paymentAccount', 'payments.replacedPayment', 'payments.reverser']);
     }
 
     protected function audit(string $event, Purchase $purchase, ?User $actor, ?array $oldValues): void

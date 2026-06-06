@@ -31,18 +31,20 @@ Route::prefix('v1/auth')->group(function () {
 });
 
 Route::prefix('v1')->middleware(['auth:sanctum', 'throttle:300,1'])->group(function () {
-    (require __DIR__.'/v1/catalog.php')();
-    (require __DIR__.'/v1/accounting.php')();
-    (require __DIR__.'/v1/inventory.php')();
-    (require __DIR__.'/v1/sales.php')();
-    (require __DIR__.'/v1/purchases.php')();
-    (require __DIR__.'/v1/expenses.php')();
+    Route::middleware('module:catalog')->group(fn () => (require __DIR__.'/v1/catalog.php')());
+    Route::middleware('module:accounting')->group(fn () => (require __DIR__.'/v1/accounting.php')());
+    Route::middleware('module:inventory')->group(fn () => (require __DIR__.'/v1/inventory.php')());
+    Route::middleware('module:sales')->group(fn () => (require __DIR__.'/v1/sales.php')());
+    Route::middleware('module:purchases')->group(fn () => (require __DIR__.'/v1/purchases.php')());
+    Route::middleware('module:expenses')->group(fn () => (require __DIR__.'/v1/expenses.php')());
 
     Route::prefix('admin')->middleware('super_admin')->group(function () {
         Route::get('businesses', [BusinessManagementController::class, 'index'])->middleware('can:businesses.index');
         Route::post('businesses', [BusinessManagementController::class, 'store'])->middleware('can:businesses.create');
         Route::get('businesses/{business}', [BusinessManagementController::class, 'show'])->middleware('can:businesses.index');
         Route::put('businesses/{business}', [BusinessManagementController::class, 'update'])->middleware('can:businesses.edit');
+        Route::get('businesses/{business}/modules', [BusinessManagementController::class, 'modules'])->middleware('can:businesses.index');
+        Route::put('businesses/{business}/modules', [BusinessManagementController::class, 'updateModules'])->middleware('can:businesses.edit');
     });
 
     Route::get('business', [BusinessController::class, 'show'])->middleware('can:businesses.index');

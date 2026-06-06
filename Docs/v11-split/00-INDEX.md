@@ -36,5 +36,7 @@ Recommended reading order:
 - [04-roadmap/11-organized-roadmap.md](04-roadmap/11-organized-roadmap.md) - Organized Roadmap. Recommended implementation order from the current baseline.
 - [04-roadmap/12-absolute-rules.md](04-roadmap/12-absolute-rules.md) - Absolute Rules. Non-negotiable v11 project rules.
 - [04-roadmap/13-implementation-reference-summary.md](04-roadmap/13-implementation-reference-summary.md) - Implementation Summary. Fast summary of live and planned areas.
+- [04-roadmap/14-modular-restructure-plan.md](04-roadmap/14-modular-restructure-plan.md) - Modular Restructure Plan. Step-by-step platform and standalone module migration plan.
+- [04-roadmap/15-modular-restructure-checklist.md](04-roadmap/15-modular-restructure-checklist.md) - Modular Restructure Checklist. Build-task checklist for the restructure.
 
 Master source: `../ERP_Master_Build_Plan_v11.md`.

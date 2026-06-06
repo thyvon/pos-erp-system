@@ -135,7 +135,7 @@ export function useDeletePurchasePaymentMutation() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: ({ purchaseId, paymentId, payload }: { purchaseId: string; paymentId: string; payload?: PurchasePaymentDeletePayload }) =>
+    mutationFn: ({ purchaseId, paymentId, payload }: { purchaseId: string; paymentId: string; payload: PurchasePaymentDeletePayload }) =>
       purchasesApi.deletePayment(purchaseId, paymentId, payload),
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: purchaseKeys.all })

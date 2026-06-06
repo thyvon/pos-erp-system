@@ -23,6 +23,7 @@ return Application::configure(basePath: dirname(__DIR__))
         $middleware->redirectGuestsTo(fn (Request $request) => null);
         $middleware->alias([
             'super_admin' => \App\Http\Middleware\EnsureSuperAdmin::class,
+            'module' => \App\Http\Middleware\EnsureModuleEnabled::class,
         ]);
         $middleware->appendToGroup('api', \App\Http\Middleware\SetApplicationLocale::class);
         $middleware->appendToGroup('api', \App\Http\Middleware\TenantResolver::class);

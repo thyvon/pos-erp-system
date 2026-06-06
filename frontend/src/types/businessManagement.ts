@@ -1,5 +1,6 @@
 export type ManagedBusinessStatus = 'active' | 'suspended' | 'cancelled'
 export type ManagedBusinessTier = 'basic' | 'standard' | 'enterprise'
+export type ManagedBusinessModuleStatus = 'active' | 'trial' | 'expired' | 'disabled'
 
 export interface ManagedBusinessAddress {
   line1?: string | null
@@ -85,4 +86,26 @@ export interface ManagedBusinessFilters {
   tier?: ManagedBusinessTier | ''
   page?: number
   per_page?: number
+}
+
+export interface ManagedBusinessModule {
+  module_key: string
+  name: string
+  description: string
+  default_enabled: boolean
+  status: ManagedBusinessModuleStatus
+  starts_at: string | null
+  ends_at: string | null
+  limits: Record<string, unknown> | null
+  settings: Record<string, unknown> | null
+  enabled: boolean
+}
+
+export interface ManagedBusinessModulePayload {
+  module_key: string
+  status: ManagedBusinessModuleStatus
+  starts_at?: string | null
+  ends_at?: string | null
+  limits?: Record<string, unknown> | null
+  settings?: Record<string, unknown> | null
 }
