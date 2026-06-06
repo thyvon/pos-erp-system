@@ -49,8 +49,13 @@ export function PosHeaderFields({
         gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1.2fr) minmax(0, 1fr)' },
         gap: 1.25,
         p: { xs: 1, md: 1.5 },
+        mb: -1.5,
         boxSizing: 'border-box',
         bgcolor: 'background.paper',
+        borderBottom: 1,
+        borderColor: 'divider',
+        position: 'relative',
+        zIndex: 1,
       }}
     >
       <Controller
