@@ -101,6 +101,12 @@ export function PosCartSection({
         p: { xs: 1, md: 1.5 },
         boxSizing: 'border-box',
         bgcolor: 'background.paper',
+        borderLeft: 1,
+        borderRight: 1,
+        borderBottom: 1,
+        borderColor: 'divider',
+        borderBottomLeftRadius: 1.5,
+        borderBottomRightRadius: 1.5,
         overflow: 'hidden',
       }}
     >
