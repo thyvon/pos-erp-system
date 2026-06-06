@@ -30,6 +30,16 @@ a {
   text-decoration: none;
 }
 
+/* Prevent iOS browsers from zooming when focusing compact form fields */
+@media screen and (max-width: 768px) {
+  input,
+  textarea,
+  select,
+  .MuiInputBase-input {
+    font-size: 16px !important;
+  }
+}
+
 /* Hide number input spinners across the system */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
