@@ -10,6 +10,7 @@ import {
   Slider,
   Stack,
   Switch,
+  Tooltip,
   ToggleButton,
   ToggleButtonGroup,
   Typography,
@@ -36,8 +37,10 @@ import {
   BORDER_RADIUS_MIN,
   BORDER_RADIUS_STEP,
   ENGLISH_FONT_OPTIONS,
+  LAYOUT_SURFACE_THEME_OPTIONS,
   LAYOUT_SIZE_OPTIONS,
   THEME_COLOR_PRESETS,
+  type LayoutSurfaceTheme,
 } from '@/theme'
 
 function SectionTitle({ icon, label }: { icon: ReactNode; label: string }) {
@@ -59,6 +62,61 @@ function SectionTitle({ icon, label }: { icon: ReactNode; label: string }) {
       </Box>
       <Typography variant="subtitle2">{label}</Typography>
     </Stack>
+  )
+}
+
+function SurfaceThemePicker({
+  value,
+  onChange,
+  ariaLabel,
+}: {
+  value: LayoutSurfaceTheme
+  onChange: (value: LayoutSurfaceTheme) => void
+  ariaLabel: string
+}) {
+  const { t } = useTranslation('common')
+  const theme = useTheme()
+
+  return (
+    <Box
+      sx={{
+        display: 'flex',
+        flexWrap: 'wrap',
+        gap: 1,
+      }}
+    >
+      {LAYOUT_SURFACE_THEME_OPTIONS.map((option) => {
+        const selected = value === option.value
+        const label = t(option.labelKey)
+
+        return (
+          <Tooltip key={option.value} title={label}>
+            <Button
+              variant="outlined"
+              onClick={() => onChange(option.value)}
+              aria-label={`${ariaLabel}: ${label}`}
+              sx={{
+                width: 34,
+                height: 34,
+                minWidth: 34,
+                minHeight: 34,
+                p: 0,
+                borderRadius: '50%',
+                borderWidth: selected ? 2 : 1,
+                borderColor: selected ? option.main : theme.palette.divider,
+                bgcolor: option.main,
+                boxShadow: selected ? `0 0 0 3px ${alpha(option.main, 0.18)}` : `inset 0 0 0 1px ${alpha('#000000', 0.08)}`,
+                '&:hover': {
+                  borderWidth: 2,
+                  borderColor: option.main,
+                  boxShadow: `0 0 0 3px ${alpha(option.main, 0.14)}`,
+                },
+              }}
+            />
+          </Tooltip>
+        )
+      })}
+    </Box>
   )
 }
 
@@ -212,8 +270,8 @@ export default function LayoutSettings() {
             />
             <Box
               sx={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(2, minmax(0, 1fr))',
+                display: 'flex',
+                flexWrap: 'wrap',
                 gap: 1,
               }}
             >
@@ -222,48 +280,32 @@ export default function LayoutSettings() {
                 const presetLabel = t(preset.labelKey)
 
                 return (
-                  <Button
-                    key={preset.value}
-                    variant="outlined"
-                    onClick={() => setColorPreset(preset.value)}
-                    sx={{
-                      minHeight: 64,
-                      p: 1,
-                      flexDirection: 'column',
-                      gap: 0.75,
-                      justifyContent: 'center',
-                      borderColor: selected ? preset.main : theme.palette.divider,
-                      bgcolor: selected ? alpha(preset.main, 0.08) : 'transparent',
-                      '&:hover': {
-                        borderColor: preset.main,
-                        bgcolor: alpha(preset.main, 0.12),
-                      },
-                    }}
-                    aria-label={t('layoutSettings.useColorPreset', { name: presetLabel })}
-                  >
-                    <Box
+                  <Tooltip key={preset.value} title={presetLabel}>
+                    <Button
+                      variant="outlined"
+                      onClick={() => setColorPreset(preset.value)}
+                      aria-label={t('layoutSettings.useColorPreset', { name: presetLabel })}
                       sx={{
-                        width: '100%',
-                        height: 22,
-                        borderRadius: 1,
+                        width: 34,
+                        height: 34,
+                        minWidth: 34,
+                        minHeight: 34,
+                        p: 0,
+                        borderRadius: '50%',
+                        borderWidth: selected ? 2 : 1,
+                        borderColor: selected ? preset.main : theme.palette.divider,
                         bgcolor: preset.main,
-                        background: `linear-gradient(135deg, ${preset.dark} 0%, ${preset.main} 52%, ${preset.light} 100%)`,
                         boxShadow: selected
                           ? `0 0 0 3px ${alpha(preset.main, 0.18)}`
                           : `inset 0 0 0 1px ${alpha('#000000', 0.08)}`,
+                        '&:hover': {
+                          borderWidth: 2,
+                          borderColor: preset.main,
+                          boxShadow: `0 0 0 3px ${alpha(preset.main, 0.14)}`,
+                        },
                       }}
                     />
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: selected ? preset.main : 'text.secondary',
-                        fontWeight: 700,
-                        lineHeight: 1.2,
-                      }}
-                    >
-                      {presetLabel}
-                    </Typography>
-                  </Button>
+                  </Tooltip>
                 )
               })}
             </Box>
@@ -400,17 +442,11 @@ export default function LayoutSettings() {
               icon={<ViewSidebarOutlined fontSize="small" />}
               label={t('layoutSettings.sidebarTheme')}
             />
-            <ToggleButtonGroup
-              exclusive
-              fullWidth
+            <SurfaceThemePicker
               value={sidebarTheme}
-              onChange={(_, value) => value && setSidebarTheme(value)}
-              size="small"
-            >
-              <ToggleButton value="inherit">{t('layoutSettings.inherit')}</ToggleButton>
-              <ToggleButton value="light">{t('layoutSettings.light')}</ToggleButton>
-              <ToggleButton value="dark">{t('layoutSettings.dark')}</ToggleButton>
-            </ToggleButtonGroup>
+              onChange={setSidebarTheme}
+              ariaLabel={t('layoutSettings.sidebarTheme')}
+            />
           </Box>
 
           <Box>
@@ -418,17 +454,11 @@ export default function LayoutSettings() {
               icon={<MonitorOutlined fontSize="small" />}
               label={t('layoutSettings.topbarTheme')}
             />
-            <ToggleButtonGroup
-              exclusive
-              fullWidth
+            <SurfaceThemePicker
               value={topbarTheme}
-              onChange={(_, value) => value && setTopbarTheme(value)}
-              size="small"
-            >
-              <ToggleButton value="inherit">{t('layoutSettings.inherit')}</ToggleButton>
-              <ToggleButton value="light">{t('layoutSettings.light')}</ToggleButton>
-              <ToggleButton value="dark">{t('layoutSettings.dark')}</ToggleButton>
-            </ToggleButtonGroup>
+              onChange={setTopbarTheme}
+              ariaLabel={t('layoutSettings.topbarTheme')}
+            />
           </Box>
 
           <Box>

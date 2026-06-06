@@ -3,7 +3,6 @@
 import { Autocomplete, Box, IconButton, Stack, TextField, Tooltip } from '@mui/material'
 import { Controller, type Control, type FieldErrors } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
-import { AppDatePicker } from '@/components/ui/AppDatePicker'
 import { Add } from '@/components/ui/icons'
 import type { Customer } from '@/types/customer'
 import type { Warehouse } from '@/types/warehouse'
@@ -46,7 +45,7 @@ export function PosHeaderFields({
     <Box
       sx={{
         display: 'grid',
-        gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1.2fr) minmax(0, 1fr) 170px 170px' },
+        gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1.2fr) minmax(0, 1fr)' },
         gap: 1.5,
         p: 2,
         border: 1,
@@ -127,33 +126,6 @@ export function PosHeaderFields({
               </Tooltip>
             )}
           </Stack>
-        )}
-      />
-      <Controller
-        name="sale_date"
-        control={control}
-        render={({ field }) => (
-          <AppDatePicker
-            label={t('fields.saleDate')}
-            value={field.value}
-            onChange={(value) => field.onChange(value ?? '')}
-            error={!!errors.sale_date}
-            helperText={errors.sale_date?.message}
-            required
-          />
-        )}
-      />
-      <Controller
-        name="due_date"
-        control={control}
-        render={({ field }) => (
-          <AppDatePicker
-            label={t('fields.dueDate')}
-            value={field.value ?? ''}
-            onChange={(value) => field.onChange(value ?? '')}
-            error={!!errors.due_date}
-            helperText={errors.due_date?.message}
-          />
         )}
       />
     </Box>

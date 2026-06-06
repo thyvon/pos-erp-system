@@ -2,13 +2,14 @@ import { PaletteOptions } from '@mui/material'
 
 export type ThemeColorPreset =
   | 'default'
-  | 'cyan'
-  | 'purple'
   | 'blue'
-  | 'darkBlue'
   | 'darkGreen'
   | 'orange'
   | 'red'
+
+export type NavigationColorPreset = Extract<ThemeColorPreset, 'default' | 'blue' | 'darkGreen'>
+
+export type LayoutSurfaceTheme = 'inherit' | 'light' | 'dark' | NavigationColorPreset
 
 export const THEME_COLOR_PRESETS: Array<{
   value: ThemeColorPreset
@@ -19,11 +20,8 @@ export const THEME_COLOR_PRESETS: Array<{
   dark: string
 }> = [
   { value: 'default', label: 'Graphite', labelKey: 'layoutSettings.colorGraphite', main: '#334155', light: '#94A3B8', dark: '#0F172A' },
-  { value: 'cyan', label: 'Aegean', labelKey: 'layoutSettings.colorAegean', main: '#0E7490', light: '#67E8F9', dark: '#164E63' },
-  { value: 'purple', label: 'Imperial', labelKey: 'layoutSettings.colorImperial', main: '#5B21B6', light: '#C4B5FD', dark: '#3B0764' },
   { value: 'blue', label: 'Sapphire', labelKey: 'layoutSettings.colorSapphire', main: '#1D4ED8', light: '#93C5FD', dark: '#1E3A8A' },
-  { value: 'darkBlue', label: 'Oxford', labelKey: 'layoutSettings.colorOxford', main: '#1E40AF', light: '#60A5FA', dark: '#172554' },
-  { value: 'darkGreen', label: 'Emerald', labelKey: 'layoutSettings.colorEmerald', main: '#047857', light: '#6EE7B7', dark: '#064E3B' },
+  { value: 'darkGreen', label: 'Emerald', labelKey: 'layoutSettings.colorEmerald', main: '#0B6B3A', light: '#3BBF77', dark: '#022A1F' },
   { value: 'orange', label: 'Bronze', labelKey: 'layoutSettings.colorBronze', main: '#B45309', light: '#FCD34D', dark: '#78350F' },
   { value: 'red', label: 'Garnet', labelKey: 'layoutSettings.colorGarnet', main: '#9F1239', light: '#FDA4AF', dark: '#4C0519' },
 ]

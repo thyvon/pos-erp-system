@@ -9,6 +9,7 @@ import {
   Stack,
 } from '@mui/material'
 import { useTranslation } from 'react-i18next'
+import { Search } from '@/components/ui/icons'
 import { inventoryApi } from '../api'
 import { useInventoryProductLookupQuery } from '../hooks'
 import type { InventoryProductLookupItem } from '@/types/inventory'
@@ -118,6 +119,7 @@ export function InventoryProductLookupPicker({
       options={options}
       loading={lookupQuery.isFetching || isResolving}
       disabled={disabled}
+      popupIcon={<Search fontSize="small" />}
       filterOptions={(items) => items}
       isOptionEqualToValue={(option, selected) => option.lookup_key === selected.lookup_key}
       getOptionLabel={getInventoryLookupLabel}

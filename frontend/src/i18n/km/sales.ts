@@ -146,6 +146,9 @@ const sales = {
     noProducts: 'រកមិនឃើញផលិតផល។',
     totalPayable: 'ចំនួនត្រូវទូទាត់',
     recentTransactions: 'ប្រតិបត្តិការថ្មីៗ',
+    more: 'បន្ថែម',
+    showMoreDetails: 'បង្ហាញព័ត៌មានបន្ថែម',
+    hideMoreDetails: 'លាក់ព័ត៌មានបន្ថែម',
     summary: {
       items: 'ទំនិញ',
       edit: 'កែ',

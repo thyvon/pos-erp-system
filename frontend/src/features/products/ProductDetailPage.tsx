@@ -20,6 +20,7 @@ import {
 } from '@mui/material'
 import { ArrowBack, EditOutlined, ImageOutlined } from '@/components/ui/icons'
 import { useTranslation } from 'react-i18next'
+import { resolveAssetUrl } from '@/api/assets'
 import { toAppApiError } from '@/api/errors'
 import { useProductFormOptionsQuery, useProductQuery } from './hooks'
 import { useAuthStore } from '@/stores/authStore'
@@ -137,7 +138,7 @@ export function ProductDetailPage({ productId }: ProductDetailPageProps) {
         <Stack direction="row" spacing={2} sx={{ minWidth: 0, alignItems: 'center' }}>
           <Avatar
             variant="rounded"
-            src={product.image_url ?? ''}
+            src={resolveAssetUrl(product.image_url) ?? ''}
             sx={{ width: 56, height: 56, borderRadius: 1, bgcolor: 'action.hover', color: 'text.secondary' }}
           >
             <ImageOutlined />
@@ -200,7 +201,7 @@ export function ProductDetailPage({ productId }: ProductDetailPageProps) {
             <Stack spacing={2.5}>
               <Avatar
                 variant="rounded"
-                src={product.image_url ?? ''}
+                src={resolveAssetUrl(product.image_url) ?? ''}
                 sx={{
                   width: '100%',
                   height: 190,
@@ -391,7 +392,7 @@ function VariationTable({ variations }: { variations: ProductVariation[] }) {
               <TableCell sx={{ minWidth: 88 }}>
                 <Avatar
                   variant="rounded"
-                  src={variation.image_url ?? ''}
+                  src={resolveAssetUrl(variation.image_url) ?? ''}
                   sx={{ width: 44, height: 44, borderRadius: 1, bgcolor: 'action.hover', color: 'text.secondary' }}
                 >
                   <ImageOutlined fontSize="small" />

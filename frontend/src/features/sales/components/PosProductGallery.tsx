@@ -14,6 +14,7 @@ import {
   alpha,
 } from '@mui/material'
 import { useTranslation } from 'react-i18next'
+import { resolveAssetUrl } from '@/api/assets'
 import { Search } from '@/components/ui/icons'
 import type { Brand } from '@/types/brand'
 import type { Category } from '@/types/category'
@@ -160,6 +161,7 @@ export function PosProductGallery({
             )}
             {products.map((product) => {
               const price = productPrice(product)
+              const imageUrl = resolveAssetUrl(product.image_url)
 
               return (
                 <CardActionArea
@@ -196,7 +198,7 @@ export function PosProductGallery({
                         minHeight: 96,
                         borderRadius: 1,
                         bgcolor: (theme) => alpha(theme.palette.primary.main, 0.06),
-                        backgroundImage: product.image_url ? `url(${product.image_url})` : 'none',
+                        backgroundImage: imageUrl ? `url(${imageUrl})` : 'none',
                         backgroundSize: 'contain',
                         backgroundPosition: 'center',
                         backgroundRepeat: 'no-repeat',

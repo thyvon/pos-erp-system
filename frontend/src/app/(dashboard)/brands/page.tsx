@@ -24,6 +24,7 @@ import { Add, ImageOutlined, LocalOfferOutlined, Search } from '@/components/ui/
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
+import { resolveAssetUrl } from '@/api/assets'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { RowActions } from '@/components/ui/RowActions'
 import { TableStateRow } from '@/components/ui/TableStateRow'
@@ -178,7 +179,7 @@ export default function BrandsPage() {
                       <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
                         <Avatar
                           variant="rounded"
-                          src={brand.image_url ?? undefined}
+                          src={resolveAssetUrl(brand.image_url)}
                           sx={{
                             width: 'var(--app-control-height)',
                             height: 'var(--app-control-height)',

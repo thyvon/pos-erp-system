@@ -90,8 +90,20 @@ export function PosCartSection({
   )
 
   return (
-    <>
-      <Box sx={{ p: 2, border: 1, borderColor: 'divider', borderRadius: 1, bgcolor: 'background.paper' }}>
+    <Box
+      sx={{
+        minHeight: 0,
+        flex: '1 1 auto',
+        display: 'flex',
+        flexDirection: 'column',
+        border: 1,
+        borderColor: 'divider',
+        borderRadius: 1,
+        bgcolor: 'background.paper',
+        overflow: 'hidden',
+      }}
+    >
+      <Box sx={{ p: 2, pb: 1.5 }}>
         <Stack spacing={1.5}>
           <InventoryProductLookupPicker
             warehouseId={warehouseId || undefined}
@@ -102,8 +114,11 @@ export function PosCartSection({
             onSelect={onSelectItem}
           />
           {typeof errors.items?.message === 'string' && <Alert severity="error">{errors.items.message}</Alert>}
+        </Stack>
+      </Box>
 
-          <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1, overflowX: 'auto' }}>
+      <Box sx={{ minHeight: 0, flex: '1 1 auto', px: 2, pb: 2, display: 'flex' }}>
+        <TableContainer sx={{ flex: '1 1 auto', minHeight: 220, border: 1, borderColor: 'divider', borderRadius: 1, overflowX: 'auto' }}>
             <Table sx={{ minWidth: 1048, tableLayout: 'fixed' }}>
               <TableHead>
                 <TableRow>
@@ -233,17 +248,15 @@ export function PosCartSection({
                 ))}
               </TableBody>
             </Table>
-          </TableContainer>
-        </Stack>
+        </TableContainer>
       </Box>
 
       <Box
         sx={{
-          border: 1,
+          flex: '0 0 auto',
+          borderTop: 1,
           borderColor: 'divider',
-          borderRadius: 1,
           overflow: 'hidden',
-          bgcolor: 'background.paper',
         }}
       >
         <Box
@@ -297,6 +310,6 @@ export function PosCartSection({
         </Box>
         {children}
       </Box>
-    </>
+    </Box>
   )
 }
