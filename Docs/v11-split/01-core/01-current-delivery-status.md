@@ -13,13 +13,13 @@ The current repository has working backend, migrations, policies, and tests for 
 - Sales: sales, quotations, cash registers, payments, POS-related frontend flows, and sale returns
 - Purchases: purchases, purchase payments, purchase returns
 - Expenses: expense recording with accounting integration
-- Reports first slices: module-gated Sales, Sales Return, Purchases, Purchase Return, and Sale Payments report APIs and frontend page with filters, totals, pagination, and branch-scoped visibility
+- Reports first slices: module-gated Sales, Sales Return, Purchases, Purchase Return, Sale Payments, and Purchase Payments report APIs and frontend page with filters, totals, pagination, and branch-scoped visibility
 
 ### 1.2 What Is Present Only as Permission or Planning Surface
 
 These areas exist in permissions, old plans, or placeholders, but are **not fully implemented in the current codebase**:
 
-- Reports beyond Sales/Sales Returns/Purchases/Purchase Returns/Sale Payments, report exports, financial reports, and dashboards beyond the current dashboard shell
+- Reports beyond Sales/Sales Returns/Purchases/Purchase Returns/Sale Payments/Purchase Payments, report exports, financial reports, and dashboards beyond the current dashboard shell
 - Loyalty
 - Commissions and sales targets
 - CRM
@@ -42,7 +42,7 @@ These areas exist in permissions, old plans, or placeholders, but are **not full
 | Sales | Live | Sales, quotations, registers, payments, returns implemented |
 | Purchases | Live | Purchases, payments, returns implemented |
 | Expenses | Live | Expense recording with accounting integration |
-| Reports | Partial | Sales, Sales Return, Purchases, Purchase Return, and Sale Payments report API/frontend slices are live behind the Reports module gate |
+| Reports | Partial | Sales, Sales Return, Purchases, Purchase Return, Sale Payments, and Purchase Payments report API/frontend slices are live behind the Reports module gate |
 | Optional Modules | Planned | Not implemented yet |
 
 ### 1.4 Important Deltas From v10

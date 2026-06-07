@@ -152,13 +152,15 @@ Partially implemented:
 - Purchases report API at `/api/v1/reports/purchases`
 - Purchase Return report API at `/api/v1/reports/purchase-returns`
 - Sale Payments report API at `/api/v1/reports/sale-payments`
+- Purchase Payments report API at `/api/v1/reports/purchase-payments`
 - Reports route group is gated by the `reports` module and `reports.index` permission
 - Sales report supports search, status, type, payment status, branch, warehouse, customer, and date filters
 - Sales Return report supports search, status, refund method, branch, warehouse, customer, and date filters
 - Purchases report supports search, status, payment status, branch, warehouse, supplier, and date filters
 - Purchase Return report supports search, status, branch, warehouse, supplier, and date filters
 - Sale Payments report supports search, status, method, branch, warehouse, customer, payment account, cashier, and date filters
-- Sales, Sales Return, Purchases, Purchase Return, and Sale Payments reports return summary totals, paginated rows, and branch-scoped visibility through the current branch-scope model behavior
+- Purchase Payments report supports search, status, method, branch, warehouse, supplier, payment account, cashier, and date filters
+- Sales, Sales Return, Purchases, Purchase Return, Sale Payments, and Purchase Payments reports return summary totals, paginated rows, and branch-scoped visibility through the current branch-scope model behavior
 
 Still roadmap:
 
