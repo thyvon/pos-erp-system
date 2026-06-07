@@ -53,6 +53,7 @@ export default {
     exchangeRates: 'Exchange Rates',
     fiscalYears: 'Fiscal Years',
     expenses: 'Expenses',
+    reports: 'Reports',
     auditLogs: 'Audit Logs',
   },
   breadcrumbs: {

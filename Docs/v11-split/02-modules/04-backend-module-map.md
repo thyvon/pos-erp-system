@@ -143,12 +143,34 @@ Important current behavior:
 - Purchase returns post outbound stock movements, preserve branch access, support multiple return documents, and do not write unsupported purchase status values
 - Purchase receipt and purchase return AP/inventory accounting journals remain a stabilization target and should be implemented together; supplier credit/refund handling is a separate future feature
 
-### 4.8 Deferred Backend Modules
+### 4.8 Reports
+
+Partially implemented:
+
+- Sales report API at `/api/v1/reports/sales`
+- Sales Return report API at `/api/v1/reports/sales-returns`
+- Purchases report API at `/api/v1/reports/purchases`
+- Purchase Return report API at `/api/v1/reports/purchase-returns`
+- Sale Payments report API at `/api/v1/reports/sale-payments`
+- Reports route group is gated by the `reports` module and `reports.index` permission
+- Sales report supports search, status, type, payment status, branch, warehouse, customer, and date filters
+- Sales Return report supports search, status, refund method, branch, warehouse, customer, and date filters
+- Purchases report supports search, status, payment status, branch, warehouse, supplier, and date filters
+- Purchase Return report supports search, status, branch, warehouse, supplier, and date filters
+- Sale Payments report supports search, status, method, branch, warehouse, customer, payment account, cashier, and date filters
+- Sales, Sales Return, Purchases, Purchase Return, and Sale Payments reports return summary totals, paginated rows, and branch-scoped visibility through the current branch-scope model behavior
+
+Still roadmap:
+
+- Report exports
+- Report registry
+- Financial reports
+- Inventory, purchases, expenses, tax, cash register, ledger, and dashboard report slices
+
+### 4.9 Deferred Backend Modules
 
 These are **not implemented yet** and must stay in roadmap status:
 
-- Expenses
-- Reports
 - Loyalty
 - Commissions
 - CRM

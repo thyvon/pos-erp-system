@@ -37,6 +37,7 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'throttle:300,1'])->group(funct
     Route::middleware('module:sales')->group(fn () => (require __DIR__.'/v1/sales.php')());
     Route::middleware('module:purchases')->group(fn () => (require __DIR__.'/v1/purchases.php')());
     Route::middleware('module:expenses')->group(fn () => (require __DIR__.'/v1/expenses.php')());
+    Route::middleware('module:reports')->group(fn () => (require __DIR__.'/v1/reports.php')());
 
     Route::prefix('admin')->middleware('super_admin')->group(function () {
         Route::get('businesses', [BusinessManagementController::class, 'index'])->middleware('can:businesses.index');

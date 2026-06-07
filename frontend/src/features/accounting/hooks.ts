@@ -138,10 +138,11 @@ export function useReverseJournalMutation() {
   })
 }
 
-export function usePaymentAccountsQuery(filters: PaymentAccountFilters) {
+export function usePaymentAccountsQuery(filters: PaymentAccountFilters, enabled = true) {
   return useQuery({
     queryKey: paymentAccountKeys.list(filters),
     queryFn: () => paymentAccountsApi.list(filters),
+    enabled,
     staleTime: 5 * 60 * 1000,
   })
 }

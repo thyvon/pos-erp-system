@@ -53,6 +53,7 @@ export default {
     exchangeRates: 'អត្រាប្តូរប្រាក់',
     fiscalYears: 'ឆ្នាំសារពើពន្ធ',
     expenses: 'ចំណាយ',
+    reports: 'របាយការណ៍',
     auditLogs: 'កំណត់ត្រាសវនកម្ម',
   },
   breadcrumbs: {

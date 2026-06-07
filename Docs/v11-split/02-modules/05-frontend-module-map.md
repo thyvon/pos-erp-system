@@ -8,9 +8,9 @@ The active frontend has been restacked to Next.js/React. Current implemented fro
 - Dashboard shell
 - Protected dashboard layout, sidebar, topbar, breadcrumbs, account popover, settings panel, and notification popover shell
 - No-branch-access blocking page
-- Foundation, contacts/tax, catalog, inventory, accounting, Sales list/detail/create/edit frontend slices, and Purchases list/create/detail/edit/returns frontend slices
+- Foundation, contacts/tax, catalog, inventory, accounting, Sales list/detail/create/edit frontend slices, Purchases list/create/detail/edit/returns frontend slices, Expenses, and the first Reports Sales/Sales Return/Purchases/Purchase Return/Sale Payments report slices
 
-The backend APIs for foundation, contacts, catalog, inventory, accounting, sales, and purchases are live. Purchase returns are exposed through the purchase detail return dialog plus `/purchase-returns` list/detail routes.
+The backend APIs for foundation, contacts, catalog, inventory, accounting, sales, purchases, expenses, and the first Reports Sales/Sales Return/Purchases/Purchase Return/Sale Payments reports are live. Purchase returns are exposed through the purchase detail return dialog plus `/purchase-returns` list/detail routes. Reports navigation is module-aware and only appears when the Reports module is enabled and the user has `reports.index`.
 
 ### 5.2 Frontend Architecture Rules
 

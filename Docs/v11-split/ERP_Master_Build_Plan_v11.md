@@ -44,13 +44,13 @@ The current repository has working backend, migrations, policies, and tests for 
 - Sales: sales, quotations, cash registers, payments, POS-related frontend flows, and sale returns
 - Purchases: purchases, purchase payments, purchase returns
 - Expenses: expense recording with accounting integration
+- Reports first slices: module-gated Sales, Sales Return, Purchases, Purchase Return, and Sale Payments report APIs and frontend page with filters, totals, pagination, and branch-scoped visibility
 
 ### 1.2 What Is Present Only as Permission or Planning Surface
 
 These areas exist in permissions, old plans, or placeholders, but are **not fully implemented in the current codebase**:
 
-- Expenses
-- Reports and dashboards beyond the current dashboard shell
+- Reports beyond Sales/Sales Returns/Purchases/Purchase Returns/Sale Payments, report exports, financial reports, and dashboards beyond the current dashboard shell
 - Loyalty
 - Commissions and sales targets
 - CRM
@@ -73,6 +73,7 @@ These areas exist in permissions, old plans, or placeholders, but are **not full
 | Sales | Live | Sales, quotations, registers, payments, returns implemented |
 | Purchases | Live | Purchases, payments, returns implemented |
 | Expenses | Live | Expense recording with accounting integration |
+| Reports | Partial | Sales, Sales Return, Purchases, Purchase Return, and Sale Payments report API/frontend slices are live behind the Reports module gate |
 | Optional Modules | Planned | Not implemented yet |
 
 ### 1.4 Important Deltas From v10
@@ -85,7 +86,7 @@ The codebase differs from older v10 planning in important ways:
 - `BaseRepository` is a thin CRUD abstraction; Redis caching is **not implemented** there yet.
 - There is no shared `Auditable` trait in the current codebase.
 - The frontend stack has changed from the earlier Vue plan to Next.js, React, TypeScript, MUI, React Query, Zustand, Axios, React Hook Form, Zod, and i18next.
-- Purchases, reports, loyalty, CRM, manufacturing, HRM, and other later modules are still roadmap items, not current implementation.
+- Broader reports, report exports, dashboards, loyalty, CRM, manufacturing, HRM, and other later modules are still roadmap items, not current implementation.
 
 ---
 
@@ -339,13 +340,34 @@ Important current behavior:
 - Sale edit lifetime is controlled through settings
 - Branch filtering is enforced in policy and data access
 
-### 4.7 Deferred Backend Modules
+### 4.7 Reports
+
+Partially implemented:
+
+- Sales report API at `/api/v1/reports/sales`
+- Sales Return report API at `/api/v1/reports/sales-returns`
+- Purchases report API at `/api/v1/reports/purchases`
+- Purchase Return report API at `/api/v1/reports/purchase-returns`
+- Sale Payments report API at `/api/v1/reports/sale-payments`
+- Reports route group is gated by the `reports` module and `reports.index` permission
+- Sales report supports search, status, type, payment status, branch, warehouse, customer, and date filters
+- Sales Return report supports search, status, refund method, branch, warehouse, customer, and date filters
+- Purchases report supports search, status, payment status, branch, warehouse, supplier, and date filters
+- Purchase Return report supports search, status, branch, warehouse, supplier, and date filters
+- Sale Payments report supports search, status, method, branch, warehouse, customer, payment account, cashier, and date filters
+- Sales, Sales Return, Purchases, Purchase Return, and Sale Payments reports return summary totals, paginated rows, and branch-scoped visibility through the current branch-scope model behavior
+
+Still roadmap:
+
+- Report exports
+- Report registry
+- Financial reports
+- Inventory, purchases, expenses, tax, cash register, ledger, and dashboard report slices
+
+### 4.8 Deferred Backend Modules
 
 These are **not implemented yet** and must stay in roadmap status:
 
-- Purchases
-- Expenses
-- Reports
 - Loyalty
 - Commissions
 - CRM

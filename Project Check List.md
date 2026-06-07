@@ -189,6 +189,14 @@
 - [x] Expense backend accounting lifecycle now reverses and reposts journals/payment-account transactions on update, reverses them on delete, and rejects inactive or unlinked payment accounts.
 - [x] Focused Purchase, Purchase Return, Expense, Unit, and Sales backend suites verified after enabling the PHP SQLite PDO driver.
 
+## Reports
+
+- [x] First Sales report slice added with module-gated `/api/v1/reports/sales`, typed frontend API/hooks, `/reports` page, filters, summary totals, paginated sales rows, sidebar/breadcrumb navigation, English/Khmer translations, branch-scoped backend coverage, frontend type-check/lint/build verification, and docs updated to mark Reports as partial rather than fully implemented.
+- [x] Sales Return report slice added with module-gated `/api/v1/reports/sales-returns`, report selector on `/reports`, refund/status/branch/warehouse/customer/date filters, summary totals, paginated return rows, English/Khmer translations, branch-scoped backend coverage, Reports backend test coverage, frontend type-check/lint/build verification, and docs updated.
+- [x] Purchases report slice added with module-gated `/api/v1/reports/purchases`, report selector on `/reports`, status/payment/branch/warehouse/supplier/date filters, summary totals, paginated purchase rows, English/Khmer translations, branch-scoped backend coverage, Reports backend test coverage, frontend type-check/lint/build verification, and docs updated.
+- [x] Purchase Return report slice added with module-gated `/api/v1/reports/purchase-returns`, report selector on `/reports`, status/branch/warehouse/supplier/date filters, summary totals, paginated purchase return rows, English/Khmer translations, branch-scoped backend coverage, Reports backend test coverage, frontend type-check/lint/build verification, and docs updated.
+- [x] Sale Payments report slice added with module-gated `/api/v1/reports/sale-payments`, report selector on `/reports`, status/method/branch/warehouse/customer/payment-account/cashier/date filters, collected-payment summary totals, paginated payment rows, English/Khmer translations, branch-scoped backend coverage through related sales, Reports backend test coverage, frontend type-check/lint/build verification, and docs updated.
+
 ## Frontend UI Consistency
 
 - [x] Frontend shared and page-level icons now use Solar icons through a single local icon module, including sidebar navigation and common actions.

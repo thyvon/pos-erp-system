@@ -32,6 +32,7 @@ import enTaxRates from './en/taxRates'
 import enTaxGroups from './en/taxGroups'
 import enPurchases from './en/purchases'
 import enExpenses from './en/expenses'
+import enReports from './en/reports'
 
 import kmCommon from './km/common'
 import kmAuth from './km/auth'
@@ -61,6 +62,7 @@ import kmTaxRates from './km/taxRates'
 import kmTaxGroups from './km/taxGroups'
 import kmPurchases from './km/purchases'
 import kmExpenses from './km/expenses'
+import kmReports from './km/reports'
 
 const resources = {
   en: {
@@ -92,6 +94,7 @@ const resources = {
     taxGroups: enTaxGroups,
     purchases: enPurchases,
     expenses: enExpenses,
+    reports: enReports,
   },
   km: {
     common: kmCommon,
@@ -122,6 +125,7 @@ const resources = {
     taxGroups: kmTaxGroups,
     purchases: kmPurchases,
     expenses: kmExpenses,
+    reports: kmReports,
   },
 }
 

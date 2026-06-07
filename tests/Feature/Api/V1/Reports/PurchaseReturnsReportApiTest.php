@@ -1,0 +1,213 @@
+<?php
+
+namespace Tests\Feature\Api\V1\Reports;
+
+use App\Models\Branch;
+use App\Models\Business;
+use App\Models\BusinessModule;
+use App\Models\Purchase;
+use App\Models\PurchaseReturn;
+use App\Models\Supplier;
+use App\Models\User;
+use App\Models\Warehouse;
+use Database\Seeders\RolePermissionSeeder;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Laravel\Sanctum\Sanctum;
+use Tests\TestCase;
+
+class PurchaseReturnsReportApiTest extends TestCase
+{
+    use RefreshDatabase;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        $this->seed(RolePermissionSeeder::class);
+    }
+
+    public function test_purchase_return_report_returns_filtered_rows_and_summary_totals(): void
+    {
+        $business = Business::factory()->create();
+        $branch = Branch::factory()->for($business)->create(['name' => 'Central']);
+        $warehouse = Warehouse::factory()->forBranch($branch)->create();
+        $supplier = Supplier::factory()->for($business)->create(['name' => 'Supply Co']);
+        $user = $this->reportUser($business, [$branch->id]);
+        $purchase = $this->purchase($business, $branch, $warehouse, $supplier, [
+            'purchase_number' => 'PO-2026-00001',
+        ]);
+
+        $this->purchaseReturn($business, $branch, $warehouse, $purchase, [
+            'return_number' => 'PR-2026-00001',
+            'return_date' => '2026-06-05',
+            'status' => 'completed',
+            'total_amount' => 70,
+        ]);
+        $this->purchaseReturn($business, $branch, $warehouse, $purchase, [
+            'return_number' => 'PR-2026-00002',
+            'return_date' => '2026-06-10',
+            'status' => 'completed',
+            'total_amount' => 25,
+        ]);
+        $this->purchaseReturn($business, $branch, $warehouse, $purchase, [
+            'return_number' => 'PR-2026-OLD',
+            'return_date' => '2026-05-20',
+            'status' => 'draft',
+            'total_amount' => 99,
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $response = $this->getJson('/api/v1/reports/purchase-returns?status=completed&date_from=2026-06-01&date_to=2026-06-30');
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('success', true)
+            ->assertJsonPath('data.summary.count', 2)
+            ->assertJsonPath('data.summary.total_amount', '95.00')
+            ->assertJsonPath('data.meta.total', 2)
+            ->assertJsonFragment(['return_number' => 'PR-2026-00001'])
+            ->assertJsonFragment(['return_number' => 'PR-2026-00002'])
+            ->assertJsonMissing(['return_number' => 'PR-2026-OLD']);
+    }
+
+    public function test_purchase_return_report_filters_by_supplier_through_original_purchase(): void
+    {
+        $business = Business::factory()->create();
+        $branch = Branch::factory()->for($business)->create();
+        $warehouse = Warehouse::factory()->forBranch($branch)->create();
+        $supplierA = Supplier::factory()->for($business)->create(['name' => 'Visible Supplier']);
+        $supplierB = Supplier::factory()->for($business)->create(['name' => 'Other Supplier']);
+        $user = $this->reportUser($business, [$branch->id]);
+        $purchaseA = $this->purchase($business, $branch, $warehouse, $supplierA);
+        $purchaseB = $this->purchase($business, $branch, $warehouse, $supplierB);
+
+        $this->purchaseReturn($business, $branch, $warehouse, $purchaseA, [
+            'return_number' => 'PR-VISIBLE',
+            'total_amount' => 30,
+        ]);
+        $this->purchaseReturn($business, $branch, $warehouse, $purchaseB, [
+            'return_number' => 'PR-HIDDEN',
+            'total_amount' => 300,
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $response = $this->getJson("/api/v1/reports/purchase-returns?supplier_id={$supplierA->id}");
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('data.summary.count', 1)
+            ->assertJsonPath('data.summary.total_amount', '30.00')
+            ->assertJsonFragment(['return_number' => 'PR-VISIBLE'])
+            ->assertJsonMissing(['return_number' => 'PR-HIDDEN']);
+    }
+
+    public function test_branch_scoped_user_only_sees_allowed_branch_purchase_returns_in_report(): void
+    {
+        $business = Business::factory()->create();
+        $branchA = Branch::factory()->for($business)->create();
+        $branchB = Branch::factory()->for($business)->create();
+        $warehouseA = Warehouse::factory()->forBranch($branchA)->create();
+        $warehouseB = Warehouse::factory()->forBranch($branchB)->create();
+        $supplier = Supplier::factory()->for($business)->create();
+        $user = $this->reportUser($business, [$branchA->id]);
+        $purchaseA = $this->purchase($business, $branchA, $warehouseA, $supplier);
+        $purchaseB = $this->purchase($business, $branchB, $warehouseB, $supplier);
+
+        $this->purchaseReturn($business, $branchA, $warehouseA, $purchaseA, [
+            'return_number' => 'VISIBLE-PR',
+            'total_amount' => 44,
+        ]);
+        $this->purchaseReturn($business, $branchB, $warehouseB, $purchaseB, [
+            'return_number' => 'HIDDEN-PR',
+            'total_amount' => 440,
+        ]);
+
+        Sanctum::actingAs($user);
+
+        $response = $this->getJson('/api/v1/reports/purchase-returns');
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('data.summary.count', 1)
+            ->assertJsonPath('data.summary.total_amount', '44.00')
+            ->assertJsonFragment(['return_number' => 'VISIBLE-PR'])
+            ->assertJsonMissing(['return_number' => 'HIDDEN-PR']);
+    }
+
+    public function test_purchase_return_report_requires_reports_module(): void
+    {
+        $business = Business::factory()->create();
+        $branch = Branch::factory()->for($business)->create();
+        $user = User::factory()->for($business)->create();
+        $user->assignRole('manager');
+        $user->branches()->attach($branch->id);
+
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/v1/reports/purchase-returns')
+            ->assertStatus(403)
+            ->assertJsonPath('success', false)
+            ->assertJsonPath('message', 'The Reports module is not enabled for this business.');
+    }
+
+    protected function reportUser(Business $business, array $branchIds): User
+    {
+        BusinessModule::query()->create([
+            'business_id' => $business->id,
+            'module_key' => 'reports',
+            'status' => 'active',
+        ]);
+
+        $user = User::factory()->for($business)->create();
+        $user->assignRole('manager');
+        $user->branches()->sync($branchIds);
+
+        return $user;
+    }
+
+    protected function purchase(
+        Business $business,
+        Branch $branch,
+        Warehouse $warehouse,
+        Supplier $supplier,
+        array $attributes = []
+    ): Purchase {
+        return Purchase::withoutGlobalScopes()->create(array_merge([
+            'business_id' => $business->id,
+            'branch_id' => $branch->id,
+            'warehouse_id' => $warehouse->id,
+            'supplier_id' => $supplier->id,
+            'purchase_number' => fake()->unique()->bothify('PO-####-????'),
+            'status' => 'received',
+            'payment_status' => 'paid',
+            'purchase_date' => '2026-06-01',
+            'subtotal' => 100,
+            'discount_amount' => 0,
+            'tax_amount' => 0,
+            'shipping_charges' => 0,
+            'total_amount' => 100,
+            'paid_amount' => 100,
+        ], $attributes));
+    }
+
+    protected function purchaseReturn(
+        Business $business,
+        Branch $branch,
+        Warehouse $warehouse,
+        Purchase $purchase,
+        array $attributes = []
+    ): PurchaseReturn {
+        return PurchaseReturn::withoutGlobalScopes()->create(array_merge([
+            'business_id' => $business->id,
+            'purchase_id' => $purchase->id,
+            'branch_id' => $branch->id,
+            'warehouse_id' => $warehouse->id,
+            'return_number' => fake()->unique()->bothify('PR-####-????'),
+            'status' => 'completed',
+            'return_date' => '2026-06-01',
+            'total_amount' => 0,
+        ], $attributes));
+    }
+}

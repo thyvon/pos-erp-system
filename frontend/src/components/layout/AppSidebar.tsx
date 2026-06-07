@@ -170,6 +170,7 @@ const NAV_CONFIG: NavSection[] = [
   {
     key: 'system',
     items: [
+      { key: 'reports', path: '/reports', module: 'reports', icon: <TrendingUpOutlined />, permissions: ['reports.index'] },
       { key: 'auditLogs', path: '/audit-logs', icon: <HistoryOutlined />, permissions: ['audit_logs.index'] },
     ],
   },
