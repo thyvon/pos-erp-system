@@ -48,10 +48,11 @@ export const exchangeRateKeys = {
   default: (fromCurrency: string, toCurrency: string) => [...exchangeRateKeys.all, 'default', fromCurrency, toCurrency] as const,
 }
 
-export function useChartOfAccountsQuery(filters: ChartOfAccountFilters) {
+export function useChartOfAccountsQuery(filters: ChartOfAccountFilters, enabled = true) {
   return useQuery({
     queryKey: chartOfAccountKeys.list(filters),
     queryFn: () => chartOfAccountsApi.list(filters),
+    enabled,
   })
 }
 

@@ -14,75 +14,85 @@ import {
   MenuItem,
   Select,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
   TablePagination,
-  TableRow,
   TextField,
   Typography,
 } from '@mui/material'
 import { ExpandLess, ExpandMore, Search, TrendingUpOutlined, TuneOutlined } from '@/components/ui/icons'
 import { useTranslation } from 'react-i18next'
-import type { TFunction } from 'i18next'
 import { toAppApiError } from '@/api/errors'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
 import { SearchableFilterSelect } from '@/components/ui/SearchableFilterSelect'
-import { TableStateRow } from '@/components/ui/TableStateRow'
-import { usePaymentAccountsQuery } from '@/features/accounting/hooks'
+import { useChartOfAccountsQuery, usePaymentAccountsQuery } from '@/features/accounting/hooks'
 import { useBranchesQuery } from '@/features/branches/hooks'
+import { useCategoriesQuery } from '@/features/categories/hooks'
 import { useCustomersQuery } from '@/features/customers/hooks'
 import { useAppDateFormat } from '@/features/settings/useAppDateFormat'
 import { useCurrencyFormatter } from '@/features/settings/useAppCurrency'
+import { useCashRegistersQuery } from '@/features/sales/hooks'
 import { useSuppliersQuery } from '@/features/suppliers/hooks'
 import { useUsersQuery } from '@/features/users/hooks'
 import { useWarehousesQuery } from '@/features/warehouses/hooks'
 import { useAuthStore } from '@/stores/authStore'
-import { formatAppDate } from '@/utils/dateFormat'
-import { formatMoney } from '@/utils/formatMoney'
+import { ReportSummaryCards } from './components/ReportSummaryCards'
 import {
+  CashRegistersReportTable,
+  ExpensesReportTable,
+  PurchasePaymentsReportTable,
+  PurchaseReturnsReportTable,
+  PurchasesReportTable,
+  SalePaymentsReportTable,
+  SalesReportTable,
+  SalesReturnReportTable,
+  StockReportTable,
+} from './components/ReportTables'
+import {
+  useCashRegistersReportQuery,
+  useExpensesReportQuery,
   usePurchasePaymentsReportQuery,
   usePurchaseReturnsReportQuery,
   usePurchasesReportQuery,
   useSalePaymentsReportQuery,
   useSalesReportQuery,
   useSalesReturnReportQuery,
+  useStockReportQuery,
 } from './hooks'
-import type { PaymentAccount } from '@/types/accounting'
+import {
+  cashRegisterStatuses,
+  expensePaymentMethods,
+  paymentMethods,
+  paymentRecordStatuses,
+  paymentStatuses,
+  purchasePaymentStatuses,
+  purchaseStatuses,
+  refundMethods,
+  reportTypes,
+  rowsPerPageOptions,
+  saleReturnStatuses,
+  saleStatuses,
+  saleTypes,
+  stockModes,
+  type ReportType,
+} from './reportConfig'
+import type { ChartOfAccount, PaymentAccount } from '@/types/accounting'
 import type { Branch } from '@/types/branch'
+import type { Category } from '@/types/category'
 import type { Customer } from '@/types/customer'
 import type {
+  CashRegistersReportFilters,
+  ExpensesReportFilters,
   PurchaseReturnsReportFilters,
-  PurchaseReturnsReportRow,
   PurchasesReportFilters,
-  PurchasesReportRow,
   PurchasePaymentsReportFilters,
-  PurchasePaymentsReportRow,
   SalePaymentsReportFilters,
-  SalePaymentsReportRow,
   SalesReportFilters,
-  SalesReportRow,
   SalesReturnReportFilters,
-  SalesReturnReportRow,
+  StockReportFilters,
 } from '@/types/report'
 import type { Warehouse } from '@/types/warehouse'
 import type { Supplier } from '@/types/supplier'
+import type { CashRegister } from '@/types/sales'
 import type { UserListItem } from '@/types/user'
-
-type ReportType = 'sales' | 'salesReturns' | 'purchases' | 'purchaseReturns' | 'salePayments' | 'purchasePayments'
-
-const rowsPerPageOptions = [10, 25, 50]
-const saleStatuses = ['draft', 'confirmed', 'completed', 'cancelled', 'returned']
-const saleReturnStatuses = ['draft', 'completed']
-const paymentStatuses = ['unpaid', 'partial', 'paid', 'refunded']
-const purchaseStatuses = ['draft', 'confirmed', 'partially_received', 'received', 'cancelled']
-const purchasePaymentStatuses = ['unpaid', 'partial', 'paid']
-const saleTypes = ['invoice', 'pos_sale', 'draft', 'suspended']
-const refundMethods = ['cash', 'credit_note', 'bank_transfer', 'reward_points']
-const salePaymentStatuses = ['completed', 'reversed']
-const paymentMethods = ['cash', 'card', 'bank_transfer', 'cheque', 'reward_points', 'gift_card', 'other']
 
 export default function ReportsPage() {
   const { t, i18n } = useTranslation(['reports', 'common'])
@@ -97,6 +107,10 @@ export default function ReportsPage() {
   const [warehouseFilter, setWarehouseFilter] = useState('')
   const [customerFilter, setCustomerFilter] = useState('')
   const [supplierFilter, setSupplierFilter] = useState('')
+  const [categoryFilter, setCategoryFilter] = useState('')
+  const [expenseAccountFilter, setExpenseAccountFilter] = useState('')
+  const [cashRegisterFilter, setCashRegisterFilter] = useState('')
+  const [stockMode, setStockMode] = useState('all')
   const [paymentAccountFilter, setPaymentAccountFilter] = useState('')
   const [cashierFilter, setCashierFilter] = useState('')
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('')
@@ -109,6 +123,7 @@ export default function ReportsPage() {
   const currencyFormatter = useCurrencyFormatter()
   const canLoadUsers = can('users.index')
   const canLoadPaymentAccounts = can('accounting.index')
+  const canLoadCashRegisters = can('sales.index')
 
   const salesFilters: SalesReportFilters = useMemo(
     () => ({
@@ -236,6 +251,62 @@ export default function ReportsPage() {
     ],
   )
 
+  const stockFilters: StockReportFilters = useMemo(
+    () => ({
+      search: search || undefined,
+      branch_id: branchFilter || undefined,
+      warehouse_id: warehouseFilter || undefined,
+      category_id: categoryFilter || undefined,
+      mode: (stockMode as StockReportFilters['mode']) || undefined,
+      include_lots: true,
+      page: page + 1,
+      per_page: perPage,
+    }),
+    [search, branchFilter, warehouseFilter, categoryFilter, stockMode, page, perPage],
+  )
+
+  const expensesFilters: ExpensesReportFilters = useMemo(
+    () => ({
+      search: search || undefined,
+      branch_id: branchFilter || undefined,
+      expense_account_id: expenseAccountFilter || undefined,
+      payment_account_id: paymentAccountFilter || undefined,
+      cashier_id: cashierFilter || undefined,
+      payment_method: paymentMethodFilter || undefined,
+      date_from: dateFrom || undefined,
+      date_to: dateTo || undefined,
+      page: page + 1,
+      per_page: perPage,
+    }),
+    [
+      search,
+      branchFilter,
+      expenseAccountFilter,
+      paymentAccountFilter,
+      cashierFilter,
+      paymentMethodFilter,
+      dateFrom,
+      dateTo,
+      page,
+      perPage,
+    ],
+  )
+
+  const cashRegistersFilters: CashRegistersReportFilters = useMemo(
+    () => ({
+      search: search || undefined,
+      status: (status as CashRegistersReportFilters['status']) || undefined,
+      branch_id: branchFilter || undefined,
+      cash_register_id: cashRegisterFilter || undefined,
+      cashier_id: cashierFilter || undefined,
+      date_from: dateFrom || undefined,
+      date_to: dateTo || undefined,
+      page: page + 1,
+      per_page: perPage,
+    }),
+    [search, status, branchFilter, cashRegisterFilter, cashierFilter, dateFrom, dateTo, page, perPage],
+  )
+
   const salesReportQuery = useSalesReportQuery(salesFilters, reportType === 'sales')
   const salesReturnReportQuery = useSalesReturnReportQuery(salesReturnFilters, reportType === 'salesReturns')
   const purchasesReportQuery = usePurchasesReportQuery(purchasesFilters, reportType === 'purchases')
@@ -248,17 +319,37 @@ export default function ReportsPage() {
     purchasePaymentFilters,
     reportType === 'purchasePayments',
   )
+  const stockReportQuery = useStockReportQuery(stockFilters, reportType === 'stock')
+  const expensesReportQuery = useExpensesReportQuery(expensesFilters, reportType === 'expenses')
+  const cashRegistersReportQuery = useCashRegistersReportQuery(
+    cashRegistersFilters,
+    reportType === 'cashRegisters',
+  )
   const branchesQuery = useBranchesQuery({ is_active: true, per_page: 100 })
   const warehousesQuery = useWarehousesQuery({ branch_id: branchFilter || undefined, per_page: 100 })
   const customersQuery = useCustomersQuery({ per_page: 100 })
   const suppliersQuery = useSuppliersQuery({ status: 'active', per_page: 100 })
+  const categoriesQuery = useCategoriesQuery({ per_page: 100 })
+  const expenseAccountsQuery = useChartOfAccountsQuery(
+    { type: 'expense', status: 'active', per_page: 200 },
+    reportType === 'expenses' && canLoadPaymentAccounts,
+  )
+  const cashRegistersQuery = useCashRegistersQuery(
+    { branch_id: branchFilter || undefined, status: 'active', per_page: 200 },
+    reportType === 'cashRegisters' && canLoadCashRegisters,
+  )
   const paymentAccountsQuery = usePaymentAccountsQuery(
     { status: 'active', per_page: 200 },
-    (reportType === 'salePayments' || reportType === 'purchasePayments') && canLoadPaymentAccounts,
+    (reportType === 'salePayments' || reportType === 'purchasePayments' || reportType === 'expenses') &&
+      canLoadPaymentAccounts,
   )
   const cashiersQuery = useUsersQuery(
     { status: 'active', per_page: 100 },
-    (reportType === 'salePayments' || reportType === 'purchasePayments') && canLoadUsers,
+    (reportType === 'salePayments' ||
+      reportType === 'purchasePayments' ||
+      reportType === 'expenses' ||
+      reportType === 'cashRegisters') &&
+      canLoadUsers,
   )
   const salesRows = salesReportQuery.data?.rows ?? []
   const salesReturnRows = salesReturnReportQuery.data?.rows ?? []
@@ -266,12 +357,18 @@ export default function ReportsPage() {
   const purchaseReturnRows = purchaseReturnsReportQuery.data?.rows ?? []
   const salePaymentRows = salePaymentsReportQuery.data?.rows ?? []
   const purchasePaymentRows = purchasePaymentsReportQuery.data?.rows ?? []
+  const stockRows = stockReportQuery.data?.rows ?? []
+  const expenseRows = expensesReportQuery.data?.rows ?? []
+  const cashRegisterRows = cashRegistersReportQuery.data?.rows ?? []
   const salesSummary = salesReportQuery.data?.summary
   const salesReturnSummary = salesReturnReportQuery.data?.summary
   const purchasesSummary = purchasesReportQuery.data?.summary
   const purchaseReturnsSummary = purchaseReturnsReportQuery.data?.summary
   const salePaymentsSummary = salePaymentsReportQuery.data?.summary
   const purchasePaymentsSummary = purchasePaymentsReportQuery.data?.summary
+  const stockSummary = stockReportQuery.data?.summary
+  const expensesSummary = expensesReportQuery.data?.summary
+  const cashRegistersSummary = cashRegistersReportQuery.data?.summary
   const meta =
     reportType === 'sales'
       ? salesReportQuery.data?.meta
@@ -283,7 +380,13 @@ export default function ReportsPage() {
             ? purchaseReturnsReportQuery.data?.meta
             : reportType === 'salePayments'
               ? salePaymentsReportQuery.data?.meta
-              : purchasePaymentsReportQuery.data?.meta
+              : reportType === 'purchasePayments'
+                ? purchasePaymentsReportQuery.data?.meta
+                : reportType === 'stock'
+                  ? stockReportQuery.data?.meta
+                  : reportType === 'expenses'
+                    ? expensesReportQuery.data?.meta
+                    : cashRegistersReportQuery.data?.meta
   const activeReportQuery =
     reportType === 'sales'
       ? salesReportQuery
@@ -295,29 +398,48 @@ export default function ReportsPage() {
             ? purchaseReturnsReportQuery
             : reportType === 'salePayments'
               ? salePaymentsReportQuery
-              : purchasePaymentsReportQuery
+              : reportType === 'purchasePayments'
+                ? purchasePaymentsReportQuery
+                : reportType === 'stock'
+                  ? stockReportQuery
+                  : reportType === 'expenses'
+                    ? expensesReportQuery
+                    : cashRegistersReportQuery
   const statusOptions =
     reportType === 'sales'
       ? saleStatuses
       : reportType === 'salesReturns'
         ? saleReturnStatuses
         : reportType === 'purchases'
-          ? purchaseStatuses
-          : reportType === 'purchaseReturns'
-            ? saleReturnStatuses
-            : salePaymentStatuses
+        ? purchaseStatuses
+        : reportType === 'purchaseReturns'
+          ? saleReturnStatuses
+          : reportType === 'cashRegisters'
+            ? cashRegisterStatuses
+            : paymentRecordStatuses
   const paymentStatusOptions = reportType === 'purchases' ? purchasePaymentStatuses : paymentStatuses
+  const isPaymentLedgerReport =
+    reportType === 'salePayments' || reportType === 'purchasePayments' || reportType === 'expenses'
+  const usesCashierFilter = isPaymentLedgerReport || reportType === 'cashRegisters'
   const activeAdvancedFilterCount = [
-    status,
+    reportType !== 'stock' && reportType !== 'expenses' ? status : null,
     reportType === 'sales' ? type : null,
     reportType === 'sales' || reportType === 'purchases' ? paymentStatus : null,
     reportType === 'salesReturns' ? refundMethod : null,
-    reportType === 'salePayments' || reportType === 'purchasePayments' ? paymentMethodFilter : null,
-    reportType === 'salePayments' || reportType === 'purchasePayments' ? paymentAccountFilter : null,
-    reportType === 'salePayments' || reportType === 'purchasePayments' ? cashierFilter : null,
+    isPaymentLedgerReport ? paymentMethodFilter : null,
+    isPaymentLedgerReport ? paymentAccountFilter : null,
+    usesCashierFilter ? cashierFilter : null,
+    reportType === 'stock' && stockMode !== 'all' ? stockMode : null,
+    reportType === 'stock' ? categoryFilter : null,
+    reportType === 'expenses' ? expenseAccountFilter : null,
+    reportType === 'cashRegisters' ? cashRegisterFilter : null,
     branchFilter,
-    warehouseFilter,
-    reportType === 'purchases' || reportType === 'purchaseReturns' ? supplierFilter : customerFilter,
+    reportType !== 'expenses' && reportType !== 'cashRegisters' ? warehouseFilter : null,
+    reportType === 'purchases' || reportType === 'purchaseReturns' || reportType === 'purchasePayments'
+      ? supplierFilter
+      : reportType === 'stock' || reportType === 'expenses' || reportType === 'cashRegisters'
+        ? null
+        : customerFilter,
     dateFrom,
     dateTo,
   ].filter(Boolean).length
@@ -337,83 +459,20 @@ export default function ReportsPage() {
         </Typography>
       </Box>
 
-      <Stack direction={{ xs: 'column', md: 'row' }} spacing={2}>
-        <SummaryCard
-          label={t(
-            reportType === 'sales'
-              ? 'summary.sales'
-              : reportType === 'salesReturns'
-                ? 'summary.salesReturns'
-                : reportType === 'purchases'
-                  ? 'summary.purchases'
-                  : reportType === 'purchaseReturns'
-                    ? 'summary.purchaseReturns'
-                    : reportType === 'salePayments'
-                      ? 'summary.salePayments'
-                      : 'summary.purchasePayments',
-          )}
-          value={
-            reportType === 'sales'
-              ? salesSummary?.count ?? 0
-              : reportType === 'salesReturns'
-                ? salesReturnSummary?.count ?? 0
-                : reportType === 'purchases'
-                  ? purchasesSummary?.count ?? 0
-                  : reportType === 'purchaseReturns'
-                    ? purchaseReturnsSummary?.count ?? 0
-                    : reportType === 'salePayments'
-                      ? salePaymentsSummary?.count ?? 0
-                      : purchasePaymentsSummary?.count ?? 0
-          }
-        />
-        <SummaryCard
-          label={t(
-            reportType === 'sales'
-              ? 'summary.total'
-              : reportType === 'salesReturns'
-                ? 'summary.returnedTotal'
-                : reportType === 'purchases'
-                  ? 'summary.purchaseTotal'
-                  : reportType === 'purchaseReturns'
-                    ? 'summary.purchaseReturnedTotal'
-                    : reportType === 'salePayments'
-                      ? 'summary.collectedTotal'
-                      : 'summary.paidOutTotal',
-          )}
-          value={formatMoney(
-            reportType === 'sales'
-              ? salesSummary?.total_amount
-              : reportType === 'salesReturns'
-                ? salesReturnSummary?.total_amount
-                : reportType === 'purchases'
-                  ? purchasesSummary?.total_amount
-                  : reportType === 'purchaseReturns'
-                    ? purchaseReturnsSummary?.total_amount
-                    : reportType === 'salePayments'
-                      ? salePaymentsSummary?.total_amount
-                      : purchasePaymentsSummary?.total_amount,
-            currencyFormatter,
-          )}
-        />
-        {(reportType === 'sales' || reportType === 'purchases') && (
-          <>
-            <SummaryCard
-              label={t('summary.paid')}
-              value={formatMoney(
-                reportType === 'sales' ? salesSummary?.paid_amount : purchasesSummary?.paid_amount,
-                currencyFormatter,
-              )}
-            />
-            <SummaryCard
-              label={t('summary.due')}
-              value={formatMoney(
-                reportType === 'sales' ? salesSummary?.due_amount : purchasesSummary?.due_amount,
-                currencyFormatter,
-              )}
-            />
-          </>
-        )}
-      </Stack>
+      <ReportSummaryCards
+        reportType={reportType}
+        t={t}
+        currencyFormatter={currencyFormatter}
+        salesSummary={salesSummary}
+        salesReturnSummary={salesReturnSummary}
+        purchasesSummary={purchasesSummary}
+        purchaseReturnsSummary={purchaseReturnsSummary}
+        salePaymentsSummary={salePaymentsSummary}
+        purchasePaymentsSummary={purchasePaymentsSummary}
+        stockSummary={stockSummary}
+        expensesSummary={expensesSummary}
+        cashRegistersSummary={cashRegistersSummary}
+      />
 
       <Card>
         <CardContent>
@@ -436,18 +495,21 @@ export default function ReportsPage() {
                     setRefundMethod('')
                     setCustomerFilter('')
                     setSupplierFilter('')
+                    setCategoryFilter('')
+                    setExpenseAccountFilter('')
+                    setCashRegisterFilter('')
+                    setStockMode('all')
                     setPaymentAccountFilter('')
                     setCashierFilter('')
                     setPaymentMethodFilter('')
                     setPage(0)
                   }}
                 >
-                  <MenuItem value="sales">{t('reports.sales')}</MenuItem>
-                  <MenuItem value="salesReturns">{t('reports.salesReturns')}</MenuItem>
-                  <MenuItem value="purchases">{t('reports.purchases')}</MenuItem>
-                  <MenuItem value="purchaseReturns">{t('reports.purchaseReturns')}</MenuItem>
-                  <MenuItem value="salePayments">{t('reports.salePayments')}</MenuItem>
-                  <MenuItem value="purchasePayments">{t('reports.purchasePayments')}</MenuItem>
+                  {reportTypes.map((option) => (
+                    <MenuItem key={option} value={option}>
+                      {t(`reports.${option}`)}
+                    </MenuItem>
+                  ))}
                 </Select>
               </FormControl>
               <TextField
@@ -467,7 +529,13 @@ export default function ReportsPage() {
                           ? 'filters.purchaseReturnSearch'
                           : reportType === 'salePayments'
                             ? 'filters.paymentSearch'
-                            : 'filters.purchasePaymentSearch',
+                            : reportType === 'purchasePayments'
+                              ? 'filters.purchasePaymentSearch'
+                              : reportType === 'stock'
+                                ? 'filters.stockSearch'
+                                : reportType === 'expenses'
+                                  ? 'filters.expenseSearch'
+                                  : 'filters.cashRegisterSearch',
                 )}
                 sx={{ flexGrow: 1 }}
                 slotProps={{
@@ -496,24 +564,26 @@ export default function ReportsPage() {
                 spacing={2}
                 sx={{ alignItems: { xs: 'stretch', lg: 'center' }, overflowX: { lg: 'auto' }, py: 0.5 }}
               >
-                <FormControl sx={{ minWidth: { xs: '100%', lg: 160 } }}>
-                  <InputLabel>{t('filters.status')}</InputLabel>
-                  <Select
-                    value={status}
-                    label={t('filters.status')}
-                    onChange={(event) => {
-                      setStatus(event.target.value)
-                      setPage(0)
-                    }}
-                  >
-                    <MenuItem value="">{t('filters.allStatuses')}</MenuItem>
-                    {statusOptions.map((option) => (
-                      <MenuItem key={option} value={option}>
-                        {t(`statuses.${option}`)}
-                      </MenuItem>
-                    ))}
-                  </Select>
-                </FormControl>
+                {reportType !== 'stock' && reportType !== 'expenses' && (
+                  <FormControl sx={{ minWidth: { xs: '100%', lg: 160 } }}>
+                    <InputLabel>{t('filters.status')}</InputLabel>
+                    <Select
+                      value={status}
+                      label={t('filters.status')}
+                      onChange={(event) => {
+                        setStatus(event.target.value)
+                        setPage(0)
+                      }}
+                    >
+                      <MenuItem value="">{t('filters.allStatuses')}</MenuItem>
+                      {statusOptions.map((option) => (
+                        <MenuItem key={option} value={option}>
+                          {t(`statuses.${option}`)}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                )}
                 {(reportType === 'sales' || reportType === 'purchases') && (
                   <>
                     <FormControl sx={{ minWidth: { xs: '100%', lg: 155 } }}>
@@ -576,7 +646,7 @@ export default function ReportsPage() {
                     </Select>
                   </FormControl>
                 )}
-                {(reportType === 'salePayments' || reportType === 'purchasePayments') && (
+                {isPaymentLedgerReport && (
                   <FormControl sx={{ minWidth: { xs: '100%', lg: 175 } }}>
                     <InputLabel>{t('filters.paymentMethod')}</InputLabel>
                     <Select
@@ -588,9 +658,28 @@ export default function ReportsPage() {
                       }}
                     >
                       <MenuItem value="">{t('filters.allPaymentMethods')}</MenuItem>
-                      {paymentMethods.map((option) => (
+                      {(reportType === 'expenses' ? expensePaymentMethods : paymentMethods).map((option) => (
                         <MenuItem key={option} value={option}>
                           {t(`paymentMethods.${option}`)}
+                        </MenuItem>
+                      ))}
+                    </Select>
+                  </FormControl>
+                )}
+                {reportType === 'stock' && (
+                  <FormControl sx={{ minWidth: { xs: '100%', lg: 170 } }}>
+                    <InputLabel>{t('filters.stockMode')}</InputLabel>
+                    <Select
+                      value={stockMode}
+                      label={t('filters.stockMode')}
+                      onChange={(event) => {
+                        setStockMode(event.target.value)
+                        setPage(0)
+                      }}
+                    >
+                      {stockModes.map((option) => (
+                        <MenuItem key={option} value={option}>
+                          {t(`stockModes.${option}`)}
                         </MenuItem>
                       ))}
                     </Select>
@@ -607,24 +696,27 @@ export default function ReportsPage() {
                   onChange={(value) => {
                     setBranchFilter(value)
                     setWarehouseFilter('')
+                    setCashRegisterFilter('')
                     setPage(0)
                   }}
                   sx={{ minWidth: { xs: '100%', lg: 185 } }}
                 />
-                <SearchableFilterSelect
-                  value={warehouseFilter}
-                  options={warehousesQuery.data?.data ?? []}
-                  loading={warehousesQuery.isLoading}
-                  label={t('filters.warehouse')}
-                  placeholder={t('filters.allWarehouses')}
-                  getOptionValue={(warehouse: Warehouse) => warehouse.id}
-                  getOptionLabel={(warehouse: Warehouse) => warehouse.name}
-                  onChange={(value) => {
-                    setWarehouseFilter(value)
-                    setPage(0)
-                  }}
-                  sx={{ minWidth: { xs: '100%', lg: 185 } }}
-                />
+                {reportType !== 'expenses' && reportType !== 'cashRegisters' && (
+                  <SearchableFilterSelect
+                    value={warehouseFilter}
+                    options={warehousesQuery.data?.data ?? []}
+                    loading={warehousesQuery.isLoading}
+                    label={t('filters.warehouse')}
+                    placeholder={t('filters.allWarehouses')}
+                    getOptionValue={(warehouse: Warehouse) => warehouse.id}
+                    getOptionLabel={(warehouse: Warehouse) => warehouse.name}
+                    onChange={(value) => {
+                      setWarehouseFilter(value)
+                      setPage(0)
+                    }}
+                    sx={{ minWidth: { xs: '100%', lg: 185 } }}
+                  />
+                )}
                 {reportType === 'purchases' || reportType === 'purchaseReturns' || reportType === 'purchasePayments' ? (
                   <SearchableFilterSelect
                     value={supplierFilter}
@@ -639,6 +731,51 @@ export default function ReportsPage() {
                       setPage(0)
                     }}
                     sx={{ minWidth: { xs: '100%', lg: 190 } }}
+                  />
+                ) : reportType === 'stock' ? (
+                  <SearchableFilterSelect
+                    value={categoryFilter}
+                    options={categoriesQuery.data?.data ?? []}
+                    loading={categoriesQuery.isLoading}
+                    label={t('filters.category')}
+                    placeholder={t('filters.allCategories')}
+                    getOptionValue={(category: Category) => category.id}
+                    getOptionLabel={(category: Category) => category.name}
+                    onChange={(value) => {
+                      setCategoryFilter(value)
+                      setPage(0)
+                    }}
+                    sx={{ minWidth: { xs: '100%', lg: 190 } }}
+                  />
+                ) : reportType === 'expenses' && canLoadPaymentAccounts ? (
+                  <SearchableFilterSelect
+                    value={expenseAccountFilter}
+                    options={expenseAccountsQuery.data?.data ?? []}
+                    loading={expenseAccountsQuery.isLoading}
+                    label={t('filters.expenseAccount')}
+                    placeholder={t('filters.allExpenseAccounts')}
+                    getOptionValue={(account: ChartOfAccount) => account.id}
+                    getOptionLabel={(account: ChartOfAccount) => `${account.code} - ${account.name}`}
+                    onChange={(value) => {
+                      setExpenseAccountFilter(value)
+                      setPage(0)
+                    }}
+                    sx={{ minWidth: { xs: '100%', lg: 230 } }}
+                  />
+                ) : reportType === 'cashRegisters' && canLoadCashRegisters ? (
+                  <SearchableFilterSelect
+                    value={cashRegisterFilter}
+                    options={cashRegistersQuery.data?.data ?? []}
+                    loading={cashRegistersQuery.isLoading}
+                    label={t('filters.cashRegister')}
+                    placeholder={t('filters.allCashRegisters')}
+                    getOptionValue={(register: CashRegister) => register.id}
+                    getOptionLabel={(register: CashRegister) => register.name}
+                    onChange={(value) => {
+                      setCashRegisterFilter(value)
+                      setPage(0)
+                    }}
+                    sx={{ minWidth: { xs: '100%', lg: 210 } }}
                   />
                 ) : (
                   <SearchableFilterSelect
@@ -656,7 +793,7 @@ export default function ReportsPage() {
                     sx={{ minWidth: { xs: '100%', lg: 190 } }}
                   />
                 )}
-                {(reportType === 'salePayments' || reportType === 'purchasePayments') && canLoadPaymentAccounts && (
+                {isPaymentLedgerReport && canLoadPaymentAccounts && (
                   <SearchableFilterSelect
                     value={paymentAccountFilter}
                     options={paymentAccountsQuery.data?.data ?? []}
@@ -672,7 +809,7 @@ export default function ReportsPage() {
                     sx={{ minWidth: { xs: '100%', lg: 190 } }}
                   />
                 )}
-                {(reportType === 'salePayments' || reportType === 'purchasePayments') && canLoadUsers && (
+                {usesCashierFilter && canLoadUsers && (
                   <SearchableFilterSelect
                     value={cashierFilter}
                     options={cashiersQuery.data?.data ?? []}
@@ -688,28 +825,32 @@ export default function ReportsPage() {
                     sx={{ minWidth: { xs: '100%', lg: 190 } }}
                   />
                 )}
-                <Box sx={{ minWidth: { xs: '100%', lg: 165 } }}>
-                  <AppDatePicker
-                    label={t('filters.dateFrom')}
-                    value={dateFrom}
-                    onChange={(value) => {
-                      setDateFrom(value)
-                      setPage(0)
-                    }}
-                    maxDate={dateTo}
-                  />
-                </Box>
-                <Box sx={{ minWidth: { xs: '100%', lg: 165 } }}>
-                  <AppDatePicker
-                    label={t('filters.dateTo')}
-                    value={dateTo}
-                    onChange={(value) => {
-                      setDateTo(value)
-                      setPage(0)
-                    }}
-                    minDate={dateFrom}
-                  />
-                </Box>
+                {reportType !== 'stock' && (
+                  <>
+                    <Box sx={{ minWidth: { xs: '100%', lg: 165 } }}>
+                      <AppDatePicker
+                        label={t('filters.dateFrom')}
+                        value={dateFrom}
+                        onChange={(value) => {
+                          setDateFrom(value)
+                          setPage(0)
+                        }}
+                        maxDate={dateTo}
+                      />
+                    </Box>
+                    <Box sx={{ minWidth: { xs: '100%', lg: 165 } }}>
+                      <AppDatePicker
+                        label={t('filters.dateTo')}
+                        value={dateTo}
+                        onChange={(value) => {
+                          setDateTo(value)
+                          setPage(0)
+                        }}
+                        minDate={dateFrom}
+                      />
+                    </Box>
+                  </>
+                )}
               </Stack>
             </Collapse>
           </Stack>
@@ -786,6 +927,39 @@ export default function ReportsPage() {
               t={t}
             />
           )}
+          {reportType === 'stock' && (
+            <StockReportTable
+              rows={stockRows}
+              loading={stockReportQuery.isLoading}
+              dateFormat={dateFormat}
+              language={i18n.language}
+              currencyFormatter={currencyFormatter}
+              emptyMessage={t('empty.stock')}
+              t={t}
+            />
+          )}
+          {reportType === 'expenses' && (
+            <ExpensesReportTable
+              rows={expenseRows}
+              loading={expensesReportQuery.isLoading}
+              dateFormat={dateFormat}
+              language={i18n.language}
+              currencyFormatter={currencyFormatter}
+              emptyMessage={t('empty.expenses')}
+              t={t}
+            />
+          )}
+          {reportType === 'cashRegisters' && (
+            <CashRegistersReportTable
+              rows={cashRegisterRows}
+              loading={cashRegistersReportQuery.isLoading}
+              dateFormat={dateFormat}
+              language={i18n.language}
+              currencyFormatter={currencyFormatter}
+              emptyMessage={t('empty.cashRegisters')}
+              t={t}
+            />
+          )}
           <TablePagination
             component="div"
             count={meta?.total ?? 0}
@@ -801,361 +975,5 @@ export default function ReportsPage() {
         </CardContent>
       </Card>
     </Stack>
-  )
-}
-
-function SummaryCard({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <Card sx={{ flex: 1 }}>
-      <CardContent>
-        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-          {label}
-        </Typography>
-        <Typography variant="h5" sx={{ mt: 0.75 }}>
-          {value}
-        </Typography>
-      </CardContent>
-    </Card>
-  )
-}
-
-interface ReportTableProps {
-  dateFormat: string
-  language: string
-  currencyFormatter: Intl.NumberFormat
-  emptyMessage: string
-  loading: boolean
-  t: TFunction<['reports', 'common']>
-}
-
-function SalesReportTable({
-  rows,
-  loading,
-  dateFormat,
-  language,
-  currencyFormatter,
-  emptyMessage,
-  t,
-}: ReportTableProps & { rows: SalesReportRow[] }) {
-  return (
-    <TableContainer>
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell>{t('columns.date')}</TableCell>
-            <TableCell>{t('columns.saleNumber')}</TableCell>
-            <TableCell>{t('columns.customer')}</TableCell>
-            <TableCell>{t('columns.branch')}</TableCell>
-            <TableCell>{t('columns.status')}</TableCell>
-            <TableCell>{t('columns.payment')}</TableCell>
-            <TableCell align="right">{t('columns.total')}</TableCell>
-            <TableCell align="right">{t('columns.paid')}</TableCell>
-            <TableCell align="right">{t('columns.due')}</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {loading && <TableStateRow colSpan={9} loading />}
-          {!loading && rows.length === 0 && <TableStateRow colSpan={9} message={emptyMessage} />}
-          {rows.map((row) => (
-            <TableRow key={row.id} hover>
-              <TableCell>{formatAppDate(row.sale_date, dateFormat, language)}</TableCell>
-              <TableCell>
-                <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                  {row.sale_number}
-                </Typography>
-              </TableCell>
-              <TableCell>{row.customer?.name ?? '-'}</TableCell>
-              <TableCell>{row.branch?.name ?? '-'}</TableCell>
-              <TableCell>{t(`statuses.${row.status}`, { defaultValue: row.status })}</TableCell>
-              <TableCell>{t(`paymentStatuses.${row.payment_status}`, { defaultValue: row.payment_status })}</TableCell>
-              <TableCell align="right">{formatMoney(row.total_amount, currencyFormatter)}</TableCell>
-              <TableCell align="right">{formatMoney(row.paid_amount, currencyFormatter)}</TableCell>
-              <TableCell align="right">{formatMoney(row.due_amount, currencyFormatter)}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
-  )
-}
-
-function SalesReturnReportTable({
-  rows,
-  loading,
-  dateFormat,
-  language,
-  currencyFormatter,
-  emptyMessage,
-  t,
-}: ReportTableProps & { rows: SalesReturnReportRow[] }) {
-  return (
-    <TableContainer>
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell>{t('columns.date')}</TableCell>
-            <TableCell>{t('columns.returnNumber')}</TableCell>
-            <TableCell>{t('columns.saleNumber')}</TableCell>
-            <TableCell>{t('columns.customer')}</TableCell>
-            <TableCell>{t('columns.branch')}</TableCell>
-            <TableCell>{t('columns.status')}</TableCell>
-            <TableCell>{t('columns.refundMethod')}</TableCell>
-            <TableCell align="right">{t('columns.items')}</TableCell>
-            <TableCell align="right">{t('columns.total')}</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {loading && <TableStateRow colSpan={9} loading />}
-          {!loading && rows.length === 0 && <TableStateRow colSpan={9} message={emptyMessage} />}
-          {rows.map((row) => (
-            <TableRow key={row.id} hover>
-              <TableCell>{formatAppDate(row.return_date, dateFormat, language)}</TableCell>
-              <TableCell>
-                <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                  {row.return_number}
-                </Typography>
-              </TableCell>
-              <TableCell>
-                <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                  {row.sale?.sale_number ?? '-'}
-                </Typography>
-              </TableCell>
-              <TableCell>{row.customer?.name ?? '-'}</TableCell>
-              <TableCell>{row.branch?.name ?? '-'}</TableCell>
-              <TableCell>{t(`statuses.${row.status}`, { defaultValue: row.status })}</TableCell>
-              <TableCell>
-                {row.refund_method ? t(`refundMethods.${row.refund_method}`, { defaultValue: row.refund_method }) : '-'}
-              </TableCell>
-              <TableCell align="right">{row.items_count}</TableCell>
-              <TableCell align="right">{formatMoney(row.total_amount, currencyFormatter)}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
-  )
-}
-
-function PurchasesReportTable({
-  rows,
-  loading,
-  dateFormat,
-  language,
-  currencyFormatter,
-  emptyMessage,
-  t,
-}: ReportTableProps & { rows: PurchasesReportRow[] }) {
-  return (
-    <TableContainer>
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell>{t('columns.date')}</TableCell>
-            <TableCell>{t('columns.purchaseNumber')}</TableCell>
-            <TableCell>{t('columns.supplierInvoice')}</TableCell>
-            <TableCell>{t('columns.supplier')}</TableCell>
-            <TableCell>{t('columns.branch')}</TableCell>
-            <TableCell>{t('columns.status')}</TableCell>
-            <TableCell>{t('columns.payment')}</TableCell>
-            <TableCell align="right">{t('columns.total')}</TableCell>
-            <TableCell align="right">{t('columns.paid')}</TableCell>
-            <TableCell align="right">{t('columns.due')}</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {loading && <TableStateRow colSpan={10} loading />}
-          {!loading && rows.length === 0 && <TableStateRow colSpan={10} message={emptyMessage} />}
-          {rows.map((row) => (
-            <TableRow key={row.id} hover>
-              <TableCell>{formatAppDate(row.purchase_date, dateFormat, language)}</TableCell>
-              <TableCell>
-                <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                  {row.purchase_number}
-                </Typography>
-              </TableCell>
-              <TableCell>
-                <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                  {row.supplier_invoice_no || '-'}
-                </Typography>
-              </TableCell>
-              <TableCell>{row.supplier?.name ?? '-'}</TableCell>
-              <TableCell>{row.branch?.name ?? '-'}</TableCell>
-              <TableCell>{t(`statuses.${row.status}`, { defaultValue: row.status })}</TableCell>
-              <TableCell>{t(`paymentStatuses.${row.payment_status}`, { defaultValue: row.payment_status })}</TableCell>
-              <TableCell align="right">{formatMoney(row.total_amount, currencyFormatter)}</TableCell>
-              <TableCell align="right">{formatMoney(row.paid_amount, currencyFormatter)}</TableCell>
-              <TableCell align="right">{formatMoney(row.due_amount, currencyFormatter)}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
-  )
-}
-
-function PurchaseReturnsReportTable({
-  rows,
-  loading,
-  dateFormat,
-  language,
-  currencyFormatter,
-  emptyMessage,
-  t,
-}: ReportTableProps & { rows: PurchaseReturnsReportRow[] }) {
-  return (
-    <TableContainer>
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell>{t('columns.date')}</TableCell>
-            <TableCell>{t('columns.returnNumber')}</TableCell>
-            <TableCell>{t('columns.purchaseNumber')}</TableCell>
-            <TableCell>{t('columns.supplier')}</TableCell>
-            <TableCell>{t('columns.branch')}</TableCell>
-            <TableCell>{t('columns.status')}</TableCell>
-            <TableCell align="right">{t('columns.items')}</TableCell>
-            <TableCell align="right">{t('columns.total')}</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {loading && <TableStateRow colSpan={8} loading />}
-          {!loading && rows.length === 0 && <TableStateRow colSpan={8} message={emptyMessage} />}
-          {rows.map((row) => (
-            <TableRow key={row.id} hover>
-              <TableCell>{formatAppDate(row.return_date, dateFormat, language)}</TableCell>
-              <TableCell>
-                <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                  {row.return_number}
-                </Typography>
-              </TableCell>
-              <TableCell>
-                <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                  {row.purchase?.purchase_number ?? '-'}
-                </Typography>
-              </TableCell>
-              <TableCell>{row.supplier?.name ?? '-'}</TableCell>
-              <TableCell>{row.branch?.name ?? '-'}</TableCell>
-              <TableCell>{t(`statuses.${row.status}`, { defaultValue: row.status })}</TableCell>
-              <TableCell align="right">{row.items_count}</TableCell>
-              <TableCell align="right">{formatMoney(row.total_amount, currencyFormatter)}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
-  )
-}
-
-function SalePaymentsReportTable({
-  rows,
-  loading,
-  dateFormat,
-  language,
-  currencyFormatter,
-  emptyMessage,
-  t,
-}: ReportTableProps & { rows: SalePaymentsReportRow[] }) {
-  return (
-    <TableContainer>
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell>{t('columns.date')}</TableCell>
-            <TableCell>{t('columns.saleNumber')}</TableCell>
-            <TableCell>{t('columns.reference')}</TableCell>
-            <TableCell>{t('columns.customer')}</TableCell>
-            <TableCell>{t('columns.branch')}</TableCell>
-            <TableCell>{t('columns.method')}</TableCell>
-            <TableCell>{t('columns.account')}</TableCell>
-            <TableCell>{t('columns.cashier')}</TableCell>
-            <TableCell>{t('columns.status')}</TableCell>
-            <TableCell align="right">{t('columns.amount')}</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {loading && <TableStateRow colSpan={10} loading />}
-          {!loading && rows.length === 0 && <TableStateRow colSpan={10} message={emptyMessage} />}
-          {rows.map((row) => (
-            <TableRow key={row.id} hover>
-              <TableCell>{formatAppDate(row.payment_date, dateFormat, language)}</TableCell>
-              <TableCell>
-                <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                  {row.sale?.sale_number ?? '-'}
-                </Typography>
-              </TableCell>
-              <TableCell>
-                <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                  {row.reference || '-'}
-                </Typography>
-              </TableCell>
-              <TableCell>{row.customer?.name ?? '-'}</TableCell>
-              <TableCell>{row.branch?.name ?? '-'}</TableCell>
-              <TableCell>{t(`paymentMethods.${row.method}`, { defaultValue: row.method })}</TableCell>
-              <TableCell>{row.payment_account?.name ?? '-'}</TableCell>
-              <TableCell>{row.cashier?.name ?? '-'}</TableCell>
-              <TableCell>{t(`statuses.${row.status}`, { defaultValue: row.status })}</TableCell>
-              <TableCell align="right">{formatMoney(row.amount, currencyFormatter)}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
-  )
-}
-
-function PurchasePaymentsReportTable({
-  rows,
-  loading,
-  dateFormat,
-  language,
-  currencyFormatter,
-  emptyMessage,
-  t,
-}: ReportTableProps & { rows: PurchasePaymentsReportRow[] }) {
-  return (
-    <TableContainer>
-      <Table>
-        <TableHead>
-          <TableRow>
-            <TableCell>{t('columns.date')}</TableCell>
-            <TableCell>{t('columns.purchaseNumber')}</TableCell>
-            <TableCell>{t('columns.reference')}</TableCell>
-            <TableCell>{t('columns.supplier')}</TableCell>
-            <TableCell>{t('columns.branch')}</TableCell>
-            <TableCell>{t('columns.method')}</TableCell>
-            <TableCell>{t('columns.account')}</TableCell>
-            <TableCell>{t('columns.cashier')}</TableCell>
-            <TableCell>{t('columns.status')}</TableCell>
-            <TableCell align="right">{t('columns.amount')}</TableCell>
-          </TableRow>
-        </TableHead>
-        <TableBody>
-          {loading && <TableStateRow colSpan={10} loading />}
-          {!loading && rows.length === 0 && <TableStateRow colSpan={10} message={emptyMessage} />}
-          {rows.map((row) => (
-            <TableRow key={row.id} hover>
-              <TableCell>{formatAppDate(row.payment_date, dateFormat, language)}</TableCell>
-              <TableCell>
-                <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                  {row.purchase?.purchase_number ?? '-'}
-                </Typography>
-              </TableCell>
-              <TableCell>
-                <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                  {row.reference || '-'}
-                </Typography>
-              </TableCell>
-              <TableCell>{row.supplier?.name ?? '-'}</TableCell>
-              <TableCell>{row.branch?.name ?? '-'}</TableCell>
-              <TableCell>{t(`paymentMethods.${row.method}`, { defaultValue: row.method })}</TableCell>
-              <TableCell>{row.payment_account?.name ?? '-'}</TableCell>
-              <TableCell>{row.cashier?.name ?? '-'}</TableCell>
-              <TableCell>{t(`statuses.${row.status}`, { defaultValue: row.status })}</TableCell>
-              <TableCell align="right">{formatMoney(row.amount, currencyFormatter)}</TableCell>
-            </TableRow>
-          ))}
-        </TableBody>
-      </Table>
-    </TableContainer>
   )
 }

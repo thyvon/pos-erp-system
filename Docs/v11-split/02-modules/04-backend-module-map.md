@@ -153,6 +153,9 @@ Partially implemented:
 - Purchase Return report API at `/api/v1/reports/purchase-returns`
 - Sale Payments report API at `/api/v1/reports/sale-payments`
 - Purchase Payments report API at `/api/v1/reports/purchase-payments`
+- Stock report API at `/api/v1/reports/stock`
+- Expenses report API at `/api/v1/reports/expenses`
+- Cash Register report API at `/api/v1/reports/cash-registers`
 - Reports route group is gated by the `reports` module and `reports.index` permission
 - Sales report supports search, status, type, payment status, branch, warehouse, customer, and date filters
 - Sales Return report supports search, status, refund method, branch, warehouse, customer, and date filters
@@ -160,14 +163,17 @@ Partially implemented:
 - Purchase Return report supports search, status, branch, warehouse, supplier, and date filters
 - Sale Payments report supports search, status, method, branch, warehouse, customer, payment account, cashier, and date filters
 - Purchase Payments report supports search, status, method, branch, warehouse, supplier, payment account, cashier, and date filters
-- Sales, Sales Return, Purchases, Purchase Return, Sale Payments, and Purchase Payments reports return summary totals, paginated rows, and branch-scoped visibility through the current branch-scope model behavior
+- Stock report supports search, branch, warehouse, category, product, stock mode, and lot-breakdown filters
+- Expenses report supports search, branch, expense account, payment account, cashier, payment method, and date filters
+- Cash Register report supports search, status, branch, cash register, cashier, and opened-date filters
+- Sales, Sales Return, Purchases, Purchase Return, Sale Payments, Purchase Payments, Stock, Expenses, and Cash Register reports return summary totals, paginated rows, and branch-scoped visibility through the current branch-scope model behavior
 
 Still roadmap:
 
 - Report exports
 - Report registry
 - Financial reports
-- Inventory, purchases, expenses, tax, cash register, ledger, and dashboard report slices
+- Inventory, purchases, tax, ledger, and dashboard report slices
 
 ### 4.9 Deferred Backend Modules
 

@@ -89,10 +89,11 @@ export function useSaleReturnQuery(id: string | null) {
   })
 }
 
-export function useCashRegistersQuery(filters: CashRegisterFilters) {
+export function useCashRegistersQuery(filters: CashRegisterFilters, enabled = true) {
   return useQuery({
     queryKey: cashRegisterKeys.list(filters),
     queryFn: () => cashRegistersApi.list(filters),
+    enabled,
     staleTime: 2 * 60 * 1000,
   })
 }

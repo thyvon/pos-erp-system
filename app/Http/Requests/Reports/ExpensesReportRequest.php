@@ -1,0 +1,30 @@
+<?php
+
+namespace App\Http\Requests\Reports;
+
+use Illuminate\Foundation\Http\FormRequest;
+use Illuminate\Validation\Rule;
+
+class ExpensesReportRequest extends FormRequest
+{
+    public function authorize(): bool
+    {
+        return $this->user()?->can('reports.index') ?? false;
+    }
+
+    public function rules(): array
+    {
+        return [
+            'search' => ['nullable', 'string', 'max:255'],
+            'branch_id' => ['nullable', 'uuid', Rule::exists('branches', 'id')],
+            'expense_account_id' => ['nullable', 'uuid', Rule::exists('chart_of_accounts', 'id')],
+            'payment_account_id' => ['nullable', 'uuid', Rule::exists('payment_accounts', 'id')],
+            'cashier_id' => ['nullable', 'uuid', Rule::exists('users', 'id')],
+            'payment_method' => ['nullable', Rule::in(['cash', 'bank', 'card', 'other'])],
+            'date_from' => ['nullable', 'date'],
+            'date_to' => ['nullable', 'date', 'after_or_equal:date_from'],
+            'per_page' => ['nullable', 'integer', 'min:1', 'max:100'],
+            'page' => ['nullable', 'integer', 'min:1'],
+        ];
+    }
+}

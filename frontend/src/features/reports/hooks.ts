@@ -3,12 +3,15 @@
 import { useQuery } from '@tanstack/react-query'
 import { reportsApi } from './api'
 import type {
+  CashRegistersReportFilters,
+  ExpensesReportFilters,
   PurchasesReportFilters,
   PurchasePaymentsReportFilters,
   PurchaseReturnsReportFilters,
   SalePaymentsReportFilters,
   SalesReportFilters,
   SalesReturnReportFilters,
+  StockReportFilters,
 } from '@/types/report'
 
 export const reportKeys = {
@@ -19,6 +22,9 @@ export const reportKeys = {
   purchaseReturns: (filters: PurchaseReturnsReportFilters) => [...reportKeys.all, 'purchase-returns', filters] as const,
   salePayments: (filters: SalePaymentsReportFilters) => [...reportKeys.all, 'sale-payments', filters] as const,
   purchasePayments: (filters: PurchasePaymentsReportFilters) => [...reportKeys.all, 'purchase-payments', filters] as const,
+  stock: (filters: StockReportFilters) => [...reportKeys.all, 'stock', filters] as const,
+  expenses: (filters: ExpensesReportFilters) => [...reportKeys.all, 'expenses', filters] as const,
+  cashRegisters: (filters: CashRegistersReportFilters) => [...reportKeys.all, 'cash-registers', filters] as const,
 }
 
 export function useSalesReportQuery(filters: SalesReportFilters, enabled = true) {
@@ -65,6 +71,30 @@ export function usePurchasePaymentsReportQuery(filters: PurchasePaymentsReportFi
   return useQuery({
     queryKey: reportKeys.purchasePayments(filters),
     queryFn: () => reportsApi.purchasePayments(filters),
+    enabled,
+  })
+}
+
+export function useStockReportQuery(filters: StockReportFilters, enabled: boolean) {
+  return useQuery({
+    queryKey: reportKeys.stock(filters),
+    queryFn: () => reportsApi.stock(filters),
+    enabled,
+  })
+}
+
+export function useExpensesReportQuery(filters: ExpensesReportFilters, enabled: boolean) {
+  return useQuery({
+    queryKey: reportKeys.expenses(filters),
+    queryFn: () => reportsApi.expenses(filters),
+    enabled,
+  })
+}
+
+export function useCashRegistersReportQuery(filters: CashRegistersReportFilters, enabled: boolean) {
+  return useQuery({
+    queryKey: reportKeys.cashRegisters(filters),
+    queryFn: () => reportsApi.cashRegisters(filters),
     enabled,
   })
 }

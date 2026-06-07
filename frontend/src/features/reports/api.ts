@@ -1,5 +1,9 @@
 import { apiClient } from '@/api/client'
 import type {
+  CashRegistersReportFilters,
+  CashRegistersReportResponse,
+  ExpensesReportFilters,
+  ExpensesReportResponse,
   PurchasesReportFilters,
   PurchasesReportResponse,
   PurchasePaymentsReportFilters,
@@ -12,6 +16,8 @@ import type {
   SalesReportResponse,
   SalesReturnReportFilters,
   SalesReturnReportResponse,
+  StockReportFilters,
+  StockReportResponse,
 } from '@/types/report'
 
 export const reportsApi = {
@@ -27,4 +33,10 @@ export const reportsApi = {
     apiClient.get<SalePaymentsReportResponse>('/v1/reports/sale-payments', filters),
   purchasePayments: (filters: PurchasePaymentsReportFilters = {}) =>
     apiClient.get<PurchasePaymentsReportResponse>('/v1/reports/purchase-payments', filters),
+  stock: (filters: StockReportFilters = {}) =>
+    apiClient.get<StockReportResponse>('/v1/reports/stock', filters),
+  expenses: (filters: ExpensesReportFilters = {}) =>
+    apiClient.get<ExpensesReportResponse>('/v1/reports/expenses', filters),
+  cashRegisters: (filters: CashRegistersReportFilters = {}) =>
+    apiClient.get<CashRegistersReportResponse>('/v1/reports/cash-registers', filters),
 }

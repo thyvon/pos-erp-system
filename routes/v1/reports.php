@@ -10,4 +10,7 @@ return static function (): void {
     Route::get('reports/purchase-returns', [ReportController::class, 'purchaseReturns'])->middleware('can:reports.index');
     Route::get('reports/sale-payments', [ReportController::class, 'salePayments'])->middleware('can:reports.index');
     Route::get('reports/purchase-payments', [ReportController::class, 'purchasePayments'])->middleware('can:reports.index');
+    Route::get('reports/stock', [ReportController::class, 'stock'])->middleware('can:reports.index');
+    Route::get('reports/expenses', [ReportController::class, 'expenses'])->middleware('can:reports.index');
+    Route::get('reports/cash-registers', [ReportController::class, 'cashRegisters'])->middleware('can:reports.index');
 };

@@ -85,6 +85,43 @@ export interface PurchasePaymentsReportFilters {
   per_page?: number
 }
 
+export interface StockReportFilters {
+  search?: string
+  branch_id?: string
+  warehouse_id?: string
+  category_id?: string
+  product_id?: string
+  mode?: 'all' | 'positive' | 'zero' | 'negative' | 'low' | ''
+  include_lots?: boolean
+  page?: number
+  per_page?: number
+}
+
+export interface ExpensesReportFilters {
+  search?: string
+  branch_id?: string
+  expense_account_id?: string
+  payment_account_id?: string
+  cashier_id?: string
+  payment_method?: string
+  date_from?: string | null
+  date_to?: string | null
+  page?: number
+  per_page?: number
+}
+
+export interface CashRegistersReportFilters {
+  search?: string
+  status?: 'open' | 'closed' | ''
+  branch_id?: string
+  cash_register_id?: string
+  cashier_id?: string
+  date_from?: string | null
+  date_to?: string | null
+  page?: number
+  per_page?: number
+}
+
 export interface ReportRelation {
   id: string
   name: string
@@ -330,6 +367,153 @@ export interface PurchasePaymentsReportRow {
 export interface PurchasePaymentsReportResponse {
   summary: PurchasePaymentsReportSummary
   rows: PurchasePaymentsReportRow[]
+  meta: {
+    current_page: number
+    last_page: number
+    per_page: number
+    total: number
+    from: number | null
+    to: number | null
+  }
+}
+
+export interface StockReportSummary {
+  count: number
+  on_hand_quantity: string
+  reserved_quantity: string
+  available_quantity: string
+  low_stock_count: number
+}
+
+export interface StockReportLotRow {
+  id: string
+  lot_number: string
+  status: string
+  expiry_date: string | null
+  qty_on_hand: string
+  qty_reserved: string
+  qty_available: string
+}
+
+export interface StockReportRow {
+  id: string
+  product?: {
+    id: string
+    name: string
+    sku: string | null
+    stock_tracking: string
+    alert_quantity: string | null
+  } | null
+  variation?: {
+    id: string
+    name: string
+    sku: string | null
+  } | null
+  category?: {
+    id: string
+    name: string
+  } | null
+  warehouse?: ReportRelation | null
+  branch?: ReportRelation | null
+  quantity: string
+  reserved_quantity: string
+  available_quantity: string
+  lots: StockReportLotRow[]
+  updated_at: string | null
+}
+
+export interface StockReportResponse {
+  summary: StockReportSummary
+  rows: StockReportRow[]
+  meta: {
+    current_page: number
+    last_page: number
+    per_page: number
+    total: number
+    from: number | null
+    to: number | null
+  }
+}
+
+export interface ExpensesReportSummary {
+  count: number
+  total_amount: string
+}
+
+export interface ExpensesReportRow {
+  id: string
+  expense_date: string | null
+  reference_no: string | null
+  description: string
+  amount: string
+  payment_method: string | null
+  branch?: ReportRelation | null
+  expense_account?: {
+    id: string
+    code: string
+    name: string
+  } | null
+  payment_account?: {
+    id: string
+    name: string
+    type: string
+  } | null
+  cashier?: {
+    id: string
+    name: string
+  } | null
+}
+
+export interface ExpensesReportResponse {
+  summary: ExpensesReportSummary
+  rows: ExpensesReportRow[]
+  meta: {
+    current_page: number
+    last_page: number
+    per_page: number
+    total: number
+    from: number | null
+    to: number | null
+  }
+}
+
+export interface CashRegistersReportSummary {
+  count: number
+  open_count: number
+  closed_count: number
+  opening_float: string
+  closing_float: string
+  total_sales: string
+  expected_cash: string
+  difference: string
+}
+
+export interface CashRegistersReportRow {
+  id: string
+  status: 'open' | 'closed' | string
+  opened_at: string | null
+  closed_at: string | null
+  opening_float: string
+  closing_float: string | null
+  total_sales: string
+  expected_cash: string
+  difference: string | null
+  sales_count: number
+  notes: string | null
+  cash_register?: {
+    id: string
+    name: string
+  } | null
+  branch?: ReportRelation | null
+  cashier?: {
+    id: string
+    name: string
+  } | null
+}
+
+export interface CashRegistersReportResponse {
+  summary: CashRegistersReportSummary
+  rows: CashRegistersReportRow[]
   meta: {
     current_page: number
     last_page: number
