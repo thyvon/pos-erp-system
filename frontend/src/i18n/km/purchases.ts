@@ -21,6 +21,7 @@ export default {
     allSuppliers: 'អ្នកផ្គត់ផ្គង់ទាំងអស់',
     showAdvanced: 'តម្រងកម្រិតខ្ពស់',
     hideAdvanced: 'លាក់តម្រង',
+    clear: 'សម្អាតតម្រង',
   },
   statuses: {
     draft: 'ព្រាង',

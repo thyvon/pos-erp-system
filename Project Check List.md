@@ -169,6 +169,7 @@
 - [x] React Query hooks (`usePurchasesQuery`, `usePurchaseQuery`, `useCreatePurchaseMutation`, `useUpdatePurchaseMutation`, `useDeletePurchaseMutation`, `useReceivePurchaseMutation`) are present.
 - [x] Zod schemas (`purchaseSchema`, `purchaseItemSchema`, `receivePurchaseSchema`, `receivePurchaseItemSchema`) and form helpers (`emptyPurchaseValues`, `valuesFromPurchase`, `buildPurchasePayload`) are present.
 - [x] Purchases list page with search, status/payment/branch/warehouse/supplier/date filters, paginated table, row actions (view/edit/delete), and delete confirmation is present.
+- [x] Purchases list page header and filters now use shared `PageHeader`/`PageToolbar` with translated clear-filter controls and active filter chips; frontend type-check, lint, and build verified.
 - [x] Purchases create/edit form with warehouse/supplier autocompletes, item line table, totals calculation, discount/shipping/notes fields, and status selection is present.
 - [x] Purchases create/edit form now splits item lines, pricing totals, and notes into focused typed components under `frontend/src/features/purchases/components/`.
 - [x] Purchases detail page with header info, items table, summary, notes, and action buttons (receive/edit/delete) is present.

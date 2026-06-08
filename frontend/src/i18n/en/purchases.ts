@@ -21,6 +21,7 @@ export default {
     allSuppliers: 'All suppliers',
     showAdvanced: 'Advanced filters',
     hideAdvanced: 'Hide filters',
+    clear: 'Clear filters',
   },
   statuses: {
     draft: 'Draft',
