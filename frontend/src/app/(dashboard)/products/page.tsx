@@ -4,31 +4,22 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Alert,
-  Box,
   Button,
-  Card,
-  CardContent,
   Chip,
-  InputAdornment,
   MenuItem,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TablePagination,
-  TableRow,
   TextField,
   Typography,
 } from '@mui/material'
-import { Add, Inventory2Outlined, Search } from '@/components/ui/icons'
+import { Add, Inventory2Outlined } from '@/components/ui/icons'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { RowActions } from '@/components/ui/RowActions'
-import { TableStateRow } from '@/components/ui/TableStateRow'
+import PageHeader from '@/components/common/PageHeader'
+import PageToolbar from '@/components/common/PageToolbar'
+import EntityTable, { type EntityTableColumn } from '@/components/common/EntityTable'
 import {
   useDeleteProductMutation,
   useProductsQuery,
@@ -36,7 +27,6 @@ import {
 import { useAuthStore } from '@/stores/authStore'
 import type { Product, ProductFilters, ProductType, StockTracking } from '@/types/product'
 
-const rowsPerPageOptions = [10, 25, 50]
 const productTypes: Array<ProductType | ''> = ['', 'single', 'variable', 'service', 'combo']
 const stockTrackingOptions: Array<StockTracking | ''> = ['', 'none', 'lot', 'serial']
 
@@ -75,6 +65,100 @@ export default function ProductsPage() {
   const canEdit = can('products.edit')
   const canDelete = can('products.delete')
 
+  const activeFilters = useMemo(() => {
+    const items: Array<{ key: string; label: string; onDelete: () => void }> = []
+
+    if (type) {
+      items.push({
+        key: 'type',
+        label: `${t('filters.type')}: ${t(`types.${type}`)}`,
+        onDelete: () => {
+          setType('')
+          setPage(0)
+        },
+      })
+    }
+
+    if (stockTracking) {
+      items.push({
+        key: 'stock_tracking',
+        label: `${t('filters.stockTracking')}: ${t(`stockTracking.${stockTracking}`)}`,
+        onDelete: () => {
+          setStockTracking('')
+          setPage(0)
+        },
+      })
+    }
+
+    if (isActive !== '') {
+      items.push({
+        key: 'status',
+        label: `${t('filters.status')}: ${isActive ? t('common:status.active') : t('common:status.inactive')}`,
+        onDelete: () => {
+          setIsActive('')
+          setPage(0)
+        },
+      })
+    }
+
+    return items
+  }, [isActive, stockTracking, t, type])
+
+  const columns: EntityTableColumn<Product>[] = useMemo(
+    () => [
+      {
+        key: 'product',
+        label: t('columns.product'),
+        render: (product) => (
+          <Stack spacing={0.5}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>{product.name}</Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>{product.sku || t('labels.noSku')}</Typography>
+          </Stack>
+        ),
+      },
+      {
+        key: 'type',
+        label: t('columns.type'),
+        render: (product) => <Chip size="small" variant="outlined" label={t(`types.${product.type}`)} />,
+      },
+      {
+        key: 'price',
+        label: t('columns.price'),
+        render: (product) => formatPrice(product),
+      },
+      {
+        key: 'category',
+        label: t('columns.category'),
+        render: (product) => product.category?.name ?? '-',
+      },
+      {
+        key: 'inventory',
+        label: t('columns.inventory'),
+        render: (product) => (
+          <Stack spacing={0.5}>
+            <Typography variant="body2">{t(`stockTracking.${product.stock_tracking}`)}</Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              {product.track_inventory ? t('labels.tracked') : t('labels.notTracked')}
+            </Typography>
+          </Stack>
+        ),
+      },
+      {
+        key: 'status',
+        label: t('columns.status'),
+        render: (product) => (
+          <Chip
+            size="small"
+            label={product.is_active ? t('common:status.active') : t('common:status.inactive')}
+            color={product.is_active ? 'success' : 'default'}
+            variant="outlined"
+          />
+        ),
+      },
+    ],
+    [t]
+  )
+
   const handleDelete = async () => {
     if (!deletingProduct) return
 
@@ -87,158 +171,119 @@ export default function ProductsPage() {
     }
   }
 
+  const clearFilters = () => {
+    setType('')
+    setStockTracking('')
+    setIsActive('')
+    setPage(0)
+  }
+
   return (
-    <Stack spacing={3}>
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={2}
-        sx={{ alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between' }}
-      >
-        <Box>
-          <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-            <Inventory2Outlined color="primary" />
-            <Typography variant="h4">{t('title')}</Typography>
-          </Stack>
-          <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
-            {t('subtitle')}
-          </Typography>
-        </Box>
-        {canCreate && (
+    <Stack spacing={2.5}>
+      <PageHeader
+        eyebrow="Catalog"
+        title={t('title')}
+        description={t('subtitle')}
+        actions={canCreate && (
           <Button startIcon={<Add />} variant="contained" onClick={() => router.push('/products/create')}>
             {t('actions.new')}
           </Button>
         )}
-      </Stack>
+      />
 
-      <Card>
-        <CardContent>
-          <Stack
-            direction={{ xs: 'column', lg: 'row' }}
-            spacing={2}
-            sx={{ alignItems: { xs: 'stretch', lg: 'center' }, mb: 2.5 }}
-          >
+      <PageToolbar
+        searchValue={search}
+        searchPlaceholder={t('filters.search')}
+        onSearchChange={(value) => {
+          setSearch(value)
+          setPage(0)
+        }}
+        filters={
+          <>
             <TextField
-              value={search}
+              select
+              size="small"
+              value={type}
+              label={t('filters.type')}
               onChange={(event) => {
-                setSearch(event.target.value)
+                setType(event.target.value as ProductType | '')
                 setPage(0)
               }}
-              placeholder={t('filters.search')}
-              sx={{ flexGrow: 1 }}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Search fontSize="small" />
-                    </InputAdornment>
-                  ),
-                },
-              }}
-            />
-            <TextField select value={type} label={t('filters.type')} onChange={(event) => {
-              setType(event.target.value as ProductType | '')
-              setPage(0)
-            }} sx={{ minWidth: 180 }}>
+              sx={{ minWidth: 180 }}
+            >
               {productTypes.map((item) => <MenuItem key={item || 'all'} value={item}>{item ? t(`types.${item}`) : t('filters.allTypes')}</MenuItem>)}
             </TextField>
-            <TextField select value={stockTracking} label={t('filters.stockTracking')} onChange={(event) => {
-              setStockTracking(event.target.value as StockTracking | '')
-              setPage(0)
-            }} sx={{ minWidth: 190 }}>
+            <TextField
+              select
+              size="small"
+              value={stockTracking}
+              label={t('filters.stockTracking')}
+              onChange={(event) => {
+                setStockTracking(event.target.value as StockTracking | '')
+                setPage(0)
+              }}
+              sx={{ minWidth: 190 }}
+            >
               {stockTrackingOptions.map((item) => <MenuItem key={item || 'all'} value={item}>{item ? t(`stockTracking.${item}`) : t('filters.allTracking')}</MenuItem>)}
             </TextField>
-            <TextField select value={isActive === '' ? '' : String(isActive)} label={t('filters.status')} onChange={(event) => {
-              setIsActive(event.target.value === '' ? '' : event.target.value === 'true')
-              setPage(0)
-            }} sx={{ minWidth: 160 }}>
+            <TextField
+              select
+              size="small"
+              value={isActive === '' ? '' : String(isActive)}
+              label={t('filters.status')}
+              onChange={(event) => {
+                setIsActive(event.target.value === '' ? '' : event.target.value === 'true')
+                setPage(0)
+              }}
+              sx={{ minWidth: 160 }}
+            >
               <MenuItem value="">{t('filters.allStatuses')}</MenuItem>
               <MenuItem value="true">{t('common:status.active')}</MenuItem>
               <MenuItem value="false">{t('common:status.inactive')}</MenuItem>
             </TextField>
-          </Stack>
+          </>
+        }
+        activeFilters={activeFilters}
+        onClearFilters={activeFilters.length > 0 ? clearFilters : undefined}
+      />
 
-          {productsQuery.isError && (
-            <Alert severity="error" sx={{ mb: 2 }}>{toAppApiError(productsQuery.error).message}</Alert>
-          )}
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('columns.product')}</TableCell>
-                  <TableCell>{t('columns.type')}</TableCell>
-                  <TableCell>{t('columns.price')}</TableCell>
-                  <TableCell>{t('columns.category')}</TableCell>
-                  <TableCell>{t('columns.inventory')}</TableCell>
-                  <TableCell>{t('columns.status')}</TableCell>
-                  <TableCell align="center">{t('columns.actions')}</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {productsQuery.isLoading && <TableStateRow colSpan={7} loading />}
-                {!productsQuery.isLoading && products.length === 0 && <TableStateRow colSpan={7} message={t('empty')} />}
-                {products.map((product) => (
-                  <TableRow key={product.id} hover>
-                    <TableCell>
-                      <Stack spacing={0.5}>
-                        <Typography variant="subtitle2">{product.name}</Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>{product.sku || t('labels.noSku')}</Typography>
-                      </Stack>
-                    </TableCell>
-                    <TableCell>
-                      <Chip size="small" variant="outlined" label={t(`types.${product.type}`)} />
-                    </TableCell>
-                    <TableCell>{formatPrice(product)}</TableCell>
-                    <TableCell>{product.category?.name ?? '-'}</TableCell>
-                    <TableCell>
-                      <Stack spacing={0.5}>
-                        <Typography variant="body2">{t(`stockTracking.${product.stock_tracking}`)}</Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {product.track_inventory ? t('labels.tracked') : t('labels.notTracked')}
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        size="small"
-                        label={product.is_active ? t('common:status.active') : t('common:status.inactive')}
-                        color={product.is_active ? 'success' : 'default'}
-                        variant="outlined"
-                      />
-                    </TableCell>
-                    <TableCell align="center">
-                      <RowActions
-                        viewLabel={t('actions.view')}
-                        editLabel={t('common:buttons.edit')}
-                        deleteLabel={t('common:buttons.delete')}
-                        showView={canView}
-                        showEdit={canEdit}
-                        showDelete={canDelete}
-                        deleteDisabled={deleteProduct.isPending}
-                        onView={() => router.push(`/products/${product.id}`)}
-                        onEdit={() => router.push(`/products/${product.id}/edit`)}
-                        onDelete={() => setDeletingProduct(product)}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
+      {productsQuery.isError && (
+        <Alert severity="error">{toAppApiError(productsQuery.error).message}</Alert>
+      )}
 
-          <TablePagination
-            component="div"
-            count={meta?.total ?? 0}
-            page={page}
-            rowsPerPage={perPage}
-            rowsPerPageOptions={rowsPerPageOptions}
-            onPageChange={(_, nextPage) => setPage(nextPage)}
-            onRowsPerPageChange={(event) => {
-              setPerPage(Number(event.target.value))
-              setPage(0)
-            }}
+      <EntityTable
+        rows={products}
+        columns={columns}
+        getRowKey={(product) => product.id}
+        loading={productsQuery.isLoading}
+        emptyIcon={<Inventory2Outlined />}
+        emptyTitle={t('empty')}
+        emptyDescription="Create your first product or adjust the current filters."
+        pagination={{
+          page,
+          rowsPerPage: perPage,
+          count: meta?.total ?? 0,
+          onPageChange: setPage,
+          onRowsPerPageChange: (nextPerPage) => {
+            setPerPage(nextPerPage)
+            setPage(0)
+          },
+        }}
+        rowActions={(product) => (
+          <RowActions
+            viewLabel={t('actions.view')}
+            editLabel={t('common:buttons.edit')}
+            deleteLabel={t('common:buttons.delete')}
+            showView={canView}
+            showEdit={canEdit}
+            showDelete={canDelete}
+            deleteDisabled={deleteProduct.isPending}
+            onView={() => router.push(`/products/${product.id}`)}
+            onEdit={() => router.push(`/products/${product.id}/edit`)}
+            onDelete={() => setDeletingProduct(product)}
           />
-        </CardContent>
-      </Card>
+        )}
+      />
 
       <ConfirmDialog
         open={!!deletingProduct}
