@@ -62,7 +62,7 @@ export default function PageToolbar({
       sx={(theme) => ({
         p: { xs: 1.25, sm: 1.5 },
         mb: 2.5,
-        borderRadius: theme.shape.borderRadius,
+        borderRadius: `${theme.shape.borderRadius}px`,
         border: `1px solid ${alpha(theme.palette.primary.main, theme.palette.mode === 'light' ? 0.1 : 0.22)}`,
         bgcolor: alpha(theme.palette.background.paper, theme.palette.mode === 'light' ? 0.86 : 0.72),
         backdropFilter: 'saturate(180%) blur(14px)',
