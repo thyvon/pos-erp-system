@@ -29,7 +29,7 @@ export default function EmptyState({
         width: '100%',
         px: { xs: 2, sm: compact ? 3 : 5 },
         py: { xs: compact ? 3 : 4, sm: compact ? 4 : 7 },
-        borderRadius: 3,
+        borderRadius: theme.shape.borderRadius,
         textAlign: 'center',
         border: `1px dashed ${alpha(theme.palette.primary.main, theme.palette.mode === 'light' ? 0.24 : 0.34)}`,
         bgcolor: alpha(theme.palette.background.paper, theme.palette.mode === 'light' ? 0.72 : 0.58),
@@ -43,7 +43,7 @@ export default function EmptyState({
             sx={(theme) => ({
               width: compact ? 48 : 64,
               height: compact ? 48 : 64,
-              borderRadius: 2.5,
+              borderRadius: theme.shape.borderRadius,
               display: 'flex',
               alignItems: 'center',
               justifyContent: 'center',
