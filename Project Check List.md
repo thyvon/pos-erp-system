@@ -51,6 +51,7 @@
 - [x] Sales remaining-scope review completed and planning rules updated to require step-by-step, componentized feature delivery with thin route pages and focused Sales components.
 - [x] Sale Returns frontend slice added with typed API/hooks/schema, record-return dialog from sale detail, focused return line table component, sale returns list/detail routes, sidebar/breadcrumb navigation, English/Khmer translations, and frontend type-check/lint/build verification.
 - [x] Dedicated Quotations frontend slice added with typed API/hooks/schema, quotation list/detail/create routes, Sale form quotation mode, convert-to-sale dialog, quotation-specific cancel copy, sidebar/breadcrumb navigation, English/Khmer translations, and frontend type-check/lint/build verification.
+- [x] Sale Returns list page header and filters now use shared `PageHeader`/`PageToolbar` with active filter chips; frontend type-check, lint, and build verified.
 - [x] Sales API hooks, types, cancel/payment schemas, and action dialogs are present.
 - [x] Sales list page with search, status/type, branch/warehouse/customer, date filters, setting-aware dates, currency-aware totals, pagination, navigation, and translations is present.
 - [x] Sale detail page with summary cards, lifecycle actions, payment recording, overview, totals, item table, breadcrumbs, and translations is present.
@@ -58,6 +59,7 @@
 - [x] Sales list page header and filters now use shared `PageHeader`/`PageToolbar` with translated clear-filter controls and active filter chips; frontend type-check, lint, and build verified.
 - [x] Sales create/edit page form, product/lot/serial lookup line entry, sale-level totals, create/edit/delete actions, breadcrumbs, API payloads, hooks, and translations are present.
 - [x] Sales create/edit slice verified with `npm run type-check`, `npm run lint`, and `npm run build`; lint still reports only the existing anonymous-default-export translation warnings.
+- [x] Quotations list page header and filters now use shared `PageHeader`/`PageToolbar` with active filter chips; frontend type-check, lint, and build verified.
 - [x] Sales list header button alignment and inline advanced filter toggle now match the shared table page standard.
 - [x] Sales create/edit form now derives the saved branch from the selected warehouse instead of asking users to choose the branch manually.
 - [x] Sales create/edit backend-backed selects now use searchable autocomplete controls for warehouse, customer, price group, and tax rates.
@@ -107,6 +109,7 @@
 - [x] POS cart product picker, item table, quantity controls, and summary strip are extracted into a dedicated component while preserving the existing payment section nesting; frontend type-check, lint, and build verified.
 - [x] POS warehouse/customer/date header fields are extracted into a dedicated component while preserving branch synchronization and the add-customer action; frontend type-check, lint, and build verified.
 - [x] Cash Register Management page added with branch/status filters, create/edit/delete actions, open/close session dialogs, recent sessions view, sidebar navigation, breadcrumbs, API hooks, types, and translations; frontend type-check, lint, and build verified.
+- [x] Cash Register Management page header and filters now use shared `PageHeader`/`PageToolbar` with active branch/status filter chips; frontend type-check, lint, and build verified.
 
 ## Inventory Frontend Rebuild
 

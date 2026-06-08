@@ -13,7 +13,6 @@ import {
   DialogContent,
   DialogTitle,
   FormControlLabel,
-  InputAdornment,
   MenuItem,
   Stack,
   Switch,
@@ -30,12 +29,12 @@ import {
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
+import PageHeader from '@/components/common/PageHeader'
+import PageToolbar from '@/components/common/PageToolbar'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import {
-  AccountBalanceWalletOutlined,
   Add,
   CheckCircleOutlined,
-  Search,
 } from '@/components/ui/icons'
 import { RowActions } from '@/components/ui/RowActions'
 import { SearchableFilterSelect } from '@/components/ui/SearchableFilterSelect'
@@ -444,6 +443,37 @@ export function CashRegistersPage() {
     inactive: registers.filter((register) => !register.is_active).length,
   }), [meta?.total, registers])
 
+  const clearFilters = () => {
+    setBranchFilter('')
+    setStatusFilter('')
+    setPage(0)
+  }
+
+  const activeFilters = [
+    branchFilter
+      ? {
+          key: 'branch',
+          label: `${t('cashRegisters.filters.branch')}: ${
+            branches.find((branch) => branch.id === branchFilter)?.name ?? branchFilter
+          }`,
+          onDelete: () => {
+            setBranchFilter('')
+            setPage(0)
+          },
+        }
+      : null,
+    statusFilter
+      ? {
+          key: 'status',
+          label: `${t('cashRegisters.filters.status')}: ${t(`cashRegisters.statuses.${statusFilter}`)}`,
+          onDelete: () => {
+            setStatusFilter('')
+            setPage(0)
+          },
+        }
+      : null,
+  ].filter((filter): filter is { key: string; label: string; onDelete: () => void } => Boolean(filter))
+
   const handleSubmit = async (payload: CreateCashRegisterPayload | UpdateCashRegisterPayload) => {
     if (editingRegister) {
       await updateRegister.mutateAsync({ id: editingRegister.id, payload })
@@ -486,22 +516,11 @@ export function CashRegistersPage() {
   }
 
   return (
-    <Stack spacing={3}>
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={2}
-        sx={{ alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between' }}
-      >
-        <Box>
-          <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-            <AccountBalanceWalletOutlined color="primary" />
-            <Typography variant="h4">{t('cashRegisters.title')}</Typography>
-          </Stack>
-          <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
-            {t('cashRegisters.subtitle')}
-          </Typography>
-        </Box>
-        {canManage && (
+    <Stack spacing={2.5}>
+      <PageHeader
+        title={t('cashRegisters.title')}
+        description={t('cashRegisters.subtitle')}
+        actions={canManage && (
           <Button
             startIcon={<Add />}
             variant="contained"
@@ -513,7 +532,7 @@ export function CashRegistersPage() {
             {t('cashRegisters.actions.new')}
           </Button>
         )}
-      </Stack>
+      />
 
       <Box
         sx={{
@@ -536,31 +555,19 @@ export function CashRegistersPage() {
         ))}
       </Box>
 
-      <Card>
-        <CardContent>
-          <Stack
-            direction={{ xs: 'column', lg: 'row' }}
-            spacing={2}
-            sx={{ alignItems: { xs: 'stretch', lg: 'center' }, mb: 2.5 }}
-          >
-            <TextField
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value)
-                setPage(0)
-              }}
-              placeholder={t('cashRegisters.filters.search')}
-              sx={{ flexGrow: 1 }}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Search fontSize="small" />
-                    </InputAdornment>
-                  ),
-                },
-              }}
-            />
+      <PageToolbar
+        searchValue={search}
+        searchPlaceholder={t('cashRegisters.filters.search')}
+        onSearchChange={(value) => {
+          setSearch(value)
+          setPage(0)
+        }}
+        filterButtonLabel={t('filters.showAdvanced')}
+        clearFiltersLabel={t('filters.clear')}
+        activeFilters={activeFilters}
+        onClearFilters={activeFilters.length > 0 ? clearFilters : undefined}
+        filters={
+          <>
             <SearchableFilterSelect
               value={branchFilter}
               options={branches}
@@ -593,8 +600,12 @@ export function CashRegistersPage() {
                 </MenuItem>
               ))}
             </TextField>
-          </Stack>
+          </>
+        }
+      />
 
+      <Card>
+        <CardContent>
           {registersQuery.isError && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {toAppApiError(registersQuery.error).message}

@@ -8,8 +8,6 @@ import {
   Card,
   CardContent,
   Chip,
-  Collapse,
-  InputAdornment,
   Stack,
   Table,
   TableBody,
@@ -18,13 +16,12 @@ import {
   TableHead,
   TablePagination,
   TableRow,
-  TextField,
   Typography,
-  Button,
 } from '@mui/material'
-import { CompareArrowsOutlined, ExpandLess, ExpandMore, Search, TuneOutlined } from '@/components/ui/icons'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
+import PageHeader from '@/components/common/PageHeader'
+import PageToolbar from '@/components/common/PageToolbar'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
 import { RowActions } from '@/components/ui/RowActions'
 import { SearchableFilterSelect } from '@/components/ui/SearchableFilterSelect'
@@ -48,7 +45,6 @@ export function SaleReturnsPage() {
   const [warehouseFilter, setWarehouseFilter] = useState('')
   const [dateFrom, setDateFrom] = useState<string | null>(null)
   const [dateTo, setDateTo] = useState<string | null>(null)
-  const [filtersOpen, setFiltersOpen] = useState(false)
   const [page, setPage] = useState(0)
   const [perPage, setPerPage] = useState(10)
   const dateFormat = useAppDateFormat()
@@ -74,122 +70,137 @@ export function SaleReturnsPage() {
   const meta = saleReturnsQuery.data?.meta
   const branches = branchesQuery.data?.data ?? []
   const warehouses = warehousesQuery.data?.data ?? []
-  const activeAdvancedFilterCount = [branchFilter, warehouseFilter, dateFrom, dateTo].filter(Boolean).length
-  const filterToggleLabel = `${t(filtersOpen ? 'filters.hideAdvanced' : 'filters.showAdvanced')}${
-    activeAdvancedFilterCount > 0 ? ` (${activeAdvancedFilterCount})` : ''
-  }`
+
+  const clearFilters = () => {
+    setBranchFilter('')
+    setWarehouseFilter('')
+    setDateFrom(null)
+    setDateTo(null)
+    setPage(0)
+  }
+
+  const activeFilters = [
+    branchFilter
+      ? {
+          key: 'branch',
+          label: `${t('filters.branch')}: ${branches.find((branch) => branch.id === branchFilter)?.name ?? branchFilter}`,
+          onDelete: () => {
+            setBranchFilter('')
+            setWarehouseFilter('')
+            setPage(0)
+          },
+        }
+      : null,
+    warehouseFilter
+      ? {
+          key: 'warehouse',
+          label: `${t('filters.warehouse')}: ${
+            warehouses.find((warehouse) => warehouse.id === warehouseFilter)?.name ?? warehouseFilter
+          }`,
+          onDelete: () => {
+            setWarehouseFilter('')
+            setPage(0)
+          },
+        }
+      : null,
+    dateFrom
+      ? {
+          key: 'dateFrom',
+          label: `${t('filters.dateFrom')}: ${dateFrom}`,
+          onDelete: () => {
+            setDateFrom(null)
+            setPage(0)
+          },
+        }
+      : null,
+    dateTo
+      ? {
+          key: 'dateTo',
+          label: `${t('filters.dateTo')}: ${dateTo}`,
+          onDelete: () => {
+            setDateTo(null)
+            setPage(0)
+          },
+        }
+      : null,
+  ].filter((filter): filter is { key: string; label: string; onDelete: () => void } => Boolean(filter))
 
   return (
-    <Stack spacing={3}>
-      <Box>
-        <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-          <CompareArrowsOutlined color="primary" />
-          <Typography variant="h4">{t('returns.title')}</Typography>
-        </Stack>
-        <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
-          {t('returns.subtitle')}
-        </Typography>
-      </Box>
+    <Stack spacing={2.5}>
+      <PageHeader title={t('returns.title')} description={t('returns.subtitle')} />
+
+      <PageToolbar
+        searchValue={search}
+        searchPlaceholder={t('returns.filters.search')}
+        onSearchChange={(value) => {
+          setSearch(value)
+          setPage(0)
+        }}
+        filterButtonLabel={t('filters.showAdvanced')}
+        clearFiltersLabel={t('filters.clear')}
+        activeFilters={activeFilters}
+        onClearFilters={activeFilters.length > 0 ? clearFilters : undefined}
+        filters={
+          <>
+            <SearchableFilterSelect
+              value={branchFilter}
+              options={branches}
+              loading={branchesQuery.isLoading}
+              label={t('filters.branch')}
+              placeholder={t('filters.allBranches')}
+              getOptionValue={(branch) => branch.id}
+              getOptionLabel={(branch) => branch.name}
+              getOptionDescription={(branch) => branch.code}
+              onChange={(value) => {
+                setBranchFilter(value)
+                setWarehouseFilter('')
+                setPage(0)
+              }}
+              sx={{ minWidth: { xs: '100%', lg: 220 } }}
+            />
+            <SearchableFilterSelect
+              value={warehouseFilter}
+              options={warehouses}
+              loading={warehousesQuery.isLoading}
+              label={t('filters.warehouse')}
+              placeholder={t('filters.allWarehouses')}
+              getOptionValue={(warehouse) => warehouse.id}
+              getOptionLabel={(warehouse) => warehouse.name}
+              getOptionDescription={(warehouse) => [warehouse.code, warehouse.branch?.name].filter(Boolean).join(' / ')}
+              onChange={(value) => {
+                setWarehouseFilter(value)
+                setPage(0)
+              }}
+              sx={{ minWidth: { xs: '100%', lg: 220 } }}
+            />
+            <Box sx={{ minWidth: { xs: '100%', lg: 170 } }}>
+              <AppDatePicker
+                label={t('filters.dateFrom')}
+                value={dateFrom}
+                onChange={(value) => {
+                  setDateFrom(value)
+                  setPage(0)
+                }}
+                maxDate={dateTo}
+              />
+            </Box>
+            <Box sx={{ minWidth: { xs: '100%', lg: 170 } }}>
+              <AppDatePicker
+                label={t('filters.dateTo')}
+                value={dateTo}
+                onChange={(value) => {
+                  setDateTo(value)
+                  setPage(0)
+                }}
+                minDate={dateFrom}
+              />
+            </Box>
+          </>
+        }
+      />
 
       <Card>
         <CardContent>
-          <Stack spacing={2} sx={{ mb: 2.5 }}>
-            <Stack
-              direction={{ xs: 'column', lg: 'row' }}
-              spacing={2}
-              sx={{ alignItems: { xs: 'stretch', lg: 'center' } }}
-            >
-              <TextField
-                value={search}
-                onChange={(event) => {
-                  setSearch(event.target.value)
-                  setPage(0)
-                }}
-                placeholder={t('returns.filters.search')}
-                sx={{ flexGrow: 1 }}
-                slotProps={{
-                  input: {
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Search fontSize="small" />
-                      </InputAdornment>
-                    ),
-                  },
-                }}
-              />
-              <Button
-                variant="outlined"
-                startIcon={<TuneOutlined />}
-                endIcon={filtersOpen ? <ExpandLess /> : <ExpandMore />}
-                onClick={() => setFiltersOpen((open) => !open)}
-                sx={{ minWidth: { xs: '100%', lg: 190 }, justifyContent: 'space-between' }}
-              >
-                {filterToggleLabel}
-              </Button>
-            </Stack>
-            <Collapse in={filtersOpen} timeout="auto">
-              <Stack
-                direction={{ xs: 'column', lg: 'row' }}
-                spacing={2}
-                sx={{ alignItems: { xs: 'stretch', lg: 'center' }, overflowX: { lg: 'auto' }, pt: 0.5 }}
-              >
-                <SearchableFilterSelect
-                  value={branchFilter}
-                  options={branches}
-                  loading={branchesQuery.isLoading}
-                  label={t('filters.branch')}
-                  placeholder={t('filters.allBranches')}
-                  getOptionValue={(branch) => branch.id}
-                  getOptionLabel={(branch) => branch.name}
-                  getOptionDescription={(branch) => branch.code}
-                  onChange={(value) => {
-                    setBranchFilter(value)
-                    setWarehouseFilter('')
-                    setPage(0)
-                  }}
-                  sx={{ minWidth: { xs: '100%', lg: 220 } }}
-                />
-                <SearchableFilterSelect
-                  value={warehouseFilter}
-                  options={warehouses}
-                  loading={warehousesQuery.isLoading}
-                  label={t('filters.warehouse')}
-                  placeholder={t('filters.allWarehouses')}
-                  getOptionValue={(warehouse) => warehouse.id}
-                  getOptionLabel={(warehouse) => warehouse.name}
-                  getOptionDescription={(warehouse) => [warehouse.code, warehouse.branch?.name].filter(Boolean).join(' / ')}
-                  onChange={(value) => {
-                    setWarehouseFilter(value)
-                    setPage(0)
-                  }}
-                  sx={{ minWidth: { xs: '100%', lg: 220 } }}
-                />
-                <Box sx={{ minWidth: { xs: '100%', lg: 170 } }}>
-                  <AppDatePicker
-                    label={t('filters.dateFrom')}
-                    value={dateFrom}
-                    onChange={(value) => {
-                      setDateFrom(value)
-                      setPage(0)
-                    }}
-                    maxDate={dateTo}
-                  />
-                </Box>
-                <Box sx={{ minWidth: { xs: '100%', lg: 170 } }}>
-                  <AppDatePicker
-                    label={t('filters.dateTo')}
-                    value={dateTo}
-                    onChange={(value) => {
-                      setDateTo(value)
-                      setPage(0)
-                    }}
-                    minDate={dateFrom}
-                  />
-                </Box>
-              </Stack>
-            </Collapse>
-          </Stack>
-
           {saleReturnsQuery.isError && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {toAppApiError(saleReturnsQuery.error).message}
