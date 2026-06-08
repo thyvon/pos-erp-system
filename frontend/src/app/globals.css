@@ -58,7 +58,6 @@ a {
 
 .MuiTableContainer-root,
 .MuiDataGrid-root {
-  border-radius: 14px;
   overflow: hidden;
 }
 
