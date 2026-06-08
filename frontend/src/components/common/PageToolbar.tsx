@@ -68,7 +68,6 @@ export default function PageToolbar({
             value={searchValue ?? ''}
             onChange={(event) => onSearchChange?.(event.target.value)}
             placeholder={searchPlaceholder}
-            size="small"
             sx={{
               minWidth: { xs: '100%', lg: 320 },
               flex: { xs: 'initial', lg: 1 },
@@ -92,9 +91,16 @@ export default function PageToolbar({
             spacing={1}
             sx={{
               ml: { lg: 'auto' },
+              alignItems: 'center',
               justifyContent: { xs: 'stretch', sm: 'flex-end' },
               '& > *': {
                 flex: { xs: 1, sm: 'initial' },
+              },
+              '& .MuiBadge-root': {
+                display: 'flex',
+              },
+              '& .MuiBadge-root > .MuiButton-root': {
+                width: { xs: '100%', sm: 'auto' },
               },
             }}
           >
@@ -138,6 +144,9 @@ export default function PageToolbar({
                   rowGap: 1,
                   alignItems: 'center',
                   justifyContent: 'flex-start',
+                  '& .MuiTextField-root, & .MuiFormControl-root': {
+                    minWidth: { xs: '100%', sm: 180 },
+                  },
                 }}
               >
                 {filters}
