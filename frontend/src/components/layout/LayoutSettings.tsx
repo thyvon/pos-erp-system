@@ -50,7 +50,7 @@ function SectionTitle({ icon, label }: { icon: ReactNode; label: string }) {
         sx={(theme) => ({
           width: 28,
           height: 28,
-          borderRadius: theme.shape.borderRadius,
+          borderRadius: `${theme.shape.borderRadius}px`,
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
@@ -184,7 +184,7 @@ export default function LayoutSettings() {
               sx={(theme) => ({
                 width: 36,
                 height: 36,
-                borderRadius: theme.shape.borderRadius,
+                borderRadius: `${theme.shape.borderRadius}px`,
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -361,7 +361,7 @@ export default function LayoutSettings() {
               sx={{
                 px: 1.5,
                 py: 1.25,
-                borderRadius: theme.shape.borderRadius,
+                borderRadius: `${theme.shape.borderRadius}px`,
                 border: `1px solid ${theme.palette.divider}`,
                 bgcolor: alpha(theme.palette.grey[500], 0.04),
               }}
@@ -410,7 +410,7 @@ export default function LayoutSettings() {
               spacing={1}
               sx={{
                 p: 1,
-                borderRadius: theme.shape.borderRadius,
+                borderRadius: `${theme.shape.borderRadius}px`,
                 border: `1px solid ${theme.palette.divider}`,
                 bgcolor: alpha(theme.palette.grey[500], 0.04),
               }}
