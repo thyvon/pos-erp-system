@@ -39,6 +39,26 @@ export function Providers({ children }: { children: React.ReactNode }) {
           <CssBaseline />
           <GlobalStyles
             styles={{
+              ':root': {
+                '--app-primary-main': theme.palette.primary.main,
+                '--app-primary-light': theme.palette.primary.light,
+                '--app-primary-dark': theme.palette.primary.dark,
+                '--app-primary-contrast': theme.palette.primary.contrastText,
+                '--app-primary-soft': alpha(theme.palette.primary.main, 0.08),
+                '--app-primary-hover': alpha(theme.palette.primary.main, 0.14),
+                '--app-primary-selected': alpha(theme.palette.primary.main, 0.18),
+                '--app-primary-focus': alpha(theme.palette.primary.main, 0.42),
+                '--app-primary-shadow': alpha(theme.palette.primary.main, 0.45),
+                '--app-surface-soft': theme.palette.mode === 'light'
+                  ? alpha(theme.palette.primary.main, 0.045)
+                  : alpha(theme.palette.primary.light, 0.08),
+                '--app-surface-strong': theme.palette.mode === 'light'
+                  ? alpha(theme.palette.primary.main, 0.09)
+                  : alpha(theme.palette.primary.light, 0.14),
+                '--app-heading-color': theme.palette.mode === 'light'
+                  ? theme.palette.text.primary
+                  : theme.palette.primary.light,
+              },
               '.notistack-MuiContent-success': {
                 backgroundColor: `${theme.palette.primary.main} !important`,
                 color: `${theme.palette.primary.contrastText} !important`,
