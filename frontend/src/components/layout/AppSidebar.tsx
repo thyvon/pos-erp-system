@@ -286,7 +286,7 @@ export default function AppSidebar() {
             minHeight: navItemHeight,
             px: expanded ? 1.25 : 0,
             py: isDenseLayout ? 0.5 : 0.75,
-            borderRadius: 1.5,
+            borderRadius: theme.shape.borderRadius,
             mb: 0.35,
             justifyContent: expanded ? 'initial' : 'center',
             color: active ? sidebarColors.text : sidebarColors.muted,
@@ -368,7 +368,7 @@ export default function AppSidebar() {
                     selected={childActive}
                     sx={{
                       minHeight: childNavItemHeight,
-                      borderRadius: 1.25,
+                      borderRadius: theme.shape.borderRadius,
                       mb: 0.25,
                       color: childActive ? (sidebarColors.isDark ? sidebarColors.selectedText : sidebarColors.selected) : sidebarColors.muted,
                       bgcolor: childActive ? alpha(sidebarColors.selected, sidebarColors.isDark ? 0.84 : 0.12) : 'transparent',
@@ -465,7 +465,7 @@ export default function AppSidebar() {
             sx={{
               width: logoSize,
               height: logoSize,
-              borderRadius: 1.5,
+              borderRadius: theme.shape.borderRadius,
               background: `linear-gradient(135deg, ${sidebarColors.selected} 0%, ${sidebarColors.selectedHover} 100%)`,
               display: 'flex',
               alignItems: 'center',
@@ -494,7 +494,7 @@ export default function AppSidebar() {
           <Box
             sx={{
               p: 1.25,
-              borderRadius: 2,
+              borderRadius: theme.shape.borderRadius,
               border: `1px solid ${sidebarColors.border}`,
               bgcolor: sidebarColors.buttonBg,
             }}
@@ -572,7 +572,7 @@ export default function AppSidebar() {
             justifyContent: expanded ? 'flex-start' : 'center',
             gap: 1.25,
             p: expanded ? 1 : 0.5,
-            borderRadius: 2,
+            borderRadius: theme.shape.borderRadius,
             bgcolor: expanded ? sidebarColors.buttonBg : 'transparent',
           }}
         >
