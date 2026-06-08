@@ -47,16 +47,16 @@ function SectionTitle({ icon, label }: { icon: ReactNode; label: string }) {
   return (
     <Stack direction="row" spacing={1} sx={{ alignItems: 'center', mb: 1.5 }}>
       <Box
-        sx={{
+        sx={(theme) => ({
           width: 28,
           height: 28,
-          borderRadius: 1,
+          borderRadius: theme.shape.borderRadius,
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
           color: 'primary.main',
-          bgcolor: (theme) => alpha(theme.palette.primary.main, 0.08),
-        }}
+          bgcolor: alpha(theme.palette.primary.main, 0.08),
+        })}
       >
         {icon}
       </Box>
@@ -181,16 +181,16 @@ export default function LayoutSettings() {
         >
           <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', minWidth: 0 }}>
             <Box
-              sx={{
+              sx={(theme) => ({
                 width: 36,
                 height: 36,
-                borderRadius: 1,
+                borderRadius: theme.shape.borderRadius,
                 display: 'inline-flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 color: 'primary.main',
                 bgcolor: alpha(theme.palette.primary.main, 0.1),
-              }}
+              })}
             >
               <SettingsOutlined />
             </Box>
@@ -229,7 +229,6 @@ export default function LayoutSettings() {
               fullWidth
               value={themeMode}
               onChange={(_, value) => value && setTheme(value)}
-              size="small"
             >
               <ToggleButton value="light">
                 <LightModeOutlined fontSize="small" />
@@ -256,7 +255,6 @@ export default function LayoutSettings() {
               fullWidth
               value={language}
               onChange={(_, value) => value && setLanguage(value)}
-              size="small"
             >
               <ToggleButton value="en">English</ToggleButton>
               <ToggleButton value="km">ខ្មែរ</ToggleButton>
@@ -344,7 +342,6 @@ export default function LayoutSettings() {
               fullWidth
               value={layoutSize}
               onChange={(_, value) => value && setLayoutSize(value)}
-              size="small"
             >
               {LAYOUT_SIZE_OPTIONS.map((option) => (
                 <ToggleButton key={option.value} value={option.value}>
@@ -364,7 +361,7 @@ export default function LayoutSettings() {
               sx={{
                 px: 1.5,
                 py: 1.25,
-                borderRadius: 1,
+                borderRadius: theme.shape.borderRadius,
                 border: `1px solid ${theme.palette.divider}`,
                 bgcolor: alpha(theme.palette.grey[500], 0.04),
               }}
@@ -413,7 +410,7 @@ export default function LayoutSettings() {
               spacing={1}
               sx={{
                 p: 1,
-                borderRadius: 1,
+                borderRadius: theme.shape.borderRadius,
                 border: `1px solid ${theme.palette.divider}`,
                 bgcolor: alpha(theme.palette.grey[500], 0.04),
               }}
