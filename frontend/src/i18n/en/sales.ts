@@ -17,6 +17,7 @@ const sales = {
     allCustomers: 'All customers',
     showAdvanced: 'Show filters',
     hideAdvanced: 'Hide filters',
+    clear: 'Clear filters',
   },
   columns: {
     sale: 'Sale',

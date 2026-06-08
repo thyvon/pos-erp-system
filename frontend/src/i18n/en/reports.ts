@@ -63,6 +63,7 @@ const reports = {
     cashRegisterSearch: 'Search register, cashier, or notes',
     showAdvanced: 'Show filters',
     hideAdvanced: 'Hide filters',
+    clear: 'Clear filters',
     status: 'Status',
     allStatuses: 'All statuses',
     paymentStatus: 'Payment status',

@@ -55,6 +55,7 @@
 - [x] Sales list page with search, status/type, branch/warehouse/customer, date filters, setting-aware dates, currency-aware totals, pagination, navigation, and translations is present.
 - [x] Sale detail page with summary cards, lifecycle actions, payment recording, overview, totals, item table, breadcrumbs, and translations is present.
 - [x] Sales list/detail slice verified with `npm run type-check`, `npm run lint`, and `npm run build`; lint still reports only the existing anonymous-default-export translation warnings.
+- [x] Sales list page header and filters now use shared `PageHeader`/`PageToolbar` with translated clear-filter controls and active filter chips; frontend type-check, lint, and build verified.
 - [x] Sales create/edit page form, product/lot/serial lookup line entry, sale-level totals, create/edit/delete actions, breadcrumbs, API payloads, hooks, and translations are present.
 - [x] Sales create/edit slice verified with `npm run type-check`, `npm run lint`, and `npm run build`; lint still reports only the existing anonymous-default-export translation warnings.
 - [x] Sales list header button alignment and inline advanced filter toggle now match the shared table page standard.
@@ -200,6 +201,7 @@
 - [x] Stock report slice added with module-gated `/api/v1/reports/stock`, report selector on `/reports`, branch/warehouse/category/stock-mode filters, quantity summary totals, paginated stock rows, lot breakdown for lot-tracked stock, English/Khmer translations, branch-scoped backend coverage through warehouses, Reports backend test coverage, frontend type-check/lint/build verification, and docs updated.
 - [x] Reports frontend structure cleaned up by extracting shared summary cards, report tables, and report configuration from `ReportsPage`, keeping the page shell easier to maintain as more reports are added; frontend type-check, lint, and build verified.
 - [x] Reports summary cards polished with reusable icon badges, color-coded KPI styling, responsive grid wrapping, and frontend type-check/lint/build verification.
+- [x] Reports page header and filters now use shared `PageHeader`/`PageToolbar` components with translated clear-filter controls and active filter chips; frontend type-check, lint, and build verified.
 - [x] Expenses report slice added with module-gated `/api/v1/reports/expenses`, report selector on `/reports`, search/branch/expense-account/payment-account/cashier/payment-method/date filters, expense summary totals, paginated expense rows, English/Khmer translations, branch-scoped backend coverage, Reports backend test coverage, frontend type-check/lint/build verification, and docs updated.
 - [x] Cash Register report slice added with module-gated `/api/v1/reports/cash-registers`, report selector on `/reports`, search/status/branch/cash-register/cashier/opened-date filters, session cash summary totals, paginated register-session rows, English/Khmer translations, branch-scoped backend coverage, Reports backend test coverage, frontend type-check/lint/build verification, and docs updated.
 

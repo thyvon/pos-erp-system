@@ -63,6 +63,7 @@ const reports = {
     cashRegisterSearch: 'ស្វែងរកបញ្ជីសាច់ប្រាក់ អ្នកគិតលុយ ឬកំណត់ចំណាំ',
     showAdvanced: 'បង្ហាញតម្រង',
     hideAdvanced: 'លាក់តម្រង',
+    clear: 'សម្អាតតម្រង',
     status: 'ស្ថានភាព',
     allStatuses: 'ស្ថានភាពទាំងអស់',
     paymentStatus: 'ស្ថានភាពបង់ប្រាក់',

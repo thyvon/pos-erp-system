@@ -4,23 +4,19 @@ import { useMemo, useState } from 'react'
 import {
   Alert,
   Box,
-  Button,
   Card,
   CardContent,
-  Collapse,
   FormControl,
-  InputAdornment,
   InputLabel,
   MenuItem,
   Select,
   Stack,
   TablePagination,
-  TextField,
-  Typography,
 } from '@mui/material'
-import { ExpandLess, ExpandMore, Search, TrendingUpOutlined, TuneOutlined } from '@/components/ui/icons'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
+import PageHeader from '@/components/common/PageHeader'
+import PageToolbar from '@/components/common/PageToolbar'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
 import { SearchableFilterSelect } from '@/components/ui/SearchableFilterSelect'
 import { useChartOfAccountsQuery, usePaymentAccountsQuery } from '@/features/accounting/hooks'
@@ -116,7 +112,6 @@ export default function ReportsPage() {
   const [paymentMethodFilter, setPaymentMethodFilter] = useState('')
   const [dateFrom, setDateFrom] = useState<string | null>(null)
   const [dateTo, setDateTo] = useState<string | null>(null)
-  const [filtersOpen, setFiltersOpen] = useState(false)
   const [page, setPage] = useState(0)
   const [perPage, setPerPage] = useState(10)
   const dateFormat = useAppDateFormat()
@@ -124,6 +119,36 @@ export default function ReportsPage() {
   const canLoadUsers = can('users.index')
   const canLoadPaymentAccounts = can('accounting.index')
   const canLoadCashRegisters = can('sales.index')
+
+  const resetReportScopedFilters = () => {
+    setStatus('')
+    setType('')
+    setPaymentStatus('')
+    setRefundMethod('')
+    setCustomerFilter('')
+    setSupplierFilter('')
+    setCategoryFilter('')
+    setExpenseAccountFilter('')
+    setCashRegisterFilter('')
+    setStockMode('all')
+    setPaymentAccountFilter('')
+    setCashierFilter('')
+    setPaymentMethodFilter('')
+    setPage(0)
+  }
+
+  const clearAdvancedFilters = () => {
+    resetReportScopedFilters()
+    setBranchFilter('')
+    setWarehouseFilter('')
+    setDateFrom(null)
+    setDateTo(null)
+  }
+
+  const resetPageWith = (setter: (value: string) => void, value = '') => {
+    setter(value)
+    setPage(0)
+  }
 
   const salesFilters: SalesReportFilters = useMemo(
     () => ({
@@ -421,43 +446,188 @@ export default function ReportsPage() {
   const isPaymentLedgerReport =
     reportType === 'salePayments' || reportType === 'purchasePayments' || reportType === 'expenses'
   const usesCashierFilter = isPaymentLedgerReport || reportType === 'cashRegisters'
-  const activeAdvancedFilterCount = [
-    reportType !== 'stock' && reportType !== 'expenses' ? status : null,
-    reportType === 'sales' ? type : null,
-    reportType === 'sales' || reportType === 'purchases' ? paymentStatus : null,
-    reportType === 'salesReturns' ? refundMethod : null,
-    isPaymentLedgerReport ? paymentMethodFilter : null,
-    isPaymentLedgerReport ? paymentAccountFilter : null,
-    usesCashierFilter ? cashierFilter : null,
-    reportType === 'stock' && stockMode !== 'all' ? stockMode : null,
-    reportType === 'stock' ? categoryFilter : null,
-    reportType === 'expenses' ? expenseAccountFilter : null,
-    reportType === 'cashRegisters' ? cashRegisterFilter : null,
-    branchFilter,
-    reportType !== 'expenses' && reportType !== 'cashRegisters' ? warehouseFilter : null,
-    reportType === 'purchases' || reportType === 'purchaseReturns' || reportType === 'purchasePayments'
-      ? supplierFilter
-      : reportType === 'stock' || reportType === 'expenses' || reportType === 'cashRegisters'
-        ? null
-        : customerFilter,
-    dateFrom,
-    dateTo,
-  ].filter(Boolean).length
-  const filterToggleLabel = `${t(filtersOpen ? 'filters.hideAdvanced' : 'filters.showAdvanced')}${
-    activeAdvancedFilterCount > 0 ? ` (${activeAdvancedFilterCount})` : ''
-  }`
+  const searchPlaceholder = t(
+    reportType === 'sales'
+      ? 'filters.search'
+      : reportType === 'salesReturns'
+        ? 'filters.returnSearch'
+        : reportType === 'purchases'
+          ? 'filters.purchaseSearch'
+          : reportType === 'purchaseReturns'
+            ? 'filters.purchaseReturnSearch'
+            : reportType === 'salePayments'
+              ? 'filters.paymentSearch'
+              : reportType === 'purchasePayments'
+                ? 'filters.purchasePaymentSearch'
+                : reportType === 'stock'
+                  ? 'filters.stockSearch'
+                  : reportType === 'expenses'
+                    ? 'filters.expenseSearch'
+                    : 'filters.cashRegisterSearch',
+  )
+  const activeFilters = [
+    reportType !== 'stock' && reportType !== 'expenses' && status
+      ? {
+          key: 'status',
+          label: `${t('filters.status')}: ${t(`statuses.${status}`, { defaultValue: status })}`,
+          onDelete: () => resetPageWith(setStatus),
+        }
+      : null,
+    reportType === 'sales' && type
+      ? {
+          key: 'type',
+          label: `${t('filters.type')}: ${t(`types.${type}`, { defaultValue: type })}`,
+          onDelete: () => resetPageWith(setType),
+        }
+      : null,
+    (reportType === 'sales' || reportType === 'purchases') && paymentStatus
+      ? {
+          key: 'paymentStatus',
+          label: `${t('filters.paymentStatus')}: ${t(`paymentStatuses.${paymentStatus}`, { defaultValue: paymentStatus })}`,
+          onDelete: () => resetPageWith(setPaymentStatus),
+        }
+      : null,
+    reportType === 'salesReturns' && refundMethod
+      ? {
+          key: 'refundMethod',
+          label: `${t('filters.refundMethod')}: ${t(`refundMethods.${refundMethod}`, { defaultValue: refundMethod })}`,
+          onDelete: () => resetPageWith(setRefundMethod),
+        }
+      : null,
+    isPaymentLedgerReport && paymentMethodFilter
+      ? {
+          key: 'paymentMethod',
+          label: `${t('filters.paymentMethod')}: ${t(`paymentMethods.${paymentMethodFilter}`, { defaultValue: paymentMethodFilter })}`,
+          onDelete: () => resetPageWith(setPaymentMethodFilter),
+        }
+      : null,
+    isPaymentLedgerReport && paymentAccountFilter
+      ? {
+          key: 'paymentAccount',
+          label: `${t('filters.paymentAccount')}: ${
+            paymentAccountsQuery.data?.data.find((account) => account.id === paymentAccountFilter)?.name ?? paymentAccountFilter
+          }`,
+          onDelete: () => resetPageWith(setPaymentAccountFilter),
+        }
+      : null,
+    usesCashierFilter && cashierFilter
+      ? {
+          key: 'cashier',
+          label: `${t('filters.cashier')}: ${
+            cashiersQuery.data?.data.find((cashier) => cashier.id === cashierFilter)?.full_name ?? cashierFilter
+          }`,
+          onDelete: () => resetPageWith(setCashierFilter),
+        }
+      : null,
+    reportType === 'stock' && stockMode !== 'all'
+      ? {
+          key: 'stockMode',
+          label: `${t('filters.stockMode')}: ${t(`stockModes.${stockMode}`, { defaultValue: stockMode })}`,
+          onDelete: () => {
+            setStockMode('all')
+            setPage(0)
+          },
+        }
+      : null,
+    reportType === 'stock' && categoryFilter
+      ? {
+          key: 'category',
+          label: `${t('filters.category')}: ${
+            categoriesQuery.data?.data.find((category) => category.id === categoryFilter)?.name ?? categoryFilter
+          }`,
+          onDelete: () => resetPageWith(setCategoryFilter),
+        }
+      : null,
+    reportType === 'expenses' && expenseAccountFilter
+      ? {
+          key: 'expenseAccount',
+          label: `${t('filters.expenseAccount')}: ${
+            expenseAccountsQuery.data?.data.find((account) => account.id === expenseAccountFilter)?.name ?? expenseAccountFilter
+          }`,
+          onDelete: () => resetPageWith(setExpenseAccountFilter),
+        }
+      : null,
+    reportType === 'cashRegisters' && cashRegisterFilter
+      ? {
+          key: 'cashRegister',
+          label: `${t('filters.cashRegister')}: ${
+            cashRegistersQuery.data?.data.find((register) => register.id === cashRegisterFilter)?.name ?? cashRegisterFilter
+          }`,
+          onDelete: () => resetPageWith(setCashRegisterFilter),
+        }
+      : null,
+    branchFilter
+      ? {
+          key: 'branch',
+          label: `${t('filters.branch')}: ${
+            branchesQuery.data?.data.find((branch) => branch.id === branchFilter)?.name ?? branchFilter
+          }`,
+          onDelete: () => {
+            setBranchFilter('')
+            setWarehouseFilter('')
+            setCashRegisterFilter('')
+            setPage(0)
+          },
+        }
+      : null,
+    reportType !== 'expenses' && reportType !== 'cashRegisters' && warehouseFilter
+      ? {
+          key: 'warehouse',
+          label: `${t('filters.warehouse')}: ${
+            warehousesQuery.data?.data.find((warehouse) => warehouse.id === warehouseFilter)?.name ?? warehouseFilter
+          }`,
+          onDelete: () => resetPageWith(setWarehouseFilter),
+        }
+      : null,
+    (reportType === 'purchases' || reportType === 'purchaseReturns' || reportType === 'purchasePayments') && supplierFilter
+      ? {
+          key: 'supplier',
+          label: `${t('filters.supplier')}: ${
+            suppliersQuery.data?.data.find((supplier) => supplier.id === supplierFilter)?.name ?? supplierFilter
+          }`,
+          onDelete: () => resetPageWith(setSupplierFilter),
+        }
+      : null,
+    reportType !== 'stock' &&
+    reportType !== 'expenses' &&
+    reportType !== 'cashRegisters' &&
+    reportType !== 'purchases' &&
+    reportType !== 'purchaseReturns' &&
+    reportType !== 'purchasePayments' &&
+    customerFilter
+      ? {
+          key: 'customer',
+          label: `${t('filters.customer')}: ${
+            customersQuery.data?.data.find((customer) => customer.id === customerFilter)?.name ?? customerFilter
+          }`,
+          onDelete: () => resetPageWith(setCustomerFilter),
+        }
+      : null,
+    dateFrom
+      ? {
+          key: 'dateFrom',
+          label: `${t('filters.dateFrom')}: ${dateFrom}`,
+          onDelete: () => {
+            setDateFrom(null)
+            setPage(0)
+          },
+        }
+      : null,
+    dateTo
+      ? {
+          key: 'dateTo',
+          label: `${t('filters.dateTo')}: ${dateTo}`,
+          onDelete: () => {
+            setDateTo(null)
+            setPage(0)
+          },
+        }
+      : null,
+  ].filter((filter): filter is { key: string; label: string; onDelete: () => void } => Boolean(filter))
 
   return (
-    <Stack spacing={3}>
-      <Box>
-        <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-          <TrendingUpOutlined color="primary" />
-          <Typography variant="h4">{t('title')}</Typography>
-        </Stack>
-        <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
-          {t('subtitle')}
-        </Typography>
-      </Box>
+    <Stack spacing={2.5}>
+      <PageHeader title={t('title')} description={t('subtitle')} />
 
       <ReportSummaryCards
         reportType={reportType}
@@ -474,387 +644,331 @@ export default function ReportsPage() {
         cashRegistersSummary={cashRegistersSummary}
       />
 
-      <Card>
-        <CardContent>
-          <Stack spacing={2} sx={{ mb: 2.5 }}>
-            <Stack
-              direction={{ xs: 'column', lg: 'row' }}
-              spacing={2}
-              sx={{ alignItems: { xs: 'stretch', lg: 'center' } }}
+      <PageToolbar
+        searchValue={search}
+        searchPlaceholder={searchPlaceholder}
+        onSearchChange={(value) => {
+          setSearch(value)
+          setPage(0)
+        }}
+        filterButtonLabel={t('filters.showAdvanced')}
+        clearFiltersLabel={t('filters.clear')}
+        activeFilters={activeFilters}
+        onClearFilters={activeFilters.length > 0 ? clearAdvancedFilters : undefined}
+        actions={
+          <FormControl sx={{ minWidth: { xs: '100%', sm: 220 } }}>
+            <InputLabel>{t('filters.report')}</InputLabel>
+            <Select
+              value={reportType}
+              label={t('filters.report')}
+              onChange={(event) => {
+                setReportType(event.target.value as ReportType)
+                resetReportScopedFilters()
+              }}
             >
-              <FormControl sx={{ minWidth: { xs: '100%', lg: 210 } }}>
-                <InputLabel>{t('filters.report')}</InputLabel>
+              {reportTypes.map((option) => (
+                <MenuItem key={option} value={option}>
+                  {t(`reports.${option}`)}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        }
+        filters={
+          <>
+            {reportType !== 'stock' && reportType !== 'expenses' && (
+              <FormControl sx={{ minWidth: { xs: '100%', lg: 160 } }}>
+                <InputLabel>{t('filters.status')}</InputLabel>
                 <Select
-                  value={reportType}
-                  label={t('filters.report')}
+                  value={status}
+                  label={t('filters.status')}
                   onChange={(event) => {
-                    setReportType(event.target.value as ReportType)
-                    setStatus('')
-                    setType('')
-                    setPaymentStatus('')
-                    setRefundMethod('')
-                    setCustomerFilter('')
-                    setSupplierFilter('')
-                    setCategoryFilter('')
-                    setExpenseAccountFilter('')
-                    setCashRegisterFilter('')
-                    setStockMode('all')
-                    setPaymentAccountFilter('')
-                    setCashierFilter('')
-                    setPaymentMethodFilter('')
+                    setStatus(event.target.value)
                     setPage(0)
                   }}
                 >
-                  {reportTypes.map((option) => (
+                  <MenuItem value="">{t('filters.allStatuses')}</MenuItem>
+                  {statusOptions.map((option) => (
                     <MenuItem key={option} value={option}>
-                      {t(`reports.${option}`)}
+                      {t(`statuses.${option}`)}
                     </MenuItem>
                   ))}
                 </Select>
               </FormControl>
-              <TextField
-                value={search}
-                onChange={(event) => {
-                  setSearch(event.target.value)
-                  setPage(0)
-                }}
-                placeholder={t(
-                  reportType === 'sales'
-                    ? 'filters.search'
-                    : reportType === 'salesReturns'
-                      ? 'filters.returnSearch'
-                      : reportType === 'purchases'
-                        ? 'filters.purchaseSearch'
-                        : reportType === 'purchaseReturns'
-                          ? 'filters.purchaseReturnSearch'
-                          : reportType === 'salePayments'
-                            ? 'filters.paymentSearch'
-                            : reportType === 'purchasePayments'
-                              ? 'filters.purchasePaymentSearch'
-                              : reportType === 'stock'
-                                ? 'filters.stockSearch'
-                                : reportType === 'expenses'
-                                  ? 'filters.expenseSearch'
-                                  : 'filters.cashRegisterSearch',
-                )}
-                sx={{ flexGrow: 1 }}
-                slotProps={{
-                  input: {
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Search fontSize="small" />
-                      </InputAdornment>
-                    ),
-                  },
-                }}
-              />
-              <Button
-                variant="outlined"
-                startIcon={<TuneOutlined />}
-                endIcon={filtersOpen ? <ExpandLess /> : <ExpandMore />}
-                onClick={() => setFiltersOpen((open) => !open)}
-                sx={{ minWidth: { xs: '100%', lg: 190 }, justifyContent: 'space-between' }}
-              >
-                {filterToggleLabel}
-              </Button>
-            </Stack>
-            <Collapse in={filtersOpen} timeout="auto">
-              <Stack
-                direction={{ xs: 'column', lg: 'row' }}
-                spacing={2}
-                sx={{ alignItems: { xs: 'stretch', lg: 'center' }, overflowX: { lg: 'auto' }, py: 0.5 }}
-              >
-                {reportType !== 'stock' && reportType !== 'expenses' && (
-                  <FormControl sx={{ minWidth: { xs: '100%', lg: 160 } }}>
-                    <InputLabel>{t('filters.status')}</InputLabel>
+            )}
+            {(reportType === 'sales' || reportType === 'purchases') && (
+              <>
+                <FormControl sx={{ minWidth: { xs: '100%', lg: 155 } }}>
+                  <InputLabel>{t('filters.paymentStatus')}</InputLabel>
+                  <Select
+                    value={paymentStatus}
+                    label={t('filters.paymentStatus')}
+                    onChange={(event) => {
+                      setPaymentStatus(event.target.value)
+                      setPage(0)
+                    }}
+                  >
+                    <MenuItem value="">{t('filters.allPaymentStatuses')}</MenuItem>
+                    {paymentStatusOptions.map((option) => (
+                      <MenuItem key={option} value={option}>
+                        {t(`paymentStatuses.${option}`)}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                </FormControl>
+                {reportType === 'sales' && (
+                  <FormControl sx={{ minWidth: { xs: '100%', lg: 145 } }}>
+                    <InputLabel>{t('filters.type')}</InputLabel>
                     <Select
-                      value={status}
-                      label={t('filters.status')}
+                      value={type}
+                      label={t('filters.type')}
                       onChange={(event) => {
-                        setStatus(event.target.value)
+                        setType(event.target.value)
                         setPage(0)
                       }}
                     >
-                      <MenuItem value="">{t('filters.allStatuses')}</MenuItem>
-                      {statusOptions.map((option) => (
+                      <MenuItem value="">{t('filters.allTypes')}</MenuItem>
+                      {saleTypes.map((option) => (
                         <MenuItem key={option} value={option}>
-                          {t(`statuses.${option}`)}
+                          {t(`types.${option}`)}
                         </MenuItem>
                       ))}
                     </Select>
                   </FormControl>
                 )}
-                {(reportType === 'sales' || reportType === 'purchases') && (
-                  <>
-                    <FormControl sx={{ minWidth: { xs: '100%', lg: 155 } }}>
-                      <InputLabel>{t('filters.paymentStatus')}</InputLabel>
-                      <Select
-                        value={paymentStatus}
-                        label={t('filters.paymentStatus')}
-                        onChange={(event) => {
-                          setPaymentStatus(event.target.value)
-                          setPage(0)
-                        }}
-                      >
-                        <MenuItem value="">{t('filters.allPaymentStatuses')}</MenuItem>
-                        {paymentStatusOptions.map((option) => (
-                          <MenuItem key={option} value={option}>
-                            {t(`paymentStatuses.${option}`)}
-                          </MenuItem>
-                        ))}
-                      </Select>
-                    </FormControl>
-                    {reportType === 'sales' && (
-                      <FormControl sx={{ minWidth: { xs: '100%', lg: 145 } }}>
-                        <InputLabel>{t('filters.type')}</InputLabel>
-                        <Select
-                          value={type}
-                          label={t('filters.type')}
-                          onChange={(event) => {
-                            setType(event.target.value)
-                            setPage(0)
-                          }}
-                        >
-                          <MenuItem value="">{t('filters.allTypes')}</MenuItem>
-                          {saleTypes.map((option) => (
-                            <MenuItem key={option} value={option}>
-                              {t(`types.${option}`)}
-                            </MenuItem>
-                          ))}
-                        </Select>
-                      </FormControl>
-                    )}
-                  </>
-                )}
-                {reportType === 'salesReturns' && (
-                  <FormControl sx={{ minWidth: { xs: '100%', lg: 175 } }}>
-                    <InputLabel>{t('filters.refundMethod')}</InputLabel>
-                    <Select
-                      value={refundMethod}
-                      label={t('filters.refundMethod')}
-                      onChange={(event) => {
-                        setRefundMethod(event.target.value)
-                        setPage(0)
-                      }}
-                    >
-                      <MenuItem value="">{t('filters.allRefundMethods')}</MenuItem>
-                      {refundMethods.map((option) => (
-                        <MenuItem key={option} value={option}>
-                          {t(`refundMethods.${option}`)}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                )}
-                {isPaymentLedgerReport && (
-                  <FormControl sx={{ minWidth: { xs: '100%', lg: 175 } }}>
-                    <InputLabel>{t('filters.paymentMethod')}</InputLabel>
-                    <Select
-                      value={paymentMethodFilter}
-                      label={t('filters.paymentMethod')}
-                      onChange={(event) => {
-                        setPaymentMethodFilter(event.target.value)
-                        setPage(0)
-                      }}
-                    >
-                      <MenuItem value="">{t('filters.allPaymentMethods')}</MenuItem>
-                      {(reportType === 'expenses' ? expensePaymentMethods : paymentMethods).map((option) => (
-                        <MenuItem key={option} value={option}>
-                          {t(`paymentMethods.${option}`)}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                )}
-                {reportType === 'stock' && (
-                  <FormControl sx={{ minWidth: { xs: '100%', lg: 170 } }}>
-                    <InputLabel>{t('filters.stockMode')}</InputLabel>
-                    <Select
-                      value={stockMode}
-                      label={t('filters.stockMode')}
-                      onChange={(event) => {
-                        setStockMode(event.target.value)
-                        setPage(0)
-                      }}
-                    >
-                      {stockModes.map((option) => (
-                        <MenuItem key={option} value={option}>
-                          {t(`stockModes.${option}`)}
-                        </MenuItem>
-                      ))}
-                    </Select>
-                  </FormControl>
-                )}
-                <SearchableFilterSelect
-                  value={branchFilter}
-                  options={branchesQuery.data?.data ?? []}
-                  loading={branchesQuery.isLoading}
-                  label={t('filters.branch')}
-                  placeholder={t('filters.allBranches')}
-                  getOptionValue={(branch: Branch) => branch.id}
-                  getOptionLabel={(branch: Branch) => branch.name}
-                  onChange={(value) => {
-                    setBranchFilter(value)
-                    setWarehouseFilter('')
-                    setCashRegisterFilter('')
+              </>
+            )}
+            {reportType === 'salesReturns' && (
+              <FormControl sx={{ minWidth: { xs: '100%', lg: 175 } }}>
+                <InputLabel>{t('filters.refundMethod')}</InputLabel>
+                <Select
+                  value={refundMethod}
+                  label={t('filters.refundMethod')}
+                  onChange={(event) => {
+                    setRefundMethod(event.target.value)
                     setPage(0)
                   }}
-                  sx={{ minWidth: { xs: '100%', lg: 185 } }}
-                />
-                {reportType !== 'expenses' && reportType !== 'cashRegisters' && (
-                  <SearchableFilterSelect
-                    value={warehouseFilter}
-                    options={warehousesQuery.data?.data ?? []}
-                    loading={warehousesQuery.isLoading}
-                    label={t('filters.warehouse')}
-                    placeholder={t('filters.allWarehouses')}
-                    getOptionValue={(warehouse: Warehouse) => warehouse.id}
-                    getOptionLabel={(warehouse: Warehouse) => warehouse.name}
+                >
+                  <MenuItem value="">{t('filters.allRefundMethods')}</MenuItem>
+                  {refundMethods.map((option) => (
+                    <MenuItem key={option} value={option}>
+                      {t(`refundMethods.${option}`)}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
+            {isPaymentLedgerReport && (
+              <FormControl sx={{ minWidth: { xs: '100%', lg: 175 } }}>
+                <InputLabel>{t('filters.paymentMethod')}</InputLabel>
+                <Select
+                  value={paymentMethodFilter}
+                  label={t('filters.paymentMethod')}
+                  onChange={(event) => {
+                    setPaymentMethodFilter(event.target.value)
+                    setPage(0)
+                  }}
+                >
+                  <MenuItem value="">{t('filters.allPaymentMethods')}</MenuItem>
+                  {(reportType === 'expenses' ? expensePaymentMethods : paymentMethods).map((option) => (
+                    <MenuItem key={option} value={option}>
+                      {t(`paymentMethods.${option}`)}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
+            {reportType === 'stock' && (
+              <FormControl sx={{ minWidth: { xs: '100%', lg: 170 } }}>
+                <InputLabel>{t('filters.stockMode')}</InputLabel>
+                <Select
+                  value={stockMode}
+                  label={t('filters.stockMode')}
+                  onChange={(event) => {
+                    setStockMode(event.target.value)
+                    setPage(0)
+                  }}
+                >
+                  {stockModes.map((option) => (
+                    <MenuItem key={option} value={option}>
+                      {t(`stockModes.${option}`)}
+                    </MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            )}
+            <SearchableFilterSelect
+              value={branchFilter}
+              options={branchesQuery.data?.data ?? []}
+              loading={branchesQuery.isLoading}
+              label={t('filters.branch')}
+              placeholder={t('filters.allBranches')}
+              getOptionValue={(branch: Branch) => branch.id}
+              getOptionLabel={(branch: Branch) => branch.name}
+              onChange={(value) => {
+                setBranchFilter(value)
+                setWarehouseFilter('')
+                setCashRegisterFilter('')
+                setPage(0)
+              }}
+              sx={{ minWidth: { xs: '100%', lg: 185 } }}
+            />
+            {reportType !== 'expenses' && reportType !== 'cashRegisters' && (
+              <SearchableFilterSelect
+                value={warehouseFilter}
+                options={warehousesQuery.data?.data ?? []}
+                loading={warehousesQuery.isLoading}
+                label={t('filters.warehouse')}
+                placeholder={t('filters.allWarehouses')}
+                getOptionValue={(warehouse: Warehouse) => warehouse.id}
+                getOptionLabel={(warehouse: Warehouse) => warehouse.name}
+                onChange={(value) => {
+                  setWarehouseFilter(value)
+                  setPage(0)
+                }}
+                sx={{ minWidth: { xs: '100%', lg: 185 } }}
+              />
+            )}
+            {reportType === 'purchases' || reportType === 'purchaseReturns' || reportType === 'purchasePayments' ? (
+              <SearchableFilterSelect
+                value={supplierFilter}
+                options={suppliersQuery.data?.data ?? []}
+                loading={suppliersQuery.isLoading}
+                label={t('filters.supplier')}
+                placeholder={t('filters.allSuppliers')}
+                getOptionValue={(supplier: Supplier) => supplier.id}
+                getOptionLabel={(supplier: Supplier) => supplier.name}
+                onChange={(value) => {
+                  setSupplierFilter(value)
+                  setPage(0)
+                }}
+                sx={{ minWidth: { xs: '100%', lg: 190 } }}
+              />
+            ) : reportType === 'stock' ? (
+              <SearchableFilterSelect
+                value={categoryFilter}
+                options={categoriesQuery.data?.data ?? []}
+                loading={categoriesQuery.isLoading}
+                label={t('filters.category')}
+                placeholder={t('filters.allCategories')}
+                getOptionValue={(category: Category) => category.id}
+                getOptionLabel={(category: Category) => category.name}
+                onChange={(value) => {
+                  setCategoryFilter(value)
+                  setPage(0)
+                }}
+                sx={{ minWidth: { xs: '100%', lg: 190 } }}
+              />
+            ) : reportType === 'expenses' && canLoadPaymentAccounts ? (
+              <SearchableFilterSelect
+                value={expenseAccountFilter}
+                options={expenseAccountsQuery.data?.data ?? []}
+                loading={expenseAccountsQuery.isLoading}
+                label={t('filters.expenseAccount')}
+                placeholder={t('filters.allExpenseAccounts')}
+                getOptionValue={(account: ChartOfAccount) => account.id}
+                getOptionLabel={(account: ChartOfAccount) => `${account.code} - ${account.name}`}
+                onChange={(value) => {
+                  setExpenseAccountFilter(value)
+                  setPage(0)
+                }}
+                sx={{ minWidth: { xs: '100%', lg: 230 } }}
+              />
+            ) : reportType === 'cashRegisters' && canLoadCashRegisters ? (
+              <SearchableFilterSelect
+                value={cashRegisterFilter}
+                options={cashRegistersQuery.data?.data ?? []}
+                loading={cashRegistersQuery.isLoading}
+                label={t('filters.cashRegister')}
+                placeholder={t('filters.allCashRegisters')}
+                getOptionValue={(register: CashRegister) => register.id}
+                getOptionLabel={(register: CashRegister) => register.name}
+                onChange={(value) => {
+                  setCashRegisterFilter(value)
+                  setPage(0)
+                }}
+                sx={{ minWidth: { xs: '100%', lg: 210 } }}
+              />
+            ) : (
+              <SearchableFilterSelect
+                value={customerFilter}
+                options={customersQuery.data?.data ?? []}
+                loading={customersQuery.isLoading}
+                label={t('filters.customer')}
+                placeholder={t('filters.allCustomers')}
+                getOptionValue={(customer: Customer) => customer.id}
+                getOptionLabel={(customer: Customer) => customer.name}
+                onChange={(value) => {
+                  setCustomerFilter(value)
+                  setPage(0)
+                }}
+                sx={{ minWidth: { xs: '100%', lg: 190 } }}
+              />
+            )}
+            {isPaymentLedgerReport && canLoadPaymentAccounts && (
+              <SearchableFilterSelect
+                value={paymentAccountFilter}
+                options={paymentAccountsQuery.data?.data ?? []}
+                loading={paymentAccountsQuery.isLoading}
+                label={t('filters.paymentAccount')}
+                placeholder={t('filters.allPaymentAccounts')}
+                getOptionValue={(account: PaymentAccount) => account.id}
+                getOptionLabel={(account: PaymentAccount) => account.name}
+                onChange={(value) => {
+                  setPaymentAccountFilter(value)
+                  setPage(0)
+                }}
+                sx={{ minWidth: { xs: '100%', lg: 190 } }}
+              />
+            )}
+            {usesCashierFilter && canLoadUsers && (
+              <SearchableFilterSelect
+                value={cashierFilter}
+                options={cashiersQuery.data?.data ?? []}
+                loading={cashiersQuery.isLoading}
+                label={t('filters.cashier')}
+                placeholder={t('filters.allCashiers')}
+                getOptionValue={(user: UserListItem) => user.id}
+                getOptionLabel={(user: UserListItem) => user.full_name}
+                onChange={(value) => {
+                  setCashierFilter(value)
+                  setPage(0)
+                }}
+                sx={{ minWidth: { xs: '100%', lg: 190 } }}
+              />
+            )}
+            {reportType !== 'stock' && (
+              <>
+                <Box sx={{ minWidth: { xs: '100%', lg: 165 } }}>
+                  <AppDatePicker
+                    label={t('filters.dateFrom')}
+                    value={dateFrom}
                     onChange={(value) => {
-                      setWarehouseFilter(value)
+                      setDateFrom(value)
                       setPage(0)
                     }}
-                    sx={{ minWidth: { xs: '100%', lg: 185 } }}
+                    maxDate={dateTo}
                   />
-                )}
-                {reportType === 'purchases' || reportType === 'purchaseReturns' || reportType === 'purchasePayments' ? (
-                  <SearchableFilterSelect
-                    value={supplierFilter}
-                    options={suppliersQuery.data?.data ?? []}
-                    loading={suppliersQuery.isLoading}
-                    label={t('filters.supplier')}
-                    placeholder={t('filters.allSuppliers')}
-                    getOptionValue={(supplier: Supplier) => supplier.id}
-                    getOptionLabel={(supplier: Supplier) => supplier.name}
+                </Box>
+                <Box sx={{ minWidth: { xs: '100%', lg: 165 } }}>
+                  <AppDatePicker
+                    label={t('filters.dateTo')}
+                    value={dateTo}
                     onChange={(value) => {
-                      setSupplierFilter(value)
+                      setDateTo(value)
                       setPage(0)
                     }}
-                    sx={{ minWidth: { xs: '100%', lg: 190 } }}
+                    minDate={dateFrom}
                   />
-                ) : reportType === 'stock' ? (
-                  <SearchableFilterSelect
-                    value={categoryFilter}
-                    options={categoriesQuery.data?.data ?? []}
-                    loading={categoriesQuery.isLoading}
-                    label={t('filters.category')}
-                    placeholder={t('filters.allCategories')}
-                    getOptionValue={(category: Category) => category.id}
-                    getOptionLabel={(category: Category) => category.name}
-                    onChange={(value) => {
-                      setCategoryFilter(value)
-                      setPage(0)
-                    }}
-                    sx={{ minWidth: { xs: '100%', lg: 190 } }}
-                  />
-                ) : reportType === 'expenses' && canLoadPaymentAccounts ? (
-                  <SearchableFilterSelect
-                    value={expenseAccountFilter}
-                    options={expenseAccountsQuery.data?.data ?? []}
-                    loading={expenseAccountsQuery.isLoading}
-                    label={t('filters.expenseAccount')}
-                    placeholder={t('filters.allExpenseAccounts')}
-                    getOptionValue={(account: ChartOfAccount) => account.id}
-                    getOptionLabel={(account: ChartOfAccount) => `${account.code} - ${account.name}`}
-                    onChange={(value) => {
-                      setExpenseAccountFilter(value)
-                      setPage(0)
-                    }}
-                    sx={{ minWidth: { xs: '100%', lg: 230 } }}
-                  />
-                ) : reportType === 'cashRegisters' && canLoadCashRegisters ? (
-                  <SearchableFilterSelect
-                    value={cashRegisterFilter}
-                    options={cashRegistersQuery.data?.data ?? []}
-                    loading={cashRegistersQuery.isLoading}
-                    label={t('filters.cashRegister')}
-                    placeholder={t('filters.allCashRegisters')}
-                    getOptionValue={(register: CashRegister) => register.id}
-                    getOptionLabel={(register: CashRegister) => register.name}
-                    onChange={(value) => {
-                      setCashRegisterFilter(value)
-                      setPage(0)
-                    }}
-                    sx={{ minWidth: { xs: '100%', lg: 210 } }}
-                  />
-                ) : (
-                  <SearchableFilterSelect
-                    value={customerFilter}
-                    options={customersQuery.data?.data ?? []}
-                    loading={customersQuery.isLoading}
-                    label={t('filters.customer')}
-                    placeholder={t('filters.allCustomers')}
-                    getOptionValue={(customer: Customer) => customer.id}
-                    getOptionLabel={(customer: Customer) => customer.name}
-                    onChange={(value) => {
-                      setCustomerFilter(value)
-                      setPage(0)
-                    }}
-                    sx={{ minWidth: { xs: '100%', lg: 190 } }}
-                  />
-                )}
-                {isPaymentLedgerReport && canLoadPaymentAccounts && (
-                  <SearchableFilterSelect
-                    value={paymentAccountFilter}
-                    options={paymentAccountsQuery.data?.data ?? []}
-                    loading={paymentAccountsQuery.isLoading}
-                    label={t('filters.paymentAccount')}
-                    placeholder={t('filters.allPaymentAccounts')}
-                    getOptionValue={(account: PaymentAccount) => account.id}
-                    getOptionLabel={(account: PaymentAccount) => account.name}
-                    onChange={(value) => {
-                      setPaymentAccountFilter(value)
-                      setPage(0)
-                    }}
-                    sx={{ minWidth: { xs: '100%', lg: 190 } }}
-                  />
-                )}
-                {usesCashierFilter && canLoadUsers && (
-                  <SearchableFilterSelect
-                    value={cashierFilter}
-                    options={cashiersQuery.data?.data ?? []}
-                    loading={cashiersQuery.isLoading}
-                    label={t('filters.cashier')}
-                    placeholder={t('filters.allCashiers')}
-                    getOptionValue={(user: UserListItem) => user.id}
-                    getOptionLabel={(user: UserListItem) => user.full_name}
-                    onChange={(value) => {
-                      setCashierFilter(value)
-                      setPage(0)
-                    }}
-                    sx={{ minWidth: { xs: '100%', lg: 190 } }}
-                  />
-                )}
-                {reportType !== 'stock' && (
-                  <>
-                    <Box sx={{ minWidth: { xs: '100%', lg: 165 } }}>
-                      <AppDatePicker
-                        label={t('filters.dateFrom')}
-                        value={dateFrom}
-                        onChange={(value) => {
-                          setDateFrom(value)
-                          setPage(0)
-                        }}
-                        maxDate={dateTo}
-                      />
-                    </Box>
-                    <Box sx={{ minWidth: { xs: '100%', lg: 165 } }}>
-                      <AppDatePicker
-                        label={t('filters.dateTo')}
-                        value={dateTo}
-                        onChange={(value) => {
-                          setDateTo(value)
-                          setPage(0)
-                        }}
-                        minDate={dateFrom}
-                      />
-                    </Box>
-                  </>
-                )}
-              </Stack>
-            </Collapse>
-          </Stack>
+                </Box>
+              </>
+            )}
+          </>
+        }
+      />
 
+      <Card>
+        <CardContent>
           {activeReportQuery.isError && (
             <Alert severity="error" sx={{ mb: 2 }}>
               {toAppApiError(activeReportQuery.error).message}

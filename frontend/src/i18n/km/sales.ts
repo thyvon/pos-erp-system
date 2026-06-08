@@ -17,6 +17,7 @@ const sales = {
     allCustomers: 'អតិថិជនទាំងអស់',
     showAdvanced: 'បង្ហាញតម្រង',
     hideAdvanced: 'លាក់តម្រង',
+    clear: 'សម្អាតតម្រង',
   },
   columns: {
     sale: 'ការលក់',

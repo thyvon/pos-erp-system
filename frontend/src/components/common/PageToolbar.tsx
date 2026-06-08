@@ -26,6 +26,7 @@ interface PageToolbarProps {
     onDelete?: () => void
   }>
   onClearFilters?: () => void
+  clearFiltersLabel?: string
   defaultFiltersOpen?: boolean
   filterButtonLabel?: string
 }
@@ -50,6 +51,7 @@ export default function PageToolbar({
   actions,
   activeFilters = [],
   onClearFilters,
+  clearFiltersLabel = 'Clear filters',
   defaultFiltersOpen = false,
   filterButtonLabel = 'Filters',
 }: PageToolbarProps) {
@@ -212,7 +214,7 @@ export default function PageToolbar({
               ))}
               {onClearFilters && (
                 <Button size="small" color="inherit" onClick={onClearFilters} sx={{ fontWeight: 700 }}>
-                  Clear filters
+                  {clearFiltersLabel}
                 </Button>
               )}
             </Stack>
