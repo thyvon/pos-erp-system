@@ -27,12 +27,12 @@ body {
 }
 
 ::selection {
-  background: rgba(31, 198, 0, 0.22);
-  color: #102a12;
+  background: var(--app-primary-selected);
+  color: inherit;
 }
 
 :focus-visible {
-  outline: 2px solid rgba(31, 198, 0, 0.48);
+  outline: 2px solid var(--app-primary-focus);
   outline-offset: 2px;
 }
 
@@ -41,20 +41,19 @@ a {
   text-decoration: none;
 }
 
-/* Premium ERP surface polish */
 .MuiPaper-root,
 .MuiCard-root {
   backdrop-filter: saturate(180%) blur(8px);
 }
 
 .MuiCard-root {
-  border: 1px solid rgba(31, 198, 0, 0.08);
+  border: 1px solid var(--app-primary-soft);
   transition: box-shadow 160ms ease, transform 160ms ease, border-color 160ms ease;
 }
 
 .MuiCard-root:hover {
-  border-color: rgba(31, 198, 0, 0.16);
-  box-shadow: 0 18px 40px -24px rgba(16, 42, 18, 0.32);
+  border-color: var(--app-primary-hover);
+  box-shadow: 0 18px 40px -24px var(--app-primary-shadow);
 }
 
 .MuiTableContainer-root,
@@ -65,8 +64,8 @@ a {
 
 .MuiTableHead-root .MuiTableCell-root,
 .MuiDataGrid-columnHeaders {
-  background: linear-gradient(180deg, rgba(246, 253, 244, 0.98) 0%, rgba(238, 250, 234, 0.98) 100%);
-  color: #102a12;
+  background: linear-gradient(180deg, var(--app-surface-soft) 0%, var(--app-surface-strong) 100%);
+  color: var(--app-heading-color);
   font-weight: 700;
 }
 
@@ -77,15 +76,15 @@ a {
 
 .MuiTableBody-root .MuiTableRow-root:hover,
 .MuiDataGrid-row:hover {
-  background-color: rgba(31, 198, 0, 0.055) !important;
+  background-color: var(--app-primary-soft) !important;
 }
 
 .MuiButton-containedPrimary {
-  box-shadow: 0 10px 20px -12px rgba(31, 198, 0, 0.7);
+  box-shadow: 0 10px 20px -12px var(--app-primary-shadow);
 }
 
 .MuiButton-containedPrimary:hover {
-  box-shadow: 0 14px 28px -14px rgba(31, 198, 0, 0.85);
+  box-shadow: 0 14px 28px -14px var(--app-primary-shadow);
 }
 
 .MuiChip-root {
@@ -93,10 +92,9 @@ a {
 }
 
 .MuiListItemButton-root.Mui-selected {
-  box-shadow: inset 3px 0 0 #1fc600, 0 8px 22px -18px rgba(31, 198, 0, 0.9);
+  box-shadow: inset 3px 0 0 var(--app-primary-main), 0 8px 22px -18px var(--app-primary-shadow);
 }
 
-/* Prevent iOS browsers from zooming when focusing compact form fields */
 @media screen and (max-width: 768px) {
   input,
   textarea,
@@ -106,7 +104,6 @@ a {
   }
 }
 
-/* Hide number input spinners across the system */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
   -webkit-appearance: none;
