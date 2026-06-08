@@ -5,7 +5,6 @@ import {
   Button,
   Chip,
   Collapse,
-  Divider,
   InputAdornment,
   Paper,
   Stack,
@@ -147,9 +146,27 @@ export default function PageToolbar({
         </Stack>
 
         {hasFilters && (
-          <Collapse in={filtersOpen} timeout="auto" unmountOnExit>
-            <Stack spacing={1.25}>
-              <Divider />
+          <Collapse
+            in={filtersOpen}
+            timeout={260}
+            easing={{
+              enter: 'cubic-bezier(0.4, 0, 0.2, 1)',
+              exit: 'cubic-bezier(0.4, 0, 0.2, 1)',
+            }}
+          >
+            <Box
+              sx={(theme) => ({
+                pt: 1.25,
+                mt: -0.25,
+                borderTop: `1px solid ${theme.palette.divider}`,
+                opacity: filtersOpen ? 1 : 0,
+                transform: filtersOpen ? 'translateY(0)' : 'translateY(-4px)',
+                transition: theme.transitions.create(['opacity', 'transform'], {
+                  duration: 220,
+                  easing: theme.transitions.easing.easeInOut,
+                }),
+              })}
+            >
               <Stack
                 direction="row"
                 spacing={1}
@@ -158,6 +175,7 @@ export default function PageToolbar({
                   rowGap: 1,
                   alignItems: 'center',
                   justifyContent: 'flex-start',
+                  pb: 0.25,
                   '& .MuiTextField-root, & .MuiFormControl-root': {
                     minWidth: { xs: '100%', sm: 180 },
                   },
@@ -165,7 +183,7 @@ export default function PageToolbar({
               >
                 {filters}
               </Stack>
-            </Stack>
+            </Box>
           </Collapse>
         )}
 
