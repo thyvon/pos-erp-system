@@ -12,6 +12,7 @@ import {
   alpha,
 } from '@mui/material'
 import { Search, TuneOutlined, ExpandLess, ExpandMore } from '@/components/ui/icons'
+import { getListSurfaceSx } from './surfaceStyles'
 
 interface PageToolbarProps {
   searchValue?: string
@@ -60,13 +61,9 @@ export default function PageToolbar({
     <Paper
       elevation={0}
       sx={(theme) => ({
+        ...getListSurfaceSx(theme),
         p: { xs: 1.25, sm: 1.5 },
         mb: 2.5,
-        borderRadius: `${theme.shape.borderRadius}px`,
-        border: `1px solid ${alpha(theme.palette.primary.main, theme.palette.mode === 'light' ? 0.1 : 0.22)}`,
-        bgcolor: alpha(theme.palette.background.paper, theme.palette.mode === 'light' ? 0.86 : 0.72),
-        backdropFilter: 'saturate(180%) blur(14px)',
-        boxShadow: `0 18px 50px -38px ${alpha(theme.palette.primary.main, 0.55)}`,
         ...toolbarControlSx,
       })}
     >
