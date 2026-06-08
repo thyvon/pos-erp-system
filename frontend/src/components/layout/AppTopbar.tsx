@@ -67,7 +67,7 @@ export default function AppTopbar() {
             zIndex: theme.zIndex.drawer + 2,
             width: collapseButtonSize,
             height: collapseButtonSize,
-            borderRadius: theme.shape.borderRadius,
+            borderRadius: `${theme.shape.borderRadius}px`,
             color: topbarColors.icon,
             bgcolor: topbarColors.floatingBg,
             border: `1px solid ${topbarColors.floatingBorder}`,
