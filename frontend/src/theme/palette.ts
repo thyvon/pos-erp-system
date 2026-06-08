@@ -21,7 +21,7 @@ export const THEME_COLOR_PRESETS: Array<{
 }> = [
   { value: 'default', label: 'Graphite', labelKey: 'layoutSettings.colorGraphite', main: '#334155', light: '#94A3B8', dark: '#0F172A' },
   { value: 'blue', label: 'Sapphire', labelKey: 'layoutSettings.colorSapphire', main: '#1D4ED8', light: '#93C5FD', dark: '#1E3A8A' },
-  { value: 'darkGreen', label: 'Emerald', labelKey: 'layoutSettings.colorEmerald', main: '#0B6B3A', light: '#3BBF77', dark: '#022A1F' },
+  { value: 'darkGreen', label: 'System Solution Green', labelKey: 'layoutSettings.colorEmerald', main: '#1FC600', light: '#B8FF9F', dark: '#102A12' },
   { value: 'orange', label: 'Bronze', labelKey: 'layoutSettings.colorBronze', main: '#B45309', light: '#FCD34D', dark: '#78350F' },
   { value: 'red', label: 'Garnet', labelKey: 'layoutSettings.colorGarnet', main: '#9F1239', light: '#FDA4AF', dark: '#4C0519' },
 ]
