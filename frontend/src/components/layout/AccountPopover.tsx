@@ -94,7 +94,7 @@ export default function AccountPopover({ avatarBorderColor, buttonSx }: AccountP
               border: (theme) => `solid 1px ${theme.palette.divider}`,
               '& .MuiMenuItem-root': {
                 typography: 'body2',
-                borderRadius: (theme) => theme.shape.borderRadius,
+                borderRadius: (theme) => `${theme.shape.borderRadius}px`,
               },
             },
           },
