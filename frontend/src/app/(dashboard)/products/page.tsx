@@ -202,7 +202,6 @@ export default function ProductsPage() {
           <>
             <TextField
               select
-              size="small"
               value={type}
               label={t('filters.type')}
               onChange={(event) => {
@@ -215,7 +214,6 @@ export default function ProductsPage() {
             </TextField>
             <TextField
               select
-              size="small"
               value={stockTracking}
               label={t('filters.stockTracking')}
               onChange={(event) => {
@@ -228,7 +226,6 @@ export default function ProductsPage() {
             </TextField>
             <TextField
               select
-              size="small"
               value={isActive === '' ? '' : String(isActive)}
               label={t('filters.status')}
               onChange={(event) => {
