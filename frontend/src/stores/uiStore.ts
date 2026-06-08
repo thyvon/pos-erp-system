@@ -47,21 +47,38 @@ interface UIActions {
 
 type UIStore = UIState & UIActions
 
+const initialState: UIState = {
+  sidebarOpen: true,
+  mobileSidebarOpen: false,
+  settingsOpen: false,
+  themeMode: 'light',
+  language: 'en',
+  fontPreset: 'publicSans',
+  colorPreset: 'default',
+  layoutSize: 'small',
+  borderRadiusLevel: DEFAULT_BORDER_RADIUS_LEVEL,
+  sidebarTheme: 'inherit',
+  topbarTheme: 'inherit',
+  contentStretch: true,
+}
+
+const COLOR_SURFACE_THEMES: LayoutSurfaceTheme[] = ['default', 'blue', 'darkGreen']
+
+function normalizeSurfaceTheme(value: unknown): LayoutSurfaceTheme {
+  if (!isLayoutSurfaceTheme(value)) return 'inherit'
+
+  // Old saved settings could keep the layout shell locked to darkGreen even after
+  // switching brand colors. Reset color-specific shell values to inherit so the
+  // active theme color controls cards, tables, topbar and sidebar consistently.
+  if (COLOR_SURFACE_THEMES.includes(value)) return 'inherit'
+
+  return value
+}
+
 export const useUIStore = create<UIStore>()(
   persist(
     (set) => ({
-      sidebarOpen: true,
-      mobileSidebarOpen: false,
-      settingsOpen: false,
-      themeMode: 'light',
-      language: 'en',
-      fontPreset: 'publicSans',
-      colorPreset: 'default',
-      layoutSize: 'small',
-      borderRadiusLevel: DEFAULT_BORDER_RADIUS_LEVEL,
-      sidebarTheme: 'inherit',
-      topbarTheme: 'inherit',
-      contentStretch: true,
+      ...initialState,
 
       toggleSidebar: () => set((s) => ({ sidebarOpen: !s.sidebarOpen })),
       setSidebarOpen: (open) => set({ sidebarOpen: open }),
@@ -73,7 +90,11 @@ export const useUIStore = create<UIStore>()(
       setTheme: (mode) => set({ themeMode: mode }),
       setLanguage: (language) => set({ language }),
       setFontPreset: (fontPreset) => set({ fontPreset }),
-      setColorPreset: (colorPreset) => set({ colorPreset }),
+      setColorPreset: (colorPreset) => set((state) => ({
+        colorPreset,
+        sidebarTheme: COLOR_SURFACE_THEMES.includes(state.sidebarTheme) ? 'inherit' : state.sidebarTheme,
+        topbarTheme: COLOR_SURFACE_THEMES.includes(state.topbarTheme) ? 'inherit' : state.topbarTheme,
+      })),
       setLayoutSize: (layoutSize) => set({ layoutSize }),
       setBorderRadiusLevel: (borderRadiusLevel) => set({ borderRadiusLevel: normalizeBorderRadiusLevel(borderRadiusLevel) }),
       setSidebarTheme: (sidebarTheme) => set({ sidebarTheme }),
@@ -83,7 +104,7 @@ export const useUIStore = create<UIStore>()(
     {
       name: 'erp-ui',
       storage: createJSONStorage(() => localStorage),
-      version: 7,
+      version: 8,
       migrate: (persistedState) => {
         const previousState = persistedState as Partial<UIStore> & {
           borderRadiusPreset?: unknown
@@ -95,15 +116,15 @@ export const useUIStore = create<UIStore>()(
         return {
           ...stateWithoutSurfaceStyle,
           contentStretch: true,
-          language: previousState.language ?? 'en',
-          fontPreset: previousState.fontPreset ?? 'publicSans',
-          colorPreset: previousState.colorPreset ?? 'default',
-          layoutSize: previousState.layoutSize ?? 'small',
+          language: previousState.language ?? initialState.language,
+          fontPreset: previousState.fontPreset ?? initialState.fontPreset,
+          colorPreset: previousState.colorPreset ?? initialState.colorPreset,
+          layoutSize: previousState.layoutSize ?? initialState.layoutSize,
           borderRadiusLevel: normalizeBorderRadiusLevel(
             previousState.borderRadiusLevel ?? previousState.borderRadiusPreset
           ),
-          sidebarTheme: isLayoutSurfaceTheme(previousState.sidebarTheme) ? previousState.sidebarTheme : 'inherit',
-          topbarTheme: isLayoutSurfaceTheme(previousState.topbarTheme) ? previousState.topbarTheme : 'inherit',
+          sidebarTheme: normalizeSurfaceTheme(previousState.sidebarTheme),
+          topbarTheme: normalizeSurfaceTheme(previousState.topbarTheme),
         }
       },
     }
