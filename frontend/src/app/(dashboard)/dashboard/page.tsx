@@ -95,7 +95,7 @@ export default function DashboardPage() {
                   sx={{
                     width: 44,
                     height: 44,
-                    borderRadius: 1.5,
+                    borderRadius: theme.shape.borderRadius,
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
