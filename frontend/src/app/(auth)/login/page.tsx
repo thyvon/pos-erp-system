@@ -118,7 +118,7 @@ export default function LoginPage() {
               sx={(theme) => ({
                 width: 38,
                 height: 38,
-                borderRadius: theme.shape.borderRadius / 10,
+                borderRadius: theme.shape.borderRadius,
                 bgcolor: 'primary.main',
                 color: 'primary.contrastText',
                 display: 'flex',
