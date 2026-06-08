@@ -60,7 +60,7 @@ export const lightPalette: PaletteOptions = {
     contrastText: '#FFFFFF',
   },
   background: {
-    default: '#F7F8FA',
+    default: '#F6FDF4',
     paper: '#FFFFFF',
   },
   text: {
@@ -77,7 +77,7 @@ export const lightPalette: PaletteOptions = {
   error: { main: '#FF5630', light: '#FFAC82', dark: '#B71D18', contrastText: '#FFFFFF' },
   warning: { main: '#FFAB00', light: '#FFD666', dark: '#B76E00', contrastText: '#1C252E' },
   info: { main: '#00B8D9', light: '#61F3F3', dark: '#006C9C', contrastText: '#FFFFFF' },
-  success: { main: '#22C55E', light: '#77ED8B', dark: '#118D57', contrastText: '#FFFFFF' },
+  success: { main: '#1FC600', light: '#B8FF9F', dark: '#18A000', contrastText: '#FFFFFF' },
 }
 
 export const darkPalette: PaletteOptions = {
@@ -95,8 +95,8 @@ export const darkPalette: PaletteOptions = {
     contrastText: '#FFFFFF',
   },
   background: {
-    default: '#0F172A',
-    paper: '#111827',
+    default: '#0B1410',
+    paper: '#102A12',
   },
   text: {
     primary: '#FFFFFF',
@@ -112,5 +112,5 @@ export const darkPalette: PaletteOptions = {
   error: { main: '#FF5630', light: '#FFAC82', dark: '#B71D18', contrastText: '#FFFFFF' },
   warning: { main: '#FFAB00', light: '#FFD666', dark: '#B76E00', contrastText: '#1C252E' },
   info: { main: '#00B8D9', light: '#61F3F3', dark: '#006C9C', contrastText: '#FFFFFF' },
-  success: { main: '#22C55E', light: '#77ED8B', dark: '#118D57', contrastText: '#FFFFFF' },
+  success: { main: '#1FC600', light: '#B8FF9F', dark: '#18A000', contrastText: '#FFFFFF' },
 }
