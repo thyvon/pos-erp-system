@@ -17,6 +17,7 @@ body {
   font-family: "Public Sans", "Kantumruy Pro", ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 * {
@@ -25,9 +26,74 @@ body {
   margin: 0;
 }
 
+::selection {
+  background: rgba(31, 198, 0, 0.22);
+  color: #102a12;
+}
+
+:focus-visible {
+  outline: 2px solid rgba(31, 198, 0, 0.48);
+  outline-offset: 2px;
+}
+
 a {
   color: inherit;
   text-decoration: none;
+}
+
+/* Premium ERP surface polish */
+.MuiPaper-root,
+.MuiCard-root {
+  backdrop-filter: saturate(180%) blur(8px);
+}
+
+.MuiCard-root {
+  border: 1px solid rgba(31, 198, 0, 0.08);
+  transition: box-shadow 160ms ease, transform 160ms ease, border-color 160ms ease;
+}
+
+.MuiCard-root:hover {
+  border-color: rgba(31, 198, 0, 0.16);
+  box-shadow: 0 18px 40px -24px rgba(16, 42, 18, 0.32);
+}
+
+.MuiTableContainer-root,
+.MuiDataGrid-root {
+  border-radius: 14px;
+  overflow: hidden;
+}
+
+.MuiTableHead-root .MuiTableCell-root,
+.MuiDataGrid-columnHeaders {
+  background: linear-gradient(180deg, rgba(246, 253, 244, 0.98) 0%, rgba(238, 250, 234, 0.98) 100%);
+  color: #102a12;
+  font-weight: 700;
+}
+
+.MuiTableRow-root,
+.MuiDataGrid-row {
+  transition: background-color 140ms ease;
+}
+
+.MuiTableBody-root .MuiTableRow-root:hover,
+.MuiDataGrid-row:hover {
+  background-color: rgba(31, 198, 0, 0.055) !important;
+}
+
+.MuiButton-containedPrimary {
+  box-shadow: 0 10px 20px -12px rgba(31, 198, 0, 0.7);
+}
+
+.MuiButton-containedPrimary:hover {
+  box-shadow: 0 14px 28px -14px rgba(31, 198, 0, 0.85);
+}
+
+.MuiChip-root {
+  border-radius: 999px;
+}
+
+.MuiListItemButton-root.Mui-selected {
+  box-shadow: inset 3px 0 0 #1fc600, 0 8px 22px -18px rgba(31, 198, 0, 0.9);
 }
 
 /* Prevent iOS browsers from zooming when focusing compact form fields */
