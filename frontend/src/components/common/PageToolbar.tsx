@@ -30,6 +30,18 @@ interface PageToolbarProps {
   filterButtonLabel?: string
 }
 
+const toolbarControlSx = {
+  '& .MuiInputBase-root, & .MuiButton-root': {
+    minHeight: 'var(--app-control-height)',
+    height: 'var(--app-control-height)',
+  },
+  '& .MuiInputBase-input': {
+    height: 'var(--app-control-height)',
+    lineHeight: 'var(--app-control-height)',
+    boxSizing: 'border-box',
+  },
+}
+
 export default function PageToolbar({
   searchValue,
   searchPlaceholder = 'Search...',
@@ -56,6 +68,7 @@ export default function PageToolbar({
         bgcolor: alpha(theme.palette.background.paper, theme.palette.mode === 'light' ? 0.86 : 0.72),
         backdropFilter: 'saturate(180%) blur(14px)',
         boxShadow: `0 18px 50px -38px ${alpha(theme.palette.primary.main, 0.55)}`,
+        ...toolbarControlSx,
       })}
     >
       <Stack spacing={1.5}>
@@ -98,6 +111,7 @@ export default function PageToolbar({
               },
               '& .MuiBadge-root': {
                 display: 'flex',
+                minHeight: 'var(--app-control-height)',
               },
               '& .MuiBadge-root > .MuiButton-root': {
                 width: { xs: '100%', sm: 'auto' },
