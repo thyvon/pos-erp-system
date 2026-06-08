@@ -81,7 +81,7 @@ export default function LoginPage() {
         position: 'relative',
         width: '100%',
         overflow: 'hidden',
-        borderRadius: theme.shape.borderRadius,
+        borderRadius: `${theme.shape.borderRadius}px`,
         bgcolor: alpha(theme.palette.background.paper, theme.palette.mode === 'light' ? 0.92 : 0.82),
         border: `1px solid ${alpha(theme.palette.primary.main, theme.palette.mode === 'light' ? 0.12 : 0.24)}`,
         boxShadow: `0 24px 80px -48px ${alpha(theme.palette.primary.main, 0.72)}`,
@@ -118,7 +118,7 @@ export default function LoginPage() {
               sx={(theme) => ({
                 width: 38,
                 height: 38,
-                borderRadius: theme.shape.borderRadius,
+                borderRadius: `${theme.shape.borderRadius}px`,
                 bgcolor: 'primary.main',
                 color: 'primary.contrastText',
                 display: 'flex',
@@ -152,7 +152,7 @@ export default function LoginPage() {
           <Alert
             severity="error"
             onClose={() => setServerError('')}
-            sx={(theme) => ({ borderRadius: theme.shape.borderRadius })}
+            sx={(theme) => ({ borderRadius: `${theme.shape.borderRadius}px` })}
           >
             {serverError}
           </Alert>
