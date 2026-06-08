@@ -165,16 +165,23 @@ export default function PageToolbar({
               })}
             >
               <Stack
-                direction="row"
+                direction={{ xs: 'column', sm: 'row' }}
                 spacing={1}
                 sx={{
-                  flexWrap: 'wrap',
+                  flexWrap: { xs: 'nowrap', sm: 'wrap' },
                   rowGap: 1,
-                  alignItems: 'center',
-                  justifyContent: 'flex-start',
+                  alignItems: { xs: 'stretch', sm: 'center' },
+                  justifyContent: { xs: 'flex-start', sm: 'flex-start' },
                   pb: 0.25,
+                  '& > *': {
+                    width: { xs: '100%', sm: 'auto' },
+                    maxWidth: '100%',
+                    flex: { xs: '0 0 auto', sm: 'initial' },
+                    alignSelf: { xs: 'stretch', sm: 'center' },
+                  },
                   '& .MuiTextField-root, & .MuiFormControl-root': {
                     minWidth: { xs: '100%', sm: 180 },
+                    width: { xs: '100%', sm: 'auto' },
                   },
                 }}
               >
