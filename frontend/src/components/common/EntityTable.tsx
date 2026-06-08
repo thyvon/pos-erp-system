@@ -76,14 +76,14 @@ export default function EntityTable<T>({
       elevation={0}
       sx={(theme) => ({
         overflow: 'hidden',
-        borderRadius: 3,
+        borderRadius: theme.shape.borderRadius,
         border: `1px solid ${alpha(theme.palette.primary.main, theme.palette.mode === 'light' ? 0.1 : 0.22)}`,
         bgcolor: alpha(theme.palette.background.paper, theme.palette.mode === 'light' ? 0.9 : 0.76),
         backdropFilter: 'saturate(180%) blur(12px)',
         boxShadow: `0 18px 50px -40px ${alpha(theme.palette.primary.main, 0.55)}`,
       })}
     >
-      <TableContainer sx={{ position: 'relative' }}>
+      <TableContainer sx={{ position: 'relative', borderRadius: 'inherit' }}>
         {loading && (
           <Box
             sx={(theme) => ({
