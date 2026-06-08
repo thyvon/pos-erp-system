@@ -1,15 +1,18 @@
-import { ReactNode } from 'react'
+import { ReactNode, useState } from 'react'
 import {
+  Badge,
   Box,
   Button,
   Chip,
+  Collapse,
+  Divider,
   InputAdornment,
   Paper,
   Stack,
   TextField,
   alpha,
 } from '@mui/material'
-import { Search } from '@/components/ui/icons'
+import { Search, TuneOutlined, ExpandLess, ExpandMore } from '@/components/ui/icons'
 
 interface PageToolbarProps {
   searchValue?: string
@@ -23,6 +26,8 @@ interface PageToolbarProps {
     onDelete?: () => void
   }>
   onClearFilters?: () => void
+  defaultFiltersOpen?: boolean
+  filterButtonLabel?: string
 }
 
 export default function PageToolbar({
@@ -33,7 +38,11 @@ export default function PageToolbar({
   actions,
   activeFilters = [],
   onClearFilters,
+  defaultFiltersOpen = false,
+  filterButtonLabel = 'Filters',
 }: PageToolbarProps) {
+  const [filtersOpen, setFiltersOpen] = useState(defaultFiltersOpen)
+  const hasFilters = Boolean(filters)
   const hasActiveFilters = activeFilters.length > 0
 
   return (
@@ -78,37 +87,64 @@ export default function PageToolbar({
             }}
           />
 
-          {filters && (
-            <Stack
-              direction="row"
-              spacing={1}
-              sx={{
-                flexWrap: 'wrap',
-                rowGap: 1,
-                alignItems: 'center',
-                justifyContent: { xs: 'flex-start', lg: 'center' },
-              }}
-            >
-              {filters}
-            </Stack>
-          )}
+          <Stack
+            direction="row"
+            spacing={1}
+            sx={{
+              ml: { lg: 'auto' },
+              justifyContent: { xs: 'stretch', sm: 'flex-end' },
+              '& > *': {
+                flex: { xs: 1, sm: 'initial' },
+              },
+            }}
+          >
+            {hasFilters && (
+              <Badge
+                color="primary"
+                badgeContent={activeFilters.length}
+                invisible={!hasActiveFilters}
+                sx={{
+                  '& .MuiBadge-badge': {
+                    fontWeight: 800,
+                  },
+                }}
+              >
+                <Button
+                  variant={filtersOpen || hasActiveFilters ? 'contained' : 'outlined'}
+                  color="primary"
+                  startIcon={<TuneOutlined />}
+                  endIcon={filtersOpen ? <ExpandLess /> : <ExpandMore />}
+                  onClick={() => setFiltersOpen((open) => !open)}
+                  sx={{ fontWeight: 800 }}
+                >
+                  {filterButtonLabel}
+                </Button>
+              </Badge>
+            )}
 
-          {actions && (
-            <Stack
-              direction="row"
-              spacing={1}
-              sx={{
-                ml: { lg: 'auto' },
-                justifyContent: { xs: 'stretch', sm: 'flex-end' },
-                '& > *': {
-                  flex: { xs: 1, sm: 'initial' },
-                },
-              }}
-            >
-              {actions}
-            </Stack>
-          )}
+            {actions}
+          </Stack>
         </Stack>
+
+        {hasFilters && (
+          <Collapse in={filtersOpen} timeout="auto" unmountOnExit>
+            <Stack spacing={1.25}>
+              <Divider />
+              <Stack
+                direction="row"
+                spacing={1}
+                sx={{
+                  flexWrap: 'wrap',
+                  rowGap: 1,
+                  alignItems: 'center',
+                  justifyContent: 'flex-start',
+                }}
+              >
+                {filters}
+              </Stack>
+            </Stack>
+          </Collapse>
+        )}
 
         {hasActiveFilters && (
           <Box>
