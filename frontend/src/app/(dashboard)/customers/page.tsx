@@ -3,35 +3,25 @@
 import { useMemo, useState } from 'react'
 import {
   Alert,
-  Box,
   Button,
-  Card,
-  CardContent,
   Chip,
-  InputAdornment,
   MenuItem,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TablePagination,
-  TableRow,
   TextField,
   Typography,
 } from '@mui/material'
 import {
   Add,
   PeopleOutlined,
-  Search,
 } from '@/components/ui/icons'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { RowActions } from '@/components/ui/RowActions'
-import { TableStateRow } from '@/components/ui/TableStateRow'
+import PageHeader from '@/components/common/PageHeader'
+import PageToolbar from '@/components/common/PageToolbar'
+import EntityTable, { type EntityTableColumn } from '@/components/common/EntityTable'
 import { useCustomerGroupsQuery } from '@/features/customer-groups/hooks'
 import { CustomerFormDialog } from '@/features/customers/CustomerFormDialog'
 import { useCustomFieldsQuery } from '@/features/custom-fields/hooks'
@@ -93,6 +83,75 @@ export default function CustomersPage() {
   const canEdit = can('customers.edit')
   const canDelete = can('customers.delete')
 
+  const activeFilters = useMemo(() => {
+    if (!status) return []
+
+    return [
+      {
+        key: 'status',
+        label: `${t('filters.status')}: ${t(`common:status.${status}`)}`,
+        onDelete: () => {
+          setStatus('')
+          setPage(0)
+        },
+      },
+    ]
+  }, [status, t])
+
+  const columns: EntityTableColumn<Customer>[] = useMemo(
+    () => [
+      {
+        key: 'customer',
+        label: t('columns.customer'),
+        render: (customer) => (
+          <Stack spacing={0.25}>
+            <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>{customer.name}</Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              {customer.code}
+            </Typography>
+          </Stack>
+        ),
+      },
+      {
+        key: 'contact',
+        label: t('columns.contact'),
+        render: (customer) => (
+          <Stack spacing={0.25}>
+            <Typography variant="body2">{customer.email || '-'}</Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              {customer.phone || customer.mobile || '-'}
+            </Typography>
+          </Stack>
+        ),
+      },
+      {
+        key: 'type',
+        label: t('columns.type'),
+        render: (customer) => t(`type.${customer.type}`),
+      },
+      {
+        key: 'balance',
+        label: t('columns.balance'),
+        render: (customer) => new Intl.NumberFormat(undefined, {
+          style: 'currency',
+          currency: 'USD',
+        }).format(customer.balance),
+      },
+      {
+        key: 'status',
+        label: t('columns.status'),
+        render: (customer) => (
+          <Chip
+            size="small"
+            label={t(`common:status.${customer.status}`)}
+            color={customer.status === 'active' ? 'success' : 'default'}
+          />
+        ),
+      },
+    ],
+    [t]
+  )
+
   const openCreateForm = () => {
     setEditingCustomer(null)
     setFormOpen(true)
@@ -137,166 +196,93 @@ export default function CustomersPage() {
     setPage(0)
   }
 
+  const clearFilters = () => {
+    setStatus('')
+    setPage(0)
+  }
+
   return (
-    <Stack spacing={3}>
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={2}
-        sx={{ alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between' }}
-      >
-        <Box>
-          <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-            <PeopleOutlined color="primary" />
-            <Typography variant="h4">{t('title')}</Typography>
-          </Stack>
-          <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
-            {t('subtitle')}
-          </Typography>
-        </Box>
-        {canCreate && (
+    <Stack spacing={2.5}>
+      <PageHeader
+        eyebrow="Contacts"
+        title={t('title')}
+        description={t('subtitle')}
+        actions={canCreate && (
           <Button startIcon={<Add />} variant="contained" onClick={openCreateForm}>
             {t('actions.new')}
           </Button>
         )}
-      </Stack>
+      />
 
-      <Card>
-        <CardContent>
-          <Stack
-            direction={{ xs: 'column', md: 'row' }}
-            spacing={2}
-            sx={{ alignItems: { xs: 'stretch', md: 'center' }, mb: 2.5 }}
+      <PageToolbar
+        searchValue={search}
+        searchPlaceholder={t('filters.search')}
+        onSearchChange={handleSearchChange}
+        filters={
+          <TextField
+            select
+            value={status}
+            onChange={(event) => handleStatusChange(event.target.value as CustomerStatus | '')}
+            label={t('filters.status')}
+            sx={{ minWidth: 220 }}
           >
-            <TextField
-              value={search}
-              onChange={(event) => handleSearchChange(event.target.value)}
-              placeholder={t('filters.search')}
-              sx={{ flexGrow: 1 }}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Search fontSize="small" />
-                    </InputAdornment>
-                  ),
-                },
-              }}
-            />
-            <TextField
-              select
-              value={status}
-              onChange={(event) => handleStatusChange(event.target.value as CustomerStatus | '')}
-              label={t('filters.status')}
-              sx={{ minWidth: { xs: '100%', md: 220 } }}
-            >
-              <MenuItem value="">{t('filters.allStatuses')}</MenuItem>
-              <MenuItem value="active">{t('common:status.active')}</MenuItem>
-              <MenuItem value="inactive">{t('common:status.inactive')}</MenuItem>
-            </TextField>
-          </Stack>
+            <MenuItem value="">{t('filters.allStatuses')}</MenuItem>
+            <MenuItem value="active">{t('common:status.active')}</MenuItem>
+            <MenuItem value="inactive">{t('common:status.inactive')}</MenuItem>
+          </TextField>
+        }
+        activeFilters={activeFilters}
+        onClearFilters={activeFilters.length > 0 ? clearFilters : undefined}
+      />
 
-          {customersQuery.isError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {toAppApiError(customersQuery.error).message}
-            </Alert>
-          )}
+      {customersQuery.isError && (
+        <Alert severity="error">
+          {toAppApiError(customersQuery.error).message}
+        </Alert>
+      )}
 
-          {customerCustomFieldsQuery.isError && (
-            <Alert severity="warning" sx={{ mb: 2 }}>
-              {toAppApiError(customerCustomFieldsQuery.error).message}
-            </Alert>
-          )}
+      {customerCustomFieldsQuery.isError && (
+        <Alert severity="warning">
+          {toAppApiError(customerCustomFieldsQuery.error).message}
+        </Alert>
+      )}
 
-          {customerGroupsQuery.isError && (
-            <Alert severity="warning" sx={{ mb: 2 }}>
-              {toAppApiError(customerGroupsQuery.error).message}
-            </Alert>
-          )}
+      {customerGroupsQuery.isError && (
+        <Alert severity="warning">
+          {toAppApiError(customerGroupsQuery.error).message}
+        </Alert>
+      )}
 
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('columns.customer')}</TableCell>
-                  <TableCell>{t('columns.contact')}</TableCell>
-                  <TableCell>{t('columns.type')}</TableCell>
-                  <TableCell>{t('columns.balance')}</TableCell>
-                  <TableCell>{t('columns.status')}</TableCell>
-                  <TableCell align="center">{t('columns.actions')}</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {customersQuery.isLoading && (
-                  <TableStateRow colSpan={6} loading />
-                )}
-
-                {!customersQuery.isLoading && customers.length === 0 && (
-                  <TableStateRow colSpan={6} message={t('empty')} />
-                )}
-
-                {customers.map((customer) => (
-                  <TableRow key={customer.id} hover>
-                    <TableCell>
-                      <Stack spacing={0.25}>
-                        <Typography variant="subtitle2">{customer.name}</Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {customer.code}
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-                    <TableCell>
-                      <Stack spacing={0.25}>
-                        <Typography variant="body2">{customer.email || '-'}</Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {customer.phone || customer.mobile || '-'}
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-                    <TableCell>{t(`type.${customer.type}`)}</TableCell>
-                    <TableCell>
-                      {new Intl.NumberFormat(undefined, {
-                        style: 'currency',
-                        currency: 'USD',
-                      }).format(customer.balance)}
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        size="small"
-                        label={t(`common:status.${customer.status}`)}
-                        color={customer.status === 'active' ? 'success' : 'default'}
-                      />
-                    </TableCell>
-                    <TableCell align="center">
-                      <RowActions
-                        editLabel={t('common:buttons.edit')}
-                        deleteLabel={t('common:buttons.delete')}
-                        showEdit={canEdit}
-                        showDelete={canDelete}
-                        deleteDisabled={deleteCustomer.isPending}
-                        onEdit={() => openEditForm(customer)}
-                        onDelete={() => setDeletingCustomer(customer)}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          <TablePagination
-            component="div"
-            count={meta?.total ?? 0}
-            page={page}
-            rowsPerPage={perPage}
-            rowsPerPageOptions={rowsPerPageOptions}
-            onPageChange={(_, nextPage) => setPage(nextPage)}
-            onRowsPerPageChange={(event) => {
-              setPerPage(Number(event.target.value))
-              setPage(0)
-            }}
+      <EntityTable
+        rows={customers}
+        columns={columns}
+        getRowKey={(customer) => customer.id}
+        loading={customersQuery.isLoading}
+        emptyIcon={<PeopleOutlined />}
+        emptyTitle={t('empty')}
+        emptyDescription="Create your first customer or adjust the current filters."
+        pagination={{
+          page,
+          rowsPerPage: perPage,
+          count: meta?.total ?? 0,
+          onPageChange: setPage,
+          onRowsPerPageChange: (nextPerPage) => {
+            setPerPage(nextPerPage)
+            setPage(0)
+          },
+        }}
+        rowActions={(customer) => (
+          <RowActions
+            editLabel={t('common:buttons.edit')}
+            deleteLabel={t('common:buttons.delete')}
+            showEdit={canEdit}
+            showDelete={canDelete}
+            deleteDisabled={deleteCustomer.isPending}
+            onEdit={() => openEditForm(customer)}
+            onDelete={() => setDeletingCustomer(customer)}
           />
-        </CardContent>
-      </Card>
+        )}
+      />
 
       <CustomerFormDialog
         key={`${formOpen ? 'open' : 'closed'}-${editingCustomer?.id ?? 'new'}`}
