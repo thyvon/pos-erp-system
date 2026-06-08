@@ -26,6 +26,62 @@ export const THEME_COLOR_PRESETS: Array<{
   { value: 'red', label: 'Garnet', labelKey: 'layoutSettings.colorGarnet', main: '#9F1239', light: '#FDA4AF', dark: '#4C0519' },
 ]
 
+const SURFACE_PRESETS: Record<ThemeColorPreset, {
+  lightDefault: string
+  lightPaper: string
+  darkDefault: string
+  darkPaper: string
+  success: string
+  successLight: string
+  successDark: string
+}> = {
+  default: {
+    lightDefault: '#F8FAFC',
+    lightPaper: '#FFFFFF',
+    darkDefault: '#0F172A',
+    darkPaper: '#111827',
+    success: '#22C55E',
+    successLight: '#86EFAC',
+    successDark: '#15803D',
+  },
+  blue: {
+    lightDefault: '#F6F9FF',
+    lightPaper: '#FFFFFF',
+    darkDefault: '#0B1220',
+    darkPaper: '#111C31',
+    success: '#16A34A',
+    successLight: '#86EFAC',
+    successDark: '#166534',
+  },
+  darkGreen: {
+    lightDefault: '#F6FDF4',
+    lightPaper: '#FFFFFF',
+    darkDefault: '#0B1410',
+    darkPaper: '#102A12',
+    success: '#1FC600',
+    successLight: '#B8FF9F',
+    successDark: '#18A000',
+  },
+  orange: {
+    lightDefault: '#FFFBF3',
+    lightPaper: '#FFFFFF',
+    darkDefault: '#1C1207',
+    darkPaper: '#2A1A0B',
+    success: '#16A34A',
+    successLight: '#86EFAC',
+    successDark: '#166534',
+  },
+  red: {
+    lightDefault: '#FFF7F8',
+    lightPaper: '#FFFFFF',
+    darkDefault: '#1A0710',
+    darkPaper: '#260B16',
+    success: '#16A34A',
+    successLight: '#86EFAC',
+    successDark: '#166534',
+  },
+}
+
 export function getThemeColorPreset(preset: ThemeColorPreset) {
   return THEME_COLOR_PRESETS.find((item) => item.value === preset) ?? THEME_COLOR_PRESETS[0]
 }
@@ -33,6 +89,7 @@ export function getThemeColorPreset(preset: ThemeColorPreset) {
 export function buildPalette(mode: 'light' | 'dark', preset: ThemeColorPreset): PaletteOptions {
   const base = mode === 'light' ? lightPalette : darkPalette
   const primary = getThemeColorPreset(preset)
+  const surface = SURFACE_PRESETS[preset] ?? SURFACE_PRESETS.default
 
   return {
     ...base,
@@ -42,15 +99,25 @@ export function buildPalette(mode: 'light' | 'dark', preset: ThemeColorPreset): 
       dark: primary.dark,
       contrastText: '#FFFFFF',
     },
+    background: {
+      default: mode === 'light' ? surface.lightDefault : surface.darkDefault,
+      paper: mode === 'light' ? surface.lightPaper : surface.darkPaper,
+    },
+    success: {
+      main: surface.success,
+      light: surface.successLight,
+      dark: surface.successDark,
+      contrastText: '#FFFFFF',
+    },
   }
 }
 
 export const lightPalette: PaletteOptions = {
   mode: 'light',
   primary: {
-    main: '#00A76F',
-    light: '#5BE49B',
-    dark: '#007867',
+    main: '#334155',
+    light: '#94A3B8',
+    dark: '#0F172A',
     contrastText: '#FFFFFF',
   },
   secondary: {
@@ -60,7 +127,7 @@ export const lightPalette: PaletteOptions = {
     contrastText: '#FFFFFF',
   },
   background: {
-    default: '#F6FDF4',
+    default: '#F8FAFC',
     paper: '#FFFFFF',
   },
   text: {
@@ -77,15 +144,15 @@ export const lightPalette: PaletteOptions = {
   error: { main: '#FF5630', light: '#FFAC82', dark: '#B71D18', contrastText: '#FFFFFF' },
   warning: { main: '#FFAB00', light: '#FFD666', dark: '#B76E00', contrastText: '#1C252E' },
   info: { main: '#00B8D9', light: '#61F3F3', dark: '#006C9C', contrastText: '#FFFFFF' },
-  success: { main: '#1FC600', light: '#B8FF9F', dark: '#18A000', contrastText: '#FFFFFF' },
+  success: { main: '#22C55E', light: '#86EFAC', dark: '#15803D', contrastText: '#FFFFFF' },
 }
 
 export const darkPalette: PaletteOptions = {
   mode: 'dark',
   primary: {
-    main: '#00A76F',
-    light: '#5BE49B',
-    dark: '#007867',
+    main: '#94A3B8',
+    light: '#CBD5E1',
+    dark: '#334155',
     contrastText: '#FFFFFF',
   },
   secondary: {
@@ -95,8 +162,8 @@ export const darkPalette: PaletteOptions = {
     contrastText: '#FFFFFF',
   },
   background: {
-    default: '#0B1410',
-    paper: '#102A12',
+    default: '#0F172A',
+    paper: '#111827',
   },
   text: {
     primary: '#FFFFFF',
@@ -112,5 +179,5 @@ export const darkPalette: PaletteOptions = {
   error: { main: '#FF5630', light: '#FFAC82', dark: '#B71D18', contrastText: '#FFFFFF' },
   warning: { main: '#FFAB00', light: '#FFD666', dark: '#B76E00', contrastText: '#1C252E' },
   info: { main: '#00B8D9', light: '#61F3F3', dark: '#006C9C', contrastText: '#FFFFFF' },
-  success: { main: '#1FC600', light: '#B8FF9F', dark: '#18A000', contrastText: '#FFFFFF' },
+  success: { main: '#22C55E', light: '#86EFAC', dark: '#15803D', contrastText: '#FFFFFF' },
 }
