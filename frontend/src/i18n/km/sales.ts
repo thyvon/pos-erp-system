@@ -336,6 +336,7 @@ const sales = {
       cancelled: 'បានបោះបង់សម្រង់តម្លៃ។',
     },
     empty: 'រកមិនឃើញសម្រង់តម្លៃ។',
+    emptyDescription: 'បង្កើតសម្រង់តម្លៃ ឬកែតម្រងបច្ចុប្បន្ន។',
   },
   returns: {
     title: 'ការត្រឡប់ការលក់',
@@ -499,6 +500,7 @@ const sales = {
     proceed: 'បោះពុម្ព',
   },
   empty: 'រកមិនឃើញការលក់។',
+  emptyDescription: 'បង្កើតការលក់ ឬកែតម្រងបច្ចុប្បន្ន។',
 }
 
 export default sales

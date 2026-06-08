@@ -200,6 +200,7 @@ export default {
     title: 'Purchase Returns',
     subtitle: 'Manage purchase returns and refunds',
     empty: 'No purchase returns found',
+    emptyDescription: 'Adjust the current filters or create a return from a purchase detail page.',
     form: {
       title: 'Return purchase {{number}}',
       invalid: 'Please fix the form errors below.',

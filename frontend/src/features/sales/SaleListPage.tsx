@@ -6,32 +6,23 @@ import {
   Alert,
   Box,
   Button,
-  Card,
-  CardContent,
   Chip,
   MenuItem,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TablePagination,
-  TableRow,
   TextField,
   Typography,
 } from '@mui/material'
-import { Add } from '@/components/ui/icons'
+import { Add, PointOfSaleOutlined } from '@/components/ui/icons'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
+import EntityTable, { type EntityTableColumn } from '@/components/common/EntityTable'
 import PageHeader from '@/components/common/PageHeader'
 import PageToolbar from '@/components/common/PageToolbar'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { RowActions } from '@/components/ui/RowActions'
 import { SearchableFilterSelect } from '@/components/ui/SearchableFilterSelect'
-import { TableStateRow } from '@/components/ui/TableStateRow'
 import { useBranchesQuery } from '@/features/branches/hooks'
 import { useCustomersQuery } from '@/features/customers/hooks'
 import { useDeleteSaleMutation, useSalesQuery } from '@/features/sales/hooks'
@@ -43,7 +34,6 @@ import { formatMoney } from '@/utils/formatMoney'
 import { useWarehousesQuery } from '@/features/warehouses/hooks'
 import type { Sale, SaleFilters, SaleStatus, SaleType } from '@/types/sales'
 
-const rowsPerPageOptions = [10, 25, 50]
 const saleStatuses: SaleStatus[] = ['quotation', 'confirmed', 'partially_shipped', 'shipped', 'completed', 'cancelled']
 const saleTypes: SaleType[] = ['quotation', 'invoice', 'pos_sale']
 const deletableStatuses: SaleStatus[] = ['quotation', 'confirmed']
@@ -187,6 +177,67 @@ export default function SaleListPage() {
       : null,
   ].filter((filter): filter is { key: string; label: string; onDelete: () => void } => Boolean(filter))
 
+  const columns = useMemo<EntityTableColumn<Sale>[]>(
+    () => [
+      {
+        key: 'sale',
+        label: t('columns.sale'),
+        render: (sale) => (
+          <Stack spacing={0.25}>
+            <Typography variant="subtitle2">{sale.sale_number}</Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              {t(`types.${sale.type}`, { defaultValue: sale.type })}
+            </Typography>
+          </Stack>
+        ),
+      },
+      {
+        key: 'customer',
+        label: t('columns.customer'),
+        render: (sale) => sale.customer?.name ?? '-',
+      },
+      {
+        key: 'branch',
+        label: t('columns.branch'),
+        render: (sale) => sale.branch?.name ?? '-',
+      },
+      {
+        key: 'date',
+        label: t('columns.date'),
+        render: (sale) => formatAppDate(sale.sale_date, dateFormat, i18n.language),
+      },
+      {
+        key: 'status',
+        label: t('columns.status'),
+        render: (sale) => (
+          <Chip
+            size="small"
+            label={t(`statuses.${sale.status}`, { defaultValue: sale.status })}
+            variant="outlined"
+          />
+        ),
+      },
+      {
+        key: 'payment',
+        label: t('columns.payment'),
+        render: (sale) => (
+          <Chip
+            size="small"
+            label={t(`paymentStatuses.${sale.payment_status}`, { defaultValue: sale.payment_status })}
+            variant="outlined"
+          />
+        ),
+      },
+      {
+        key: 'total',
+        label: t('columns.total'),
+        align: 'right',
+        render: (sale) => formatMoney(sale.total_amount, currencyFormatter),
+      },
+    ],
+    [currencyFormatter, dateFormat, i18n.language, t]
+  )
+
   const handleDelete = async () => {
     if (!deleteTarget) return
 
@@ -322,90 +373,49 @@ export default function SaleListPage() {
         }
       />
 
-      <Card>
-        <CardContent>
-          {salesQuery.isError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {toAppApiError(salesQuery.error).message}
-            </Alert>
-          )}
+      {salesQuery.isError && (
+        <Alert severity="error">
+          {toAppApiError(salesQuery.error).message}
+        </Alert>
+      )}
 
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('columns.sale')}</TableCell>
-                  <TableCell>{t('columns.customer')}</TableCell>
-                  <TableCell>{t('columns.branch')}</TableCell>
-                  <TableCell>{t('columns.date')}</TableCell>
-                  <TableCell>{t('columns.status')}</TableCell>
-                  <TableCell>{t('columns.payment')}</TableCell>
-                  <TableCell align="right">{t('columns.total')}</TableCell>
-                  <TableCell align="center">{t('columns.actions')}</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {salesQuery.isLoading && <TableStateRow colSpan={8} loading />}
-                {!salesQuery.isLoading && sales.length === 0 && (
-                  <TableStateRow colSpan={8} message={t('empty')} />
-                )}
-                {sales.map((sale) => (
-                  <TableRow key={sale.id} hover>
-                    <TableCell>
-                      <Stack spacing={0.25}>
-                        <Typography variant="subtitle2">{sale.sale_number}</Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {t(`types.${sale.type}`, { defaultValue: sale.type })}
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-                    <TableCell>{sale.customer?.name ?? '-'}</TableCell>
-                    <TableCell>{sale.branch?.name ?? '-'}</TableCell>
-                    <TableCell>{formatAppDate(sale.sale_date, dateFormat, i18n.language)}</TableCell>
-                    <TableCell>
-                      <Chip size="small" label={t(`statuses.${sale.status}`, { defaultValue: sale.status })} variant="outlined" />
-                    </TableCell>
-                    <TableCell>
-                      <Chip size="small" label={t(`paymentStatuses.${sale.payment_status}`, { defaultValue: sale.payment_status })} variant="outlined" />
-                    </TableCell>
-                    <TableCell align="right">{formatMoney(sale.total_amount, currencyFormatter)}</TableCell>
-                    <TableCell align="center">
-                      <RowActions
-                        viewLabel={t('common:buttons.view')}
-                        editLabel={t('common:buttons.edit')}
-                        deleteLabel={t('common:buttons.delete')}
-                        showView
-                        showEdit={canEdit}
-                        showDelete={canDelete && deletableStatuses.includes(sale.status)}
-                        onView={() => {
-                          router.push(`/sales/${sale.id}`)
-                        }}
-                        onEdit={() => {
-                          router.push(sale.type === 'pos_sale' ? `/pos/${sale.id}/edit` : `/sales/${sale.id}/edit`)
-                        }}
-                        onDelete={() => setDeleteTarget(sale)}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          <TablePagination
-            component="div"
-            count={meta?.total ?? 0}
-            page={page}
-            rowsPerPage={perPage}
-            rowsPerPageOptions={rowsPerPageOptions}
-            onPageChange={(_, nextPage) => setPage(nextPage)}
-            onRowsPerPageChange={(event) => {
-              setPerPage(Number(event.target.value))
-              setPage(0)
+      <EntityTable
+        rows={sales}
+        columns={columns}
+        getRowKey={(sale) => sale.id}
+        loading={salesQuery.isLoading}
+        emptyIcon={<PointOfSaleOutlined />}
+        emptyTitle={t('empty')}
+        emptyDescription={t('emptyDescription')}
+        pagination={{
+          page,
+          rowsPerPage: perPage,
+          count: meta?.total ?? 0,
+          onPageChange: setPage,
+          onRowsPerPageChange: (nextPerPage) => {
+            setPerPage(nextPerPage)
+            setPage(0)
+          },
+        }}
+        rowActions={(sale) => (
+          <RowActions
+            viewLabel={t('common:buttons.view')}
+            editLabel={t('common:buttons.edit')}
+            deleteLabel={t('common:buttons.delete')}
+            showView
+            showEdit={canEdit}
+            showDelete={canDelete && deletableStatuses.includes(sale.status)}
+            deleteDisabled={deleteSale.isPending}
+            onView={() => {
+              router.push(`/sales/${sale.id}`)
             }}
+            onEdit={() => {
+              router.push(sale.type === 'pos_sale' ? `/pos/${sale.id}/edit` : `/sales/${sale.id}/edit`)
+            }}
+            onDelete={() => setDeleteTarget(sale)}
           />
-        </CardContent>
-      </Card>
+        )}
+      />
 
       <ConfirmDialog
         open={!!deleteTarget}

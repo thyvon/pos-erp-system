@@ -336,6 +336,7 @@ const sales = {
       cancelled: 'Quotation cancelled.',
     },
     empty: 'No quotations found.',
+    emptyDescription: 'Create a quotation or adjust the current filters.',
   },
   returns: {
     title: 'Sale Returns',
@@ -499,6 +500,7 @@ const sales = {
     proceed: 'Print',
   },
   empty: 'No sales found.',
+  emptyDescription: 'Create a sale or adjust the current filters.',
 }
 
 export default sales

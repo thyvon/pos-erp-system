@@ -6,30 +6,21 @@ import {
   Alert,
   Box,
   Button,
-  Card,
-  CardContent,
   Chip,
   MenuItem,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TablePagination,
-  TableRow,
   TextField,
   Typography,
 } from '@mui/material'
-import { Add } from '@/components/ui/icons'
+import { Add, ReceiptLongOutlined } from '@/components/ui/icons'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
+import EntityTable, { type EntityTableColumn } from '@/components/common/EntityTable'
 import PageHeader from '@/components/common/PageHeader'
 import PageToolbar from '@/components/common/PageToolbar'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
 import { RowActions } from '@/components/ui/RowActions'
 import { SearchableFilterSelect } from '@/components/ui/SearchableFilterSelect'
-import { TableStateRow } from '@/components/ui/TableStateRow'
 import { useBranchesQuery } from '@/features/branches/hooks'
 import { useCustomersQuery } from '@/features/customers/hooks'
 import { useQuotationsQuery } from '@/features/sales/hooks'
@@ -41,7 +32,6 @@ import { useAuthStore } from '@/stores/authStore'
 import { formatAppDate } from '@/utils/dateFormat'
 import { formatMoney } from '@/utils/formatMoney'
 
-const rowsPerPageOptions = [10, 25, 50]
 const quotationStatuses: SaleStatus[] = ['quotation', 'converted', 'cancelled']
 
 export function QuotationsPage() {
@@ -164,6 +154,55 @@ export function QuotationsPage() {
       : null,
   ].filter((filter): filter is { key: string; label: string; onDelete: () => void } => Boolean(filter))
 
+  const columns = useMemo<EntityTableColumn<Sale>[]>(
+    () => [
+      {
+        key: 'quotation',
+        label: t('quotations.columns.quotation'),
+        render: (quotation) => <Typography variant="subtitle2">{quotation.sale_number}</Typography>,
+      },
+      {
+        key: 'customer',
+        label: t('columns.customer'),
+        render: (quotation) => quotation.customer?.name ?? t('labels.walkInCustomer'),
+      },
+      {
+        key: 'branch',
+        label: t('columns.branch'),
+        render: (quotation) => quotation.branch?.name ?? '-',
+      },
+      {
+        key: 'date',
+        label: t('columns.date'),
+        render: (quotation) => formatAppDate(quotation.sale_date, dateFormat, i18n.language),
+      },
+      {
+        key: 'status',
+        label: t('columns.status'),
+        render: (quotation) => (
+          <Chip
+            size="small"
+            label={t(`statuses.${quotation.status}`, { defaultValue: quotation.status })}
+            variant="outlined"
+          />
+        ),
+      },
+      {
+        key: 'items',
+        label: t('detail.summary.items'),
+        align: 'right',
+        render: (quotation) => (quotation.items?.length ?? 0).toLocaleString(),
+      },
+      {
+        key: 'total',
+        label: t('columns.total'),
+        align: 'right',
+        render: (quotation) => formatMoney(quotation.total_amount, currencyFormatter),
+      },
+    ],
+    [currencyFormatter, dateFormat, i18n.language, t],
+  )
+
   const openQuotation = (quotation: Sale) => {
     router.push(`/quotations/${quotation.id}`)
   }
@@ -280,77 +319,42 @@ export function QuotationsPage() {
         }
       />
 
-      <Card>
-        <CardContent>
-          {quotationsQuery.isError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {toAppApiError(quotationsQuery.error).message}
-            </Alert>
-          )}
+      {quotationsQuery.isError && (
+        <Alert severity="error">
+          {toAppApiError(quotationsQuery.error).message}
+        </Alert>
+      )}
 
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('quotations.columns.quotation')}</TableCell>
-                  <TableCell>{t('columns.customer')}</TableCell>
-                  <TableCell>{t('columns.branch')}</TableCell>
-                  <TableCell>{t('columns.date')}</TableCell>
-                  <TableCell>{t('columns.status')}</TableCell>
-                  <TableCell align="right">{t('detail.summary.items')}</TableCell>
-                  <TableCell align="right">{t('columns.total')}</TableCell>
-                  <TableCell align="center">{t('columns.actions')}</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {quotationsQuery.isLoading && <TableStateRow colSpan={8} loading />}
-                {!quotationsQuery.isLoading && quotations.length === 0 && (
-                  <TableStateRow colSpan={8} message={t('quotations.empty')} />
-                )}
-                {quotations.map((quotation) => (
-                  <TableRow key={quotation.id} hover>
-                    <TableCell>
-                      <Typography variant="subtitle2">{quotation.sale_number}</Typography>
-                    </TableCell>
-                    <TableCell>{quotation.customer?.name ?? t('labels.walkInCustomer')}</TableCell>
-                    <TableCell>{quotation.branch?.name ?? '-'}</TableCell>
-                    <TableCell>{formatAppDate(quotation.sale_date, dateFormat, i18n.language)}</TableCell>
-                    <TableCell>
-                      <Chip size="small" label={t(`statuses.${quotation.status}`, { defaultValue: quotation.status })} variant="outlined" />
-                    </TableCell>
-                    <TableCell align="right">{(quotation.items?.length ?? 0).toLocaleString()}</TableCell>
-                    <TableCell align="right">{formatMoney(quotation.total_amount, currencyFormatter)}</TableCell>
-                    <TableCell align="center">
-                      <RowActions
-                        viewLabel={t('common:buttons.view')}
-                        editLabel={t('common:buttons.edit')}
-                        deleteLabel={t('common:buttons.delete')}
-                        showView
-                        showEdit={false}
-                        showDelete={false}
-                        onView={() => openQuotation(quotation)}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          <TablePagination
-            component="div"
-            count={meta?.total ?? 0}
-            page={page}
-            rowsPerPage={perPage}
-            rowsPerPageOptions={rowsPerPageOptions}
-            onPageChange={(_, nextPage) => setPage(nextPage)}
-            onRowsPerPageChange={(event) => {
-              setPerPage(Number(event.target.value))
-              setPage(0)
-            }}
+      <EntityTable
+        rows={quotations}
+        columns={columns}
+        getRowKey={(quotation) => quotation.id}
+        loading={quotationsQuery.isLoading}
+        emptyIcon={<ReceiptLongOutlined />}
+        emptyTitle={t('quotations.empty')}
+        emptyDescription={t('quotations.emptyDescription')}
+        pagination={{
+          page,
+          rowsPerPage: perPage,
+          count: meta?.total ?? 0,
+          onPageChange: setPage,
+          onRowsPerPageChange: (nextPerPage) => {
+            setPerPage(nextPerPage)
+            setPage(0)
+          },
+        }}
+        rowActions={(quotation) => (
+          <RowActions
+            viewLabel={t('common:buttons.view')}
+            editLabel={t('common:buttons.edit')}
+            deleteLabel={t('common:buttons.delete')}
+            showView
+            showEdit={false}
+            showDelete={false}
+            onView={() => openQuotation(quotation)}
           />
-        </CardContent>
-      </Card>
+        )}
+      />
     </Stack>
   )
 }

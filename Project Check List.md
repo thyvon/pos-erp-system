@@ -56,10 +56,10 @@
 - [x] Sales list page with search, status/type, branch/warehouse/customer, date filters, setting-aware dates, currency-aware totals, pagination, navigation, and translations is present.
 - [x] Sale detail page with summary cards, lifecycle actions, payment recording, overview, totals, item table, breadcrumbs, and translations is present.
 - [x] Sales list/detail slice verified with `npm run type-check`, `npm run lint`, and `npm run build`; lint still reports only the existing anonymous-default-export translation warnings.
-- [x] Sales list page header and filters now use shared `PageHeader`/`PageToolbar` with translated clear-filter controls and active filter chips; frontend type-check, lint, and build verified.
+- [x] Sales list page header, filters, table loading, and empty state now use shared `PageHeader`/`PageToolbar`/`EntityTable` patterns with translated clear-filter controls and active filter chips; frontend type-check, lint, and build verified.
 - [x] Sales create/edit page form, product/lot/serial lookup line entry, sale-level totals, create/edit/delete actions, breadcrumbs, API payloads, hooks, and translations are present.
 - [x] Sales create/edit slice verified with `npm run type-check`, `npm run lint`, and `npm run build`; lint still reports only the existing anonymous-default-export translation warnings.
-- [x] Quotations list page header and filters now use shared `PageHeader`/`PageToolbar` with active filter chips; frontend type-check, lint, and build verified.
+- [x] Quotations list page header, filters, table loading, and empty state now use shared `PageHeader`/`PageToolbar`/`EntityTable` patterns with active filter chips; frontend type-check, lint, and build verified.
 - [x] Sales list header button alignment and inline advanced filter toggle now match the shared table page standard.
 - [x] Sales create/edit form now derives the saved branch from the selected warehouse instead of asking users to choose the branch manually.
 - [x] Sales create/edit backend-backed selects now use searchable autocomplete controls for warehouse, customer, price group, and tax rates.
@@ -177,6 +177,7 @@
 - [x] Purchase receive dialog with per-item quantity/lot/serial entry is present.
 - [x] Purchase return dialog now uses backend-provided valid lot and serial options for tracked purchase lines, with frontend validation before submit; focused Purchase/Purchase Return API tests plus frontend type-check/lint/build verified.
 - [x] Purchase payment deletion now requires an explicit reversal reason in the frontend and backend, with the reason stored on the reversed payment audit trail; focused Purchase API test, frontend type-check, and frontend lint verified.
+- [x] Purchase Returns list page header, filters, table loading, and empty state now use shared `PageHeader`/`PageToolbar`/`EntityTable` patterns with active branch/warehouse/date filter chips; frontend type-check, lint, and build verified.
 - [x] Sidebar navigation (`/purchases`), breadcrumbs, and route pages (list, create, detail, edit) are registered.
 - [x] English and Khmer translations are complete with namespace registered in i18n.
 - [x] Frontend type-check, lint (0 new errors), and build verified.
