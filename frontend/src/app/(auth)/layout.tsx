@@ -75,10 +75,10 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
         <Stack spacing={2} sx={{ position: 'relative', zIndex: 1 }}>
           <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
             <Box
-              sx={{
+              sx={(theme) => ({
                 width: 48,
                 height: 48,
-                borderRadius: (theme) => theme.shape.borderRadius / 8,
+                borderRadius: theme.shape.borderRadius,
                 bgcolor: alpha('#FFFFFF', 0.18),
                 border: `1px solid ${alpha('#FFFFFF', 0.28)}`,
                 display: 'flex',
@@ -87,7 +87,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
                 fontWeight: 900,
                 fontSize: 22,
                 boxShadow: `0 16px 30px -18px ${alpha('#000000', 0.65)}`,
-              }}
+              })}
             >
               E
             </Box>
@@ -132,18 +132,18 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
 
         <Paper
           elevation={0}
-          sx={{
+          sx={(theme) => ({
             position: 'relative',
             zIndex: 1,
             width: '100%',
             maxWidth: 560,
             overflow: 'hidden',
-            borderRadius: (theme) => theme.shape.borderRadius,
+            borderRadius: theme.shape.borderRadius,
             bgcolor: alpha('#FFFFFF', 0.14),
             border: `1px solid ${alpha('#FFFFFF', 0.2)}`,
             color: 'inherit',
             backdropFilter: 'blur(14px)',
-          }}
+          })}
         >
           <Stack direction="row" sx={{ p: 2.25, alignItems: 'center', justifyContent: 'space-between' }}>
             <Typography variant="subtitle2" sx={{ fontWeight: 900 }}>
@@ -160,15 +160,15 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             ].map((item) => (
               <Stack key={item.label} direction="row" sx={{ p: 2.25, alignItems: 'center', gap: 1.75 }}>
                 <Box
-                  sx={{
+                  sx={(theme) => ({
                     width: 40,
                     height: 40,
-                    borderRadius: (theme) => theme.shape.borderRadius / 10,
+                    borderRadius: theme.shape.borderRadius,
                     bgcolor: alpha('#FFFFFF', 0.16),
                     display: 'flex',
                     alignItems: 'center',
                     justifyContent: 'center',
-                  }}
+                  })}
                 >
                   {item.icon}
                 </Box>
