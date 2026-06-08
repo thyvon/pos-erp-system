@@ -78,7 +78,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
               sx={(theme) => ({
                 width: 48,
                 height: 48,
-                borderRadius: theme.shape.borderRadius,
+                borderRadius: `${theme.shape.borderRadius}px`,
                 bgcolor: alpha('#FFFFFF', 0.18),
                 border: `1px solid ${alpha('#FFFFFF', 0.28)}`,
                 display: 'flex',
@@ -138,7 +138,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
             width: '100%',
             maxWidth: 560,
             overflow: 'hidden',
-            borderRadius: theme.shape.borderRadius,
+            borderRadius: `${theme.shape.borderRadius}px`,
             bgcolor: alpha('#FFFFFF', 0.14),
             border: `1px solid ${alpha('#FFFFFF', 0.2)}`,
             color: 'inherit',
@@ -163,7 +163,7 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
                   sx={(theme) => ({
                     width: 40,
                     height: 40,
-                    borderRadius: theme.shape.borderRadius,
+                    borderRadius: `${theme.shape.borderRadius}px`,
                     bgcolor: alpha('#FFFFFF', 0.16),
                     display: 'flex',
                     alignItems: 'center',
