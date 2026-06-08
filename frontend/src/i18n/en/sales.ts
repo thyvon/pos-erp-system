@@ -393,6 +393,7 @@ const sales = {
       recorded: 'Sale return recorded.',
     },
     empty: 'No sale returns found.',
+    emptyDescription: 'Record a sale return or adjust the current filters.',
   },
   detail: {
     subtitle: '{{customer}} on {{date}}',

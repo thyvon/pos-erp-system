@@ -5,27 +5,19 @@ import { useRouter } from 'next/navigation'
 import {
   Alert,
   Box,
-  Card,
-  CardContent,
   Chip,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TablePagination,
-  TableRow,
   Typography,
 } from '@mui/material'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
+import EntityTable, { type EntityTableColumn } from '@/components/common/EntityTable'
 import PageHeader from '@/components/common/PageHeader'
 import PageToolbar from '@/components/common/PageToolbar'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
+import { CompareArrowsOutlined } from '@/components/ui/icons'
 import { RowActions } from '@/components/ui/RowActions'
 import { SearchableFilterSelect } from '@/components/ui/SearchableFilterSelect'
-import { TableStateRow } from '@/components/ui/TableStateRow'
 import { useBranchesQuery } from '@/features/branches/hooks'
 import { useSaleReturnsQuery } from '@/features/sales/hooks'
 import { useAppDateFormat } from '@/features/settings/useAppDateFormat'
@@ -33,9 +25,7 @@ import { useCurrencyFormatter } from '@/features/settings/useAppCurrency'
 import { useWarehousesQuery } from '@/features/warehouses/hooks'
 import { formatAppDate } from '@/utils/dateFormat'
 import { formatMoney } from '@/utils/formatMoney'
-import type { SaleReturnFilters } from '@/types/sales'
-
-const rowsPerPageOptions = [10, 25, 50]
+import type { SaleReturn, SaleReturnFilters } from '@/types/sales'
 
 export function SaleReturnsPage() {
   const { t, i18n } = useTranslation(['sales', 'common'])
@@ -125,6 +115,55 @@ export function SaleReturnsPage() {
       : null,
   ].filter((filter): filter is { key: string; label: string; onDelete: () => void } => Boolean(filter))
 
+  const columns = useMemo<EntityTableColumn<SaleReturn>[]>(
+    () => [
+      {
+        key: 'return',
+        label: t('returns.columns.return'),
+        render: (saleReturn) => <Typography variant="subtitle2">{saleReturn.return_number}</Typography>,
+      },
+      {
+        key: 'sale',
+        label: t('returns.columns.sale'),
+        render: (saleReturn) => saleReturn.sale?.sale_number ?? '-',
+      },
+      {
+        key: 'branch',
+        label: t('columns.branch'),
+        render: (saleReturn) => saleReturn.branch?.name ?? '-',
+      },
+      {
+        key: 'date',
+        label: t('columns.date'),
+        render: (saleReturn) => formatAppDate(saleReturn.return_date, dateFormat, i18n.language),
+      },
+      {
+        key: 'status',
+        label: t('columns.status'),
+        render: (saleReturn) => (
+          <Chip
+            size="small"
+            label={t(`returns.statuses.${saleReturn.status}`, { defaultValue: saleReturn.status })}
+            variant="outlined"
+          />
+        ),
+      },
+      {
+        key: 'items',
+        label: t('returns.columns.items'),
+        align: 'right',
+        render: (saleReturn) => saleReturn.items_count.toLocaleString(),
+      },
+      {
+        key: 'total',
+        label: t('columns.total'),
+        align: 'right',
+        render: (saleReturn) => formatMoney(saleReturn.total_amount, currencyFormatter),
+      },
+    ],
+    [currencyFormatter, dateFormat, i18n.language, t],
+  )
+
   return (
     <Stack spacing={2.5}>
       <PageHeader title={t('returns.title')} description={t('returns.subtitle')} />
@@ -199,77 +238,42 @@ export function SaleReturnsPage() {
         }
       />
 
-      <Card>
-        <CardContent>
-          {saleReturnsQuery.isError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {toAppApiError(saleReturnsQuery.error).message}
-            </Alert>
-          )}
+      {saleReturnsQuery.isError && (
+        <Alert severity="error">
+          {toAppApiError(saleReturnsQuery.error).message}
+        </Alert>
+      )}
 
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('returns.columns.return')}</TableCell>
-                  <TableCell>{t('returns.columns.sale')}</TableCell>
-                  <TableCell>{t('columns.branch')}</TableCell>
-                  <TableCell>{t('columns.date')}</TableCell>
-                  <TableCell>{t('columns.status')}</TableCell>
-                  <TableCell align="right">{t('returns.columns.items')}</TableCell>
-                  <TableCell align="right">{t('columns.total')}</TableCell>
-                  <TableCell align="center">{t('columns.actions')}</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {saleReturnsQuery.isLoading && <TableStateRow colSpan={8} loading />}
-                {!saleReturnsQuery.isLoading && saleReturns.length === 0 && (
-                  <TableStateRow colSpan={8} message={t('returns.empty')} />
-                )}
-                {saleReturns.map((saleReturn) => (
-                  <TableRow key={saleReturn.id} hover>
-                    <TableCell>
-                      <Typography variant="subtitle2">{saleReturn.return_number}</Typography>
-                    </TableCell>
-                    <TableCell>{saleReturn.sale?.sale_number ?? '-'}</TableCell>
-                    <TableCell>{saleReturn.branch?.name ?? '-'}</TableCell>
-                    <TableCell>{formatAppDate(saleReturn.return_date, dateFormat, i18n.language)}</TableCell>
-                    <TableCell>
-                      <Chip size="small" label={t(`returns.statuses.${saleReturn.status}`, { defaultValue: saleReturn.status })} variant="outlined" />
-                    </TableCell>
-                    <TableCell align="right">{saleReturn.items_count.toLocaleString()}</TableCell>
-                    <TableCell align="right">{formatMoney(saleReturn.total_amount, currencyFormatter)}</TableCell>
-                    <TableCell align="center">
-                      <RowActions
-                        viewLabel={t('common:buttons.view')}
-                        editLabel={t('common:buttons.edit')}
-                        deleteLabel={t('common:buttons.delete')}
-                        showView
-                        showEdit={false}
-                        showDelete={false}
-                        onView={() => router.push(`/sale-returns/${saleReturn.id}`)}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          <TablePagination
-            component="div"
-            count={meta?.total ?? 0}
-            page={page}
-            rowsPerPage={perPage}
-            rowsPerPageOptions={rowsPerPageOptions}
-            onPageChange={(_, nextPage) => setPage(nextPage)}
-            onRowsPerPageChange={(event) => {
-              setPerPage(Number(event.target.value))
-              setPage(0)
-            }}
+      <EntityTable
+        rows={saleReturns}
+        columns={columns}
+        getRowKey={(saleReturn) => saleReturn.id}
+        loading={saleReturnsQuery.isLoading}
+        emptyIcon={<CompareArrowsOutlined />}
+        emptyTitle={t('returns.empty')}
+        emptyDescription={t('returns.emptyDescription')}
+        pagination={{
+          page,
+          rowsPerPage: perPage,
+          count: meta?.total ?? 0,
+          onPageChange: setPage,
+          onRowsPerPageChange: (nextPerPage) => {
+            setPerPage(nextPerPage)
+            setPage(0)
+          },
+        }}
+        rowActions={(saleReturn) => (
+          <RowActions
+            viewLabel={t('common:buttons.view')}
+            editLabel={t('common:buttons.edit')}
+            deleteLabel={t('common:buttons.delete')}
+            showView
+            showEdit={false}
+            showDelete={false}
+            onView={() => router.push(`/sale-returns/${saleReturn.id}`)}
           />
-        </CardContent>
-      </Card>
+        )}
+      />
     </Stack>
   )
 }

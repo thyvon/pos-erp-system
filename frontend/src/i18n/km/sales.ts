@@ -393,6 +393,7 @@ const sales = {
       recorded: 'បានកត់ត្រាការត្រឡប់ការលក់។',
     },
     empty: 'រកមិនឃើញការត្រឡប់ការលក់។',
+    emptyDescription: 'កត់ត្រាការត្រឡប់ការលក់ ឬកែតម្រងបច្ចុប្បន្ន។',
   },
   detail: {
     subtitle: '{{customer}} នៅ {{date}}',
