@@ -1,0 +1,199 @@
+<?php
+
+namespace Tests\Feature\Api\V1;
+
+use App\Imports\ProductImport;
+use App\Models\Brand;
+use App\Models\Business;
+use App\Models\Category;
+use App\Models\CustomFieldDefinition;
+use App\Models\Product;
+use App\Models\SubUnit;
+use App\Models\TaxRate;
+use App\Models\Unit;
+use App\Models\VariationTemplate;
+use App\Models\VariationValue;
+use App\Services\Catalog\ProductService;
+use Illuminate\Foundation\Testing\RefreshDatabase;
+use Illuminate\Support\Collection;
+use Tests\TestCase;
+
+class ProductImportTest extends TestCase
+{
+    use RefreshDatabase;
+
+    public function test_import_creates_single_product_with_create_form_fields(): void
+    {
+        $business = Business::factory()->create();
+        $unit = Unit::factory()->for($business)->create(['name' => 'Piece', 'short_name' => 'pcs']);
+        $subUnit = SubUnit::factory()->create([
+            'business_id' => $business->id,
+            'parent_unit_id' => $unit->id,
+            'name' => 'Box',
+            'short_name' => 'box',
+        ]);
+        $category = Category::factory()->for($business)->create(['name' => 'Drinks']);
+        $brand = Brand::factory()->for($business)->create(['name' => 'Acme']);
+        $taxRate = TaxRate::factory()->for($business)->create(['name' => 'VAT 10%']);
+        CustomFieldDefinition::query()->create([
+            'business_id' => $business->id,
+            'module' => 'product',
+            'field_name' => 'color',
+            'field_label' => 'Color',
+            'field_type' => 'text',
+            'options' => null,
+            'is_required' => false,
+            'sort_order' => 0,
+        ]);
+
+        $import = new ProductImport($business, app(ProductService::class));
+        $import->collection(new Collection([
+            new Collection([
+                'name' => 'Imported Cola',
+                'type' => 'single',
+                'sku' => 'IMP-COLA',
+                'barcode_type' => 'c128',
+                'unit' => 'pcs',
+                'sub_unit' => 'box',
+                'category' => 'Drinks',
+                'brand' => 'Acme',
+                'tax_rate' => 'VAT 10%',
+                'description' => 'Imported from sheet',
+                'stock_tracking' => 'lot',
+                'has_expiry' => 'yes',
+                'tax_type' => 'exclusive',
+                'track_inventory' => 'yes',
+                'is_for_selling' => 'yes',
+                'is_active' => 'yes',
+                'selling_price' => '12.50',
+                'purchase_price' => '7.25',
+                'sub_unit_selling_price' => '120',
+                'sub_unit_purchase_price' => '70',
+                'alert_quantity' => '5',
+                'max_stock_level' => '100',
+                'minimum_selling_price' => '10',
+                'profit_margin' => '20',
+                'weight' => '0.250',
+                'custom_fields' => '{"color":"Blue"}',
+            ]),
+        ]));
+
+        $this->assertSame(1, $import->getImportedCount());
+        $this->assertSame(0, $import->getSkippedCount());
+
+        $product = Product::query()->where('sku', 'IMP-COLA')->firstOrFail();
+
+        $this->assertSame($unit->id, $product->unit_id);
+        $this->assertSame($subUnit->id, $product->sub_unit_id);
+        $this->assertSame($category->id, $product->category_id);
+        $this->assertSame($brand->id, $product->brand_id);
+        $this->assertSame($taxRate->id, $product->tax_rate_id);
+        $this->assertSame('C128', $product->barcode_type);
+        $this->assertSame('lot', $product->stock_tracking);
+        $this->assertTrue($product->has_expiry);
+        $this->assertTrue($product->track_inventory);
+        $this->assertSame('12.50', (string) $product->selling_price);
+        $this->assertSame('120.00', (string) $product->sub_unit_selling_price);
+        $this->assertSame('100.000', (string) $product->max_stock_level);
+        $this->assertSame(['color' => 'Blue'], $product->custom_fields);
+    }
+
+    public function test_import_creates_variable_product_with_templates_and_variations(): void
+    {
+        $business = Business::factory()->create();
+        Unit::factory()->for($business)->create(['name' => 'Piece', 'short_name' => 'pcs']);
+        $size = VariationTemplate::factory()->for($business)->create(['name' => 'Size']);
+        $color = VariationTemplate::factory()->for($business)->create(['name' => 'Color']);
+        VariationValue::factory()->for($size, 'template')->create([
+            'business_id' => $business->id,
+            'name' => 'Small',
+        ]);
+        VariationValue::factory()->for($color, 'template')->create([
+            'business_id' => $business->id,
+            'name' => 'Red',
+        ]);
+
+        $import = new ProductImport($business, app(ProductService::class));
+        $import->collection(new Collection([
+            new Collection([
+                'name' => 'Imported Shirt',
+                'type' => 'variable',
+                'sku' => 'IMP-SHIRT',
+                'barcode_type' => 'C128',
+                'unit' => 'pcs',
+                'stock_tracking' => 'none',
+                'tax_type' => 'exclusive',
+                'track_inventory' => 'yes',
+                'is_for_selling' => 'yes',
+                'is_active' => 'yes',
+                'variation_templates' => 'Size,Color',
+                'variations' => '[{"name":"Small-Red","values":["Small","Red"],"sku":"IMP-SHIRT-SR","selling_price":15,"purchase_price":8,"minimum_selling_price":12,"is_active":true}]',
+                'custom_fields' => '{}',
+            ]),
+        ]));
+
+        $this->assertSame(1, $import->getImportedCount());
+        $this->assertSame(0, $import->getSkippedCount());
+
+        $product = Product::query()->with('variations')->where('sku', 'IMP-SHIRT')->firstOrFail();
+
+        $this->assertSame('variable', $product->type);
+        $this->assertEqualsCanonicalizing([$size->id, $color->id], $product->variation_template_ids);
+        $this->assertCount(1, $product->variations);
+        $this->assertSame('Small-Red', $product->variations[0]->name);
+        $this->assertSame('IMP-SHIRT-SR', $product->variations[0]->sku);
+        $this->assertSame('15.00', (string) $product->variations[0]->selling_price);
+    }
+
+    public function test_import_creates_combo_product_with_components(): void
+    {
+        $business = Business::factory()->create();
+        Unit::factory()->for($business)->create(['name' => 'Piece', 'short_name' => 'pcs']);
+
+        $import = new ProductImport($business, app(ProductService::class));
+        $import->collection(new Collection([
+            new Collection([
+                'name' => 'Child Product',
+                'type' => 'single',
+                'sku' => 'CHILD-001',
+                'barcode_type' => 'C128',
+                'unit' => 'pcs',
+                'stock_tracking' => 'none',
+                'tax_type' => 'exclusive',
+                'track_inventory' => 'yes',
+                'is_for_selling' => 'yes',
+                'is_active' => 'yes',
+                'selling_price' => '10',
+                'purchase_price' => '5',
+            ]),
+            new Collection([
+                'name' => 'Imported Combo',
+                'type' => 'combo',
+                'sku' => 'IMP-COMBO',
+                'barcode_type' => 'C128',
+                'unit' => 'pcs',
+                'stock_tracking' => 'none',
+                'tax_type' => 'exclusive',
+                'track_inventory' => 'no',
+                'is_for_selling' => 'yes',
+                'is_active' => 'yes',
+                'selling_price' => '25',
+                'purchase_price' => '12',
+                'combo_items' => '[{"child_product":"CHILD-001","quantity":2}]',
+                'custom_fields' => '{}',
+            ]),
+        ]));
+
+        $this->assertSame(2, $import->getImportedCount());
+        $this->assertSame(0, $import->getSkippedCount());
+
+        $child = Product::query()->where('sku', 'CHILD-001')->firstOrFail();
+        $product = Product::query()->with('comboItems')->where('sku', 'IMP-COMBO')->firstOrFail();
+
+        $this->assertSame('combo', $product->type);
+        $this->assertFalse($product->track_inventory);
+        $this->assertCount(1, $product->comboItems);
+        $this->assertSame($child->id, $product->comboItems[0]->child_product_id);
+        $this->assertSame('2.0000', (string) $product->comboItems[0]->quantity);
+    }
+}

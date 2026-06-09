@@ -127,7 +127,7 @@ class ProductController extends BaseCatalogController
         $this->authorize('create', Product::class);
 
         $business = $request->user()->business;
-        $import = new ProductImport($business, $this->products);
+        $import = new ProductImport($business, $this->products, $request->user());
 
         Excel::import($import, $request->file('file'));
 

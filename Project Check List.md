@@ -292,9 +292,11 @@
 - [x] Shared MUI table rows now use a global striped body-row style so standard system tables inherit consistent alternating row backgrounds without page-level duplication.
 - [x] Brand uploaded image previews now resolve Laravel `/storage` asset URLs through the configured API host so images show correctly in the Next frontend.
 - [x] Product detail, variation thumbnails, and POS product tiles now resolve Laravel `/storage` asset URLs through the configured API host.
+- [x] Product import now mirrors the create product form for non-file fields, including sub-units, tax/price/rack lookups, stock flags, variable variations, combo items, custom fields, expanded template samples, and focused importer tests.
 - [x] POS checkout now hides sale/due date fields, moves price group and notes behind a More toggle, and keeps payment anchored at the bottom of the sell-line panel.
 - [x] POS checkout layout reviewed and cleaned for desktop and iPad: product gallery now uses a drawer until wide desktop, cart table is narrower for landscape iPad/desktop, and portrait tablet/mobile uses compact cart cards; frontend type-check, lint, and build verified.
 - [x] POS tracked item edit flow reviewed and cleaned: serial quantity locking is shared between cart layouts, tracking state is preserved when applying lot/serial lookup, and fast frontend check passes.
+- [x] POS cash register selection now auto-uses an open register session for the selected branch and preserves the location/register after completing each new sale.
 - [x] Pending frosted shell/global overlay blur changes reviewed and removed to preserve the verified solid/translucent layout behavior; Next route types regenerated and frontend type-check, lint, and build verified.
 - [x] Agent rules now require small reusable shared components/hooks for repeated frontend patterns instead of duplicated page-level code.
 - [x] Customer edit now shows a visible validation message when the form blocks saving.

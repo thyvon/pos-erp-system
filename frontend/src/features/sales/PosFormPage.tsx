@@ -144,6 +144,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
   const theme = useTheme()
   const { enqueueSnackbar } = useSnackbar()
   const can = useAuthStore((state) => state.can)
+  const currentUser = useAuthStore((state) => state.user)
   const setSettingsOpen = useUIStore((state) => state.setSettingsOpen)
   const topbarTheme = useUIStore((state) => state.topbarTheme)
   const layoutSize = useUIStore((state) => state.layoutSize)
@@ -296,11 +297,25 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
   )
   const existingPaymentById = useMemo(() => new Map(existingPayments.map((payment) => [payment.id, payment])), [existingPayments])
   const canCreateCustomer = can('customers.create')
+  const canUseOtherOpenRegister = can('sales.edit')
   const canManageExistingPayments = isEdit && can('payments.edit') && currentSaleStatus === 'completed'
   const canDeleteExistingPayments = isEdit && can('payments.delete') && currentSaleStatus === 'completed'
   const canAddPaymentLines = (isEdit ? can('payments.create') && currentSaleStatus === 'completed' : true)
   const defaultExchangeRateValue = toNumber(defaultExchangeRate?.rate)
   const selectedWarehouse = warehouses.find((warehouse) => warehouse.id === warehouseId) ?? null
+  const selectedOpenCashRegister = useMemo(() => {
+    if (!branchId) return null
+
+    const branchOpenRegisters = cashRegisters.filter((register) =>
+      register.branch_id === branchId
+      && register.is_active
+      && register.current_open_session?.status === 'open'
+    )
+
+    return branchOpenRegisters.find((register) => register.current_open_session?.user_id === currentUser?.id)
+      ?? (canUseOtherOpenRegister ? branchOpenRegisters[0] : null)
+      ?? null
+  }, [branchId, canUseOtherOpenRegister, cashRegisters, currentUser?.id])
   const selectedCashRegister = cashRegisters.find((register) => register.current_open_session?.id === cashRegisterSessionId) ?? null
   const dialogCashRegister = cashRegisters.find((register) => register.id === selectedCashRegisterId) ?? null
 
@@ -366,6 +381,39 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
       setValue('branch_id', nextBranchId, { shouldDirty: true, shouldValidate: true })
     }
   }, [branchId, setValue, warehouseId, warehouses])
+
+  useEffect(() => {
+    if (isEdit || !branchId || cashRegistersQuery.isLoading) return
+
+    const currentSessionRegister = cashRegisters.find((register) =>
+      register.branch_id === branchId
+      && register.current_open_session?.id === cashRegisterSessionId
+    )
+
+    if (currentSessionRegister) {
+      return
+    }
+
+    if (selectedOpenCashRegister?.current_open_session) {
+      setValue('cash_register_session_id', selectedOpenCashRegister.current_open_session.id, {
+        shouldDirty: true,
+        shouldValidate: true,
+      })
+      return
+    }
+
+    if (cashRegisterSessionId) {
+      setValue('cash_register_session_id', '', { shouldDirty: true, shouldValidate: true })
+    }
+  }, [
+    branchId,
+    cashRegisterSessionId,
+    cashRegisters,
+    cashRegistersQuery.isLoading,
+    isEdit,
+    selectedOpenCashRegister,
+    setValue,
+  ])
 
   useEffect(() => {
     if (paymentAccounts.length === 0) return
@@ -718,7 +766,16 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
       if (isEdit) {
         router.push('/pos')
       } else {
-        reset(emptySaleFormValues({ type: 'pos_sale', directPaymentEnabled: true }))
+        reset({
+          ...emptySaleFormValues({
+            type: 'pos_sale',
+            directPaymentEnabled: true,
+            cashRegisterSessionId: values.cash_register_session_id ?? '',
+          }),
+          branch_id: values.branch_id,
+          warehouse_id: values.warehouse_id,
+          price_group_id: values.price_group_id ?? '',
+        })
         setClientRequestId(createClientRequestId())
       }
       setEditingItemIndex(null)
