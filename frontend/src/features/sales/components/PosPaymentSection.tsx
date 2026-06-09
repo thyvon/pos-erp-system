@@ -29,10 +29,10 @@ import type { SaleFormInput, SaleFormValues } from '../schema'
 const paymentMethods = ['cash', 'card', 'bank_transfer', 'cheque', 'reward_points', 'gift_card', 'other'] as const
 
 const paymentColumnSx = {
+  method: { width: 160, minWidth: 160 },
   account: { width: 260, minWidth: 260 },
   currency: { width: 112, minWidth: 112 },
   amount: { width: 160, minWidth: 160 },
-  method: { width: 180, minWidth: 180 },
   actions: { width: 64, minWidth: 64 },
 } as const
 
@@ -322,13 +322,13 @@ export function PosPaymentSection({
             {typeof errors.direct_payments?.message === 'string' && <Alert severity="error">{errors.direct_payments.message}</Alert>}
 
             <TableContainer sx={{ display: { xs: 'none', md: 'block' }, border: 1, borderColor: 'divider', borderRadius: 1, maxHeight: 260, overflow: 'auto' }}>
-              <Table stickyHeader size="small" sx={{ minWidth: 776, tableLayout: 'fixed' }}>
+              <Table stickyHeader size="small" sx={{ minWidth: 756, tableLayout: 'fixed' }}>
                 <TableHead>
                   <TableRow>
+                    <TableCell sx={paymentColumnSx.method}>{t('payment.method')}</TableCell>
                     <TableCell sx={paymentColumnSx.account}>{t('payment.account')}</TableCell>
                     <TableCell sx={paymentColumnSx.currency}>{t('payment.currency')}</TableCell>
                     <TableCell sx={paymentColumnSx.amount} align="right">{t('payment.amount')}</TableCell>
-                    <TableCell sx={paymentColumnSx.method}>{t('payment.method')}</TableCell>
                     <TableCell sx={paymentColumnSx.actions} align="center">{t('columns.actions')}</TableCell>
                   </TableRow>
                 </TableHead>
@@ -338,10 +338,10 @@ export function PosPaymentSection({
 
                     return (
                       <TableRow key={lineFields.key}>
+                        <TableCell sx={paymentColumnSx.method}>{lineFields.method}</TableCell>
                         <TableCell sx={paymentColumnSx.account}>{lineFields.account}</TableCell>
                         <TableCell sx={paymentColumnSx.currency}>{lineFields.currency}</TableCell>
                         <TableCell sx={paymentColumnSx.amount} align="right">{lineFields.amount}</TableCell>
-                        <TableCell sx={paymentColumnSx.method}>{lineFields.method}</TableCell>
                         <TableCell sx={paymentColumnSx.actions} align="center">{lineFields.actions}</TableCell>
                       </TableRow>
                     )
@@ -357,15 +357,15 @@ export function PosPaymentSection({
                 return (
                   <Box key={lineFields.key} sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 1 }}>
                     <Stack spacing={1}>
+                      {lineFields.method}
                       {lineFields.account}
                       <Box sx={{ display: 'grid', gridTemplateColumns: '0.8fr 1.2fr', gap: 1 }}>
                         {lineFields.currency}
                         {lineFields.amount}
                       </Box>
-                      <Stack direction="row" spacing={1} sx={{ alignItems: 'flex-start' }}>
-                        <Box sx={{ flex: '1 1 auto', minWidth: 0 }}>{lineFields.method}</Box>
+                      <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
                         {lineFields.actions}
-                      </Stack>
+                      </Box>
                     </Stack>
                   </Box>
                 )
