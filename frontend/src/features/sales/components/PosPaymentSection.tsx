@@ -232,7 +232,7 @@ export function PosPaymentSection({
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: { xs: '1fr 1fr', md: '1.15fr 1fr 1fr 1fr' },
+          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: '1.15fr 1fr 1fr 1fr' },
           borderBottom: 1,
           borderColor: 'divider',
           bgcolor: 'success.lighter',
@@ -270,26 +270,28 @@ export function PosPaymentSection({
               px: 1,
               py: 0.5,
               minWidth: 0,
-              borderRightWidth: { md: 1 },
-              borderRightStyle: { md: 'solid' },
+              borderRightWidth: { sm: 1, lg: 1 },
+              borderRightStyle: { sm: 'solid' },
               borderRightColor: 'divider',
-              borderBottomWidth: { xs: 1, md: 0 },
-              borderBottomStyle: { xs: 'solid', md: 'none' },
+              borderBottomWidth: { xs: 1, lg: 0 },
+              borderBottomStyle: { xs: 'solid', lg: 'none' },
               borderBottomColor: 'divider',
-              '&:nth-of-type(2n)': { borderRightWidth: { xs: 0, md: 1 } },
+              '&:nth-of-type(2n)': { borderRightWidth: { sm: 0, lg: 1 } },
               '&:nth-of-type(4)': { borderRightWidth: 0, borderBottomWidth: 0 },
             }}
           >
-            <Stack direction="row" spacing={0.75} sx={{ alignItems: 'baseline', justifyContent: 'center', minWidth: 0 }}>
+            <Stack direction="row" spacing={0.75} sx={{ alignItems: 'baseline', justifyContent: 'space-between', minWidth: 0 }}>
               <Typography variant="caption" sx={{ color: 'success.dark', fontWeight: 800, textTransform: 'uppercase', flex: '0 0 auto' }}>
                 {item.label}
               </Typography>
-              <Typography variant="subtitle2" sx={{ color: 'success.dark', fontWeight: 900, minWidth: 0 }} noWrap>
-                {item.value}
-              </Typography>
-              <Typography variant="caption" sx={{ color: 'success.dark', display: { xs: 'none', lg: 'inline' }, minWidth: 0 }} noWrap>
-                {item.helper}
-              </Typography>
+              <Stack direction="row" spacing={0.75} sx={{ alignItems: 'baseline', justifyContent: 'flex-end', minWidth: 0 }}>
+                <Typography variant="subtitle2" sx={{ color: 'success.dark', fontWeight: 900, minWidth: 0 }} noWrap>
+                  {item.value}
+                </Typography>
+                <Typography variant="caption" sx={{ color: 'success.dark', display: { xs: 'none', md: 'inline' }, minWidth: 0 }} noWrap>
+                  {item.helper}
+                </Typography>
+              </Stack>
             </Stack>
           </Box>
         ))}
