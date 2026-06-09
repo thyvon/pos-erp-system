@@ -15,7 +15,8 @@ import {
 } from '@mui/material'
 import { useTranslation } from 'react-i18next'
 import { resolveAssetUrl } from '@/api/assets'
-import { Search } from '@/components/ui/icons'
+import EmptyState from '@/components/common/EmptyState'
+import { Inventory2Outlined, Search } from '@/components/ui/icons'
 import type { Brand } from '@/types/brand'
 import type { Category } from '@/types/category'
 import type { Product } from '@/types/product'
@@ -155,8 +156,8 @@ export function PosProductGallery({
               </Box>
             )}
             {!productsLoading && products.length === 0 && (
-              <Box sx={{ gridColumn: '1 / -1', py: 4, textAlign: 'center' }}>
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>{t('pos.noProducts')}</Typography>
+              <Box sx={{ gridColumn: '1 / -1' }}>
+                <EmptyState compact icon={<Inventory2Outlined />} title={t('pos.noProducts')} />
               </Box>
             )}
             {products.map((product) => {

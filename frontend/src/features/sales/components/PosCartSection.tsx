@@ -22,7 +22,6 @@ import { Controller, type Control, type FieldArrayWithId, type FieldErrors } fro
 import { useTranslation } from 'react-i18next'
 import EmptyState from '@/components/common/EmptyState'
 import { DeleteOutlined, EditOutlined, PointOfSaleOutlined } from '@/components/ui/icons'
-import { TableStateRow } from '@/components/ui/TableStateRow'
 import { UnitConversionBadge } from '@/features/sales/components/UnitConversionBadge'
 import { UnitToggle } from '@/features/sales/components/UnitToggle'
 import { InventoryProductLookupPicker } from '@/features/inventory/components/InventoryProductLookupPicker'
@@ -134,8 +133,8 @@ export function PosCartSection({
       </Box>
 
       <Box sx={{ minHeight: 0, flex: '1 1 auto', overflow: 'auto' }}>
-        <TableContainer sx={{ display: { xs: 'none', md: 'block' }, minHeight: 220, border: 1, borderColor: 'divider', borderRadius: 1, overflow: 'auto' }}>
-          <Table sx={{ minWidth: 840, tableLayout: 'fixed' }}>
+        <TableContainer sx={{ display: { xs: 'none', md: 'block' }, height: '100%', minHeight: 220, border: 1, borderColor: 'divider', borderRadius: 1, overflow: 'auto' }}>
+          <Table sx={{ minWidth: 840, height: itemFields.length === 0 ? '100%' : 'auto', tableLayout: 'fixed' }}>
             <TableHead>
               <TableRow>
                 <TableCell sx={cartColumnSx.product}>{t('items.product')}</TableCell>
@@ -148,7 +147,13 @@ export function PosCartSection({
             </TableHead>
             <TableBody>
               {itemFields.length === 0 && (
-                <TableStateRow colSpan={6} message={t('pos.emptyCart')} />
+                <TableRow sx={{ height: '100%' }}>
+                  <TableCell colSpan={6} sx={{ borderBottom: 0, height: '100%', p: { xs: 2, sm: 3 } }}>
+                    <Box sx={{ minHeight: 220, height: '100%', display: 'flex', alignItems: 'center' }}>
+                      <EmptyState compact icon={<PointOfSaleOutlined />} title={t('pos.emptyCart')} />
+                    </Box>
+                  </TableCell>
+                </TableRow>
               )}
               {itemFields.map((field, index) => {
                 const isSerialTrackedLine = isSerialTrackedCartLine(field, watchedItems[index])

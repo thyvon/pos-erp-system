@@ -108,7 +108,8 @@
 - [x] POS direct-payment table and payable summary are extracted into a dedicated component so the POS form page keeps payment rendering separate from sale workflow state; frontend type-check, lint, and build verified.
 - [x] POS cart product picker, item table, quantity controls, and summary strip are extracted into a dedicated component while preserving the existing payment section nesting; frontend type-check, lint, and build verified.
 - [x] POS warehouse/customer/date header fields are extracted into a dedicated component while preserving branch synchronization and the add-customer action; frontend type-check, lint, and build verified.
-- [x] POS cart empty states now reuse shared empty components: `TableStateRow` for the desktop cart table and compact `EmptyState` for mobile cart cards; frontend type-check, lint, and build verified.
+- [x] POS cart product line empty states now reuse compact `EmptyState` with the POS icon across desktop table and mobile card layouts, with the desktop empty table filling the available cart height; frontend type-check verified.
+- [x] POS product gallery empty state now reuses the shared compact `EmptyState` component with the product icon, matching customer/product table empty-state styling.
 - [x] POS edit-line dialog now supports tracked product assignment by scanning/searching the matching lot or serial, stores the selected lot/serial IDs for the sale payload, and locks serial lines to one unit; frontend local check verified.
 - [x] Cash Register Management page added with branch/status filters, create/edit/delete actions, open/close session dialogs, recent sessions view, sidebar navigation, breadcrumbs, API hooks, types, and translations; frontend type-check, lint, and build verified.
 - [x] Cash Register Management page header and filters now use shared `PageHeader`/`PageToolbar` with active branch/status filter chips; frontend type-check, lint, and build verified.
