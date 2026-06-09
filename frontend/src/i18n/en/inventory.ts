@@ -250,6 +250,7 @@ const inventory = {
       serialNumber: 'Serial number',
       product: 'Product',
       warehouse: 'Warehouse',
+      reference: 'Reference',
       supplier: 'Supplier',
       status: 'Status',
       unitCost: 'Unit cost',

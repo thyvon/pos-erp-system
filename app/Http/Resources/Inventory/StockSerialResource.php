@@ -9,7 +9,7 @@ class StockSerialResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $this->loadMissing(['product', 'variation', 'warehouse.branch', 'supplier']);
+        $this->loadMissing(['product', 'variation', 'warehouse.branch', 'supplier', 'purchaseItem.purchase', 'saleItemSerials.saleItem.sale']);
 
         return [
             'id' => $this->id,
@@ -21,7 +21,8 @@ class StockSerialResource extends JsonResource
             'serial_number' => $this->serial_number,
             'status' => $this->status,
             'purchase_item_id' => $this->purchase_item_id,
-            'sale_item_id' => $this->sale_item_id,
+            'purchase_reference' => $this->purchaseItem?->purchase?->purchase_number,
+            'sale_reference' => $this->saleItemSerials->first()?->saleItem?->sale?->sale_number,
             'unit_cost' => $this->unit_cost,
             'warranty_expires' => optional($this->warranty_expires)->toDateString(),
             'received_at' => $this->received_at,

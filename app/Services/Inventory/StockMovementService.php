@@ -521,7 +521,7 @@ class StockMovementService
         }
 
         match ($type) {
-            'sale' => $this->moveSerialOutOfWarehouse($serial, 'sold', true),
+            'sale' => $this->markSerialAsSold($serial),
             'purchase_return' => $this->moveSerialOutOfWarehouse($serial, 'returned'),
             'adjustment_out', 'combo_deduction', 'manufacturing_out', 'stock_count_correction' => $this->moveSerialOutOfWarehouse($serial, 'written_off'),
             'transfer_out' => $serial->status = 'transferred',
@@ -529,14 +529,16 @@ class StockMovementService
         };
     }
 
-    protected function moveSerialOutOfWarehouse(StockSerial $serial, string $status, bool $markSoldAt = false): void
+    protected function markSerialAsSold(StockSerial $serial): void
+    {
+        $serial->status = 'sold';
+        $serial->sold_at = now();
+    }
+
+    protected function moveSerialOutOfWarehouse(StockSerial $serial, string $status): void
     {
         $serial->warehouse_id = null;
         $serial->status = $status;
-
-        if ($markSoldAt) {
-            $serial->sold_at = now();
-        }
     }
 
     protected function writeAuditLog(

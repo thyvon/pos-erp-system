@@ -1,12 +1,10 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import {
   Alert,
   Box,
   Button,
-  Card,
-  CardContent,
   Chip,
   CircularProgress,
   Dialog,
@@ -14,26 +12,21 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
-  InputAdornment,
   MenuItem,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TablePagination,
-  TableRow,
   TextField,
   Typography,
 } from '@mui/material'
-import { Inventory2Outlined, Search } from '@/components/ui/icons'
+import { Inventory2Outlined } from '@/components/ui/icons'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { RowActions } from '@/components/ui/RowActions'
 import { SearchableFilterSelect } from '@/components/ui/SearchableFilterSelect'
-import { TableStateRow } from '@/components/ui/TableStateRow'
+import PageHeader from '@/components/common/PageHeader'
+import PageToolbar from '@/components/common/PageToolbar'
+import EntityTable from '@/components/common/EntityTable'
+import type { EntityTableColumn } from '@/components/common/EntityTable'
 import {
   useInventoryOptionsQuery,
   useStockSerialQuery,
@@ -45,7 +38,6 @@ import { useAuthStore } from '@/stores/authStore'
 import { formatAppDate, formatAppDateTime } from '@/utils/dateFormat'
 import type { StockSerial, StockSerialFilters, StockSerialStatus } from '@/types/inventory'
 
-const rowsPerPageOptions = [10, 25, 50]
 const serialStatuses: StockSerialStatus[] = ['in_stock', 'reserved', 'sold', 'returned', 'transferred', 'written_off']
 
 function statusColor(status: StockSerialStatus) {
@@ -125,43 +117,174 @@ export default function StockSerialsPage() {
     setReason('')
   }
 
-  return (
-    <Stack spacing={3}>
-      <Box>
-        <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-          <Inventory2Outlined color="primary" />
-          <Typography variant="h4">{t('serials.title')}</Typography>
-        </Stack>
-        <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
-          {t('serials.subtitle')}
-        </Typography>
-      </Box>
+  const clearFilters = useCallback(() => {
+    setWarehouseFilter('')
+    setStatusFilter('')
+    setPage(0)
+  }, [])
 
-      <Card>
-        <CardContent>
-          <Stack
-            direction={{ xs: 'column', lg: 'row' }}
-            spacing={2}
-            sx={{ alignItems: { xs: 'stretch', lg: 'center' }, mb: 2.5 }}
-          >
-            <TextField
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value)
-                setPage(0)
-              }}
-              placeholder={t('serials.filters.search')}
-              sx={{ flexGrow: 1 }}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Search fontSize="small" />
-                    </InputAdornment>
-                  ),
-                },
-              }}
-            />
+  const handleSearchChange = useCallback((value: string) => {
+    setSearch(value)
+    setPage(0)
+  }, [])
+
+  const handleWarehouseChange = useCallback((value: string) => {
+    setWarehouseFilter(value)
+    setPage(0)
+  }, [])
+
+  const handleStatusChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    setStatusFilter(event.target.value)
+    setPage(0)
+  }, [])
+
+  const selectedWarehouse = warehouses.find((w) => w.id === warehouseFilter)
+
+  const activeFilters = useMemo(() => {
+    const chips: Array<{ key: string; label: string; onDelete: () => void }> = []
+    if (warehouseFilter && selectedWarehouse) {
+      chips.push({
+        key: 'warehouse',
+        label: selectedWarehouse.name,
+        onDelete: () => { setWarehouseFilter(''); setPage(0) },
+      })
+    }
+    if (statusFilter) {
+      chips.push({
+        key: 'status',
+        label: t(`serials.status.${statusFilter}`),
+        onDelete: () => { setStatusFilter(''); setPage(0) },
+      })
+    }
+    return chips
+  }, [warehouseFilter, statusFilter, selectedWarehouse, t])
+
+  const handlePageChange = useCallback((newPage: number) => {
+    setPage(newPage)
+  }, [])
+
+  const handleRowsPerPageChange = useCallback((newRowsPerPage: number) => {
+    setPerPage(newRowsPerPage)
+    setPage(0)
+  }, [])
+
+  const columns: EntityTableColumn<StockSerial>[] = useMemo(() => [
+    {
+      key: 'serial_number',
+      label: t('serials.columns.serialNumber'),
+      render: (serial) => (
+        <Typography variant="subtitle2">{serial.serial_number}</Typography>
+      ),
+    },
+    {
+      key: 'product',
+      label: t('serials.columns.product'),
+      render: (serial) => (
+        <Stack spacing={0.25}>
+          <Typography variant="body2">{productLabel(serial)}</Typography>
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+            {serial.variation?.sku ?? serial.product?.sku ?? '-'}
+          </Typography>
+        </Stack>
+      ),
+    },
+    {
+      key: 'warehouse',
+      label: t('serials.columns.warehouse'),
+      render: (serial) => (
+        <Stack spacing={0.25}>
+          <Typography variant="body2">{serial.warehouse?.name ?? '-'}</Typography>
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+            {serial.warehouse?.branch_name ?? '-'}
+          </Typography>
+        </Stack>
+      ),
+    },
+    {
+      key: 'reference',
+      label: t('serials.columns.reference'),
+      render: (serial) => (
+        <Stack spacing={0.25}>
+          {serial.purchase_reference && (
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              {serial.purchase_reference}
+            </Typography>
+          )}
+          {serial.sale_reference && (
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              {serial.sale_reference}
+            </Typography>
+          )}
+          {!serial.purchase_reference && !serial.sale_reference && (
+            <Typography variant="body2">-</Typography>
+          )}
+        </Stack>
+      ),
+    },
+    {
+      key: 'status',
+      label: t('serials.columns.status'),
+      render: (serial) => (
+        <Chip
+          size="small"
+          label={t(`serials.status.${serial.status}`)}
+          color={statusColor(serial.status)}
+          variant="outlined"
+        />
+      ),
+    },
+    {
+      key: 'unit_cost',
+      label: t('serials.columns.unitCost'),
+      align: 'right',
+      render: (serial) => <>{formatQuantity(serial.unit_cost)}</>,
+    },
+    {
+      key: 'warranty_expires',
+      label: t('serials.columns.warrantyExpires'),
+      render: (serial) => <>{formatAppDate(serial.warranty_expires, dateFormat, i18n.language)}</>,
+    },
+    {
+      key: 'received_at',
+      label: t('serials.columns.receivedAt'),
+      render: (serial) => <>{formatAppDateTime(serial.received_at, dateFormat, i18n.language)}</>,
+    },
+    {
+      key: 'sold_at',
+      label: t('serials.columns.soldAt'),
+      render: (serial) => <>{formatAppDateTime(serial.sold_at, dateFormat, i18n.language)}</>,
+    },
+  ], [t, dateFormat, i18n.language])
+
+  return (
+    <Stack spacing={2.5}>
+      <PageHeader
+        eyebrow="Inventory"
+        title={t('serials.title')}
+        description={t('serials.subtitle')}
+      />
+
+      {(serialsQuery.isError || optionsQuery.isError) && (
+        <Stack spacing={1}>
+          {serialsQuery.isError && (
+            <Alert severity="error">{toAppApiError(serialsQuery.error).message}</Alert>
+          )}
+          {optionsQuery.isError && (
+            <Alert severity="error">{toAppApiError(optionsQuery.error).message}</Alert>
+          )}
+        </Stack>
+      )}
+
+      <PageToolbar
+        searchValue={search}
+        searchPlaceholder={t('serials.filters.search')}
+        onSearchChange={handleSearchChange}
+        activeFilters={activeFilters}
+        onClearFilters={clearFilters}
+        filterButtonLabel={t('serials.filters.status')}
+        defaultFiltersOpen={false}
+        filters={
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
             <SearchableFilterSelect
               value={warehouseFilter}
               options={warehouses}
@@ -171,21 +294,14 @@ export default function StockSerialsPage() {
               getOptionValue={(warehouse) => warehouse.id}
               getOptionLabel={(warehouse) => warehouse.name}
               getOptionDescription={(warehouse) => [warehouse.code, warehouse.branch_name].filter(Boolean).join(' / ')}
-              onChange={(value) => {
-                setWarehouseFilter(value)
-                setPage(0)
-              }}
-              sx={{ minWidth: { xs: '100%', lg: 240 } }}
+              onChange={handleWarehouseChange}
             />
             <TextField
               select
               value={statusFilter}
-              onChange={(event) => {
-                setStatusFilter(event.target.value)
-                setPage(0)
-              }}
+              onChange={handleStatusChange}
               label={t('serials.filters.status')}
-              sx={{ minWidth: { xs: '100%', lg: 190 } }}
+              sx={{ minWidth: 190 }}
             >
               <MenuItem value="">{t('serials.filters.allStatuses')}</MenuItem>
               {serialStatuses.map((status) => (
@@ -195,106 +311,37 @@ export default function StockSerialsPage() {
               ))}
             </TextField>
           </Stack>
+        }
+      />
 
-          {serialsQuery.isError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {toAppApiError(serialsQuery.error).message}
-            </Alert>
-          )}
-
-          {optionsQuery.isError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {toAppApiError(optionsQuery.error).message}
-            </Alert>
-          )}
-
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('serials.columns.serialNumber')}</TableCell>
-                  <TableCell>{t('serials.columns.product')}</TableCell>
-                  <TableCell>{t('serials.columns.warehouse')}</TableCell>
-                  <TableCell>{t('serials.columns.status')}</TableCell>
-                  <TableCell align="right">{t('serials.columns.unitCost')}</TableCell>
-                  <TableCell>{t('serials.columns.warrantyExpires')}</TableCell>
-                  <TableCell>{t('serials.columns.receivedAt')}</TableCell>
-                  <TableCell>{t('serials.columns.soldAt')}</TableCell>
-                  <TableCell align="center">{t('serials.columns.actions')}</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {serialsQuery.isLoading && <TableStateRow colSpan={9} loading />}
-
-                {!serialsQuery.isLoading && serials.length === 0 && (
-                  <TableStateRow colSpan={9} message={t('serials.empty')} />
-                )}
-
-                {serials.map((serial) => (
-                  <TableRow key={serial.id} hover>
-                    <TableCell>
-                      <Typography variant="subtitle2">{serial.serial_number}</Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Stack spacing={0.25}>
-                        <Typography variant="body2">{productLabel(serial)}</Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {serial.variation?.sku ?? serial.product?.sku ?? '-'}
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-                    <TableCell>
-                      <Stack spacing={0.25}>
-                        <Typography variant="body2">{serial.warehouse?.name ?? '-'}</Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {serial.warehouse?.branch_name ?? '-'}
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        size="small"
-                        label={t(`serials.status.${serial.status}`)}
-                        color={statusColor(serial.status)}
-                        variant="outlined"
-                      />
-                    </TableCell>
-                    <TableCell align="right">{formatQuantity(serial.unit_cost)}</TableCell>
-                    <TableCell>{formatAppDate(serial.warranty_expires, dateFormat, i18n.language)}</TableCell>
-                    <TableCell>{formatAppDateTime(serial.received_at, dateFormat, i18n.language)}</TableCell>
-                    <TableCell>{formatAppDateTime(serial.sold_at, dateFormat, i18n.language)}</TableCell>
-                    <TableCell align="center">
-                      <RowActions
-                        viewLabel={t('serials.actions.view')}
-                        editLabel={t('serials.actions.writeOff')}
-                        deleteLabel={t('common:buttons.delete')}
-                        showView
-                        showEdit={canWriteOffSerial(serial, canAdjust)}
-                        showDelete={false}
-                        onView={() => setViewingSerial(serial)}
-                        onEdit={() => openWriteOffDialog(serial)}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          <TablePagination
-            component="div"
-            count={meta?.total ?? 0}
-            page={page}
-            rowsPerPage={perPage}
-            rowsPerPageOptions={rowsPerPageOptions}
-            onPageChange={(_, nextPage) => setPage(nextPage)}
-            onRowsPerPageChange={(event) => {
-              setPerPage(Number(event.target.value))
-              setPage(0)
-            }}
+      <EntityTable
+        rows={serials}
+        columns={columns}
+        getRowKey={(serial) => serial.id}
+        loading={serialsQuery.isLoading}
+        emptyIcon={<Inventory2Outlined />}
+        emptyTitle={t('serials.empty')}
+        emptyDescription=""
+        pagination={{
+          page,
+          rowsPerPage: perPage,
+          count: meta?.total ?? 0,
+          onPageChange: handlePageChange,
+          onRowsPerPageChange: handleRowsPerPageChange,
+        }}
+        rowActions={(serial) => (
+          <RowActions
+            viewLabel={t('serials.actions.view')}
+            editLabel={t('serials.actions.writeOff')}
+            deleteLabel={t('common:buttons.delete')}
+            showView
+            showEdit={canWriteOffSerial(serial, canAdjust)}
+            showDelete={false}
+            onView={() => setViewingSerial(serial)}
+            onEdit={() => openWriteOffDialog(serial)}
           />
-        </CardContent>
-      </Card>
+        )}
+      />
 
       <Dialog open={!!viewingSerial} onClose={() => setViewingSerial(null)} fullWidth maxWidth="md">
         <DialogTitle>{selectedSerial?.serial_number ?? t('serials.detail.title')}</DialogTitle>
@@ -372,9 +419,17 @@ export default function StockSerialsPage() {
                 </Box>
                 <Box>
                   <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                    {t('serials.columns.saleItem')}
+                    {t('serials.columns.reference')}
                   </Typography>
-                  <Typography variant="body2">{selectedSerial.sale_item_id ?? '-'}</Typography>
+                  {selectedSerial.purchase_reference && (
+                    <Typography variant="body2">{selectedSerial.purchase_reference}</Typography>
+                  )}
+                  {selectedSerial.sale_reference && (
+                    <Typography variant="body2">{selectedSerial.sale_reference}</Typography>
+                  )}
+                  {!selectedSerial.purchase_reference && !selectedSerial.sale_reference && (
+                    <Typography variant="body2">-</Typography>
+                  )}
                 </Box>
               </Box>
               {selectedSerial.notes && (

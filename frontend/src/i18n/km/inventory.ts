@@ -250,6 +250,7 @@ const inventory = {
       serialNumber: 'លេខសៀរៀល',
       product: 'ផលិតផល',
       warehouse: 'ឃ្លាំង',
+      reference: 'ឯកសារយោង',
       supplier: 'អ្នកផ្គត់ផ្គង់',
       status: 'ស្ថានភាព',
       unitCost: 'ថ្លៃដើមក្នុងមួយឯកតា',

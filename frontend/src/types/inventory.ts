@@ -496,7 +496,8 @@ export interface StockSerial {
   serial_number: string
   status: StockSerialStatus
   purchase_item_id: string | null
-  sale_item_id: string | null
+  purchase_reference: string | null
+  sale_reference: string | null
   unit_cost: string | number | null
   warranty_expires: string | null
   received_at: string | null

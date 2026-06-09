@@ -20,7 +20,7 @@ class StockSerialRepository extends BaseRepository
         $perPage = max(1, min((int) ($filters['per_page'] ?? 15), 100));
 
         $query = $this->query()
-            ->with(['product', 'variation', 'warehouse.branch', 'supplier'])
+            ->with(['product', 'variation', 'warehouse.branch', 'supplier', 'purchaseItem.purchase', 'saleItemSerials.saleItem.sale'])
             ->when(
                 filled($filters['search'] ?? null),
                 function ($query) use ($filters): void {
@@ -38,8 +38,11 @@ class StockSerialRepository extends BaseRepository
             ->when(filled($filters['variation_id'] ?? null), fn ($query) => $query->where('variation_id', $filters['variation_id']))
             ->when(filled($filters['status'] ?? null), fn ($query) => $query->where('status', $filters['status']))
             ->when($user && ! $user->hasRole('super_admin'), function ($query) use ($user): void {
-                $query->whereHas('warehouse', function ($warehouseQuery) use ($user): void {
-                    BranchAccess::scopeBranchQuery($warehouseQuery, $user, 'branch_id');
+                $query->where(function ($q) use ($user): void {
+                    $q->whereNull('warehouse_id')
+                        ->orWhereHas('warehouse', function ($warehouseQuery) use ($user): void {
+                            BranchAccess::scopeBranchQuery($warehouseQuery, $user, 'branch_id');
+                        });
                 });
             })
             ->orderBy('serial_number');
