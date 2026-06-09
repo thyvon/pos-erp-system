@@ -255,6 +255,7 @@ export function PosCartSection({
             </TableBody>
           </Table>
         </TableContainer>
+
         <Stack
           spacing={1}
           sx={{
@@ -378,64 +379,74 @@ export function PosCartSection({
             </Box>
           ))}
         </Stack>
-        {children}
       </Box>
 
       <Box
         sx={{
           flex: '0 0 auto',
-          border: 1,
-          borderColor: 'divider',
-          borderRadius: 1,
-          overflow: 'hidden',
+          position: 'sticky',
+          bottom: 0,
+          zIndex: 2,
+          bgcolor: 'background.paper',
+          boxShadow: '0 -8px 20px rgba(15, 23, 42, 0.08)',
         }}
       >
         <Box
           sx={{
-            display: 'grid',
-            gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(5, minmax(0, 1fr))' },
+            border: 1,
+            borderColor: 'divider',
+            borderRadius: 1,
+            overflow: 'hidden',
           }}
         >
-          {[
-            { key: 'items', label: t('pos.summary.items'), value: watchedItems.length.toString() },
-            { key: 'subtotal', label: t('fields.subtotal'), value: currencyFormatter.format(totals.subtotal) },
-            { key: 'discount', label: t('fields.discount'), value: currencyFormatter.format(totals.discount), color: 'error.main', edit: 'discount' as const },
-            { key: 'tax', label: t('fields.tax'), value: currencyFormatter.format(totals.tax), edit: 'tax' as const },
-            { key: 'shipping', label: t('fields.shipping'), value: currencyFormatter.format(totals.shipping), edit: 'shipping' as const },
-          ].map((item) => (
-            <Box
-              key={item.key}
-              sx={{
-                p: 1.25,
-                textAlign: 'center',
-                borderRightWidth: { md: 1 },
-                borderRightStyle: { md: 'solid' },
-                borderRightColor: 'divider',
-                borderBottomWidth: { xs: 1, md: 0 },
-                borderBottomStyle: { xs: 'solid', md: 'none' },
-                borderBottomColor: 'divider',
-                '&:nth-of-type(2n)': { borderRightWidth: { xs: 0, md: 1 } },
-                '&:nth-of-type(5)': { borderRightWidth: 0, borderBottomWidth: 0 },
-              }}
-            >
-              <Stack direction="row" spacing={0.5} sx={{ justifyContent: 'center', alignItems: 'center' }}>
-                <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase' }}>
-                  {item.label}
+          <Box
+            sx={{
+              display: 'grid',
+              gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(5, minmax(0, 1fr))' },
+            }}
+          >
+            {[
+              { key: 'items', label: t('pos.summary.items'), value: watchedItems.length.toString() },
+              { key: 'subtotal', label: t('fields.subtotal'), value: currencyFormatter.format(totals.subtotal) },
+              { key: 'discount', label: t('fields.discount'), value: currencyFormatter.format(totals.discount), color: 'error.main', edit: 'discount' as const },
+              { key: 'tax', label: t('fields.tax'), value: currencyFormatter.format(totals.tax), edit: 'tax' as const },
+              { key: 'shipping', label: t('fields.shipping'), value: currencyFormatter.format(totals.shipping), edit: 'shipping' as const },
+            ].map((item) => (
+              <Box
+                key={item.key}
+                sx={{
+                  p: 1.25,
+                  textAlign: 'center',
+                  borderRightWidth: { md: 1 },
+                  borderRightStyle: { md: 'solid' },
+                  borderRightColor: 'divider',
+                  borderBottomWidth: { xs: 1, md: 0 },
+                  borderBottomStyle: { xs: 'solid', md: 'none' },
+                  borderBottomColor: 'divider',
+                  '&:nth-of-type(2n)': { borderRightWidth: { xs: 0, md: 1 } },
+                  '&:nth-of-type(5)': { borderRightWidth: 0, borderBottomWidth: 0 },
+                }}
+              >
+                <Stack direction="row" spacing={0.5} sx={{ justifyContent: 'center', alignItems: 'center' }}>
+                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase' }}>
+                    {item.label}
+                  </Typography>
+                  {item.edit && (
+                    <Tooltip title={t('pos.summary.edit')}>
+                      <IconButton size="small" onClick={() => onEditSummary(item.edit)} sx={{ p: 0.25 }}>
+                        <EditOutlined fontSize="small" />
+                      </IconButton>
+                    </Tooltip>
+                  )}
+                </Stack>
+                <Typography variant="subtitle2" sx={{ color: item.color ?? 'text.primary', fontWeight: 800 }}>
+                  {item.value}
                 </Typography>
-                {item.edit && (
-                  <Tooltip title={t('pos.summary.edit')}>
-                    <IconButton size="small" onClick={() => onEditSummary(item.edit)} sx={{ p: 0.25 }}>
-                      <EditOutlined fontSize="small" />
-                    </IconButton>
-                  </Tooltip>
-                )}
-              </Stack>
-              <Typography variant="subtitle2" sx={{ color: item.color ?? 'text.primary', fontWeight: 800 }}>
-                {item.value}
-              </Typography>
-            </Box>
-          ))}
+              </Box>
+            ))}
+          </Box>
         </Box>
+        {children}
       </Box>
     </Box>
   )
