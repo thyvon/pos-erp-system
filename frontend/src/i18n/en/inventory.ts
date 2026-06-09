@@ -38,6 +38,7 @@ const inventory = {
     emptyItems: 'Search a product to add the first opening stock line.',
     actions: {
       new: 'New opening stock',
+      import: 'Import from Excel',
       view: 'View opening stock',
       removeItem: 'Remove item',
     },
@@ -82,6 +83,19 @@ const inventory = {
     detail: {
       title: 'Opening stock detail',
       subtitle: 'Opening stock documents are immutable after creation.',
+    },
+    import: {
+      title: 'Import opening stock from file',
+      notice: 'Upload an Excel or CSV file. Use the template to ensure correct column format.',
+      chooseFile: 'Choose file',
+      downloadTemplate: 'Download template',
+      validation: {
+        fileRequired: 'Please select a file to import.',
+        warehouseRequired: 'Warehouse is required.',
+        dateRequired: 'Date is required.',
+      },
+      resultSuccess: '{{count}} items imported successfully.',
+      resultPartial: 'Imported {{imported}} items, {{skipped}} skipped.',
     },
     messages: {
       created: 'Opening stock created.',

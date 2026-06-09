@@ -587,3 +587,9 @@ export interface StockSerialFilters {
 export interface StockSerialWriteOffPayload {
   reason: string
 }
+
+export interface StockImportResult {
+  imported: number
+  skipped: number
+  errors: string[]
+}

@@ -16,6 +16,8 @@ return static function (): void {
     Route::get('inventory/product-lookup', InventoryProductLookupController::class)->middleware('can:inventory.index');
 
     Route::get('inventory/opening-balances', [StockOpeningBalanceController::class, 'index'])->middleware('can:inventory.index');
+    Route::get('inventory/opening-balances/import/template', [StockOpeningBalanceController::class, 'downloadTemplate'])->middleware('can:inventory.adjust');
+    Route::post('inventory/opening-balances/import', [StockOpeningBalanceController::class, 'import'])->middleware('can:inventory.adjust');
     Route::post('inventory/opening-balances', [StockOpeningBalanceController::class, 'store'])->middleware('can:inventory.adjust');
     Route::get('inventory/opening-balances/{stockOpeningBalance}', [StockOpeningBalanceController::class, 'show'])->middleware('can:inventory.index');
 

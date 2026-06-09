@@ -174,6 +174,7 @@
 - [x] Date month display uses abbreviated English month names and full Khmer month names while preserving the configured date order.
 - [x] Date-format alignment verified with focused auth API test, frontend type-check, and frontend lint.
 - [x] Stock Opening Balance backend and frontend added as a separate first-stock workflow with immutable documents, standard/lot/serial handling, branch-scoped warehouse access, sidebar route, translations, focused backend tests, and frontend local check verification.
+- [x] Stock Opening Balance Excel import added with backend import class (ToCollection + WithHeadingRow), template export, import form request, controller import/downloadTemplate methods, routes, frontend import dialog with file upload/warehouse/date/notes, download template link, API/hooks/mutation, and translations; verified with all 47 inventory tests passing and frontend type-check/lint.
 
 ## Purchases Backend Foundation
 

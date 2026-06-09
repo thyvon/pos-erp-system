@@ -163,6 +163,21 @@ export function useCreateStockOpeningBalanceMutation() {
   })
 }
 
+export function useImportStockOpeningBalanceMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (formData: FormData) => stockOpeningBalancesApi.importFromFile(formData),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: stockOpeningBalanceKeys.all })
+      queryClient.invalidateQueries({ queryKey: stockLevelKeys.all })
+      queryClient.invalidateQueries({ queryKey: stockLotKeys.all })
+      queryClient.invalidateQueries({ queryKey: stockSerialKeys.all })
+      queryClient.invalidateQueries({ queryKey: inventoryKeys.all })
+    },
+  })
+}
+
 export function useStockTransfersQuery(filters: StockTransferFilters) {
   return useQuery({
     queryKey: stockTransferKeys.list(filters),

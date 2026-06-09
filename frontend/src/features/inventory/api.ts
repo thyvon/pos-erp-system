@@ -16,6 +16,7 @@ import type {
   StockCountItemFilters,
   StockCountItemUpdatePayload,
   StockCountPayload,
+  StockImportResult,
   StockLevel,
   StockLevelFilters,
   StockLot,
@@ -31,6 +32,7 @@ import type {
   StockTransferFilters,
   StockTransferPayload,
 } from '@/types/inventory'
+import api from '@/api/axios'
 
 export const inventoryApi = {
   options: () => apiClient.get<InventoryOptions>('/v1/inventory/options'),
@@ -54,6 +56,10 @@ export const stockOpeningBalancesApi = {
   show: (id: string) => apiClient.get<StockOpeningBalance>(`/v1/inventory/opening-balances/${id}`),
   create: (payload: StockOpeningBalancePayload) =>
     apiClient.post<StockOpeningBalance, StockOpeningBalancePayload>('/v1/inventory/opening-balances', payload),
+  downloadImportTemplate: () =>
+    api.get('/v1/inventory/opening-balances/import/template', { responseType: 'blob' }),
+  importFromFile: (formData: FormData) =>
+    apiClient.post<StockImportResult>('/v1/inventory/opening-balances/import', formData),
 }
 
 export const stockTransfersApi = {

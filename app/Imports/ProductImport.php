@@ -28,6 +28,7 @@ class ProductImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
 {
     private int $imported = 0;
     private int $skipped = 0;
+    private array $errors = [];
 
     public function __construct(
         private readonly Business $business,
@@ -39,15 +40,52 @@ class ProductImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
     public function collection(Collection $rows): void
     {
         $context = $this->buildContext();
+        $productRows = [];
+        $variationRows = [];
 
-        foreach ($rows as $row) {
+        foreach ($rows as $index => $row) {
+            $parentSku = $this->text($row, 'parent_sku');
+
+            if ($parentSku !== null) {
+                $variationRows[] = ['row' => $row, 'index' => $index, 'parent_sku' => $parentSku];
+            } else {
+                $productRows[] = ['row' => $row, 'index' => $index];
+            }
+        }
+
+        $variationsByParent = collect($variationRows)
+            ->groupBy(fn ($v) => $this->normalizeKey($v['parent_sku']))
+            ->map(fn (Collection $group) => $group->values()->all());
+
+        foreach ($productRows as $pr) {
             try {
-                $payload = $this->payloadFromRow($row, $context);
+                $payload = $this->payloadFromRow($pr['row'], $context);
+                $sku = $this->normalizeKey($this->text($pr['row'], 'sku'));
+
+                if ($sku !== '' && isset($variationsByParent[$sku])) {
+                    $payload['variations'] = $this->buildVariations(
+                        $variationsByParent[$sku],
+                        $payload['variation_template_ids'] ?? [],
+                        $context,
+                    );
+                }
+
                 $product = $this->productService->create((string) $this->business->id, $payload, $this->actor);
                 $this->addProductToContext($context, $product);
                 $this->imported++;
-            } catch (\Throwable) {
+            } catch (\Throwable $e) {
                 $this->skipped++;
+                $this->errors[] = 'Row '.($pr['index'] + 2).': '.$e->getMessage();
+            }
+        }
+
+        foreach ($variationRows as $vr) {
+            $parentSku = $this->normalizeKey($vr['parent_sku']);
+            $parentId = $context['products'][$parentSku] ?? null;
+
+            if ($parentId === null) {
+                $this->skipped++;
+                $this->errors[] = 'Row '.($vr['index'] + 2).': Parent product not found for SKU '.$vr['parent_sku'];
             }
         }
     }
@@ -60,6 +98,56 @@ class ProductImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
     public function getSkippedCount(): int
     {
         return $this->skipped;
+    }
+
+    public function getErrors(): array
+    {
+        return $this->errors;
+    }
+
+    private function buildVariations(array $variationRows, array $templateIds, array $context): array
+    {
+        return collect($variationRows)->map(function (array $vr) use ($templateIds, $context): array {
+            $row = $vr['row'];
+            $rawValues = $this->text($row, 'variation_values');
+            $valueIds = $this->variationValueIdsFromText($rawValues, $templateIds, $context);
+
+            return [
+                'name' => $this->text($row, 'variation_name') ?? implode('-', $this->variationValueLabels($rawValues)),
+                'variation_value_ids' => $valueIds,
+                'sku' => $this->text($row, 'variation_sku'),
+                'sub_unit_id' => $this->resolve($this->text($row, 'sub_unit'), $context['sub_units']),
+                'selling_price' => $this->requiredDecimal($this->value($row, 'variation_selling_price'), 'variation_selling_price'),
+                'purchase_price' => $this->requiredDecimal($this->value($row, 'variation_purchase_price'), 'variation_purchase_price'),
+                'sub_unit_selling_price' => $this->decimal($this->value($row, 'variation_sub_unit_selling_price')),
+                'sub_unit_purchase_price' => $this->decimal($this->value($row, 'variation_sub_unit_purchase_price')),
+                'minimum_selling_price' => $this->decimal($this->value($row, 'variation_minimum_selling_price')),
+                'profit_margin' => $this->decimal($this->value($row, 'variation_profit_margin')),
+                'is_active' => $this->boolean($this->value($row, 'variation_is_active'), true),
+            ];
+        })->values()->all();
+    }
+
+    private function variationValueIdsFromText(?string $rawValues, array $templateIds, array $context): array
+    {
+        if ($rawValues === null || $rawValues === '') {
+            throw new InvalidArgumentException('Variation values are required for variable products.');
+        }
+
+        $values = $this->listValues($rawValues);
+
+        if (count($values) !== count($templateIds)) {
+            throw new InvalidArgumentException('Each variation must contain one value for each template.');
+        }
+
+        return collect($templateIds)
+            ->map(fn (string $templateId, int $index) => $this->resolve((string) $values[$index], $context['variation_values'][$templateId] ?? [], true))
+            ->all();
+    }
+
+    private function variationValueLabels(?string $rawValues): array
+    {
+        return $rawValues === null ? [] : $this->listValues($rawValues);
     }
 
     private function buildContext(): array
@@ -180,7 +268,6 @@ class ProductImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
             $templateIds = $this->templateIds($row, $context['variation_templates']);
             $payload['variation_template_id'] = $templateIds[0] ?? null;
             $payload['variation_template_ids'] = $templateIds;
-            $payload['variations'] = $this->variations($row, $templateIds, $context);
         }
 
         if ($type === 'combo') {
@@ -249,7 +336,12 @@ class ProductImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
 
     private function templateIds(Collection|array $row, array $templateLookup): array
     {
-        $raw = $this->value($row, 'variation_templates') ?? $this->value($row, 'variation_template_ids');
+        $raw = $this->text($row, 'variation_templates') ?? $this->text($row, 'variation_template_ids');
+
+        if ($raw === null) {
+            throw new InvalidArgumentException('Variable products require variation templates.');
+        }
+
         $values = $this->listValues($raw);
 
         if ($values === []) {
@@ -263,80 +355,16 @@ class ProductImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
             ->all();
     }
 
-    private function variations(Collection|array $row, array $templateIds, array $context): array
-    {
-        $items = $this->structuredList($this->value($row, 'variations'));
-
-        if ($templateIds === [] || $items === []) {
-            throw new InvalidArgumentException('Variable products require at least one variation.');
-        }
-
-        return collect($items)->map(function (array $item) use ($templateIds, $context): array {
-            $rawValues = $item['variation_value_ids']
-                ?? $item['variation_values']
-                ?? $item['values']
-                ?? null;
-            $valueIds = $this->variationValueIds($rawValues, $templateIds, $context['variation_values']);
-
-            return [
-                'name' => $this->textFrom($item['name'] ?? null) ?? implode('-', $this->variationValueLabels($rawValues)),
-                'variation_value_ids' => $valueIds,
-                'sku' => $this->textFrom($item['sku'] ?? null),
-                'sub_unit_id' => $this->resolve($this->textFrom($item['sub_unit'] ?? $item['sub_unit_id'] ?? null), $context['sub_units']),
-                'selling_price' => $this->requiredDecimal($item['selling_price'] ?? null, 'variation selling_price'),
-                'purchase_price' => $this->requiredDecimal($item['purchase_price'] ?? null, 'variation purchase_price'),
-                'sub_unit_selling_price' => $this->decimal($item['sub_unit_selling_price'] ?? null),
-                'sub_unit_purchase_price' => $this->decimal($item['sub_unit_purchase_price'] ?? null),
-                'minimum_selling_price' => $this->decimal($item['minimum_selling_price'] ?? null),
-                'profit_margin' => $this->decimal($item['profit_margin'] ?? null),
-                'is_active' => $this->boolean($item['is_active'] ?? null, true),
-            ];
-        })->all();
-    }
-
-    private function variationValueIds(mixed $rawValues, array $templateIds, array $valuesByTemplate): array
-    {
-        if ($rawValues === null || $rawValues === '') {
-            throw new InvalidArgumentException('Variation values are required.');
-        }
-
-        $values = is_array($rawValues) ? $rawValues : $this->listValues($rawValues);
-
-        if (array_is_list($values)) {
-            if (count($values) !== count($templateIds)) {
-                throw new InvalidArgumentException('Each variation must contain one value for each template.');
-            }
-
-            return collect($templateIds)
-                ->map(fn (string $templateId, int $index) => $this->resolve((string) $values[$index], $valuesByTemplate[$templateId] ?? [], true))
-                ->all();
-        }
-
-        return collect($templateIds)
-            ->map(function (string $templateId) use ($values, $valuesByTemplate): string {
-                $templateValue = $values[$templateId] ?? null;
-
-                if ($templateValue === null) {
-                    throw new InvalidArgumentException('Variation value map is missing a selected template value.');
-                }
-
-                return $this->resolve((string) $templateValue, $valuesByTemplate[$templateId] ?? [], true);
-            })
-            ->all();
-    }
-
-    private function variationValueLabels(mixed $rawValues): array
-    {
-        if (is_array($rawValues)) {
-            return array_is_list($rawValues) ? array_map('strval', $rawValues) : array_map('strval', array_values($rawValues));
-        }
-
-        return $this->listValues($rawValues);
-    }
-
     private function comboItems(Collection|array $row, array $context): array
     {
-        $items = $this->structuredList($this->value($row, 'combo_items'));
+        $json = $this->text($row, 'combo_items');
+        $decoded = $json !== null ? $this->decodeJson($json) : null;
+
+        if (! is_array($decoded) || ! array_is_list($decoded)) {
+            throw new InvalidArgumentException('Combo products require at least one combo item in JSON format.');
+        }
+
+        $items = array_values(array_filter($decoded, 'is_array'));
 
         if ($items === []) {
             throw new InvalidArgumentException('Combo products require at least one combo item.');
@@ -374,17 +402,6 @@ class ProductImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
         }
 
         return $customFields;
-    }
-
-    private function structuredList(mixed $value): array
-    {
-        $decoded = $this->decodeJson($value);
-
-        if (is_array($decoded) && array_is_list($decoded)) {
-            return array_values(array_filter($decoded, 'is_array'));
-        }
-
-        return [];
     }
 
     private function associativeValue(mixed $value): array
