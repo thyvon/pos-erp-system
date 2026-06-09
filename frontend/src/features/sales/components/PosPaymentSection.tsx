@@ -109,7 +109,6 @@ export function PosPaymentSection({
           render={({ field }) => (
             <Autocomplete
               fullWidth
-              size={compact ? 'small' : undefined}
               disabled={lineDisabled}
               options={paymentAccounts}
               value={paymentAccounts.find((account) => account.id === field.value) ?? null}
@@ -140,7 +139,6 @@ export function PosPaymentSection({
             <TextField
               {...field}
               fullWidth
-              size={compact ? 'small' : undefined}
               value={field.value ?? 'USD'}
               select
               disabled={lineDisabled}
@@ -164,7 +162,6 @@ export function PosPaymentSection({
             <TextField
               {...field}
               fullWidth
-              size={compact ? 'small' : undefined}
               value={field.value ?? ''}
               type="number"
               disabled={lineDisabled}
@@ -191,7 +188,6 @@ export function PosPaymentSection({
             <TextField
               {...field}
               fullWidth
-              size={compact ? 'small' : undefined}
               value={field.value ?? 'cash'}
               select
               disabled={lineDisabled}
@@ -227,16 +223,12 @@ export function PosPaymentSection({
   return (
     <Box
       sx={{
-        position: 'sticky',
-        bottom: 0,
-        zIndex: 2,
         display: 'grid',
         gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1fr) minmax(220px, 260px)' },
         alignItems: 'stretch',
         borderTop: 1,
         borderColor: 'divider',
         bgcolor: 'background.paper',
-        boxShadow: '0 -8px 20px rgba(15, 23, 42, 0.08)',
       }}
     >
       <Box sx={{ minWidth: 0, p: 1.25 }}>
@@ -259,7 +251,7 @@ export function PosPaymentSection({
             {!defaultExchangeRateLoading && !hasDefaultExchangeRate && <Alert severity="info">{t('payment.noExchangeRate')}</Alert>}
             {typeof errors.direct_payments?.message === 'string' && <Alert severity="error">{errors.direct_payments.message}</Alert>}
 
-            <TableContainer sx={{ display: { xs: 'none', md: 'block' }, border: 1, borderColor: 'divider', borderRadius: 1, maxHeight: 240, overflow: 'auto' }}>
+            <TableContainer sx={{ display: { xs: 'none', md: 'block' }, border: 1, borderColor: 'divider', borderRadius: 1, maxHeight: 260, overflow: 'auto' }}>
               <Table stickyHeader size="small" sx={{ minWidth: 776, tableLayout: 'fixed' }}>
                 <TableHead>
                   <TableRow>
