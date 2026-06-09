@@ -244,24 +244,28 @@ export function PosPaymentSection({
             label: t('pos.totalPayable'),
             value: totalDisplay.usd.replace('USD ', ''),
             helper: totalDisplay.khr,
+            valueColor: 'success.dark',
           },
           {
             key: 'entered',
             label: t('payment.totalEntered'),
             value: paymentDisplay.usd,
             helper: paymentDisplay.khr,
+            valueColor: 'success.dark',
           },
           {
             key: change > 0 ? 'change' : 'remaining',
             label: change > 0 ? t('payment.changeBack') : t('payment.remaining'),
             value: change > 0 ? changeDisplay.usd : remainingDisplay.usd,
             helper: change > 0 ? changeDisplay.khr : remainingDisplay.khr,
+            valueColor: change > 0 ? 'success.dark' : 'warning.dark',
           },
           {
             key: 'lines',
             label: t('payment.directTitle'),
             value: directPaymentFields.length.toString(),
             helper: t('payment.addLine'),
+            valueColor: 'success.dark',
           },
         ].map((item) => (
           <Box
@@ -285,10 +289,10 @@ export function PosPaymentSection({
                 {item.label}
               </Typography>
               <Stack direction="row" spacing={0.75} sx={{ alignItems: 'baseline', justifyContent: 'flex-end', minWidth: 0 }}>
-                <Typography variant="subtitle2" sx={{ color: 'success.dark', fontWeight: 900, minWidth: 0 }} noWrap>
+                <Typography variant="body1" sx={{ color: item.valueColor, fontWeight: 900, lineHeight: 1.25, minWidth: 0 }} noWrap>
                   {item.value}
                 </Typography>
-                <Typography variant="caption" sx={{ color: 'success.dark', display: { xs: 'none', md: 'inline' }, minWidth: 0 }} noWrap>
+                <Typography variant="caption" sx={{ color: item.valueColor, display: { xs: 'none', md: 'inline' }, minWidth: 0 }} noWrap>
                   {item.helper}
                 </Typography>
               </Stack>
