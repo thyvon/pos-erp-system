@@ -402,7 +402,7 @@ export function PosCartSection({
           <Box
             sx={{
               display: 'grid',
-              gridTemplateColumns: { xs: 'repeat(2, 1fr)', md: 'repeat(5, minmax(0, 1fr))' },
+              gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: 'repeat(5, minmax(0, 1fr))' },
             }}
           >
             {[
@@ -415,33 +415,36 @@ export function PosCartSection({
               <Box
                 key={item.key}
                 sx={{
-                  p: 1.25,
-                  textAlign: 'center',
-                  borderRightWidth: { md: 1 },
-                  borderRightStyle: { md: 'solid' },
+                  px: 1,
+                  py: 0.5,
+                  minWidth: 0,
+                  borderRightWidth: { sm: 1, lg: 1 },
+                  borderRightStyle: { sm: 'solid' },
                   borderRightColor: 'divider',
-                  borderBottomWidth: { xs: 1, md: 0 },
-                  borderBottomStyle: { xs: 'solid', md: 'none' },
+                  borderBottomWidth: { xs: 1, lg: 0 },
+                  borderBottomStyle: { xs: 'solid', lg: 'none' },
                   borderBottomColor: 'divider',
-                  '&:nth-of-type(2n)': { borderRightWidth: { xs: 0, md: 1 } },
+                  '&:nth-of-type(2n)': { borderRightWidth: { sm: 0, lg: 1 } },
                   '&:nth-of-type(5)': { borderRightWidth: 0, borderBottomWidth: 0 },
                 }}
               >
-                <Stack direction="row" spacing={0.5} sx={{ justifyContent: 'center', alignItems: 'center' }}>
-                  <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase' }}>
-                    {item.label}
+                <Stack direction="row" spacing={0.75} sx={{ alignItems: 'baseline', justifyContent: 'space-between', minWidth: 0 }}>
+                  <Stack direction="row" spacing={0.25} sx={{ alignItems: 'center', minWidth: 0 }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', flex: '0 0 auto' }}>
+                      {item.label}
+                    </Typography>
+                    {item.edit && (
+                      <Tooltip title={t('pos.summary.edit')}>
+                        <IconButton size="small" onClick={() => onEditSummary(item.edit)} sx={{ p: 0.25, flex: '0 0 auto' }}>
+                          <EditOutlined fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                  </Stack>
+                  <Typography variant="subtitle2" sx={{ color: item.color ?? 'text.primary', fontWeight: 800, minWidth: 0 }} noWrap>
+                    {item.value}
                   </Typography>
-                  {item.edit && (
-                    <Tooltip title={t('pos.summary.edit')}>
-                      <IconButton size="small" onClick={() => onEditSummary(item.edit)} sx={{ p: 0.25 }}>
-                        <EditOutlined fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  )}
                 </Stack>
-                <Typography variant="subtitle2" sx={{ color: item.color ?? 'text.primary', fontWeight: 800 }}>
-                  {item.value}
-                </Typography>
               </Box>
             ))}
           </Box>
