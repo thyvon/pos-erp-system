@@ -10,12 +10,9 @@ import {
   DialogContent,
   DialogTitle,
   FormControl,
-  FormControlLabel,
   FormHelperText,
   InputLabel,
   MenuItem,
-  Radio,
-  RadioGroup,
   Select,
   Stack,
   Typography,
@@ -24,6 +21,7 @@ import { useQuery } from '@tanstack/react-query'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { invoicePrintApi } from '../api'
+import { printInvoice } from '../printInvoice'
 import type { Sale } from '@/types/sales'
 
 interface InvoicePrintDialogProps {
@@ -35,7 +33,6 @@ interface InvoicePrintDialogProps {
 export function InvoicePrintDialog({ open, sale, onClose }: InvoicePrintDialogProps) {
   const { t } = useTranslation(['sales', 'common'])
   const [selectedTemplate, setSelectedTemplate] = useState('')
-  const [printMode, setPrintMode] = useState<'download' | 'preview'>('download')
   const [isProcessing, setIsProcessing] = useState(false)
   const [errorMessage, setErrorMessage] = useState('')
 
@@ -52,33 +49,10 @@ export function InvoicePrintDialog({ open, sale, onClose }: InvoicePrintDialogPr
     setErrorMessage('')
     setIsProcessing(true)
 
-    const previewWindow = printMode === 'preview' ? window.open('', '_blank', 'noopener,noreferrer') : null
-
     try {
-      const blob = printMode === 'download'
-        ? await invoicePrintApi.downloadPdf(sale.id, activeTemplate)
-        : await invoicePrintApi.viewPdf(sale.id, activeTemplate)
-      const url = URL.createObjectURL(new Blob([blob], { type: 'application/pdf' }))
-
-      if (printMode === 'download') {
-        const link = document.createElement('a')
-        link.href = url
-        link.download = `${sale.sale_number.replace(/[\\/]/g, '-')}.pdf`
-        document.body.appendChild(link)
-        link.click()
-        link.remove()
-        URL.revokeObjectURL(url)
-      } else if (previewWindow) {
-        previewWindow.location.href = url
-        window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
-      } else {
-        window.open(url, '_blank', 'noopener,noreferrer')
-        window.setTimeout(() => URL.revokeObjectURL(url), 60_000)
-      }
-
+      await printInvoice(sale.id, t('print.templateTitle'), t('print.frameUnavailable'), activeTemplate)
       onClose()
     } catch (error) {
-      previewWindow?.close()
       setErrorMessage(toAppApiError(error).message)
     } finally {
       setIsProcessing(false)
@@ -87,7 +61,7 @@ export function InvoicePrintDialog({ open, sale, onClose }: InvoicePrintDialogPr
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="sm">
-      <DialogTitle>{t('print.title')}</DialogTitle>
+      <DialogTitle>{t('print.templateTitle')}</DialogTitle>
       <DialogContent dividers>
         <Stack spacing={3} sx={{ pt: 0.5 }}>
           {errorMessage && (
@@ -107,16 +81,16 @@ export function InvoicePrintDialog({ open, sale, onClose }: InvoicePrintDialogPr
                   labelId="invoice-template-label"
                   label={t('print.template')}
                   value={activeTemplate}
-                  onChange={(e) => setSelectedTemplate(e.target.value)}
+                  onChange={(event) => setSelectedTemplate(event.target.value)}
                 >
-                  {templates.map((tpl) => (
-                    <MenuItem key={tpl.id} value={tpl.id}>
+                  {templates.map((template) => (
+                    <MenuItem key={template.id} value={template.id}>
                       <Box>
                         <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                          {tpl.name}
+                          {template.name}
                         </Typography>
                         <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {tpl.description}
+                          {template.description}
                         </Typography>
                       </Box>
                     </MenuItem>
@@ -124,22 +98,9 @@ export function InvoicePrintDialog({ open, sale, onClose }: InvoicePrintDialogPr
                 </Select>
                 <FormHelperText>{t('print.templateHelp')}</FormHelperText>
               </FormControl>
-
-              <RadioGroup
-                  value={printMode}
-                  onChange={(e) => setPrintMode(e.target.value as 'download' | 'preview')}
-                >
-                  <FormControlLabel
-                    value="download"
-                    control={<Radio />}
-                    label={<Typography variant="body2">{t('print.download')}</Typography>}
-                  />
-                  <FormControlLabel
-                    value="preview"
-                    control={<Radio />}
-                    label={<Typography variant="body2">{t('print.preview')}</Typography>}
-                  />
-                </RadioGroup>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                {t('print.templateOverrideHelp')}
+              </Typography>
             </>
           )}
         </Stack>

@@ -26,7 +26,8 @@ import { UnitConversionBadge } from '@/features/sales/components/UnitConversionB
 import { UnitToggle } from '@/features/sales/components/UnitToggle'
 import { InventoryProductLookupPicker } from '@/features/inventory/components/InventoryProductLookupPicker'
 import type { InventoryProductLookupItem } from '@/types/inventory'
-import { lineTotal, round, toNumber } from '../formHelpers'
+import { CurrencyAmountStack } from './CurrencyAmountStack'
+import { formatUsdKhrAmount, lineTotal, round, toNumber } from '../formHelpers'
 import type { SaleFormInput, SaleFormValues } from '../schema'
 
 const cartColumnSx = {
@@ -54,6 +55,7 @@ interface PosCartSectionProps {
   isSaving: boolean
   currency: string
   currencyFormatter: Intl.NumberFormat
+  exchangeRate: number
   taxScope: string
   totals: CartTotals
   onSelectItem: (item: InventoryProductLookupItem) => void
@@ -82,6 +84,7 @@ export function PosCartSection({
   isSaving,
   currency,
   currencyFormatter,
+  exchangeRate,
   taxScope,
   totals,
   onSelectItem,
@@ -436,10 +439,10 @@ export function PosCartSection({
           >
             {[
               { key: 'items', label: t('pos.summary.items'), value: watchedItems.length.toString() },
-              { key: 'subtotal', label: t('fields.subtotal'), value: currencyFormatter.format(totals.subtotal) },
-              { key: 'discount', label: t('fields.discount'), value: currencyFormatter.format(totals.discount), color: 'error.main', edit: 'discount' as const },
-              { key: 'tax', label: t('fields.tax'), value: currencyFormatter.format(totals.tax), edit: 'tax' as const },
-              { key: 'shipping', label: t('fields.shipping'), value: currencyFormatter.format(totals.shipping), edit: 'shipping' as const },
+              { key: 'subtotal', label: t('fields.subtotal'), value: formatUsdKhrAmount(totals.subtotal, exchangeRate) },
+              { key: 'discount', label: t('fields.discount'), value: formatUsdKhrAmount(totals.discount, exchangeRate), color: 'error.main', edit: 'discount' as const },
+              { key: 'tax', label: t('fields.tax'), value: formatUsdKhrAmount(totals.tax, exchangeRate), edit: 'tax' as const },
+              { key: 'shipping', label: t('fields.shipping'), value: formatUsdKhrAmount(totals.shipping, exchangeRate), edit: 'shipping' as const },
             ].map((item) => (
               <Box
                 key={item.key}
@@ -459,7 +462,7 @@ export function PosCartSection({
               >
                 <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between', minWidth: 0 }}>
                   <Stack direction="row" spacing={0.35} sx={{ alignItems: 'center', minWidth: 0 }}>
-                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 800, textTransform: 'uppercase', flex: '0 0 auto' }}>
+                    <Typography variant="body2" sx={{ color: 'text.secondary', fontWeight: 900, textTransform: 'uppercase', flex: '0 0 auto' }}>
                       {item.label}
                     </Typography>
                     {item.edit && (
@@ -470,9 +473,13 @@ export function PosCartSection({
                       </Tooltip>
                     )}
                   </Stack>
-                  <Typography variant="subtitle2" sx={{ color: item.color ?? 'text.primary', fontWeight: 900, minWidth: 0 }} noWrap>
-                    {item.value}
-                  </Typography>
+                  {typeof item.value === 'string' ? (
+                    <Typography variant="subtitle2" sx={{ color: item.color ?? 'text.primary', fontWeight: 900, minWidth: 0 }} noWrap>
+                      {item.value}
+                    </Typography>
+                  ) : (
+                    <CurrencyAmountStack amount={item.value} color={item.color ?? 'text.primary'} />
+                  )}
                 </Stack>
               </Box>
             ))}

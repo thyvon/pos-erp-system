@@ -2,6 +2,12 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+@php
+  $documentTitle = $sale->type === 'pos_sale' ? __('RECEIPT') : __('INVOICE');
+  $documentDetailsLabel = $sale->type === 'pos_sale' ? __('Receipt Details') : __('Invoice Details');
+  $documentNumberLabel = $sale->type === 'pos_sale' ? __('Receipt No') : __('Invoice No');
+@endphp
+<title>{{ $documentTitle }} {{ $sale->sale_number }}</title>
 <style>
   @page { margin: 20px; }
   body {
@@ -54,6 +60,11 @@
   .terms .label { font-size: 8pt; font-weight: 700; text-transform: uppercase; color: #888; }
   .terms .text { font-size: 8.5pt; color: #555; }
   .footer { margin-top: 24px; text-align: center; font-size: 8pt; color: #999; }
+
+  @media print {
+    body { background: #fff; }
+    .invoice-box { box-shadow: none; }
+  }
 </style>
 </head>
 <body>
@@ -75,7 +86,7 @@
       </div>
     </div>
     <div class="header-right">
-      <p class="invoice-title">{{ __('INVOICE') }}</p>
+      <p class="invoice-title">{{ $documentTitle }}</p>
       <p class="invoice-number">{{ $sale->sale_number }}</p>
     </div>
   </div>
@@ -93,9 +104,9 @@
       </p>
     </div>
     <div class="info-block" style="text-align:right">
-      <div class="info-label">{{ __('Invoice Details') }}</div>
+      <div class="info-label">{{ $documentDetailsLabel }}</div>
       <p class="info-value">
-        <strong>{{ __('Invoice No') }}:</strong> {{ $sale->sale_number }}<br/>
+        <strong>{{ $documentNumberLabel }}:</strong> {{ $sale->sale_number }}<br/>
         <strong>{{ __('Date') }}:</strong> {{ $sale->sale_date }}<br/>
         @if ($sale->due_date) <strong>{{ __('Due Date') }}:</strong> {{ $sale->due_date }}<br/> @endif
         <strong>{{ __('Branch') }}:</strong> {{ $sale->branch->name ?? '-' }}<br/>

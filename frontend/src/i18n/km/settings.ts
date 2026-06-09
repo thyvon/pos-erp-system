@@ -84,6 +84,7 @@ export default {
     show_previous_due: 'បង្ហាញបំណុលមុន',
     terms_conditions: 'លក្ខខណ្ឌ',
     footer_note: 'ចំណាំបាតទំព័រ',
+    invoice_layout: 'ប្លង់វិក្កយបត្រលំនាំដើម',
     default_warehouse_id: 'លេខសម្គាល់ឃ្លាំងលំនាំដើម',
     allow_discount: 'អនុញ្ញាតបញ្ចុះតម្លៃ',
     max_discount_pct: 'បញ្ចុះតម្លៃអតិបរមា %',

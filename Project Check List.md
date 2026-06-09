@@ -110,6 +110,13 @@
 - [x] POS warehouse/customer/date header fields are extracted into a dedicated component while preserving branch synchronization and the add-customer action; frontend type-check, lint, and build verified.
 - [x] POS cart product line empty states now reuse compact `EmptyState` with the POS icon across desktop table and mobile card layouts, with the desktop empty table filling the available cart height; frontend type-check verified.
 - [x] POS product gallery empty state now reuses the shared compact `EmptyState` component with the product icon, matching customer/product table empty-state styling.
+- [x] POS cart and payment summary currency values now stack USD and KHR lines using `USD:`/`KHR:` labels instead of inline dual-currency text; frontend type-check verified.
+- [x] POS cart and payment summary currency values now use larger value text for easier cashier scanning; frontend type-check verified.
+- [x] POS cart and payment summary labels now use larger, bolder text to match the enlarged currency values; frontend type-check verified.
+- [x] POS payment summary strip no longer shows the extra Direct Payment count/Add line tile, leaving only payable, entered, and remaining/change totals; frontend type-check verified.
+- [x] POS summary currency lines now split currency labels and values into separate aligned columns for cleaner USD/KHR amount alignment; frontend type-check verified.
+- [x] POS summary currency labels now stay left-aligned in a fixed label column while values remain right-aligned; frontend type-check verified.
+- [x] POS Total Payable currency amount now renders larger than the other payment summary values for stronger cashier focus; frontend type-check verified.
 - [x] POS edit-line dialog now supports tracked product assignment by scanning/searching the matching lot or serial, stores the selected lot/serial IDs for the sale payload, and locks serial lines to one unit; frontend local check verified.
 - [x] Cash Register Management page added with branch/status filters, create/edit/delete actions, open/close session dialogs, recent sessions view, sidebar navigation, breadcrumbs, API hooks, types, and translations; frontend type-check, lint, and build verified.
 - [x] Cash Register Management page header and filters now use shared `PageHeader`/`PageToolbar` with active branch/status filter chips; frontend type-check, lint, and build verified.
@@ -241,6 +248,10 @@
 - [x] Sales and POS form default/value mapping deduplicated into shared Sales form helpers while preserving POS-specific form behavior; frontend type-check and lint verified.
 - [x] API error display hardened so UI extracts backend messages reliably, avoids vague raw Network Error copy, keeps raw 500 exception internals hidden in production, and has focused exception-rendering test coverage.
 - [x] Invoice print architecture fixed to use standard API template responses, authenticated Axios PDF blob download/preview, centralized invoice relationship loading, and focused invoice API test coverage.
+- [x] Invoice/POS receipt printing now follows Laravel Blade HTML/CSS to browser `window.print()` flow, with POS sales labeled as receipts and frontend print verification passing.
+- [x] Invoice/POS receipt printing now renders Blade HTML into an in-page browser frame before calling print, avoiding a separate browser tab; frontend type-check verified.
+- [x] Invoice/POS receipt printing now uses the saved `invoice.invoice_layout` setting as the default layout, so users are not asked to choose a template every print; frontend type-check verified.
+- [x] Sale detail printing now has a fast Print action that immediately uses the saved default layout, plus a separate Inv. Template action for one-off template override; frontend type-check verified.
 - [x] Solar icon frontend change verified with `npm.cmd run type-check`, `npm.cmd run lint`, and `npm.cmd run build`.
 - [x] Shared theme now aligns default button and outlined input heights while preserving compact small controls for dense tables.
 - [x] Layout settings now include persisted Small, Normal, and Large size options, with Normal matching the previous default theme density.

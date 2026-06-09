@@ -236,9 +236,14 @@ export function directPaymentLineBaseAmount(
 }
 
 export function formatUsdKhrAmount(amount: number, exchangeRate: number) {
+  const usd = amount.toLocaleString(undefined, {
+    minimumFractionDigits: Number.isInteger(amount) ? 0 : 2,
+    maximumFractionDigits: 2,
+  })
+
   return {
-    usd: `USD ${amount.toFixed(2)}`,
-    khr: exchangeRate > 0 ? `KHR ${Math.round(amount * exchangeRate).toLocaleString()}` : 'KHR -',
+    usd: `USD: ${usd}`,
+    khr: exchangeRate > 0 ? `KHR: ${Math.round(amount * exchangeRate).toLocaleString()}` : 'KHR: -',
   }
 }
 

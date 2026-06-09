@@ -926,6 +926,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
                 isSaving={isSaving}
                 currency={currency}
                 currencyFormatter={currencyFormatter}
+                exchangeRate={defaultExchangeRateValue}
                 taxScope={taxScope}
                 totals={totals}
                 onSelectItem={addLookupItem}

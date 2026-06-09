@@ -23,6 +23,7 @@ import { Controller, type Control, type FieldArrayWithId, type FieldErrors } fro
 import { useTranslation } from 'react-i18next'
 import { Add, DeleteOutlined } from '@/components/ui/icons'
 import type { PaymentAccount } from '@/types/accounting'
+import { CurrencyAmountStack } from './CurrencyAmountStack'
 import type { DirectPaymentLineInput } from '../formHelpers'
 import type { SaleFormInput, SaleFormValues } from '../schema'
 
@@ -232,7 +233,7 @@ export function PosPaymentSection({
       <Box
         sx={{
           display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: '1.15fr 1fr 1fr 1fr' },
+          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: '1.15fr 1fr 1fr' },
           borderBottom: 1,
           borderColor: 'divider',
           bgcolor: 'success.lighter',
@@ -242,30 +243,21 @@ export function PosPaymentSection({
           {
             key: 'total',
             label: t('pos.totalPayable'),
-            value: totalDisplay.usd.replace('USD ', ''),
-            helper: totalDisplay.khr,
+            amount: totalDisplay,
             valueColor: 'success.dark',
+            isPrimary: true,
           },
           {
             key: 'entered',
             label: t('payment.totalEntered'),
-            value: paymentDisplay.usd,
-            helper: paymentDisplay.khr,
+            amount: paymentDisplay,
             valueColor: 'success.dark',
           },
           {
             key: change > 0 ? 'change' : 'remaining',
             label: change > 0 ? t('payment.changeBack') : t('payment.remaining'),
-            value: change > 0 ? changeDisplay.usd : remainingDisplay.usd,
-            helper: change > 0 ? changeDisplay.khr : remainingDisplay.khr,
+            amount: change > 0 ? changeDisplay : remainingDisplay,
             valueColor: change > 0 ? 'success.dark' : 'warning.dark',
-          },
-          {
-            key: 'lines',
-            label: t('payment.directTitle'),
-            value: directPaymentFields.length.toString(),
-            helper: t('payment.addLine'),
-            valueColor: 'success.dark',
           },
         ].map((item) => (
           <Box
@@ -281,21 +273,19 @@ export function PosPaymentSection({
               borderBottomStyle: { xs: 'solid', lg: 'none' },
               borderBottomColor: 'divider',
               '&:nth-of-type(2n)': { borderRightWidth: { sm: 0, lg: 1 } },
-              '&:nth-of-type(4)': { borderRightWidth: 0, borderBottomWidth: 0 },
+              '&:nth-of-type(3)': { borderRightWidth: 0, borderBottomWidth: 0 },
             }}
           >
-            <Stack direction="row" spacing={0.75} sx={{ alignItems: 'baseline', justifyContent: 'space-between', minWidth: 0 }}>
-              <Typography variant="caption" sx={{ color: 'success.dark', fontWeight: 800, textTransform: 'uppercase', flex: '0 0 auto' }}>
+            <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center', justifyContent: 'space-between', minWidth: 0 }}>
+              <Typography variant="body2" sx={{ color: 'success.dark', fontWeight: 900, textTransform: 'uppercase', flex: '0 0 auto' }}>
                 {item.label}
               </Typography>
-              <Stack direction="row" spacing={0.75} sx={{ alignItems: 'baseline', justifyContent: 'flex-end', minWidth: 0 }}>
-                <Typography variant="body1" sx={{ color: item.valueColor, fontWeight: 900, lineHeight: 1.25, minWidth: 0 }} noWrap>
-                  {item.value}
-                </Typography>
-                <Typography variant="caption" sx={{ color: item.valueColor, display: { xs: 'none', md: 'inline' }, minWidth: 0 }} noWrap>
-                  {item.helper}
-                </Typography>
-              </Stack>
+              <CurrencyAmountStack
+                amount={item.amount}
+                color={item.valueColor}
+                primaryVariant={item.isPrimary ? 'h5' : 'h6'}
+                secondaryVariant={item.isPrimary ? 'body1' : 'body2'}
+              />
             </Stack>
           </Box>
         ))}

@@ -84,6 +84,7 @@ export default {
     show_previous_due: 'Show previous due',
     terms_conditions: 'Terms and conditions',
     footer_note: 'Footer note',
+    invoice_layout: 'Default invoice layout',
     default_warehouse_id: 'Default warehouse ID',
     allow_discount: 'Allow discount',
     max_discount_pct: 'Max discount %',

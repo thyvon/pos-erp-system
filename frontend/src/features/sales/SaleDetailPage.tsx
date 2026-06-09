@@ -30,6 +30,7 @@ import { toAppApiError } from '@/api/errors'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { UnitConversionBadge } from '@/features/sales/components/UnitConversionBadge'
 import { InvoicePrintDialog } from './components/InvoicePrintDialog'
+import { printInvoice } from './printInvoice'
 import { SaleCancelDialog } from './SaleCancelDialog'
 import { SalePaymentDialog } from './SalePaymentDialog'
 import { SaleReturnDialog } from './SaleReturnDialog'
@@ -133,6 +134,7 @@ export function SaleDetailPage({ saleId }: SaleDetailPageProps) {
   const [paymentOpen, setPaymentOpen] = useState(false)
   const [returnOpen, setReturnOpen] = useState(false)
   const [printOpen, setPrintOpen] = useState(false)
+  const [isPrinting, setIsPrinting] = useState(false)
   const [historyOpen, setHistoryOpen] = useState(false)
   const saleQuery = useSaleQuery(saleId)
   const paymentAccountsQuery = usePaymentAccountsQuery({ status: 'active', per_page: 100 })
@@ -208,6 +210,20 @@ export function SaleDetailPage({ saleId }: SaleDetailPageProps) {
     router.push('/sales')
   }
 
+  const handlePrintDefault = async () => {
+    if (!sale) return
+
+    setIsPrinting(true)
+
+    try {
+      await printInvoice(sale.id, t('print.title'), t('print.frameUnavailable'))
+    } catch (error) {
+      enqueueSnackbar(toAppApiError(error).message, { variant: 'error' })
+    } finally {
+      setIsPrinting(false)
+    }
+  }
+
   if (saleQuery.isLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
@@ -255,8 +271,16 @@ export function SaleDetailPage({ saleId }: SaleDetailPageProps) {
               {t('common:buttons.edit')}
             </Button>
           )}
+          <Button
+            startIcon={isPrinting ? <CircularProgress size={18} color="inherit" /> : <ReceiptLongOutlined />}
+            variant="outlined"
+            disabled={isPrinting}
+            onClick={handlePrintDefault}
+          >
+            {t('print.quickPrint')}
+          </Button>
           <Button startIcon={<ReceiptLongOutlined />} variant="outlined" onClick={() => setPrintOpen(true)}>
-            {t('print.title')}
+            {t('print.templateAction')}
           </Button>
           {canPay && (
             <Button startIcon={<PaymentsOutlined />} variant="contained" onClick={() => setPaymentOpen(true)}>

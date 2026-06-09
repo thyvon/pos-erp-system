@@ -2,6 +2,11 @@
 <html>
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+@php
+  $documentTitle = $sale->type === 'pos_sale' ? __('RECEIPT') : __('INVOICE');
+  $documentLabel = $sale->type === 'pos_sale' ? __('Receipt') : __('Invoice');
+@endphp
+<title>{{ $documentTitle }} {{ $sale->sale_number }}</title>
 <style>
   @page { margin: 0; }
   body {
@@ -60,6 +65,11 @@
   .notes-section .text { font-size: 8.5pt; color: #475569; }
 
   .footer-bar { background: #f8fafc; padding: 16px 40px; text-align: center; font-size: 8pt; color: #94a3b8; border-top: 1px solid #e2e8f0; }
+
+  @media print {
+    body { background: #fff; }
+    .invoice-wrap { box-shadow: none; margin: 0 auto; }
+  }
 </style>
 </head>
 <body>
@@ -72,7 +82,7 @@
         <div style="font-size:8pt; opacity:0.7; margin-top:2px;">{{ __('Tax ID') }}: {{ $business->tax_id }}</div>
       @endif
     </div>
-    <div class="invoice-label">{{ __('INVOICE') }}</div>
+    <div class="invoice-label">{{ $documentTitle }}</div>
   </div>
 
   <div class="body-content">
@@ -101,7 +111,7 @@
         </p>
       </div>
       <div class="block" style="text-align:right">
-        <div class="label">{{ __('Invoice') }}</div>
+        <div class="label">{{ $documentLabel }}</div>
         <p class="value">
           <strong>{{ $sale->sale_number }}</strong><br/>
           <span class="badge">{{ $sale->sale_date }}</span>
