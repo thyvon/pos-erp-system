@@ -267,8 +267,9 @@ export function PosPaymentSection({
           <Box
             key={item.key}
             sx={{
-              p: 1,
-              textAlign: 'center',
+              px: 1,
+              py: 0.5,
+              minWidth: 0,
               borderRightWidth: { md: 1 },
               borderRightStyle: { md: 'solid' },
               borderRightColor: 'divider',
@@ -279,15 +280,17 @@ export function PosPaymentSection({
               '&:nth-of-type(4)': { borderRightWidth: 0, borderBottomWidth: 0 },
             }}
           >
-            <Typography variant="caption" sx={{ color: 'success.dark', fontWeight: 800, textTransform: 'uppercase' }}>
-              {item.label}
-            </Typography>
-            <Typography variant="subtitle1" sx={{ color: 'success.dark', fontWeight: 900 }} noWrap>
-              {item.value}
-            </Typography>
-            <Typography variant="caption" sx={{ color: 'success.dark' }} noWrap>
-              {item.helper}
-            </Typography>
+            <Stack direction="row" spacing={0.75} sx={{ alignItems: 'baseline', justifyContent: 'center', minWidth: 0 }}>
+              <Typography variant="caption" sx={{ color: 'success.dark', fontWeight: 800, textTransform: 'uppercase', flex: '0 0 auto' }}>
+                {item.label}
+              </Typography>
+              <Typography variant="subtitle2" sx={{ color: 'success.dark', fontWeight: 900, minWidth: 0 }} noWrap>
+                {item.value}
+              </Typography>
+              <Typography variant="caption" sx={{ color: 'success.dark', display: { xs: 'none', lg: 'inline' }, minWidth: 0 }} noWrap>
+                {item.helper}
+              </Typography>
+            </Stack>
           </Box>
         ))}
       </Box>
