@@ -36,6 +36,8 @@ class UpdateUserRequest extends FormRequest
             'branch_ids' => ['sometimes', 'array'],
             'branch_ids.*' => ['string', 'distinct', 'exists:branches,id'],
             'default_branch_id' => ['nullable', 'string', 'exists:branches,id'],
+            'warehouse_ids' => ['sometimes', 'array'],
+            'warehouse_ids.*' => ['string', 'distinct', 'exists:warehouses,id'],
         ];
     }
 }

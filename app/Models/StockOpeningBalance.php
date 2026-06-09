@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\BelongsToTenant;
+use App\Traits\BelongsToWarehouse;
 use App\Traits\HasUuid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -14,6 +15,7 @@ class StockOpeningBalance extends Model
     use HasFactory;
     use HasUuid;
     use BelongsToTenant;
+    use BelongsToWarehouse;
 
     protected $fillable = [
         'business_id',

@@ -7,6 +7,7 @@ use App\Jobs\Foundation\SendUserInviteJob;
 use App\Models\Branch;
 use App\Models\Business;
 use App\Models\User;
+use App\Models\Warehouse;
 use App\Repositories\Foundation\UserRepository;
 use App\Support\Audit\AuditLogger;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -32,26 +33,29 @@ class UserService
         $directPermissions = array_values(array_unique($data['direct_permissions'] ?? []));
         $branchIds = array_values(array_unique($data['branch_ids'] ?? []));
         $defaultBranchId = $data['default_branch_id'] ?? null;
-        unset($data['role'], $data['roles'], $data['direct_permissions'], $data['branch_ids'], $data['default_branch_id']);
+        $warehouseIds = array_values(array_unique($data['warehouse_ids'] ?? []));
+        unset($data['role'], $data['roles'], $data['direct_permissions'], $data['branch_ids'], $data['default_branch_id'], $data['warehouse_ids']);
 
         $this->ensureRestrictedRolesCannotBeAssigned($roles);
 
         $business = $this->resolveBusiness();
         $this->ensureUserLimitNotExceeded($business);
         [$branchIds, $defaultBranchId] = $this->normalizeBranchAccess($business, $branchIds, $defaultBranchId);
+        $warehouseIds = $this->normalizeWarehouseAccess($business, $warehouseIds, $branchIds);
 
         $data['business_id'] = $data['business_id'] ?? $business->id;
         $data['default_branch_id'] = $defaultBranchId;
         $data['password'] = Hash::make($data['password']);
 
-        $user = DB::transaction(function () use ($data, $roles, $directPermissions, $branchIds): User {
+        $user = DB::transaction(function () use ($data, $roles, $directPermissions, $branchIds, $warehouseIds): User {
             /** @var User $user */
             $user = $this->users->create($data);
             $user->syncRoles($roles);
             $user->syncPermissions($directPermissions);
             $user->branches()->sync($branchIds);
+            $user->warehouses()->sync($warehouseIds);
 
-            return $user->load(['business', 'roles', 'permissions', 'branches', 'defaultBranch']);
+            return $user->load(['business', 'roles', 'permissions', 'branches', 'defaultBranch', 'warehouses']);
         });
 
         $this->writeCreateAuditLogs($user, $actor, $business->id);
@@ -71,7 +75,10 @@ class UserService
             ? array_values(array_unique($data['branch_ids'] ?? []))
             : null;
         $defaultBranchId = $data['default_branch_id'] ?? null;
-        unset($data['role'], $data['roles'], $data['direct_permissions'], $data['branch_ids'], $data['default_branch_id']);
+        $warehouseIds = array_key_exists('warehouse_ids', $data)
+            ? array_values(array_unique($data['warehouse_ids'] ?? []))
+            : null;
+        unset($data['role'], $data['roles'], $data['direct_permissions'], $data['branch_ids'], $data['default_branch_id'], $data['warehouse_ids']);
 
         if ($roles !== null) {
             $this->ensureRestrictedRolesCannotBeAssigned($roles);
@@ -98,7 +105,15 @@ class UserService
             unset($data['password']);
         }
 
-        $updatedUser = DB::transaction(function () use ($user, $data, $roles, $directPermissions, $branchIds): User {
+        if ($warehouseIds !== null) {
+            $warehouseIds = $this->normalizeWarehouseAccess(
+                $this->resolveBusiness(),
+                $warehouseIds ?? [],
+                $branchIds ?? $user->accessibleBranchIds()
+            );
+        }
+
+        $updatedUser = DB::transaction(function () use ($user, $data, $roles, $directPermissions, $branchIds, $warehouseIds): User {
             /** @var User $updatedUser */
             $updatedUser = $this->users->update($user, $data);
 
@@ -115,7 +130,11 @@ class UserService
                 $updatedUser->branches()->sync($branchIds ?? []);
             }
 
-            return $updatedUser->load(['business', 'roles', 'permissions', 'branches', 'defaultBranch']);
+            if ($warehouseIds !== null) {
+                $updatedUser->warehouses()->sync($warehouseIds);
+            }
+
+            return $updatedUser->load(['business', 'roles', 'permissions', 'branches', 'defaultBranch', 'warehouses']);
         });
 
         $this->writeUpdateAuditLogs($before, $updatedUser, $actor);
@@ -141,6 +160,21 @@ class UserService
                     'code' => $branch->code,
                     'is_default' => $branch->is_default,
                     'is_active' => $branch->is_active,
+                ])
+                ->values()
+                ->all(),
+            'warehouses' => Warehouse::query()
+                ->where('business_id', $business->id)
+                ->where('is_active', true)
+                ->orderByDesc('is_default')
+                ->orderBy('name')
+                ->get(['id', 'name', 'code', 'is_default', 'is_active'])
+                ->map(fn (Warehouse $warehouse) => [
+                    'id' => $warehouse->id,
+                    'name' => $warehouse->name,
+                    'code' => $warehouse->code,
+                    'is_default' => $warehouse->is_default,
+                    'is_active' => $warehouse->is_active,
                 ])
                 ->values()
                 ->all(),
@@ -273,6 +307,29 @@ class UserService
         $defaultBranchId ??= $branches[0] ?? null;
 
         return [$branches, $defaultBranchId];
+    }
+
+    protected function normalizeWarehouseAccess(Business $business, array $warehouseIds, array $allowedBranchIds): array
+    {
+        if ($warehouseIds === []) {
+            return [];
+        }
+
+        $validWarehouseIds = Warehouse::query()
+            ->where('business_id', $business->id)
+            ->whereIn('branch_id', $allowedBranchIds)
+            ->whereIn('id', $warehouseIds)
+            ->pluck('id')
+            ->values()
+            ->all();
+
+        $invalidCount = count($warehouseIds) - count($validWarehouseIds);
+
+        if ($invalidCount > 0) {
+            throw new DomainException("{$invalidCount} warehouse(s) are invalid or not in assigned branches.", 422);
+        }
+
+        return $validWarehouseIds;
     }
 
     protected function extractRoles(array $data, bool $required): ?array

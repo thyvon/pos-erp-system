@@ -41,6 +41,7 @@ export default {
     salesTargetAmount: 'Sales target amount',
     branches: 'Assigned branches',
     defaultBranch: 'Default branch',
+    warehouses: 'Assigned warehouses',
     directPermissions: 'Direct permissions',
     preferences: 'Preferences',
     preferenceLocale: 'Preferred language',

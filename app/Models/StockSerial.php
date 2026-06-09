@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\BelongsToTenant;
+use App\Traits\BelongsToWarehouse;
 use App\Traits\HasUserTracking;
 use App\Traits\HasUuid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -16,6 +17,7 @@ class StockSerial extends Model
     use HasUuid;
     use BelongsToTenant;
     use HasUserTracking;
+    use BelongsToWarehouse;
 
     protected $fillable = [
         'business_id',

@@ -41,6 +41,7 @@ export default {
     salesTargetAmount: 'គោលដៅលក់',
     branches: 'សាខាដែលបានចាត់តាំង',
     defaultBranch: 'សាខាលំនាំដើម',
+    warehouses: 'ឃ្លាំងដែលបានចាត់តាំង',
     directPermissions: 'សិទ្ធិផ្ទាល់',
     preferences: 'ចំណូលចិត្ត',
     preferenceLocale: 'ភាសាដែលចូលចិត្ត',

@@ -39,6 +39,7 @@ export const userSchema = z.object({
   roles: z.array(z.string()).min(1, 'At least one role is required'),
   direct_permissions: z.array(z.string()),
   branch_ids: z.array(z.string()),
+  warehouse_ids: z.array(z.string()),
   default_branch_id: z.union([z.string(), z.literal('')]).transform((value) => value || null),
 })
 

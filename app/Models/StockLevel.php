@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Traits\BelongsToTenant;
+use App\Traits\BelongsToWarehouse;
 use App\Traits\HasUuid;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
@@ -13,6 +14,7 @@ class StockLevel extends Model
     use HasFactory;
     use HasUuid;
     use BelongsToTenant;
+    use BelongsToWarehouse;
 
     public $timestamps = true;
 

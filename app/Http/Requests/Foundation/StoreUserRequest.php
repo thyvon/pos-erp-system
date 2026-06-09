@@ -34,6 +34,8 @@ class StoreUserRequest extends FormRequest
             'branch_ids' => ['nullable', 'array'],
             'branch_ids.*' => ['string', 'distinct', 'exists:branches,id'],
             'default_branch_id' => ['nullable', 'string', 'exists:branches,id'],
+            'warehouse_ids' => ['nullable', 'array'],
+            'warehouse_ids.*' => ['string', 'distinct', 'exists:warehouses,id'],
         ];
     }
 }

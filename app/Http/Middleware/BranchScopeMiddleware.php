@@ -3,6 +3,7 @@
 namespace App\Http\Middleware;
 
 use App\Exceptions\Domain\DomainException;
+use App\Models\Warehouse;
 use Closure;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpFoundation\Response;
@@ -12,6 +13,7 @@ class BranchScopeMiddleware
     public function handle(Request $request, Closure $next): Response
     {
         app()->forgetInstance('branch_scope');
+        app()->forgetInstance('warehouse_scope');
 
         $user = $request->user();
 
@@ -19,8 +21,9 @@ class BranchScopeMiddleware
             return $next($request);
         }
 
-        if ($this->shouldBypassBranchRequirement($request, $user)) {
+        if ($this->shouldBypassRequirement($user)) {
             app()->instance('branch_scope', null);
+            app()->instance('warehouse_scope', null);
 
             return $next($request);
         }
@@ -33,19 +36,27 @@ class BranchScopeMiddleware
 
         app()->instance('branch_scope', $branchIds);
 
+        $warehouseIds = array_values(array_unique($user->assignedWarehouseIds()));
+
+        if ($warehouseIds === []) {
+            $warehouseIds = Warehouse::withoutGlobalScopes()
+                ->whereIn('branch_id', $branchIds)
+                ->where('is_active', true)
+                ->pluck('id')
+                ->all();
+        }
+
+        app()->instance('warehouse_scope', $warehouseIds);
+
         return $next($request);
     }
 
-    protected function shouldBypassBranchRequirement(Request $request, object $user): bool
+    protected function shouldBypassRequirement(object $user): bool
     {
         if (! method_exists($user, 'hasRole')) {
             return false;
         }
 
-        if ($user->hasRole('super_admin')) {
-            return true;
-        }
-
-        return false;
+        return $user->hasRole('super_admin');
     }
 }

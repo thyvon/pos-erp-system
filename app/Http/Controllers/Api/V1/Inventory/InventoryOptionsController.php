@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\BaseApiController;
 use App\Models\Product;
 use App\Models\Warehouse;
 use App\Support\BranchAccess;
+use App\Support\WarehouseAccess;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
@@ -35,6 +36,7 @@ class InventoryOptionsController extends BaseApiController
             ->where('is_active', true)
             ->when(! $user->hasRole('super_admin'), function ($query) use ($user): void {
                 BranchAccess::scopeBranchQuery($query, $user, 'branch_id');
+                WarehouseAccess::scopeWarehouseQuery($query, $user, 'id');
             })
             ->with('branch:id,name')
             ->orderByDesc('is_default')

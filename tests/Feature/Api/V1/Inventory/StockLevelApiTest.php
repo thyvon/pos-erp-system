@@ -122,6 +122,6 @@ class StockLevelApiTest extends TestCase
             ->assertJsonPath('data.id', $allowedLevel->id);
 
         $this->getJson("/api/v1/inventory/stock/{$blockedLevel->id}")
-            ->assertForbidden();
+            ->assertNotFound();
     }
 }

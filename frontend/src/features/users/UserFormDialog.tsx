@@ -56,6 +56,7 @@ const defaultValues: UserFormInput = {
   roles: [],
   direct_permissions: [],
   branch_ids: [],
+  warehouse_ids: [],
   default_branch_id: '',
 }
 
@@ -83,6 +84,7 @@ function userToFormValues(user: UserListItem | null): UserFormInput {
     roles: user.roles ?? [],
     direct_permissions: user.direct_permissions ?? [],
     branch_ids: user.branch_ids ?? [],
+    warehouse_ids: user.warehouse_ids ?? [],
     default_branch_id: user.default_branch_id ?? '',
   }
 }
@@ -101,6 +103,7 @@ export function UserFormDialog({
   const values = useMemo(() => userToFormValues(user), [user])
   const roleOptions = options?.roles ?? []
   const branchOptions = options?.branches ?? []
+  const warehouseOptions = options?.warehouses ?? []
   const permissionOptions = useMemo(
     () => (options?.permissions ?? []).flatMap((group) =>
       group.permissions.map((permission) => ({
@@ -145,6 +148,7 @@ export function UserFormDialog({
       },
       roles: formValues.roles,
       branch_ids: formValues.branch_ids,
+      warehouse_ids: formValues.warehouse_ids,
       default_branch_id: formValues.default_branch_id,
     }
 
@@ -415,6 +419,40 @@ export function UserFormDialog({
                 )}
               />
             </Box>
+
+            <Controller
+              name="warehouse_ids"
+              control={control}
+              render={({ field }) => (
+                <FormControl error={!!errors.warehouse_ids}>
+                  <InputLabel id="user-warehouses-label">{t('fields.warehouses')}</InputLabel>
+                  <Select
+                    {...field}
+                    multiple
+                    value={field.value ?? []}
+                    labelId="user-warehouses-label"
+                    label={t('fields.warehouses')}
+                    input={<OutlinedInput label={t('fields.warehouses')} />}
+                    renderValue={(selected) => (
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5 }}>
+                        {selected.map((warehouseId) => {
+                          const warehouse = warehouseOptions.find((item) => item.id === warehouseId)
+                          return <Chip key={warehouseId} size="small" label={warehouse?.name ?? warehouseId} />
+                        })}
+                      </Box>
+                    )}
+                  >
+                    {warehouseOptions.map((warehouse) => (
+                      <MenuItem key={warehouse.id} value={warehouse.id}>
+                        <Checkbox checked={(field.value ?? []).includes(warehouse.id)} />
+                        <ListItemText primary={warehouse.name} secondary={warehouse.code} />
+                      </MenuItem>
+                    ))}
+                  </Select>
+                  <FormHelperText>{errors.warehouse_ids?.message}</FormHelperText>
+                </FormControl>
+              )}
+            />
 
             <Controller
               name="direct_permissions"

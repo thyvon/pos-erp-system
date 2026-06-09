@@ -14,6 +14,14 @@ export interface UserDefaultBranch {
   code: string | null
 }
 
+export interface UserWarehouse {
+  id: string
+  name: string
+  code: string | null
+  is_default: boolean
+  is_active: boolean
+}
+
 export interface UserListItem {
   id: string
   business_id: string
@@ -32,6 +40,8 @@ export interface UserListItem {
   direct_permissions: string[]
   branches: UserBranch[]
   branch_ids: string[]
+  warehouses?: UserWarehouse[]
+  warehouse_ids: string[]
   default_branch: UserDefaultBranch | null
   preferences?: Record<string, unknown> | null
   created_at: string
@@ -54,6 +64,7 @@ export interface UserPayload {
   roles?: string[]
   direct_permissions?: string[]
   branch_ids?: string[]
+  warehouse_ids?: string[]
   default_branch_id?: string | null
 }
 
@@ -71,6 +82,7 @@ export interface UserAccessOptions {
   roles: UserRoleOption[]
   permissions: UserPermissionGroup[]
   branches: UserBranch[]
+  warehouses: UserBranch[]
 }
 
 export interface ImportResult {

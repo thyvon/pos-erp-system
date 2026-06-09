@@ -113,4 +113,30 @@ class User extends Authenticatable
 
         return in_array($branchId, $this->accessibleBranchIds(), true);
     }
+
+    public function warehouses(): BelongsToMany
+    {
+        return $this->belongsToMany(Warehouse::class)
+            ->withTimestamps();
+    }
+
+    public function assignedWarehouseIds(): array
+    {
+        if ($this->relationLoaded('warehouses')) {
+            return $this->warehouses->modelKeys();
+        }
+
+        return $this->warehouses()
+            ->pluck('warehouses.id')
+            ->all();
+    }
+
+    public function hasWarehouseAccess(string $warehouseId): bool
+    {
+        if ($this->hasRole('super_admin')) {
+            return true;
+        }
+
+        return in_array($warehouseId, $this->assignedWarehouseIds(), true);
+    }
 }
