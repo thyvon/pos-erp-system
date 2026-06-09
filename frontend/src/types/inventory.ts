@@ -152,6 +152,69 @@ export interface StockAdjustmentPayload {
   items: StockAdjustmentItemPayload[]
 }
 
+export interface StockOpeningBalanceItem {
+  id: string
+  product_id: string
+  variation_id: string | null
+  lot_id: string | null
+  serial_id: string | null
+  quantity: string | number
+  unit_cost: string | number | null
+  lot_number: string | null
+  manufacture_date: string | null
+  expiry_date: string | null
+  serial_number: string | null
+  warranty_expires: string | null
+  notes: string | null
+  product: (StockAdjustmentItemProduct & { stock_tracking?: string | null }) | null
+  variation: StockAdjustmentItemVariation | null
+  lot: StockAdjustmentItemLot | null
+  serial: StockAdjustmentItemSerial | null
+}
+
+export interface StockOpeningBalance {
+  id: string
+  business_id: string
+  warehouse_id: string
+  reference_no: string
+  date: string
+  notes: string | null
+  warehouse: StockAdjustmentWarehouse | null
+  creator: StockAdjustmentCreator | null
+  items: StockOpeningBalanceItem[]
+  created_at: string
+  updated_at: string
+}
+
+export interface StockOpeningBalanceFilters {
+  search?: string
+  warehouse_id?: string
+  date_from?: string
+  date_to?: string
+  page?: number
+  per_page?: number
+}
+
+export interface StockOpeningBalanceItemPayload {
+  product_id: string
+  variation_id?: string | null
+  quantity: number
+  unit_cost?: number | null
+  lot_number?: string | null
+  manufacture_date?: string | null
+  expiry_date?: string | null
+  serial_number?: string | null
+  warranty_expires?: string | null
+  notes?: string | null
+}
+
+export interface StockOpeningBalancePayload {
+  warehouse_id: string
+  date: string
+  notes?: string | null
+  items: StockOpeningBalanceItemPayload[]
+}
+
 export type StockTransferStatus = 'pending' | 'in_transit' | 'received'
 
 export interface StockTransferWarehouse {

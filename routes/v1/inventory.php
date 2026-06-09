@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\V1\Inventory\InventoryOptionsController;
 use App\Http\Controllers\Api\V1\Inventory\InventoryProductLookupController;
 use App\Http\Controllers\Api\V1\Inventory\LotController;
+use App\Http\Controllers\Api\V1\Inventory\StockOpeningBalanceController;
 use App\Http\Controllers\Api\V1\Inventory\SerialController;
 use App\Http\Controllers\Api\V1\Inventory\StockAdjustmentController;
 use App\Http\Controllers\Api\V1\Inventory\StockCountController;
@@ -13,6 +14,10 @@ use Illuminate\Support\Facades\Route;
 return static function (): void {
     Route::get('inventory/options', InventoryOptionsController::class)->middleware('can:inventory.index');
     Route::get('inventory/product-lookup', InventoryProductLookupController::class)->middleware('can:inventory.index');
+
+    Route::get('inventory/opening-balances', [StockOpeningBalanceController::class, 'index'])->middleware('can:inventory.index');
+    Route::post('inventory/opening-balances', [StockOpeningBalanceController::class, 'store'])->middleware('can:inventory.adjust');
+    Route::get('inventory/opening-balances/{stockOpeningBalance}', [StockOpeningBalanceController::class, 'show'])->middleware('can:inventory.index');
 
     Route::get('inventory/adjustments', [StockAdjustmentController::class, 'index'])->middleware('can:inventory.index');
     Route::post('inventory/adjustments', [StockAdjustmentController::class, 'store'])->middleware('can:inventory.adjust');

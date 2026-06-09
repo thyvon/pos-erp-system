@@ -1,7 +1,7 @@
 'use client'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { inventoryApi, stockAdjustmentsApi, stockCountsApi, stockLevelsApi, stockLotsApi, stockSerialsApi, stockTransfersApi } from './api'
+import { inventoryApi, stockAdjustmentsApi, stockCountsApi, stockLevelsApi, stockLotsApi, stockOpeningBalancesApi, stockSerialsApi, stockTransfersApi } from './api'
 import type {
   StockAdjustmentFilters,
   StockAdjustmentPayload,
@@ -16,6 +16,8 @@ import type {
   StockLevelFilters,
   StockLotFilters,
   StockLotStatusPayload,
+  StockOpeningBalanceFilters,
+  StockOpeningBalancePayload,
   StockSerialFilters,
   StockSerialWriteOffPayload,
   StockTransferFilters,
@@ -33,6 +35,12 @@ export const stockAdjustmentKeys = {
   all: ['stock-adjustments'] as const,
   list: (filters: StockAdjustmentFilters) => [...stockAdjustmentKeys.all, 'list', filters] as const,
   detail: (id: string) => [...stockAdjustmentKeys.all, 'detail', id] as const,
+}
+
+export const stockOpeningBalanceKeys = {
+  all: ['stock-opening-balances'] as const,
+  list: (filters: StockOpeningBalanceFilters) => [...stockOpeningBalanceKeys.all, 'list', filters] as const,
+  detail: (id: string) => [...stockOpeningBalanceKeys.all, 'detail', id] as const,
 }
 
 export const stockTransferKeys = {
@@ -120,6 +128,36 @@ export function useUpdateStockAdjustmentMutation() {
     onSuccess: (adjustment) => {
       queryClient.invalidateQueries({ queryKey: stockAdjustmentKeys.all })
       queryClient.invalidateQueries({ queryKey: stockAdjustmentKeys.detail(adjustment.id) })
+      queryClient.invalidateQueries({ queryKey: inventoryKeys.all })
+    },
+  })
+}
+
+export function useStockOpeningBalancesQuery(filters: StockOpeningBalanceFilters) {
+  return useQuery({
+    queryKey: stockOpeningBalanceKeys.list(filters),
+    queryFn: () => stockOpeningBalancesApi.list(filters),
+  })
+}
+
+export function useStockOpeningBalanceQuery(id: string | null) {
+  return useQuery({
+    queryKey: id ? stockOpeningBalanceKeys.detail(id) : [...stockOpeningBalanceKeys.all, 'detail', 'none'],
+    queryFn: () => stockOpeningBalancesApi.show(id ?? ''),
+    enabled: !!id,
+  })
+}
+
+export function useCreateStockOpeningBalanceMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (payload: StockOpeningBalancePayload) => stockOpeningBalancesApi.create(payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: stockOpeningBalanceKeys.all })
+      queryClient.invalidateQueries({ queryKey: stockLevelKeys.all })
+      queryClient.invalidateQueries({ queryKey: stockLotKeys.all })
+      queryClient.invalidateQueries({ queryKey: stockSerialKeys.all })
       queryClient.invalidateQueries({ queryKey: inventoryKeys.all })
     },
   })

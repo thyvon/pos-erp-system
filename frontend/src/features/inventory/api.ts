@@ -21,6 +21,9 @@ import type {
   StockLot,
   StockLotFilters,
   StockLotStatusPayload,
+  StockOpeningBalance,
+  StockOpeningBalanceFilters,
+  StockOpeningBalancePayload,
   StockSerial,
   StockSerialFilters,
   StockSerialWriteOffPayload,
@@ -43,6 +46,14 @@ export const stockAdjustmentsApi = {
     apiClient.post<StockAdjustment, StockAdjustmentPayload>('/v1/inventory/adjustments', payload),
   update: (id: string, payload: StockAdjustmentPayload) =>
     apiClient.put<StockAdjustment, StockAdjustmentPayload>(`/v1/inventory/adjustments/${id}`, payload),
+}
+
+export const stockOpeningBalancesApi = {
+  list: (filters: StockOpeningBalanceFilters = {}) =>
+    apiClient.getPaginated<StockOpeningBalance>('/v1/inventory/opening-balances', filters),
+  show: (id: string) => apiClient.get<StockOpeningBalance>(`/v1/inventory/opening-balances/${id}`),
+  create: (payload: StockOpeningBalancePayload) =>
+    apiClient.post<StockOpeningBalance, StockOpeningBalancePayload>('/v1/inventory/opening-balances', payload),
 }
 
 export const stockTransfersApi = {

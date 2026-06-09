@@ -30,6 +30,46 @@ export const stockAdjustmentSchema = z.object({
 export type StockAdjustmentFormInput = z.input<typeof stockAdjustmentSchema>
 export type StockAdjustmentFormValues = z.output<typeof stockAdjustmentSchema>
 
+export const stockOpeningBalanceItemSchema = z.object({
+  product_id: z.string().min(1, 'Product is required'),
+  variation_id: z.string().nullable().optional(),
+  product_label: z.string().optional(),
+  sku: z.string().nullable().optional(),
+  stock_tracking: z.string().nullable().optional(),
+  quantity: z.coerce.number().positive('Quantity must be greater than zero'),
+  unit_cost: z.coerce.number().min(0, 'Unit cost cannot be negative').nullable().optional(),
+  lot_number: nullableText().optional(),
+  manufacture_date: z.string().nullable().optional(),
+  expiry_date: z.string().nullable().optional(),
+  serial_number: nullableText().optional(),
+  warranty_expires: z.string().nullable().optional(),
+  notes: nullableText().optional(),
+}).superRefine((value, context) => {
+  if (value.stock_tracking === 'lot' && !value.lot_number) {
+    context.addIssue({ code: 'custom', path: ['lot_number'], message: 'Lot number is required' })
+  }
+
+  if (value.stock_tracking === 'serial') {
+    if (!value.serial_number) {
+      context.addIssue({ code: 'custom', path: ['serial_number'], message: 'Serial number is required' })
+    }
+
+    if (value.quantity !== 1) {
+      context.addIssue({ code: 'custom', path: ['quantity'], message: 'Serial quantity must be one' })
+    }
+  }
+})
+
+export const stockOpeningBalanceSchema = z.object({
+  warehouse_id: z.string().min(1, 'Warehouse is required'),
+  date: z.string().min(1, 'Date is required'),
+  notes: nullableText().optional(),
+  items: z.array(stockOpeningBalanceItemSchema).min(1, 'Add at least one item'),
+})
+
+export type StockOpeningBalanceFormInput = z.input<typeof stockOpeningBalanceSchema>
+export type StockOpeningBalanceFormValues = z.output<typeof stockOpeningBalanceSchema>
+
 export const stockTransferItemSchema = z.object({
   product_id: z.string().min(1, 'Product is required'),
   variation_id: z.string().nullable().optional(),

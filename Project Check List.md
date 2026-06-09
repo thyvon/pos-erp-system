@@ -173,6 +173,7 @@
 - [x] System date display and shared date picker now follow the business `general.date_format` setting, with auth payload fallback for users without settings access.
 - [x] Date month display uses abbreviated English month names and full Khmer month names while preserving the configured date order.
 - [x] Date-format alignment verified with focused auth API test, frontend type-check, and frontend lint.
+- [x] Stock Opening Balance backend and frontend added as a separate first-stock workflow with immutable documents, standard/lot/serial handling, branch-scoped warehouse access, sidebar route, translations, focused backend tests, and frontend local check verification.
 
 ## Purchases Backend Foundation
 

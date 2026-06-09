@@ -22,6 +22,7 @@ use App\Models\Product;
 use App\Models\StockAdjustment;
 use App\Models\StockCount;
 use App\Models\StockLot;
+use App\Models\StockOpeningBalance;
 use App\Models\StockSerial;
 use App\Models\StockTransfer;
 use App\Models\Supplier;
@@ -65,6 +66,7 @@ use App\Policies\LotPolicy;
 use App\Policies\SerialPolicy;
 use App\Policies\StockAdjustmentPolicy;
 use App\Policies\StockCountPolicy;
+use App\Policies\StockOpeningBalancePolicy;
 use App\Policies\StockTransferPolicy;
 use App\Policies\SupplierPolicy;
 use App\Policies\ChartOfAccountPolicy;
@@ -104,6 +106,7 @@ class AuthServiceProvider extends ServiceProvider
         Product::class => ProductPolicy::class,
         StockLot::class => LotPolicy::class,
         StockSerial::class => SerialPolicy::class,
+        StockOpeningBalance::class => StockOpeningBalancePolicy::class,
         StockAdjustment::class => StockAdjustmentPolicy::class,
         StockCount::class => StockCountPolicy::class,
         StockTransfer::class => StockTransferPolicy::class,

@@ -1,0 +1,55 @@
+<?php
+
+namespace App\Http\Controllers\Api\V1\Inventory;
+
+use App\Http\Controllers\Api\V1\BaseApiController;
+use App\Http\Requests\Inventory\StoreStockOpeningBalanceRequest;
+use App\Http\Resources\Inventory\StockOpeningBalanceResource;
+use App\Models\StockOpeningBalance;
+use App\Services\Inventory\StockOpeningBalanceService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
+
+class StockOpeningBalanceController extends BaseApiController
+{
+    public function __construct(protected StockOpeningBalanceService $openingBalances)
+    {
+    }
+
+    public function index(Request $request): JsonResponse
+    {
+        $this->authorize('viewAny', StockOpeningBalance::class);
+
+        $balances = $this->openingBalances->paginate($request->only([
+            'search',
+            'warehouse_id',
+            'date_from',
+            'date_to',
+            'per_page',
+        ]), $request->user());
+
+        return $this->paginated($balances, StockOpeningBalanceResource::class);
+    }
+
+    public function store(StoreStockOpeningBalanceRequest $request): JsonResponse
+    {
+        $this->authorize('create', StockOpeningBalance::class);
+
+        $balance = $this->openingBalances->create(
+            $request->user()->business_id,
+            $request->validated(),
+            $request->user()
+        );
+
+        return $this->success(new StockOpeningBalanceResource($balance), 'Stock opening balance created successfully.', 201);
+    }
+
+    public function show(StockOpeningBalance $stockOpeningBalance): JsonResponse
+    {
+        $this->authorize('view', $stockOpeningBalance);
+
+        return $this->success(new StockOpeningBalanceResource(
+            $stockOpeningBalance->load(['warehouse.branch', 'creator', 'items.product', 'items.variation', 'items.lot', 'items.serial'])
+        ));
+    }
+}
