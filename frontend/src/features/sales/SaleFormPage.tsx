@@ -359,6 +359,7 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
       _conversion_factor: item.sub_unit?.conversion_factor ?? null,
       lot_id: item.lot_id ?? null,
       serial_id: item.serial_id ?? null,
+      stock_tracking: item.stock_tracking ?? null,
       product_label: item.label,
       sku: item.sku ?? null,
       lot_number: item.lot_number ?? null,

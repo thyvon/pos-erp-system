@@ -20,10 +20,12 @@ import {
 } from '@mui/material'
 import { Controller, type Control, type FieldArrayWithId, type FieldErrors } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
+import EmptyState from '@/components/common/EmptyState'
+import { DeleteOutlined, EditOutlined, PointOfSaleOutlined } from '@/components/ui/icons'
+import { TableStateRow } from '@/components/ui/TableStateRow'
 import { UnitConversionBadge } from '@/features/sales/components/UnitConversionBadge'
 import { UnitToggle } from '@/features/sales/components/UnitToggle'
 import { InventoryProductLookupPicker } from '@/features/inventory/components/InventoryProductLookupPicker'
-import { DeleteOutlined, EditOutlined } from '@/components/ui/icons'
 import type { InventoryProductLookupItem } from '@/types/inventory'
 import { lineTotal, round, toNumber } from '../formHelpers'
 import type { SaleFormInput, SaleFormValues } from '../schema'
@@ -62,6 +64,14 @@ interface PosCartSectionProps {
   onRemoveItem: (index: number) => void
   onEditSummary: (summary: 'discount' | 'tax' | 'shipping') => void
   children: ReactNode
+}
+
+function isSerialTrackedCartLine(
+  field: Partial<SaleFormInput['items'][number]>,
+  watchedItem: Partial<SaleFormInput['items'][number]> | undefined,
+) {
+  return (watchedItem?.stock_tracking ?? field.stock_tracking) === 'serial'
+    || Boolean(watchedItem?.serial_id ?? field.serial_id)
 }
 
 export function PosCartSection({
@@ -138,21 +148,151 @@ export function PosCartSection({
             </TableHead>
             <TableBody>
               {itemFields.length === 0 && (
-                <TableRow>
-                  <TableCell colSpan={6} align="center" sx={{ py: 10 }}>
-                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>{t('pos.emptyCart')}</Typography>
-                  </TableCell>
-                </TableRow>
+                <TableStateRow colSpan={6} message={t('pos.emptyCart')} />
               )}
-              {itemFields.map((field, index) => (
-                <TableRow key={field.fieldId}>
-                  <TableCell sx={cartColumnSx.product}>
-                    <Stack spacing={0.25}>
-                      <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap title={field.product_label || field.product_id}>{field.product_label || field.product_id}</Typography>
-                      <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center', minWidth: 0 }}>
-                        <Typography variant="caption" noWrap sx={{ color: 'text.secondary', minWidth: 0 }}>
-                          {field.sku || '-'}
-                        </Typography>
+              {itemFields.map((field, index) => {
+                const isSerialTrackedLine = isSerialTrackedCartLine(field, watchedItems[index])
+
+                return (
+                  <TableRow key={field.fieldId}>
+                    <TableCell sx={cartColumnSx.product}>
+                      <Stack spacing={0.25}>
+                        <Typography variant="body2" sx={{ fontWeight: 600 }} noWrap title={field.product_label || field.product_id}>{field.product_label || field.product_id}</Typography>
+                        <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center', minWidth: 0 }}>
+                          <Typography variant="caption" noWrap sx={{ color: 'text.secondary', minWidth: 0 }}>
+                            {field.sku || '-'}
+                          </Typography>
+                          {watchedItems[index]?.sub_unit_id && field._conversion_factor ? (
+                            <UnitConversionBadge
+                              conversionFactor={field._conversion_factor}
+                              baseUnitLabel={field._base_unit_label ?? ''}
+                              subUnitLabel={field.sub_unit_label ?? ''}
+                              quantity={Number(watchedItems[index]?.quantity ?? 0)}
+                            />
+                          ) : field._base_unit_label ? (
+                            <Typography variant="caption" sx={{ color: 'text.secondary', flex: '0 0 auto' }}>
+                              · {field._base_unit_label}
+                            </Typography>
+                          ) : null}
+                        </Stack>
+                      </Stack>
+                    </TableCell>
+                    <TableCell sx={cartColumnSx.unit}>
+                      <UnitToggle
+                        subUnitOptionId={field._sub_unit_option_id ?? null}
+                        currentSubUnitId={field.sub_unit_id ?? null}
+                        baseUnitLabel={field._base_unit_label ?? null}
+                        subUnitLabel={field.sub_unit_label ?? null}
+                        baseUnitPrice={Number(field._base_unit_price ?? 0) || 0}
+                        subUnitPrice={Number(field._sub_unit_price ?? 0) || 0}
+                        disabled={isSaving}
+                        onChange={(nextSubUnitId, nextLabel, nextPrice) => onChangeUnit(index, nextSubUnitId, nextLabel, nextPrice)}
+                      />
+                    </TableCell>
+                    <TableCell align="right" sx={cartColumnSx.quantity}>
+                      <Stack direction="row" spacing={0} sx={{ justifyContent: 'flex-end' }}>
+                        <Button
+                          type="button"
+                          variant="outlined"
+                          size="small"
+                          disabled={isSaving || isSerialTrackedLine}
+                          sx={{ minWidth: 32, px: 0.75, borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
+                          onClick={() => onQuantityChange(index, Math.max(0.0001, round(toNumber(watchedItems[index]?.quantity ?? field.quantity) - 1)))}
+                        >
+                          -
+                        </Button>
+                        <Controller name={`items.${index}.quantity`} control={control} render={({ field }) => (
+                          <TextField
+                            {...field}
+                            type="number"
+                            error={!!errors.items?.[index]?.quantity}
+                            helperText={errors.items?.[index]?.quantity?.message}
+                            disabled={isSaving || isSerialTrackedLine}
+                            required
+                            sx={{ width: 78, '& .MuiOutlinedInput-root': { borderRadius: 0 } }}
+                            slotProps={{ htmlInput: { min: 0.0001, step: 0.0001, style: { textAlign: 'center' } } }}
+                          />
+                        )} />
+                        <Button
+                          type="button"
+                          variant="outlined"
+                          size="small"
+                          disabled={isSaving || isSerialTrackedLine}
+                          sx={{ minWidth: 32, px: 0.75, borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
+                          onClick={() => onQuantityChange(index, round(toNumber(watchedItems[index]?.quantity ?? field.quantity) + 1))}
+                        >
+                          +
+                        </Button>
+                      </Stack>
+                    </TableCell>
+                    <TableCell align="right" sx={cartColumnSx.price}>
+                      <Controller name={`items.${index}.unit_price`} control={control} render={({ field }) => (
+                        <TextField
+                          {...field}
+                          fullWidth
+                          type="number"
+                          error={!!errors.items?.[index]?.unit_price}
+                          helperText={errors.items?.[index]?.unit_price?.message}
+                          required
+                          slotProps={{
+                            htmlInput: { min: 0, step: 0.01, style: { textAlign: 'right' } },
+                            input: { startAdornment: <InputAdornment position="start">{currency}</InputAdornment> },
+                          }}
+                        />
+                      )} />
+                    </TableCell>
+                    <TableCell align="right" sx={cartColumnSx.total}>
+                      <Typography variant="subtitle2">{currencyFormatter.format(lineTotals[index] ?? lineTotal(watchedItems[index] ?? field, taxScope))}</Typography>
+                    </TableCell>
+                    <TableCell align="center" sx={cartColumnSx.actions}>
+                      <Stack direction="row" spacing={0.5} sx={{ justifyContent: 'center' }}>
+                        <Tooltip title={t('pos.actions.editLine')}>
+                          <span>
+                            <IconButton size="small" disabled={isSaving} onClick={() => onEditItem(index)}>
+                              <EditOutlined />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                        <Tooltip title={t('actions.removeItem')}>
+                          <span>
+                            <IconButton size="small" color="error" disabled={isSaving} onClick={() => onRemoveItem(index)}>
+                              <DeleteOutlined />
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                      </Stack>
+                    </TableCell>
+                  </TableRow>
+                )
+              })}
+            </TableBody>
+          </Table>
+        </TableContainer>
+
+        <Stack
+          spacing={1}
+          sx={{
+            display: { xs: 'flex', md: 'none' },
+            minHeight: 220,
+            minWidth: 0,
+          }}
+        >
+          {itemFields.length === 0 && (
+            <EmptyState compact icon={<PointOfSaleOutlined />} title={t('pos.emptyCart')} />
+          )}
+          {itemFields.map((field, index) => {
+            const isSerialTrackedLine = isSerialTrackedCartLine(field, watchedItems[index])
+
+            return (
+              <Box key={field.fieldId} sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 1.25 }}>
+                <Stack spacing={1.25}>
+                  <Stack direction="row" spacing={1} sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }}>
+                    <Stack spacing={0.25} sx={{ minWidth: 0 }}>
+                      <Typography variant="body2" sx={{ fontWeight: 700 }} title={field.product_label || field.product_id}>
+                        {field.product_label || field.product_id}
+                      </Typography>
+                      <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
+                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>{field.sku || '-'}</Typography>
                         {watchedItems[index]?.sub_unit_id && field._conversion_factor ? (
                           <UnitConversionBadge
                             conversionFactor={field._conversion_factor}
@@ -161,14 +301,18 @@ export function PosCartSection({
                             quantity={Number(watchedItems[index]?.quantity ?? 0)}
                           />
                         ) : field._base_unit_label ? (
-                          <Typography variant="caption" sx={{ color: 'text.secondary', flex: '0 0 auto' }}>
+                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                             · {field._base_unit_label}
                           </Typography>
                         ) : null}
                       </Stack>
                     </Stack>
-                  </TableCell>
-                  <TableCell sx={cartColumnSx.unit}>
+                    <Typography variant="subtitle2" sx={{ flex: '0 0 auto', fontWeight: 800 }}>
+                      {currencyFormatter.format(lineTotals[index] ?? lineTotal(watchedItems[index] ?? field, taxScope))}
+                    </Typography>
+                  </Stack>
+
+                  <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
                     <UnitToggle
                       subUnitOptionId={field._sub_unit_option_id ?? null}
                       currentSubUnitId={field.sub_unit_id ?? null}
@@ -179,14 +323,31 @@ export function PosCartSection({
                       disabled={isSaving}
                       onChange={(nextSubUnitId, nextLabel, nextPrice) => onChangeUnit(index, nextSubUnitId, nextLabel, nextPrice)}
                     />
-                  </TableCell>
-                  <TableCell align="right" sx={cartColumnSx.quantity}>
-                    <Stack direction="row" spacing={0} sx={{ justifyContent: 'flex-end' }}>
+                    <Controller name={`items.${index}.unit_price`} control={control} render={({ field }) => (
+                      <TextField
+                        {...field}
+                        fullWidth
+                        type="number"
+                        label={t('items.unitPrice')}
+                        error={!!errors.items?.[index]?.unit_price}
+                        helperText={errors.items?.[index]?.unit_price?.message}
+                        required
+                        slotProps={{
+                          htmlInput: { min: 0, step: 0.01, style: { textAlign: 'right' } },
+                          input: { startAdornment: <InputAdornment position="start">{currency}</InputAdornment> },
+                        }}
+                      />
+                    )} />
+                  </Box>
+
+                  <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+                    <Stack direction="row" spacing={0}>
                       <Button
                         type="button"
                         variant="outlined"
                         size="small"
-                        sx={{ minWidth: 32, px: 0.75, borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
+                        disabled={isSaving || isSerialTrackedLine}
+                        sx={{ minWidth: 36, borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
                         onClick={() => onQuantityChange(index, Math.max(0.0001, round(toNumber(watchedItems[index]?.quantity ?? field.quantity) - 1)))}
                       >
                         -
@@ -197,8 +358,9 @@ export function PosCartSection({
                           type="number"
                           error={!!errors.items?.[index]?.quantity}
                           helperText={errors.items?.[index]?.quantity?.message}
+                          disabled={isSaving || isSerialTrackedLine}
                           required
-                          sx={{ width: 78, '& .MuiOutlinedInput-root': { borderRadius: 0 } }}
+                          sx={{ width: 88, '& .MuiOutlinedInput-root': { borderRadius: 0 } }}
                           slotProps={{ htmlInput: { min: 0.0001, step: 0.0001, style: { textAlign: 'center' } } }}
                         />
                       )} />
@@ -206,34 +368,14 @@ export function PosCartSection({
                         type="button"
                         variant="outlined"
                         size="small"
-                        sx={{ minWidth: 32, px: 0.75, borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
+                        disabled={isSaving || isSerialTrackedLine}
+                        sx={{ minWidth: 36, borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
                         onClick={() => onQuantityChange(index, round(toNumber(watchedItems[index]?.quantity ?? field.quantity) + 1))}
                       >
                         +
                       </Button>
                     </Stack>
-                  </TableCell>
-                  <TableCell align="right" sx={cartColumnSx.price}>
-                    <Controller name={`items.${index}.unit_price`} control={control} render={({ field }) => (
-                      <TextField
-                        {...field}
-                        fullWidth
-                        type="number"
-                        error={!!errors.items?.[index]?.unit_price}
-                        helperText={errors.items?.[index]?.unit_price?.message}
-                        required
-                        slotProps={{
-                          htmlInput: { min: 0, step: 0.01, style: { textAlign: 'right' } },
-                          input: { startAdornment: <InputAdornment position="start">{currency}</InputAdornment> },
-                        }}
-                      />
-                    )} />
-                  </TableCell>
-                  <TableCell align="right" sx={cartColumnSx.total}>
-                    <Typography variant="subtitle2">{currencyFormatter.format(lineTotals[index] ?? lineTotal(watchedItems[index] ?? field, taxScope))}</Typography>
-                  </TableCell>
-                  <TableCell align="center" sx={cartColumnSx.actions}>
-                    <Stack direction="row" spacing={0.5} sx={{ justifyContent: 'center' }}>
+                    <Stack direction="row" spacing={0.5}>
                       <Tooltip title={t('pos.actions.editLine')}>
                         <span>
                           <IconButton size="small" disabled={isSaving} onClick={() => onEditItem(index)}>
@@ -249,135 +391,11 @@ export function PosCartSection({
                         </span>
                       </Tooltip>
                     </Stack>
-                  </TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-
-        <Stack
-          spacing={1}
-          sx={{
-            display: { xs: 'flex', md: 'none' },
-            minHeight: 220,
-            minWidth: 0,
-          }}
-        >
-          {itemFields.length === 0 && (
-            <Box sx={{ border: 1, borderColor: 'divider', borderRadius: 1, py: 8, px: 2, textAlign: 'center' }}>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>{t('pos.emptyCart')}</Typography>
-            </Box>
-          )}
-          {itemFields.map((field, index) => (
-            <Box key={field.fieldId} sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 1.25 }}>
-              <Stack spacing={1.25}>
-                <Stack direction="row" spacing={1} sx={{ alignItems: 'flex-start', justifyContent: 'space-between' }}>
-                  <Stack spacing={0.25} sx={{ minWidth: 0 }}>
-                    <Typography variant="body2" sx={{ fontWeight: 700 }} title={field.product_label || field.product_id}>
-                      {field.product_label || field.product_id}
-                    </Typography>
-                    <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center', flexWrap: 'wrap' }}>
-                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>{field.sku || '-'}</Typography>
-                      {watchedItems[index]?.sub_unit_id && field._conversion_factor ? (
-                        <UnitConversionBadge
-                          conversionFactor={field._conversion_factor}
-                          baseUnitLabel={field._base_unit_label ?? ''}
-                          subUnitLabel={field.sub_unit_label ?? ''}
-                          quantity={Number(watchedItems[index]?.quantity ?? 0)}
-                        />
-                      ) : field._base_unit_label ? (
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          · {field._base_unit_label}
-                        </Typography>
-                      ) : null}
-                    </Stack>
-                  </Stack>
-                  <Typography variant="subtitle2" sx={{ flex: '0 0 auto', fontWeight: 800 }}>
-                    {currencyFormatter.format(lineTotals[index] ?? lineTotal(watchedItems[index] ?? field, taxScope))}
-                  </Typography>
-                </Stack>
-
-                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
-                  <UnitToggle
-                    subUnitOptionId={field._sub_unit_option_id ?? null}
-                    currentSubUnitId={field.sub_unit_id ?? null}
-                    baseUnitLabel={field._base_unit_label ?? null}
-                    subUnitLabel={field.sub_unit_label ?? null}
-                    baseUnitPrice={Number(field._base_unit_price ?? 0) || 0}
-                    subUnitPrice={Number(field._sub_unit_price ?? 0) || 0}
-                    disabled={isSaving}
-                    onChange={(nextSubUnitId, nextLabel, nextPrice) => onChangeUnit(index, nextSubUnitId, nextLabel, nextPrice)}
-                  />
-                  <Controller name={`items.${index}.unit_price`} control={control} render={({ field }) => (
-                    <TextField
-                      {...field}
-                      fullWidth
-                      type="number"
-                      label={t('items.unitPrice')}
-                      error={!!errors.items?.[index]?.unit_price}
-                      helperText={errors.items?.[index]?.unit_price?.message}
-                      required
-                      slotProps={{
-                        htmlInput: { min: 0, step: 0.01, style: { textAlign: 'right' } },
-                        input: { startAdornment: <InputAdornment position="start">{currency}</InputAdornment> },
-                      }}
-                    />
-                  )} />
-                </Box>
-
-                <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
-                  <Stack direction="row" spacing={0}>
-                    <Button
-                      type="button"
-                      variant="outlined"
-                      size="small"
-                      sx={{ minWidth: 36, borderTopRightRadius: 0, borderBottomRightRadius: 0 }}
-                      onClick={() => onQuantityChange(index, Math.max(0.0001, round(toNumber(watchedItems[index]?.quantity ?? field.quantity) - 1)))}
-                    >
-                      -
-                    </Button>
-                    <Controller name={`items.${index}.quantity`} control={control} render={({ field }) => (
-                      <TextField
-                        {...field}
-                        type="number"
-                        error={!!errors.items?.[index]?.quantity}
-                        helperText={errors.items?.[index]?.quantity?.message}
-                        required
-                        sx={{ width: 88, '& .MuiOutlinedInput-root': { borderRadius: 0 } }}
-                        slotProps={{ htmlInput: { min: 0.0001, step: 0.0001, style: { textAlign: 'center' } } }}
-                      />
-                    )} />
-                    <Button
-                      type="button"
-                      variant="outlined"
-                      size="small"
-                      sx={{ minWidth: 36, borderTopLeftRadius: 0, borderBottomLeftRadius: 0 }}
-                      onClick={() => onQuantityChange(index, round(toNumber(watchedItems[index]?.quantity ?? field.quantity) + 1))}
-                    >
-                      +
-                    </Button>
-                  </Stack>
-                  <Stack direction="row" spacing={0.5}>
-                    <Tooltip title={t('pos.actions.editLine')}>
-                      <span>
-                        <IconButton size="small" disabled={isSaving} onClick={() => onEditItem(index)}>
-                          <EditOutlined />
-                        </IconButton>
-                      </span>
-                    </Tooltip>
-                    <Tooltip title={t('actions.removeItem')}>
-                      <span>
-                        <IconButton size="small" color="error" disabled={isSaving} onClick={() => onRemoveItem(index)}>
-                          <DeleteOutlined />
-                        </IconButton>
-                      </span>
-                    </Tooltip>
                   </Stack>
                 </Stack>
-              </Stack>
-            </Box>
-          ))}
+              </Box>
+            )
+          })}
         </Stack>
       </Box>
 

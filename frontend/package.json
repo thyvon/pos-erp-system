@@ -6,8 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint",
+    "lint": "eslint --cache --cache-location .next/cache/eslint/",
     "type-check": "tsc --noEmit",
+    "check:local": "npm run lint && npm run type-check",
     "check": "npm run lint && npm run type-check && npm run build"
   },
   "dependencies": {

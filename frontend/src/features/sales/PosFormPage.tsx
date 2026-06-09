@@ -54,6 +54,7 @@ import { CustomerFormDialog } from '@/features/customers/CustomerFormDialog'
 import { useCreateCustomerMutation, useCustomersQuery } from '@/features/customers/hooks'
 import { useCustomFieldsQuery } from '@/features/custom-fields/hooks'
 import { inventoryApi } from '@/features/inventory/api'
+import { InventoryProductLookupPicker } from '@/features/inventory/components/InventoryProductLookupPicker'
 import {
   buildDirectPaymentLines,
   buildSalePayload,
@@ -439,6 +440,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
       _conversion_factor: item.sub_unit?.conversion_factor ?? null,
       lot_id: itemLotId,
       serial_id: itemSerialId,
+      stock_tracking: item.stock_tracking ?? null,
       product_label: item.label,
       sku: item.sku ?? null,
       lot_number: item.lot_number ?? null,
@@ -559,6 +561,61 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
     setValue(`items.${index}.tax_rate_id`, taxRateId)
     setValue(`items.${index}.tax_rate_type`, taxRate?.type ?? null)
     setValue(`items.${index}.tax_rate`, taxRate?.rate ?? 0)
+  }
+
+  const applyTrackedLookupToLine = (index: number, item: InventoryProductLookupItem) => {
+    const currentLine = watchedItems[index]
+    const tracking = currentLine?.stock_tracking ?? item.stock_tracking
+    const nextTracking = tracking ?? item.stock_tracking ?? null
+
+    if (
+      item.product_id !== currentLine?.product_id
+      || (item.variation_id ?? null) !== (currentLine?.variation_id ?? null)
+    ) {
+      enqueueSnackbar(t('pos.messages.trackedProductMismatch'), { variant: 'warning' })
+      return
+    }
+
+    if (tracking === 'lot') {
+      if (!item.lot_id) {
+        enqueueSnackbar(t('pos.messages.lotRequired'), { variant: 'warning' })
+        return
+      }
+
+      setValue(`items.${index}.stock_tracking`, nextTracking, { shouldDirty: true, shouldValidate: true })
+      setValue(`items.${index}.lot_id`, item.lot_id, { shouldDirty: true, shouldValidate: true })
+      setValue(`items.${index}.lot_number`, item.lot_number ?? null, { shouldDirty: true })
+      setValue(`items.${index}.serial_id`, null, { shouldDirty: true, shouldValidate: true })
+      setValue(`items.${index}.serial_number`, null, { shouldDirty: true })
+      setValue(`items.${index}.unit_cost`, toNumber(item.unit_cost), { shouldDirty: true })
+      setValue(`items.${index}.available_quantity`, item.available_quantity ?? null, { shouldDirty: true })
+      return
+    }
+
+    if (tracking === 'serial') {
+      if (!item.serial_id) {
+        enqueueSnackbar(t('pos.messages.serialRequired'), { variant: 'warning' })
+        return
+      }
+
+      const duplicateSerialIndex = watchedItems.findIndex((line, lineIndex) =>
+        lineIndex !== index && line.serial_id === item.serial_id
+      )
+
+      if (duplicateSerialIndex >= 0) {
+        enqueueSnackbar(t('pos.messages.serialAlreadyInCart'), { variant: 'warning' })
+        return
+      }
+
+      setValue(`items.${index}.stock_tracking`, nextTracking, { shouldDirty: true, shouldValidate: true })
+      setValue(`items.${index}.serial_id`, item.serial_id, { shouldDirty: true, shouldValidate: true })
+      setValue(`items.${index}.serial_number`, item.serial_number ?? null, { shouldDirty: true })
+      setValue(`items.${index}.lot_id`, null, { shouldDirty: true, shouldValidate: true })
+      setValue(`items.${index}.lot_number`, null, { shouldDirty: true })
+      setValue(`items.${index}.quantity`, 1, { shouldDirty: true, shouldValidate: true })
+      setValue(`items.${index}.unit_cost`, toNumber(item.unit_cost), { shouldDirty: true })
+      setValue(`items.${index}.available_quantity`, item.available_quantity ?? null, { shouldDirty: true })
+    }
   }
 
   const changeItemUnit = (index: number, nextSubUnitId: string | null, nextLabel: string, nextPrice: number) => {
@@ -1236,6 +1293,35 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
                   </TextField>
                 )} />
               </Box>
+              {(() => {
+                const editingLine = watchedItems[editingItemIndex]
+                const tracking = editingLine?.stock_tracking ?? (editingLine?.serial_id ? 'serial' : editingLine?.lot_id ? 'lot' : 'none')
+
+                if (tracking !== 'lot' && tracking !== 'serial') return null
+
+                return (
+                  <Stack spacing={1}>
+                    <InventoryProductLookupPicker
+                      warehouseId={warehouseId || undefined}
+                      disabled={!warehouseId || isSaving}
+                      label={tracking === 'lot' ? t('pos.lineDialog.lotLookup') : t('pos.lineDialog.serialLookup')}
+                      helperText={tracking === 'lot' ? t('pos.lineDialog.lotLookupHelp') : t('pos.lineDialog.serialLookupHelp')}
+                      onSelect={(item) => applyTrackedLookupToLine(editingItemIndex, item)}
+                    />
+                    {(tracking === 'lot' && editingLine?.lot_number) || (tracking === 'serial' && editingLine?.serial_number) ? (
+                      <Alert severity="info">
+                        {tracking === 'lot'
+                          ? t('pos.lineDialog.selectedLot', { lot: editingLine.lot_number })
+                          : t('pos.lineDialog.selectedSerial', { serial: editingLine.serial_number })}
+                      </Alert>
+                    ) : (
+                      <Alert severity="warning">
+                        {tracking === 'lot' ? t('pos.lineDialog.lotRequired') : t('pos.lineDialog.serialRequired')}
+                      </Alert>
+                    )}
+                  </Stack>
+                )
+              })()}
               <Controller name={`items.${editingItemIndex}.notes`} control={control} render={({ field }) => (
                 <TextField {...field} fullWidth value={field.value ?? ''} label={t('fields.notes')} error={!!errors.items?.[editingItemIndex]?.notes} helperText={errors.items?.[editingItemIndex]?.notes?.message} multiline minRows={3} />
               )} />

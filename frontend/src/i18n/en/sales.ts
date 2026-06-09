@@ -200,6 +200,14 @@ const sales = {
     lineDialog: {
       title: 'Edit item details',
       saleTaxMode: 'Line tax is disabled while sale-level tax is selected.',
+      lotLookup: 'Lot number',
+      serialLookup: 'Serial number',
+      lotLookupHelp: 'Scan or search the lot assigned to this item.',
+      serialLookupHelp: 'Scan or search one serial assigned to this item.',
+      selectedLot: 'Selected lot: {{lot}}',
+      selectedSerial: 'Selected serial: {{serial}}',
+      lotRequired: 'Select a lot before saving this tracked item.',
+      serialRequired: 'Select a serial before saving this tracked item.',
     },
     summaryDialog: {
       discountTitle: 'Edit order discount',
@@ -212,6 +220,9 @@ const sales = {
       suspended: 'POS sale suspended.',
       productNotAvailable: 'This product is not available in the selected warehouse.',
       serialAlreadyInCart: 'This serial item is already in the cart.',
+      trackedProductMismatch: 'Select a lot or serial for the same product line.',
+      lotRequired: 'Select a lot number for this lot-tracked item.',
+      serialRequired: 'Select a serial number for this serial-tracked item.',
     },
   },
   cashRegisters: {

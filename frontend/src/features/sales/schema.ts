@@ -36,6 +36,7 @@ export const saleItemSchema = z.object({
   _conversion_factor: z.string().nullable().optional(),
   lot_id: z.string().nullable().optional(),
   serial_id: z.string().nullable().optional(),
+  stock_tracking: z.string().nullable().optional(),
   product_label: z.string().optional(),
   sku: z.string().nullable().optional(),
   lot_number: z.string().nullable().optional(),
@@ -52,6 +53,32 @@ export const saleItemSchema = z.object({
   tax_type: z.enum(['inclusive', 'exclusive']).nullable().optional(),
   unit_cost: z.coerce.number().min(0, 'Unit cost cannot be negative').nullable().optional(),
   notes: nullableText().optional(),
+}).superRefine((value, context) => {
+  if (value.stock_tracking === 'lot' && !value.lot_id) {
+    context.addIssue({
+      code: 'custom',
+      path: ['lot_id'],
+      message: 'Select a lot number for this tracked item',
+    })
+  }
+
+  if (value.stock_tracking === 'serial') {
+    if (!value.serial_id) {
+      context.addIssue({
+        code: 'custom',
+        path: ['serial_id'],
+        message: 'Select a serial number for this tracked item',
+      })
+    }
+
+    if (value.quantity !== 1) {
+      context.addIssue({
+        code: 'custom',
+        path: ['quantity'],
+        message: 'Serial tracked items must have a quantity of one',
+      })
+    }
+  }
 })
 
 export const saleFormSchema = z.object({

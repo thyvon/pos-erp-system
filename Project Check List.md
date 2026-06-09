@@ -108,6 +108,8 @@
 - [x] POS direct-payment table and payable summary are extracted into a dedicated component so the POS form page keeps payment rendering separate from sale workflow state; frontend type-check, lint, and build verified.
 - [x] POS cart product picker, item table, quantity controls, and summary strip are extracted into a dedicated component while preserving the existing payment section nesting; frontend type-check, lint, and build verified.
 - [x] POS warehouse/customer/date header fields are extracted into a dedicated component while preserving branch synchronization and the add-customer action; frontend type-check, lint, and build verified.
+- [x] POS cart empty states now reuse shared empty components: `TableStateRow` for the desktop cart table and compact `EmptyState` for mobile cart cards; frontend type-check, lint, and build verified.
+- [x] POS edit-line dialog now supports tracked product assignment by scanning/searching the matching lot or serial, stores the selected lot/serial IDs for the sale payload, and locks serial lines to one unit; frontend local check verified.
 - [x] Cash Register Management page added with branch/status filters, create/edit/delete actions, open/close session dialogs, recent sessions view, sidebar navigation, breadcrumbs, API hooks, types, and translations; frontend type-check, lint, and build verified.
 - [x] Cash Register Management page header and filters now use shared `PageHeader`/`PageToolbar` with active branch/status filter chips; frontend type-check, lint, and build verified.
 
@@ -259,12 +261,14 @@
 - [x] Searchable autocomplete fields now inherit the same theme-level height standard as normal select and text fields.
 - [x] Date picker fields now inherit the same theme-level height standard as normal input, select, and searchable autocomplete fields.
 - [x] Shared form field labels, placeholders, select values, autocomplete text, and date-picker text are vertically centered across layout size settings; frontend type-check, lint, and build verified.
+- [x] Frontend local verification now uses cached ESLint through `npm run lint` and a faster `npm run check:local` script for lint plus type-check, keeping full `npm run build` for final production verification.
 - [x] Product variation and combo table inputs now use the shared default-height, full-width product form controls.
 - [x] Shared MUI table rows now use a global striped body-row style so standard system tables inherit consistent alternating row backgrounds without page-level duplication.
 - [x] Brand uploaded image previews now resolve Laravel `/storage` asset URLs through the configured API host so images show correctly in the Next frontend.
 - [x] Product detail, variation thumbnails, and POS product tiles now resolve Laravel `/storage` asset URLs through the configured API host.
 - [x] POS checkout now hides sale/due date fields, moves price group and notes behind a More toggle, and keeps payment anchored at the bottom of the sell-line panel.
 - [x] POS checkout layout reviewed and cleaned for desktop and iPad: product gallery now uses a drawer until wide desktop, cart table is narrower for landscape iPad/desktop, and portrait tablet/mobile uses compact cart cards; frontend type-check, lint, and build verified.
+- [x] POS tracked item edit flow reviewed and cleaned: serial quantity locking is shared between cart layouts, tracking state is preserved when applying lot/serial lookup, and fast frontend check passes.
 - [x] Pending frosted shell/global overlay blur changes reviewed and removed to preserve the verified solid/translucent layout behavior; Next route types regenerated and frontend type-check, lint, and build verified.
 - [x] Agent rules now require small reusable shared components/hooks for repeated frontend patterns instead of duplicated page-level code.
 - [x] Customer edit now shows a visible validation message when the form blocks saving.

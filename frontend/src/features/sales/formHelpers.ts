@@ -171,6 +171,7 @@ export function saleFormValuesFromSale(
       _conversion_factor: item.sub_unit?.conversion_factor ?? null,
       lot_id: item.lots?.[0]?.lot_id ?? null,
       serial_id: item.serials?.[0]?.serial_id ?? null,
+      stock_tracking: item.product?.stock_tracking ?? null,
       product_label: saleItemName(item),
       sku: item.variation?.sku ?? item.product?.sku ?? null,
       lot_number: item.lots?.[0]?.lot?.lot_number ?? null,

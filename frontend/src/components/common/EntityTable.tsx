@@ -1,6 +1,5 @@
 import { ReactNode } from 'react'
 import {
-  Box,
   Checkbox,
   CircularProgress,
   IconButton,
