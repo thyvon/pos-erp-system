@@ -144,7 +144,7 @@ class ProductImportTest extends TestCase
             new Collection([
                 'name' => null,
                 'type' => null,
-                'sku' => 'IMP-SHIRT-SR',
+                'sku' => null,
                 'parent_sku' => 'IMP-SHIRT',
                 'barcode_type' => null,
                 'unit' => null,

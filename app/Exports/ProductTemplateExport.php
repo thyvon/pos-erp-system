@@ -148,7 +148,7 @@ class ProductTemplateExport implements FromArray, WithHeadings, WithMapping, Wit
             [
                 '',
                 '',
-                'VAR-001-SR',
+                '',
                 'VAR-001',
                 '',
                 '',
@@ -191,7 +191,7 @@ class ProductTemplateExport implements FromArray, WithHeadings, WithMapping, Wit
             [
                 '',
                 '',
-                'VAR-001-SB',
+                '',
                 'VAR-001',
                 '',
                 '',
@@ -234,7 +234,7 @@ class ProductTemplateExport implements FromArray, WithHeadings, WithMapping, Wit
             [
                 '',
                 '',
-                'VAR-001-LR',
+                '',
                 'VAR-001',
                 '',
                 '',
@@ -277,7 +277,7 @@ class ProductTemplateExport implements FromArray, WithHeadings, WithMapping, Wit
             [
                 '',
                 '',
-                'VAR-001-LB',
+                '',
                 'VAR-001',
                 '',
                 '',
