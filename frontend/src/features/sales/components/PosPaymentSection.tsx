@@ -223,14 +223,75 @@ export function PosPaymentSection({
   return (
     <Box
       sx={{
-        display: 'grid',
-        gridTemplateColumns: { xs: '1fr', lg: 'minmax(0, 1fr) minmax(220px, 260px)' },
-        alignItems: 'stretch',
         borderTop: 1,
         borderColor: 'divider',
         bgcolor: 'background.paper',
+        minWidth: 0,
       }}
     >
+      <Box
+        sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: '1fr 1fr', md: '1.15fr 1fr 1fr 1fr' },
+          borderBottom: 1,
+          borderColor: 'divider',
+          bgcolor: 'success.lighter',
+        }}
+      >
+        {[
+          {
+            key: 'total',
+            label: t('pos.totalPayable'),
+            value: totalDisplay.usd.replace('USD ', ''),
+            helper: totalDisplay.khr,
+          },
+          {
+            key: 'entered',
+            label: t('payment.totalEntered'),
+            value: paymentDisplay.usd,
+            helper: paymentDisplay.khr,
+          },
+          {
+            key: change > 0 ? 'change' : 'remaining',
+            label: change > 0 ? t('payment.changeBack') : t('payment.remaining'),
+            value: change > 0 ? changeDisplay.usd : remainingDisplay.usd,
+            helper: change > 0 ? changeDisplay.khr : remainingDisplay.khr,
+          },
+          {
+            key: 'lines',
+            label: t('payment.directTitle'),
+            value: directPaymentFields.length.toString(),
+            helper: t('payment.addLine'),
+          },
+        ].map((item) => (
+          <Box
+            key={item.key}
+            sx={{
+              p: 1,
+              textAlign: 'center',
+              borderRightWidth: { md: 1 },
+              borderRightStyle: { md: 'solid' },
+              borderRightColor: 'divider',
+              borderBottomWidth: { xs: 1, md: 0 },
+              borderBottomStyle: { xs: 'solid', md: 'none' },
+              borderBottomColor: 'divider',
+              '&:nth-of-type(2n)': { borderRightWidth: { xs: 0, md: 1 } },
+              '&:nth-of-type(4)': { borderRightWidth: 0, borderBottomWidth: 0 },
+            }}
+          >
+            <Typography variant="caption" sx={{ color: 'success.dark', fontWeight: 800, textTransform: 'uppercase' }}>
+              {item.label}
+            </Typography>
+            <Typography variant="subtitle1" sx={{ color: 'success.dark', fontWeight: 900 }} noWrap>
+              {item.value}
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'success.dark' }} noWrap>
+              {item.helper}
+            </Typography>
+          </Box>
+        ))}
+      </Box>
+
       <Box sx={{ minWidth: 0, p: 1.25 }}>
         {canCapturePayment && (
           <Stack spacing={1}>
@@ -301,29 +362,6 @@ export function PosPaymentSection({
                 )
               })}
             </Stack>
-          </Stack>
-        )}
-      </Box>
-      <Box
-        sx={{
-          p: 1.5,
-          bgcolor: 'success.lighter',
-          textAlign: 'center',
-          display: 'grid',
-          alignContent: 'center',
-          borderTop: { xs: 1, lg: 0 },
-          borderLeft: { lg: 1 },
-          borderColor: 'divider',
-          minWidth: 0,
-        }}
-      >
-        <Typography variant="caption" sx={{ color: 'success.dark', fontWeight: 800, textTransform: 'uppercase' }}>{t('pos.totalPayable')}</Typography>
-        <Typography variant="h4" sx={{ color: 'success.dark', fontWeight: 900 }}>{totalDisplay.usd.replace('USD ', '')}</Typography>
-        <Typography variant="body2" sx={{ color: 'success.dark' }}>{totalDisplay.khr}</Typography>
-        {canCapturePayment && (
-          <Stack spacing={0.25} sx={{ mt: 1 }}>
-            <Typography variant="caption">{t('payment.totalEntered')}: {paymentDisplay.usd}</Typography>
-            <Typography variant="caption">{change > 0 ? t('payment.changeBack') : t('payment.remaining')}: {change > 0 ? changeDisplay.usd : remainingDisplay.usd}</Typography>
           </Stack>
         )}
       </Box>
