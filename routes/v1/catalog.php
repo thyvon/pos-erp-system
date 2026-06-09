@@ -63,12 +63,11 @@ return static function (): void {
     Route::delete('price-groups/{priceGroup}', [PriceGroupController::class, 'destroy'])->middleware('can:price_groups.delete');
 
     Route::get('products/form-options', [ProductController::class, 'formOptions'])->middleware('can:products.index');
+    Route::get('products/import/template', [ProductController::class, 'downloadTemplate'])->middleware('can:products.create');
+    Route::post('products/import', [ProductController::class, 'import'])->middleware('can:products.import');
     Route::get('products', [ProductController::class, 'index'])->middleware('can:products.index');
     Route::post('products', [ProductController::class, 'store'])->middleware('can:products.create');
     Route::get('products/{product}', [ProductController::class, 'show'])->middleware('can:products.index');
     Route::put('products/{product}', [ProductController::class, 'update'])->middleware('can:products.edit');
     Route::delete('products/{product}', [ProductController::class, 'destroy'])->middleware('can:products.delete');
-
-    Route::get('products/import/template', [ProductController::class, 'downloadTemplate'])->middleware('can:products.create');
-    Route::post('products/import', [ProductController::class, 'import'])->middleware('can:products.import');
 };

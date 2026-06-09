@@ -12,9 +12,8 @@ use Illuminate\Support\Collection;
 use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
 use Maatwebsite\Excel\Concerns\ToCollection;
 use Maatwebsite\Excel\Concerns\WithHeadingRow;
-use Maatwebsite\Excel\Concerns\WithValidation;
 
-class ProductImport implements ToCollection, WithHeadingRow, WithValidation, SkipsEmptyRows
+class ProductImport implements ToCollection, WithHeadingRow, SkipsEmptyRows
 {
     private int $imported = 0;
     private int $skipped = 0;
@@ -108,16 +107,6 @@ class ProductImport implements ToCollection, WithHeadingRow, WithValidation, Ski
                 $this->skipped++;
             }
         }
-    }
-
-    public function rules(): array
-    {
-        return [
-            'name' => ['required', 'string', 'max:150'],
-            'type' => ['nullable', 'string', 'in:single,service'],
-            'selling_price' => ['nullable', 'numeric', 'min:0'],
-            'purchase_price' => ['nullable', 'numeric', 'min:0'],
-        ];
     }
 
     public function getImportedCount(): int
