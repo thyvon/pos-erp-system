@@ -387,7 +387,12 @@ export function PosCartSection({
           position: 'sticky',
           bottom: 0,
           zIndex: 2,
-          bgcolor: 'background.paper',
+          display: 'grid',
+          gap: 1,
+          p: 0.75,
+          bgcolor: 'background.default',
+          borderTop: 1,
+          borderColor: 'divider',
           boxShadow: '0 -8px 20px rgba(15, 23, 42, 0.08)',
         }}
       >
@@ -395,8 +400,9 @@ export function PosCartSection({
           sx={{
             border: 1,
             borderColor: 'divider',
-            borderRadius: 1,
+            borderRadius: 1.25,
             overflow: 'hidden',
+            bgcolor: 'background.paper',
           }}
         >
           <Box
@@ -415,8 +421,8 @@ export function PosCartSection({
               <Box
                 key={item.key}
                 sx={{
-                  px: 1,
-                  py: 0.5,
+                  px: 1.25,
+                  py: 0.75,
                   minWidth: 0,
                   borderRightWidth: { sm: 1, lg: 1 },
                   borderRightStyle: { sm: 'solid' },
@@ -428,9 +434,9 @@ export function PosCartSection({
                   '&:nth-of-type(5)': { borderRightWidth: 0, borderBottomWidth: 0 },
                 }}
               >
-                <Stack direction="row" spacing={0.75} sx={{ alignItems: 'baseline', justifyContent: 'space-between', minWidth: 0 }}>
-                  <Stack direction="row" spacing={0.25} sx={{ alignItems: 'center', minWidth: 0 }}>
-                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 700, textTransform: 'uppercase', flex: '0 0 auto' }}>
+                <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between', minWidth: 0 }}>
+                  <Stack direction="row" spacing={0.35} sx={{ alignItems: 'center', minWidth: 0 }}>
+                    <Typography variant="caption" sx={{ color: 'text.secondary', fontWeight: 800, textTransform: 'uppercase', flex: '0 0 auto' }}>
                       {item.label}
                     </Typography>
                     {item.edit && (
@@ -441,7 +447,7 @@ export function PosCartSection({
                       </Tooltip>
                     )}
                   </Stack>
-                  <Typography variant="subtitle2" sx={{ color: item.color ?? 'text.primary', fontWeight: 800, minWidth: 0 }} noWrap>
+                  <Typography variant="subtitle2" sx={{ color: item.color ?? 'text.primary', fontWeight: 900, minWidth: 0 }} noWrap>
                     {item.value}
                   </Typography>
                 </Stack>
