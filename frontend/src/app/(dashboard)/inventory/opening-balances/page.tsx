@@ -15,6 +15,7 @@ import {
   DialogActions,
   DialogContent,
   DialogTitle,
+  FormHelperText,
   IconButton,
   InputAdornment,
   Stack,
@@ -29,7 +30,8 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
-import { Add, DeleteOutlined, Inventory2Outlined, SaveOutlined, Search, UploadOutlined } from '@/components/ui/icons'
+import { FileDownloadOutlined } from '@mui/icons-material'
+import { Add, DeleteOutlined, Inventory2Outlined, Search, UploadOutlined } from '@/components/ui/icons'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
@@ -38,6 +40,7 @@ import { RowActions } from '@/components/ui/RowActions'
 import { SearchableFilterSelect } from '@/components/ui/SearchableFilterSelect'
 import { TableStateRow } from '@/components/ui/TableStateRow'
 import { InventoryProductLookupPicker } from '@/features/inventory/components/InventoryProductLookupPicker'
+import { stockOpeningBalancesApi } from '@/features/inventory/api'
 import {
   useCreateStockOpeningBalanceMutation,
   useImportStockOpeningBalanceMutation,
@@ -415,132 +418,130 @@ function OpeningBalanceDialog({
 
 function ImportDialog({
   open,
-  warehouses,
-  isLoadingOptions,
   isSaving,
   onClose,
   onSubmit,
 }: {
   open: boolean
-  warehouses: InventoryWarehouseOption[]
-  isLoadingOptions: boolean
   isSaving: boolean
   onClose: () => void
-  onSubmit: (formData: FormData) => Promise<void>
+  onSubmit: (file: File) => Promise<void>
 }) {
   const { t } = useTranslation(['inventory', 'common'])
-  const [serverError, setServerError] = useState('')
-  const [warehouseId, setWarehouseId] = useState('')
-  const [date, setDate] = useState(today())
-  const [notes, setNotes] = useState('')
-  const [file, setFile] = useState<File | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const [file, setFile] = useState<File | null>(null)
+  const [errorMessage, setErrorMessage] = useState('')
 
   const resetForm = () => {
-    setServerError('')
-    setWarehouseId('')
-    setDate(today())
-    setNotes('')
+    setErrorMessage('')
     setFile(null)
     if (fileInputRef.current) fileInputRef.current.value = ''
   }
 
-  const closeDialog = () => {
-    if (isSaving) return
-    resetForm()
-    onClose()
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = event.target.files?.[0] ?? null
+    setFile(selected)
+    setErrorMessage('')
   }
 
-  const handleSubmit = async () => {
-    setServerError('')
-    if (!file) { setServerError(t('openingBalances.import.validation.fileRequired')); return }
-    if (!warehouseId) { setServerError(t('openingBalances.import.validation.warehouseRequired')); return }
-    if (!date) { setServerError(t('openingBalances.import.validation.dateRequired')); return }
+  const handleDownloadTemplate = async () => {
+    try {
+      const blob = await stockOpeningBalancesApi.downloadImportTemplate()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'opening-stock-import-template.xlsx'
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      setErrorMessage(toAppApiError(error).message)
+    }
+  }
 
-    const formData = new FormData()
-    formData.append('file', file)
-    formData.append('warehouse_id', warehouseId)
-    formData.append('date', date)
-    if (notes) formData.append('notes', notes)
+  const handleImport = async () => {
+    if (!file) return
+
+    setErrorMessage('')
 
     try {
-      await onSubmit(formData)
+      await onSubmit(file)
       resetForm()
       onClose()
     } catch (error) {
-      setServerError(toAppApiError(error).message)
+      setErrorMessage(toAppApiError(error).message)
+    }
+  }
+
+  const handleClose = () => {
+    if (!isSaving) {
+      resetForm()
+      onClose()
     }
   }
 
   return (
-    <Dialog open={open} onClose={isSaving ? undefined : closeDialog} fullWidth maxWidth="sm">
+    <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
       <DialogTitle>{t('openingBalances.import.title')}</DialogTitle>
       <DialogContent dividers>
-        <Stack spacing={2.5} sx={{ pt: 0.5 }}>
-          {serverError && <Alert severity="error">{serverError}</Alert>}
-          <Alert severity="info">{t('openingBalances.import.notice')}</Alert>
+        <Stack spacing={3} sx={{ pt: 0.5 }}>
+          {errorMessage && (
+            <FormHelperText error sx={{ m: 0 }}>
+              {errorMessage}
+            </FormHelperText>
+          )}
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          <Box>
             <Button
               variant="outlined"
-              component="label"
-              startIcon={<UploadOutlined />}
-              disabled={isSaving}
-            >
-              {file ? file.name : t('openingBalances.import.chooseFile')}
-              <input
-                ref={fileInputRef}
-                type="file"
-                accept=".csv,.xlsx,.xls"
-                hidden
-                onChange={(e) => setFile(e.target.files?.[0] ?? null)}
-              />
-            </Button>
-            <Button
-              variant="text"
-              size="small"
-              startIcon={<SaveOutlined />}
-              component="a"
-              href="/api/v1/inventory/opening-balances/import/template"
-              target="_blank"
+              startIcon={<FileDownloadOutlined />}
+              onClick={handleDownloadTemplate}
             >
               {t('openingBalances.import.downloadTemplate')}
             </Button>
+            <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: 'text.secondary' }}>
+              {t('openingBalances.import.templateHelp')}
+            </Typography>
           </Box>
 
-          <Autocomplete
-            options={warehouses}
-            value={warehouses.find((w) => w.id === warehouseId) ?? null}
-            loading={isLoadingOptions}
-            getOptionLabel={(w) => [w.name, w.code, w.branch_name].filter(Boolean).join(' / ')}
-            isOptionEqualToValue={(option, value) => option.id === value.id}
-            disabled={isLoadingOptions || isSaving}
-            onChange={(_, w) => setWarehouseId(w?.id ?? '')}
-            renderInput={(params) => (
-              <TextField {...params} label={t('openingBalances.fields.warehouse')} required />
+          <Box>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,.xlsx,.xls"
+              style={{ display: 'none' }}
+              onChange={handleFileChange}
+            />
+            <Button
+              variant="contained"
+              startIcon={<UploadOutlined />}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {t('openingBalances.import.selectFile')}
+            </Button>
+            {file && (
+              <Typography variant="body2" sx={{ mt: 1 }}>
+                {file.name}
+              </Typography>
             )}
-          />
+          </Box>
 
-          <AppDatePicker
-            value={date}
-            onChange={(v) => setDate(v ?? '')}
-            label={t('openingBalances.fields.date')}
-            required
-          />
-
-          <TextField
-            value={notes}
-            onChange={(e) => setNotes(e.target.value)}
-            label={t('openingBalances.fields.notes')}
-            multiline
-            minRows={2}
-          />
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+            {t('openingBalances.import.fileHelp')}
+          </Typography>
         </Stack>
       </DialogContent>
       <DialogActions>
-        <Button variant="outlined" onClick={closeDialog} disabled={isSaving}>{t('common:buttons.cancel')}</Button>
-        <Button variant="contained" onClick={handleSubmit} disabled={isSaving || !file}>
-          {isSaving ? <CircularProgress size={20} color="inherit" /> : t('common:buttons.import')}
+        <Button onClick={handleClose} disabled={isSaving}>
+          {t('common:buttons.cancel')}
+        </Button>
+        <Button
+          variant="contained"
+          onClick={handleImport}
+          disabled={!file || isSaving}
+        >
+          {isSaving ? <CircularProgress size={20} /> : t('common:buttons.import')}
         </Button>
       </DialogActions>
     </Dialog>
@@ -588,12 +589,12 @@ export default function StockOpeningBalancesPage() {
     setPage(0)
   }
 
-  const handleImport = async (formData: FormData) => {
-    const result = await importBalance.mutateAsync(formData)
+  const handleImport = async (file: File) => {
+    const result = await importBalance.mutateAsync(file)
     if (result.skipped > 0) {
-      enqueueSnackbar(t('openingBalances.import.resultPartial', { imported: result.imported, skipped: result.skipped }), { variant: 'warning' })
+      enqueueSnackbar(t('openingBalances.import.result', { imported: result.imported, skipped: result.skipped }), { variant: 'warning' })
     } else {
-      enqueueSnackbar(t('openingBalances.import.resultSuccess', { count: result.imported }), { variant: 'success' })
+      enqueueSnackbar(t('openingBalances.import.result', { imported: result.imported, skipped: 0 }), { variant: 'success' })
     }
     setPage(0)
   }
@@ -731,8 +732,6 @@ export default function StockOpeningBalancesPage() {
 
       <ImportDialog
         open={importOpen}
-        warehouses={warehouses}
-        isLoadingOptions={optionsQuery.isLoading}
         isSaving={importBalance.isPending}
         onClose={() => {
           if (!importBalance.isPending) setImportOpen(false)

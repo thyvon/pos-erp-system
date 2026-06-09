@@ -73,6 +73,12 @@ export interface UserAccessOptions {
   branches: UserBranch[]
 }
 
+export interface ImportResult {
+  imported: number
+  skipped: number
+  errors?: string[]
+}
+
 export interface UserFilters {
   search?: string
   status?: UserStatus | ''

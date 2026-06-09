@@ -86,16 +86,11 @@ const inventory = {
     },
     import: {
       title: 'នាំចូលស្តុកដើមគ្រាពីឯកសារ',
-      notice: 'បង្ហោះឯកសារ Excel ឬ CSV។ ប្រើពុម្ពដើម្បីធានាទម្រង់ជួរឈរត្រឹមត្រូវ។',
-      chooseFile: 'ជ្រើសរើសឯកសារ',
       downloadTemplate: 'ទាញយកពុម្ព',
-      validation: {
-        fileRequired: 'សូមជ្រើសរើសឯកសារដើម្បីនាំចូល។',
-        warehouseRequired: 'តម្រូវឱ្យជ្រើសរើសឃ្លាំង។',
-        dateRequired: 'តម្រូវឱ្យបញ្ចូលកាលបរិច្ឆេទ។',
-      },
-      resultSuccess: 'នាំចូលបានជោគជ័យចំនួន {{count}} ធាតុ។',
-      resultPartial: 'នាំចូលបាន {{imported}} ធាតុ រំលង {{skipped}} ធាតុ។',
+      templateHelp: 'ទាញយកពុម្ពឯកសារដែលមានទិន្នន័យគំរូ និងបឋមកថាជួរឈរ។',
+      selectFile: 'ជ្រើសរើសឯកសារ',
+      fileHelp: 'បង្ហោះឯកសារ .csv, .xlsx, ឬ .xls។ ឃ្លាំង និងកាលបរិច្ឆេទត្រូវបានអានពីជួរឈរក្នុងឯកសារ។',
+      result: 'នាំចូលបាន {{imported}} ធាតុ។ រំលង {{skipped}} ធាតុ។',
     },
     messages: {
       created: 'ស្តុកដើមគ្រាត្រូវបានបង្កើត។',

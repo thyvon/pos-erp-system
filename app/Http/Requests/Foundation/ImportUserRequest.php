@@ -1,10 +1,10 @@
 <?php
 
-namespace App\Http\Requests\Inventory;
+namespace App\Http\Requests\Foundation;
 
 use Illuminate\Foundation\Http\FormRequest;
 
-class ImportStockOpeningBalanceRequest extends FormRequest
+class ImportUserRequest extends FormRequest
 {
     public function authorize(): bool
     {

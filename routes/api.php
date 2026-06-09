@@ -104,6 +104,8 @@ Route::prefix('v1')->middleware(['auth:sanctum', 'throttle:300,1'])->group(funct
     Route::delete('roles/{role}', [RoleController::class, 'destroy'])->middleware('can:roles.delete');
 
     Route::get('users/options', [UserController::class, 'options'])->middleware('can:users.index');
+    Route::get('users/import/template', [UserController::class, 'downloadTemplate'])->middleware('can:users.create');
+    Route::post('users/import', [UserController::class, 'import'])->middleware('can:users.create');
     Route::get('users', [UserController::class, 'index'])->middleware('can:users.index');
     Route::post('users', [UserController::class, 'store'])->middleware('can:users.create');
     Route::get('users/{user}', [UserController::class, 'show'])->middleware('can:users.index');

@@ -12,6 +12,8 @@ class StockOpeningBalanceTemplateExport implements FromArray, WithHeadings, With
     public function headings(): array
     {
         return [
+            'warehouse',
+            'date',
             'product_sku',
             'product_name',
             'variation_sku',
@@ -31,6 +33,8 @@ class StockOpeningBalanceTemplateExport implements FromArray, WithHeadings, With
     {
         return [
             [
+                'Main Branch',
+                '2026-06-01',
                 'SMP-001',
                 '',
                 '',
@@ -45,6 +49,8 @@ class StockOpeningBalanceTemplateExport implements FromArray, WithHeadings, With
                 '',
             ],
             [
+                'Main Branch',
+                '2026-06-01',
                 '',
                 'Sample Product Name',
                 '',
@@ -59,6 +65,8 @@ class StockOpeningBalanceTemplateExport implements FromArray, WithHeadings, With
                 '',
             ],
             [
+                'Main Branch',
+                '2026-06-01',
                 'VAR-001',
                 '',
                 'VAR-001-RED',
@@ -73,6 +81,8 @@ class StockOpeningBalanceTemplateExport implements FromArray, WithHeadings, With
                 '',
             ],
             [
+                'Main Branch',
+                '2026-06-01',
                 'LOT-001',
                 '',
                 '',
@@ -87,6 +97,8 @@ class StockOpeningBalanceTemplateExport implements FromArray, WithHeadings, With
                 '',
             ],
             [
+                'Main Branch',
+                '2026-06-01',
                 'SER-001',
                 '',
                 '',

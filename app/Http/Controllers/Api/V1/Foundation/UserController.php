@@ -2,15 +2,20 @@
 
 namespace App\Http\Controllers\Api\V1\Foundation;
 
+use App\Exports\UserTemplateExport;
 use App\Http\Controllers\Api\V1\BaseApiController;
+use App\Http\Requests\Foundation\ImportUserRequest;
 use App\Http\Requests\Foundation\StoreUserRequest;
 use App\Http\Requests\Foundation\UpdateUserRequest;
 use App\Http\Resources\Foundation\UserListResource;
 use App\Http\Resources\Foundation\UserResource;
+use App\Imports\UserImport;
 use App\Models\User;
 use App\Services\Foundation\UserService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class UserController extends BaseApiController
 {
@@ -35,6 +40,29 @@ class UserController extends BaseApiController
         $this->authorize('viewAny', User::class);
 
         return $this->success($this->userService->accessControlOptions());
+    }
+
+    public function downloadTemplate(): BinaryFileResponse
+    {
+        $this->authorize('create', User::class);
+
+        return Excel::download(new UserTemplateExport, 'user-import-template.xlsx');
+    }
+
+    public function import(ImportUserRequest $request): JsonResponse
+    {
+        $this->authorize('create', User::class);
+
+        $business = $request->user()->business;
+        $import = new UserImport($business, $this->userService, $request->user());
+
+        Excel::import($import, $request->file('file'));
+
+        return $this->success([
+            'imported' => $import->getImportedCount(),
+            'skipped' => $import->getSkippedCount(),
+            'errors' => $import->getErrors(),
+        ], 'Import completed.');
     }
 
     public function store(StoreUserRequest $request): JsonResponse

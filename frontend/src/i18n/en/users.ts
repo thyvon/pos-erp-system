@@ -78,6 +78,15 @@ export default {
     updated: 'User updated.',
     deleted: 'User deleted.',
   },
+  import: {
+    title: 'Import users',
+    downloadTemplate: 'Download template',
+    templateHelp: 'Download the template file with sample data and column headers.',
+    selectFile: 'Select file',
+    fileHelp: 'Upload a .csv, .xlsx, or .xls file with matching column headers.',
+    proceed: 'Import',
+    result: 'Imported {{imported}} user(s). {{skipped}} skipped.',
+  },
   deleteDialog: {
     title: 'Delete user',
     message: 'Delete {{name}}? This action cannot be undone.',

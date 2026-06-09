@@ -21,7 +21,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
-import { Add, PeopleAltOutlined, Search } from '@/components/ui/icons'
+import { Add, PeopleAltOutlined, Search, UploadOutlined } from '@/components/ui/icons'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
@@ -30,6 +30,7 @@ import { RowActions } from '@/components/ui/RowActions'
 import { SearchableFilterSelect } from '@/components/ui/SearchableFilterSelect'
 import { TableStateRow } from '@/components/ui/TableStateRow'
 import { UserFormDialog } from '@/features/users/UserFormDialog'
+import { UserImportDialog } from '@/features/users/components/UserImportDialog'
 import {
   useCreateUserMutation,
   useDeleteUserMutation,
@@ -38,7 +39,7 @@ import {
   useUsersQuery,
 } from '@/features/users/hooks'
 import { useAuthStore } from '@/stores/authStore'
-import type { UserFilters, UserListItem, UserPayload, UserStatus } from '@/types/user'
+import type { ImportResult, UserFilters, UserListItem, UserPayload, UserStatus } from '@/types/user'
 
 const rowsPerPageOptions = [10, 25, 50]
 const userStatuses: UserStatus[] = ['active', 'inactive', 'suspended']
@@ -58,6 +59,7 @@ export default function UsersPage() {
   const [page, setPage] = useState(0)
   const [perPage, setPerPage] = useState(10)
   const [formOpen, setFormOpen] = useState(false)
+  const [importOpen, setImportOpen] = useState(false)
   const [editingUser, setEditingUser] = useState<UserListItem | null>(null)
   const [deletingUser, setDeletingUser] = useState<UserListItem | null>(null)
 
@@ -120,6 +122,17 @@ export default function UsersPage() {
     }
   }
 
+  const handleImportSuccess = (result: ImportResult) => {
+    if (result.errors && result.errors.length > 0) {
+      enqueueSnackbar(
+        t('import.result', { imported: result.imported, skipped: result.skipped }),
+        { variant: result.skipped > 0 ? 'warning' : 'success' }
+      )
+    } else {
+      enqueueSnackbar(t('import.result', { imported: result.imported, skipped: 0 }), { variant: 'success' })
+    }
+  }
+
   return (
     <Stack spacing={3}>
       <Stack
@@ -137,9 +150,14 @@ export default function UsersPage() {
           </Typography>
         </Box>
         {canCreate && (
-          <Button startIcon={<Add />} variant="contained" onClick={openCreateForm}>
-            {t('actions.new')}
-          </Button>
+          <Stack direction="row" spacing={1.5}>
+            <Button startIcon={<UploadOutlined />} variant="outlined" onClick={() => setImportOpen(true)}>
+              {t('common:buttons.import')}
+            </Button>
+            <Button startIcon={<Add />} variant="contained" onClick={openCreateForm}>
+              {t('actions.new')}
+            </Button>
+          </Stack>
         )}
       </Stack>
 
@@ -325,6 +343,12 @@ export default function UsersPage() {
         isSaving={createUser.isPending || updateUser.isPending}
         onClose={() => setFormOpen(false)}
         onSubmit={handleSubmit}
+      />
+
+      <UserImportDialog
+        open={importOpen}
+        onClose={() => setImportOpen(false)}
+        onSuccess={handleImportSuccess}
       />
 
       <ConfirmDialog

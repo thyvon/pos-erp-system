@@ -1,0 +1,149 @@
+'use client'
+
+import { useRef, useState } from 'react'
+import {
+  Box,
+  Button,
+  CircularProgress,
+  Dialog,
+  DialogActions,
+  DialogContent,
+  DialogTitle,
+  FormHelperText,
+  Stack,
+  Typography,
+} from '@mui/material'
+import { FileDownloadOutlined } from '@mui/icons-material'
+import { UploadOutlined } from '@/components/ui/icons'
+import { useTranslation } from 'react-i18next'
+import { toAppApiError } from '@/api/errors'
+import { usersApi } from '../api'
+import type { ImportResult } from '@/types/user'
+
+interface UserImportDialogProps {
+  open: boolean
+  onClose: () => void
+  onSuccess: (result: ImportResult) => void
+}
+
+export function UserImportDialog({ open, onClose, onSuccess }: UserImportDialogProps) {
+  const { t } = useTranslation(['users', 'common'])
+  const fileInputRef = useRef<HTMLInputElement>(null)
+  const [file, setFile] = useState<File | null>(null)
+  const [isProcessing, setIsProcessing] = useState(false)
+  const [errorMessage, setErrorMessage] = useState('')
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const selected = event.target.files?.[0] ?? null
+    setFile(selected)
+    setErrorMessage('')
+  }
+
+  const handleDownloadTemplate = async () => {
+    try {
+      const blob = await usersApi.importTemplate()
+      const url = window.URL.createObjectURL(blob)
+      const a = document.createElement('a')
+      a.href = url
+      a.download = 'user-import-template.xlsx'
+      document.body.appendChild(a)
+      a.click()
+      document.body.removeChild(a)
+      window.URL.revokeObjectURL(url)
+    } catch (error) {
+      setErrorMessage(toAppApiError(error).message)
+    }
+  }
+
+  const handleImport = async () => {
+    if (!file) return
+
+    setErrorMessage('')
+    setIsProcessing(true)
+
+    try {
+      const result = await usersApi.importUsers(file)
+      onSuccess(result)
+      onClose()
+      setFile(null)
+    } catch (error) {
+      setErrorMessage(toAppApiError(error).message)
+    } finally {
+      setIsProcessing(false)
+    }
+  }
+
+  const handleClose = () => {
+    if (!isProcessing) {
+      setFile(null)
+      setErrorMessage('')
+      onClose()
+    }
+  }
+
+  return (
+    <Dialog open={open} onClose={handleClose} fullWidth maxWidth="sm">
+      <DialogTitle>{t('import.title')}</DialogTitle>
+      <DialogContent dividers>
+        <Stack spacing={3} sx={{ pt: 0.5 }}>
+          {errorMessage && (
+            <FormHelperText error sx={{ m: 0 }}>
+              {errorMessage}
+            </FormHelperText>
+          )}
+
+          <Box>
+            <Button
+              variant="outlined"
+              startIcon={<FileDownloadOutlined />}
+              onClick={handleDownloadTemplate}
+            >
+              {t('import.downloadTemplate')}
+            </Button>
+            <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: 'text.secondary' }}>
+              {t('import.templateHelp')}
+            </Typography>
+          </Box>
+
+          <Box>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept=".csv,.xlsx,.xls"
+              style={{ display: 'none' }}
+              onChange={handleFileChange}
+            />
+            <Button
+              variant="contained"
+              startIcon={<UploadOutlined />}
+              onClick={() => fileInputRef.current?.click()}
+            >
+              {t('import.selectFile')}
+            </Button>
+            {file && (
+              <Typography variant="body2" sx={{ mt: 1 }}>
+                {file.name}
+              </Typography>
+            )}
+          </Box>
+
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+            {t('import.fileHelp')}
+          </Typography>
+        </Stack>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={handleClose} disabled={isProcessing}>
+          {t('common:buttons.cancel')}
+        </Button>
+        <Button
+          variant="contained"
+          onClick={handleImport}
+          disabled={!file || isProcessing}
+        >
+          {isProcessing ? <CircularProgress size={20} /> : t('import.proceed')}
+        </Button>
+      </DialogActions>
+    </Dialog>
+  )
+}

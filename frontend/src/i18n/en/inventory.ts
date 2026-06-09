@@ -86,16 +86,11 @@ const inventory = {
     },
     import: {
       title: 'Import opening stock from file',
-      notice: 'Upload an Excel or CSV file. Use the template to ensure correct column format.',
-      chooseFile: 'Choose file',
       downloadTemplate: 'Download template',
-      validation: {
-        fileRequired: 'Please select a file to import.',
-        warehouseRequired: 'Warehouse is required.',
-        dateRequired: 'Date is required.',
-      },
-      resultSuccess: '{{count}} items imported successfully.',
-      resultPartial: 'Imported {{imported}} items, {{skipped}} skipped.',
+      templateHelp: 'Download the template file with sample data and column headers.',
+      selectFile: 'Select file',
+      fileHelp: 'Upload a .csv, .xlsx, or .xls file. Warehouse and date are read from the file columns.',
+      result: 'Imported {{imported}} item(s). {{skipped}} skipped.',
     },
     messages: {
       created: 'Opening stock created.',

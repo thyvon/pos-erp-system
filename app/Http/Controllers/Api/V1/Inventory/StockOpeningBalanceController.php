@@ -69,16 +69,8 @@ class StockOpeningBalanceController extends BaseApiController
     {
         $this->authorize('create', StockOpeningBalance::class);
 
-        $data = $request->validated();
-
-        $import = new StockOpeningBalanceImport(
-            (string) $request->user()->business_id,
-            $this->openingBalances,
-            $data['warehouse_id'],
-            $data['date'],
-            $data['notes'] ?? null,
-            $request->user()
-        );
+        $business = $request->user()->business;
+        $import = new StockOpeningBalanceImport($business, $this->openingBalances, $request->user());
 
         Excel::import($import, $request->file('file'));
 

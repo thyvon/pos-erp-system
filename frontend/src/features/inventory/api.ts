@@ -56,10 +56,15 @@ export const stockOpeningBalancesApi = {
   show: (id: string) => apiClient.get<StockOpeningBalance>(`/v1/inventory/opening-balances/${id}`),
   create: (payload: StockOpeningBalancePayload) =>
     apiClient.post<StockOpeningBalance, StockOpeningBalancePayload>('/v1/inventory/opening-balances', payload),
-  downloadImportTemplate: () =>
-    api.get('/v1/inventory/opening-balances/import/template', { responseType: 'blob' }),
-  importFromFile: (formData: FormData) =>
-    apiClient.post<StockImportResult>('/v1/inventory/opening-balances/import', formData),
+  downloadImportTemplate: async () => {
+    const response = await api.get<Blob>('/v1/inventory/opening-balances/import/template', { responseType: 'blob' })
+    return response.data
+  },
+  importFromFile: (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return apiClient.post<StockImportResult>('/v1/inventory/opening-balances/import', formData)
+  },
 }
 
 export const stockTransfersApi = {

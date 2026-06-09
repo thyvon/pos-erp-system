@@ -167,7 +167,7 @@ export function useImportStockOpeningBalanceMutation() {
   const queryClient = useQueryClient()
 
   return useMutation({
-    mutationFn: (formData: FormData) => stockOpeningBalancesApi.importFromFile(formData),
+    mutationFn: (file: File) => stockOpeningBalancesApi.importFromFile(file),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: stockOpeningBalanceKeys.all })
       queryClient.invalidateQueries({ queryKey: stockLevelKeys.all })

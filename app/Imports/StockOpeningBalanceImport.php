@@ -2,9 +2,9 @@
 
 namespace App\Imports;
 
+use App\Models\Business;
 use App\Models\Product;
 use App\Models\ProductVariation;
-use App\Models\StockOpeningBalance;
 use App\Models\User;
 use App\Models\Warehouse;
 use App\Services\Inventory\StockOpeningBalanceService;
@@ -20,27 +20,45 @@ class StockOpeningBalanceImport implements ToCollection, WithHeadingRow, SkipsEm
     private int $imported = 0;
     private int $skipped = 0;
     private array $errors = [];
-    private array $productLookup = [];
-    private array $variationLookup = [];
 
     public function __construct(
-        private readonly string $businessId,
+        private readonly Business $business,
         private readonly StockOpeningBalanceService $openingBalances,
-        private readonly string $warehouseId,
-        private readonly string $date,
-        private readonly ?string $notes = null,
         private readonly ?User $actor = null,
     ) {
     }
 
     public function collection(Collection $rows): void
     {
-        $this->buildLookups();
+        $context = $this->buildContext();
         $items = [];
+        $warehouseId = null;
+        $date = null;
+        $notes = null;
 
         foreach ($rows as $index => $row) {
             try {
-                $items[] = $this->itemFromRow($row, $index);
+                $warehouse = $this->resolve($this->text($row, 'warehouse'), $context['warehouses']);
+                $rowDate = $this->text($row, 'date');
+                $rowNotes = $this->text($row, 'notes');
+
+                if ($warehouse === null) {
+                    throw new InvalidArgumentException('Warehouse is required.');
+                }
+
+                if ($rowDate === null) {
+                    throw new InvalidArgumentException('Date is required.');
+                }
+
+                if ($warehouseId === null) {
+                    $warehouseId = $warehouse;
+                    $date = $rowDate;
+                    $notes = $rowNotes;
+                } elseif ($warehouse !== $warehouseId || $rowDate !== $date) {
+                    throw new InvalidArgumentException('All rows must use the same warehouse and date.');
+                }
+
+                $items[] = $this->itemFromRow($row, $context);
                 $this->imported++;
             } catch (\Throwable $e) {
                 $this->skipped++;
@@ -53,13 +71,13 @@ class StockOpeningBalanceImport implements ToCollection, WithHeadingRow, SkipsEm
         }
 
         $payload = [
-            'warehouse_id' => $this->warehouseId,
-            'date' => $this->date,
-            'notes' => $this->notes,
+            'warehouse_id' => $warehouseId,
+            'date' => $date,
+            'notes' => $notes,
             'items' => $items,
         ];
 
-        $this->openingBalances->create($this->businessId, $payload, $this->actor);
+        $this->openingBalances->create((string) $this->business->id, $payload, $this->actor);
     }
 
     public function getImportedCount(): int
@@ -77,31 +95,45 @@ class StockOpeningBalanceImport implements ToCollection, WithHeadingRow, SkipsEm
         return $this->errors;
     }
 
-    private function buildLookups(): void
+    private function buildContext(): array
     {
+        $businessId = (string) $this->business->id;
+
         $products = Product::withoutGlobalScopes()
-            ->where('business_id', $this->businessId)
+            ->where('business_id', $businessId)
             ->where('track_inventory', true)
             ->get(['id', 'sku', 'name']);
 
+        $productLookup = [];
+        $variationLookup = [];
+
         foreach ($products as $product) {
-            $this->productLookup[$this->key($product->sku)] = $product->id;
-            $this->productLookup[$this->key($product->name)] = $product->id;
+            $productLookup[$this->normalizeKey($product->sku)] = (string) $product->id;
+            $productLookup[$this->normalizeKey($product->name)] = (string) $product->id;
 
             foreach ($product->variations as $variation) {
-                $this->variationLookup[$this->key($variation->sku)] = [
-                    'variation_id' => $variation->id,
-                    'product_id' => $product->id,
+                $variationLookup[$this->normalizeKey($variation->sku)] = [
+                    'variation_id' => (string) $variation->id,
+                    'product_id' => (string) $product->id,
                 ];
-                $this->variationLookup[$this->key($variation->name)] = [
-                    'variation_id' => $variation->id,
-                    'product_id' => $product->id,
+                $variationLookup[$this->normalizeKey($variation->name)] = [
+                    'variation_id' => (string) $variation->id,
+                    'product_id' => (string) $product->id,
                 ];
             }
         }
+
+        return [
+            'warehouses' => $this->lookup(
+                Warehouse::withoutGlobalScopes()->where('business_id', $businessId)->whereNull('deleted_at')->get(),
+                ['id', 'name', 'code']
+            ),
+            'products' => $productLookup,
+            'variations' => $variationLookup,
+        ];
     }
 
-    private function itemFromRow(Collection|array $row, int $index): array
+    private function itemFromRow(Collection|array $row, array $context): array
     {
         $productSku = $this->text($row, 'product_sku');
         $productName = $this->text($row, 'product_name');
@@ -110,7 +142,7 @@ class StockOpeningBalanceImport implements ToCollection, WithHeadingRow, SkipsEm
         $quantity = $this->requiredDecimal($this->value($row, 'quantity'), 'quantity');
         $unitCost = $this->decimal($this->value($row, 'unit_cost'));
 
-        [$productId, $variationId] = $this->resolveProduct($productSku, $productName, $variationSku, $variationName);
+        [$productId, $variationId] = $this->resolveProduct($productSku, $productName, $variationSku, $variationName, $context);
 
         return [
             'product_id' => $productId,
@@ -126,31 +158,35 @@ class StockOpeningBalanceImport implements ToCollection, WithHeadingRow, SkipsEm
         ];
     }
 
-    private function resolveProduct(?string $sku, ?string $name, ?string $variationSku, ?string $variationName): array
+    private function resolveProduct(?string $sku, ?string $name, ?string $variationSku, ?string $variationName, array $context): array
     {
-        $productId = null;
-        $variationId = null;
+        $productLookup = $context['products'];
+        $variationLookup = $context['variations'];
 
         if ($variationSku !== null) {
-            $match = $this->variationLookup[$this->key($variationSku)] ?? null;
+            $match = $variationLookup[$this->normalizeKey($variationSku)] ?? null;
+
             if ($match !== null) {
                 return [$match['product_id'], $match['variation_id']];
             }
         }
 
         if ($variationName !== null) {
-            $match = $this->variationLookup[$this->key($variationName)] ?? null;
+            $match = $variationLookup[$this->normalizeKey($variationName)] ?? null;
+
             if ($match !== null) {
                 return [$match['product_id'], $match['variation_id']];
             }
         }
 
+        $productId = null;
+
         if ($sku !== null) {
-            $productId = $this->productLookup[$this->key($sku)] ?? null;
+            $productId = $productLookup[$this->normalizeKey($sku)] ?? null;
         }
 
         if ($productId === null && $name !== null) {
-            $productId = $this->productLookup[$this->key($name)] ?? null;
+            $productId = $productLookup[$this->normalizeKey($name)] ?? null;
         }
 
         if ($productId === null) {
@@ -158,12 +194,45 @@ class StockOpeningBalanceImport implements ToCollection, WithHeadingRow, SkipsEm
             throw new InvalidArgumentException('Product not found: '.implode(', ', $identifiers));
         }
 
-        return [$productId, $variationId];
+        return [$productId, null];
     }
 
-    private function key(?string $value): string
+    private function lookup(Collection $items, array $keys): array
     {
-        return $value === null ? '' : Str::lower(trim($value));
+        $lookup = [];
+
+        foreach ($items as $item) {
+            foreach ($keys as $key) {
+                $value = $item->{$key} ?? null;
+
+                if ($value === null || $value === '') {
+                    continue;
+                }
+
+                $lookup[$this->normalizeKey((string) $value)] = (string) $item->id;
+            }
+        }
+
+        return $lookup;
+    }
+
+    private function resolve(?string $value, array $lookup, bool $required = false): ?string
+    {
+        if ($value === null) {
+            if ($required) {
+                throw new InvalidArgumentException('Lookup value is required.');
+            }
+
+            return null;
+        }
+
+        $id = $lookup[$this->normalizeKey($value)] ?? null;
+
+        if ($id === null) {
+            throw new InvalidArgumentException("Lookup value [{$value}] was not found.");
+        }
+
+        return $id;
     }
 
     private function text(Collection|array $row, string $key): ?string
@@ -213,5 +282,10 @@ class StockOpeningBalanceImport implements ToCollection, WithHeadingRow, SkipsEm
         }
 
         return (float) $number;
+    }
+
+    private function normalizeKey(string $value): string
+    {
+        return Str::lower(trim($value));
     }
 }
