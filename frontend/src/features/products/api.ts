@@ -2,6 +2,11 @@ import api from '@/api/axios'
 import { apiClient, unwrapApiResponse } from '@/api/client'
 import type { Product, ProductFilters, ProductFormOptions, ProductPayload } from '@/types/product'
 
+export interface ImportResult {
+  imported: number
+  skipped: number
+}
+
 function appendFormValue(formData: FormData, key: string, value: unknown) {
   if (value === undefined) return
 
@@ -75,4 +80,19 @@ export const productsApi = {
       })
     ),
   delete: (id: string) => apiClient.delete<null>(`/v1/products/${id}`),
+  importProducts: (file: File) => {
+    const formData = new FormData()
+    formData.append('file', file)
+    return unwrapApiResponse<ImportResult>(
+      api.post('/v1/products/import', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+      })
+    )
+  },
+  downloadTemplate: async () => {
+    const response = await api.get<Blob>('/v1/products/import/template', {
+      responseType: 'blob',
+    })
+    return response.data
+  },
 }

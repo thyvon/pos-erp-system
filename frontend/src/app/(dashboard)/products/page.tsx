@@ -11,7 +11,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
-import { Add, Inventory2Outlined } from '@/components/ui/icons'
+import { Add, Inventory2Outlined, UploadOutlined } from '@/components/ui/icons'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
@@ -20,12 +20,14 @@ import { RowActions } from '@/components/ui/RowActions'
 import PageHeader from '@/components/common/PageHeader'
 import PageToolbar from '@/components/common/PageToolbar'
 import EntityTable, { type EntityTableColumn } from '@/components/common/EntityTable'
+import { ProductImportDialog } from '@/features/products/components/ProductImportDialog'
 import {
   useDeleteProductMutation,
   useProductsQuery,
 } from '@/features/products/hooks'
 import { useAuthStore } from '@/stores/authStore'
 import type { Product, ProductFilters, ProductType, StockTracking } from '@/types/product'
+import type { ImportResult } from '@/features/products/api'
 
 const productTypes: Array<ProductType | ''> = ['', 'single', 'variable', 'service', 'combo']
 const stockTrackingOptions: Array<StockTracking | ''> = ['', 'none', 'lot', 'serial']
@@ -42,6 +44,7 @@ export default function ProductsPage() {
   const [page, setPage] = useState(0)
   const [perPage, setPerPage] = useState(10)
   const [deletingProduct, setDeletingProduct] = useState<Product | null>(null)
+  const [importDialogOpen, setImportDialogOpen] = useState(false)
 
   const filters: ProductFilters = useMemo(
     () => ({
@@ -64,6 +67,7 @@ export default function ProductsPage() {
   const canView = can('products.index')
   const canEdit = can('products.edit')
   const canDelete = can('products.delete')
+  const canImport = can('products.import')
 
   const activeFilters = useMemo(() => {
     const items: Array<{ key: string; label: string; onDelete: () => void }> = []
@@ -184,11 +188,24 @@ export default function ProductsPage() {
         eyebrow="Catalog"
         title={t('title')}
         description={t('subtitle')}
-        actions={canCreate && (
-          <Button startIcon={<Add />} variant="contained" onClick={() => router.push('/products/create')}>
-            {t('actions.new')}
-          </Button>
-        )}
+        actions={
+          <Stack direction="row" spacing={1}>
+            {canImport && (
+              <Button
+                startIcon={<UploadOutlined />}
+                variant="outlined"
+                onClick={() => setImportDialogOpen(true)}
+              >
+                {t('import.title')}
+              </Button>
+            )}
+            {canCreate && (
+              <Button startIcon={<Add />} variant="contained" onClick={() => router.push('/products/create')}>
+                {t('actions.new')}
+              </Button>
+            )}
+          </Stack>
+        }
       />
 
       <PageToolbar
@@ -280,6 +297,17 @@ export default function ProductsPage() {
             onDelete={() => setDeletingProduct(product)}
           />
         )}
+      />
+
+      <ProductImportDialog
+        open={importDialogOpen}
+        onClose={() => setImportDialogOpen(false)}
+        onSuccess={(result: ImportResult) => {
+          enqueueSnackbar(t('import.success', { imported: result.imported, skipped: result.skipped }), {
+            variant: result.skipped > 0 ? 'warning' : 'success',
+          })
+          productsQuery.refetch()
+        }}
       />
 
       <ConfirmDialog

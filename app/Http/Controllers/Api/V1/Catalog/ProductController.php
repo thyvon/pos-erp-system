@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers\Api\V1\Catalog;
 
+use App\Exports\ProductTemplateExport;
+use App\Http\Requests\Catalog\ImportProductRequest;
 use App\Http\Requests\Catalog\StoreProductRequest;
 use App\Http\Requests\Catalog\UpdateProductRequest;
 use App\Http\Resources\Catalog\BrandResource;
@@ -14,10 +16,13 @@ use App\Http\Resources\Catalog\UnitResource;
 use App\Http\Resources\Catalog\VariationTemplateResource;
 use App\Http\Resources\Foundation\CustomFieldDefinitionResource;
 use App\Http\Resources\Foundation\TaxRateResource;
+use App\Imports\ProductImport;
 use App\Models\Product;
 use App\Services\Catalog\ProductService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Maatwebsite\Excel\Facades\Excel;
+use Symfony\Component\HttpFoundation\BinaryFileResponse;
 
 class ProductController extends BaseCatalogController
 {
@@ -108,5 +113,27 @@ class ProductController extends BaseCatalogController
         );
 
         return $this->success(null, 'Product deleted successfully.');
+    }
+
+    public function downloadTemplate(): BinaryFileResponse
+    {
+        $this->authorize('create', Product::class);
+
+        return Excel::download(new ProductTemplateExport, 'product-import-template.xlsx');
+    }
+
+    public function import(ImportProductRequest $request): JsonResponse
+    {
+        $this->authorize('create', Product::class);
+
+        $business = $request->user()->business;
+        $import = new ProductImport($business, $this->products);
+
+        Excel::import($import, $request->file('file'));
+
+        return $this->success([
+            'imported' => $import->getImportedCount(),
+            'skipped' => $import->getSkippedCount(),
+        ], 'Import completed.');
     }
 }

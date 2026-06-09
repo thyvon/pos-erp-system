@@ -128,6 +128,15 @@ const products = {
     message: 'លុប {{name}}? សកម្មភាពនេះមិនអាចត្រឡប់វិញបានទេ។',
     confirm: 'លុប',
   },
+  import: {
+    title: 'នាំចូលផលិតផល',
+    downloadTemplate: 'ទាញយកពុម្ព',
+    templateHelp: 'បំពេញពុម្ពជាមួយទិន្នន័យផលិតផលរបស់អ្នក បន្ទាប់មកផ្ទុកឡើង។',
+    selectFile: 'ជ្រើសឯកសារ',
+    fileHelp: 'គាំទ្រឯកសារ CSV, XLSX, និង XLS រហូតដល់ 10MB ។',
+    proceed: 'នាំចូល',
+    success: 'បាននាំចូល {{imported}} ផលិតផល។ រំលង {{skipped}} ។',
+  },
 }
 
 export default products

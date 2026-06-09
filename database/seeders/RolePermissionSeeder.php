@@ -134,6 +134,7 @@ class RolePermissionSeeder extends Seeder
             'products.edit',
             'products.delete',
             'products.export',
+            'products.import',
 
             'customers.index',
             'customers.create',
@@ -272,6 +273,7 @@ class RolePermissionSeeder extends Seeder
                 'products.index',
                 'products.create',
                 'products.edit',
+                'products.import',
                 'customers.index',
                 'customers.create',
                 'customers.edit',
@@ -388,6 +390,7 @@ class RolePermissionSeeder extends Seeder
                 'products.index',
                 'products.create',
                 'products.edit',
+                'products.import',
                 'price_groups.index',
                 'suppliers.index',
                 'suppliers.create',

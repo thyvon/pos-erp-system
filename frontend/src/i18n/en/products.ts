@@ -128,6 +128,15 @@ const products = {
     message: 'Delete {{name}}? This action cannot be undone.',
     confirm: 'Delete',
   },
+  import: {
+    title: 'Import products',
+    downloadTemplate: 'Download template',
+    templateHelp: 'Fill in the template with your product data, then upload it.',
+    selectFile: 'Select file',
+    fileHelp: 'Supports CSV, XLSX, and XLS files up to 10MB.',
+    proceed: 'Import',
+    success: 'Imported {{imported}} product(s). {{skipped}} skipped.',
+  },
 }
 
 export default products

@@ -25,6 +25,20 @@
 
 ## Stabilization
 
+## Product Import Feature
+
+- [x] Added `products.import` permission to master list + manager + inventory_manager roles.
+- [x] Created `ProductTemplateExport` (download CSV template with headings + sample row).
+- [x] Created `ProductImport` import class with `ToCollection`, `WithHeadingRow`, `WithValidation`, `SkipsEmptyRows`.
+- [x] Created `ImportProductRequest` for file upload validation.
+- [x] Added `downloadTemplate()` and `import()` controller methods.
+- [x] Added import routes `GET /products/import/template` and `POST /products/import`.
+- [x] Frontend: added `importProducts` and `downloadTemplate` API functions.
+- [x] Frontend: created `ProductImportDialog` with file upload + template download.
+- [x] Frontend: added Import button to product page header.
+- [x] Frontend: added import translations in both English and Khmer.
+- [x] Verified with full backend test suite (252 passed) and frontend type-check + lint.
+
 - [x] Full backend suite re-verified after module foundation and super-admin module management with `php artisan test` passing 214 tests and 930 assertions.
 - [x] Fixed product-filtered backend test failures by aligning tax tests with the real products schema and inventory lookup test with current branch-access rules.
 - [x] Stabilized full backend test suite for branch access, stock count live edits/removal/completion corrections, serial movement validation, supplier branch setup, and admin branch-bypass behavior.

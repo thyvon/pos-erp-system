@@ -68,4 +68,7 @@ return static function (): void {
     Route::get('products/{product}', [ProductController::class, 'show'])->middleware('can:products.index');
     Route::put('products/{product}', [ProductController::class, 'update'])->middleware('can:products.edit');
     Route::delete('products/{product}', [ProductController::class, 'destroy'])->middleware('can:products.delete');
+
+    Route::get('products/import/template', [ProductController::class, 'downloadTemplate'])->middleware('can:products.create');
+    Route::post('products/import', [ProductController::class, 'import'])->middleware('can:products.import');
 };
