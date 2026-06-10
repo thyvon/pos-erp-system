@@ -7,6 +7,7 @@ export type SettingsGroupKey =
   | 'pos'
   | 'stock'
   | 'sales'
+  | 'purchases'
   | 'notifications'
   | 'email'
   | 'sms'

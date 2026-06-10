@@ -20,7 +20,7 @@ class StockCountPolicy
     {
         return $user->can('inventory.index')
             && $this->belongsToSameBusiness($user, $stockCount)
-            && $user->hasBranchAccess($stockCount->warehouse?->branch_id);
+            && $user->hasWarehouseAccess($stockCount->warehouse_id);
     }
 
     public function create(User $user): bool
@@ -32,7 +32,7 @@ class StockCountPolicy
     {
         return $user->can('inventory.count')
             && $this->belongsToSameBusiness($user, $stockCount)
-            && $user->hasBranchAccess($stockCount->warehouse?->branch_id)
+            && $user->hasWarehouseAccess($stockCount->warehouse_id)
             && $this->withinEditWindow($stockCount)
             && $stockCount->status === 'in_progress';
     }
@@ -41,7 +41,7 @@ class StockCountPolicy
     {
         return $user->can('inventory.count')
             && $this->belongsToSameBusiness($user, $stockCount)
-            && $user->hasBranchAccess($stockCount->warehouse?->branch_id)
+            && $user->hasWarehouseAccess($stockCount->warehouse_id)
             && $this->withinEditWindow($stockCount)
             && in_array($stockCount->status, ['in_progress', 'completed'], true);
     }
@@ -50,7 +50,7 @@ class StockCountPolicy
     {
         return $user->can('inventory.count')
             && $this->belongsToSameBusiness($user, $stockCount)
-            && $user->hasBranchAccess($stockCount->warehouse?->branch_id)
+            && $user->hasWarehouseAccess($stockCount->warehouse_id)
             && $this->withinEditWindow($stockCount)
             && $stockCount->status === 'in_progress';
     }

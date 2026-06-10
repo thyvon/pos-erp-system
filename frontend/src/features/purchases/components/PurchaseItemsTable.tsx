@@ -164,9 +164,10 @@ export function PurchaseItemsTable({
                   </TableCell>
                   <TableCell>
                     {watchedItem?._default_sub_unit_id ? (
-                      <Select
-                        fullWidth
-                        value={watchedItem?.sub_unit_id ?? '__none__'}
+                    <Select
+                      fullWidth
+                      MenuProps={{ disableScrollLock: true }}
+                      value={watchedItem?.sub_unit_id ?? '__none__'}
                         onChange={(event) => {
                           const value = event.target.value === '__none__' ? null : event.target.value
                           setValue(`items.${index}.sub_unit_id`, value)

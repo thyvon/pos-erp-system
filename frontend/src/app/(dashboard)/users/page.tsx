@@ -1,8 +1,10 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
 import {
   Alert,
+  Avatar,
   Box,
   Button,
   Card,
@@ -21,7 +23,8 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
-import { Add, PeopleAltOutlined, Search, UploadOutlined } from '@/components/ui/icons'
+import { Add, ImageOutlined, PeopleAltOutlined, Search, UploadOutlined } from '@/components/ui/icons'
+import { resolveAssetUrl } from '@/api/assets'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
@@ -29,17 +32,14 @@ import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { RowActions } from '@/components/ui/RowActions'
 import { SearchableFilterSelect } from '@/components/ui/SearchableFilterSelect'
 import { TableStateRow } from '@/components/ui/TableStateRow'
-import { UserFormDialog } from '@/features/users/UserFormDialog'
 import { UserImportDialog } from '@/features/users/components/UserImportDialog'
 import {
-  useCreateUserMutation,
   useDeleteUserMutation,
-  useUpdateUserMutation,
   useUserAccessOptionsQuery,
   useUsersQuery,
 } from '@/features/users/hooks'
 import { useAuthStore } from '@/stores/authStore'
-import type { ImportResult, UserFilters, UserListItem, UserPayload, UserStatus } from '@/types/user'
+import type { ImportResult, UserFilters, UserListItem, UserStatus } from '@/types/user'
 
 const rowsPerPageOptions = [10, 25, 50]
 const userStatuses: UserStatus[] = ['active', 'inactive', 'suspended']
@@ -51,6 +51,7 @@ function displayNumber(value: string | number | null | undefined) {
 
 export default function UsersPage() {
   const { t } = useTranslation(['users', 'common'])
+  const router = useRouter()
   const { enqueueSnackbar } = useSnackbar()
   const can = useAuthStore((state) => state.can)
   const [search, setSearch] = useState('')
@@ -58,9 +59,7 @@ export default function UsersPage() {
   const [roleFilter, setRoleFilter] = useState<UserFilters['role']>('')
   const [page, setPage] = useState(0)
   const [perPage, setPerPage] = useState(10)
-  const [formOpen, setFormOpen] = useState(false)
   const [importOpen, setImportOpen] = useState(false)
-  const [editingUser, setEditingUser] = useState<UserListItem | null>(null)
   const [deletingUser, setDeletingUser] = useState<UserListItem | null>(null)
 
   const filters: UserFilters = useMemo(
@@ -76,8 +75,6 @@ export default function UsersPage() {
 
   const usersQuery = useUsersQuery(filters)
   const optionsQuery = useUserAccessOptionsQuery()
-  const createUser = useCreateUserMutation()
-  const updateUser = useUpdateUserMutation()
   const deleteUser = useDeleteUserMutation()
 
   const users = usersQuery.data?.data ?? []
@@ -88,25 +85,11 @@ export default function UsersPage() {
   const canDelete = can('users.delete')
 
   const openCreateForm = () => {
-    setEditingUser(null)
-    setFormOpen(true)
+    router.push('/users/create')
   }
 
   const openEditForm = (user: UserListItem) => {
-    setEditingUser(user)
-    setFormOpen(true)
-  }
-
-  const handleSubmit = async (payload: UserPayload) => {
-    if (editingUser) {
-      await updateUser.mutateAsync({ id: editingUser.id, payload })
-      enqueueSnackbar(t('messages.updated'), { variant: 'success' })
-      return
-    }
-
-    await createUser.mutateAsync(payload)
-    enqueueSnackbar(t('messages.created'), { variant: 'success' })
-    setPage(0)
+    router.push(`/users/${user.id}/edit`)
   }
 
   const handleDelete = async () => {
@@ -238,26 +221,41 @@ export default function UsersPage() {
                   <TableCell>{t('columns.user')}</TableCell>
                   <TableCell>{t('columns.role')}</TableCell>
                   <TableCell>{t('columns.branches')}</TableCell>
+                  <TableCell>{t('columns.warehouses')}</TableCell>
                   <TableCell>{t('columns.salesLimits')}</TableCell>
                   <TableCell>{t('columns.status')}</TableCell>
                   <TableCell align="center">{t('columns.actions')}</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
-                {usersQuery.isLoading && <TableStateRow colSpan={6} loading />}
+                {usersQuery.isLoading && <TableStateRow colSpan={7} loading />}
 
                 {!usersQuery.isLoading && users.length === 0 && (
-                  <TableStateRow colSpan={6} message={t('empty')} />
+                  <TableStateRow colSpan={7} message={t('empty')} />
                 )}
 
-                {users.map((user) => (
+                  {users.map((user) => (
                   <TableRow key={user.id} hover>
                     <TableCell>
-                      <Stack spacing={0.25}>
-                        <Typography variant="subtitle2">{user.full_name}</Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {user.email}
-                        </Typography>
+                      <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+                        <Avatar
+                          variant="rounded"
+                          src={resolveAssetUrl(user.avatar_url)}
+                          sx={{
+                            width: 'var(--app-control-height)',
+                            height: 'var(--app-control-height)',
+                            borderRadius: 1,
+                            bgcolor: 'action.hover',
+                          }}
+                        >
+                          <ImageOutlined fontSize="small" />
+                        </Avatar>
+                        <Stack sx={{ minWidth: 0 }}>
+                          <Typography variant="subtitle2">{user.full_name}</Typography>
+                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                            {user.email}
+                          </Typography>
+                        </Stack>
                       </Stack>
                     </TableCell>
                     <TableCell>
@@ -281,6 +279,20 @@ export default function UsersPage() {
                         {user.default_branch && (
                           <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                             {user.default_branch.name}
+                          </Typography>
+                        )}
+                      </Stack>
+                    </TableCell>
+                    <TableCell>
+                      <Stack spacing={0.25}>
+                        <Typography variant="body2">
+                          {user.warehouses && user.warehouses.length > 0
+                            ? user.warehouses.map((wh) => wh.name).join(', ')
+                            : t('placeholders.noWarehouses')}
+                        </Typography>
+                        {user.default_warehouse && (
+                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                            {user.default_warehouse.name}
                           </Typography>
                         )}
                       </Stack>
@@ -334,16 +346,6 @@ export default function UsersPage() {
           />
         </CardContent>
       </Card>
-
-      <UserFormDialog
-        key={`${formOpen ? 'open' : 'closed'}-${editingUser?.id ?? 'new'}`}
-        open={formOpen}
-        user={editingUser}
-        options={options}
-        isSaving={createUser.isPending || updateUser.isPending}
-        onClose={() => setFormOpen(false)}
-        onSubmit={handleSubmit}
-      />
 
       <UserImportDialog
         open={importOpen}

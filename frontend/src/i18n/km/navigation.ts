@@ -76,6 +76,7 @@ export default {
     purchaseDetail: 'ព័ត៌មានលម្អិតការបញ្ជាទិញ',
     purchaseReturns: 'ការត្រឡប់ទំនិញចូល',
     purchaseReturnDetail: 'ព័ត៌មានលម្អិតការត្រឡប់ទំនិញចូល',
+    purchaseReceive: 'ទទួលទំនិញ',
     customers: 'អតិថិជន',
     suppliers: 'អ្នកផ្គត់ផ្គង់',
     products: 'កាតាឡុកផលិតផល',
@@ -119,5 +120,7 @@ export default {
     taxGroups: 'ក្រុមពន្ធ',
     customerGroups: 'ក្រុមអតិថិជន',
     auditLogs: 'កំណត់ត្រាសវនកម្ម',
+    userCreate: 'បង្កើតអ្នកប្រើប្រាស់',
+    userEdit: 'កែប្រែអ្នកប្រើប្រាស់',
   },
 }

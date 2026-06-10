@@ -454,7 +454,7 @@ export function SupplierFormDialog({
                 render={({ field }) => (
                   <FormControl error={!!errors.status}>
                     <InputLabel id="supplier-status-label">{t('fields.status')}</InputLabel>
-                    <Select {...field} labelId="supplier-status-label" label={t('fields.status')}>
+                    <Select {...field} MenuProps={{ disableScrollLock: true }} labelId="supplier-status-label" label={t('fields.status')}>
                       <MenuItem value="active">{t('common:status.active')}</MenuItem>
                       <MenuItem value="inactive">{t('common:status.inactive')}</MenuItem>
                     </Select>
@@ -571,6 +571,7 @@ export function SupplierFormDialog({
                               </InputLabel>
                               <Select
                                 {...field}
+                                MenuProps={{ disableScrollLock: true }}
                                 value={typeof field.value === 'string' ? field.value : ''}
                                 labelId={`supplier-custom-field-${definition.id}`}
                                 label={definition.field_label}

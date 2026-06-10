@@ -149,7 +149,7 @@ export function CustomFieldFormDialog({
                 render={({ field }) => (
                   <FormControl error={!!errors.module}>
                     <InputLabel id="custom-field-module-label">{t('fields.module')}</InputLabel>
-                    <Select {...field} labelId="custom-field-module-label" label={t('fields.module')}>
+                    <Select {...field} MenuProps={{ disableScrollLock: true }} labelId="custom-field-module-label" label={t('fields.module')}>
                       <MenuItem value="product">{t('module.product')}</MenuItem>
                       <MenuItem value="customer">{t('module.customer')}</MenuItem>
                       <MenuItem value="supplier">{t('module.supplier')}</MenuItem>
@@ -165,7 +165,7 @@ export function CustomFieldFormDialog({
                 render={({ field }) => (
                   <FormControl error={!!errors.field_type}>
                     <InputLabel id="custom-field-type-label">{t('fields.fieldType')}</InputLabel>
-                    <Select {...field} labelId="custom-field-type-label" label={t('fields.fieldType')}>
+                    <Select {...field} MenuProps={{ disableScrollLock: true }} labelId="custom-field-type-label" label={t('fields.fieldType')}>
                       <MenuItem value="text">{t('fieldType.text')}</MenuItem>
                       <MenuItem value="number">{t('fieldType.number')}</MenuItem>
                       <MenuItem value="date">{t('fieldType.date')}</MenuItem>

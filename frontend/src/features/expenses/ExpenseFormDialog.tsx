@@ -227,6 +227,7 @@ export function ExpenseFormDialog({ open, expense, isSaving, onClose, onSubmit }
                     <InputLabel id="payment-method-label">{t('form.paymentMethod')}</InputLabel>
                     <Select
                       {...field}
+                      MenuProps={{ disableScrollLock: true }}
                       value={field.value ?? ''}
                       labelId="payment-method-label"
                       label={t('form.paymentMethod')}

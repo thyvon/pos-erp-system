@@ -19,7 +19,7 @@ class WarehousePolicy
     {
         return $user->can('warehouses.index')
             && $this->belongsToSameBusiness($user, $warehouse)
-            && $user->hasBranchAccess($warehouse->branch_id);
+            && $user->hasWarehouseAccess($warehouse->id);
     }
 
     public function create(User $user): bool
@@ -31,13 +31,13 @@ class WarehousePolicy
     {
         return $user->can('warehouses.edit')
             && $this->belongsToSameBusiness($user, $warehouse)
-            && $user->hasBranchAccess($warehouse->branch_id);
+            && $user->hasWarehouseAccess($warehouse->id);
     }
 
     public function delete(User $user, Warehouse $warehouse): bool
     {
         return $user->can('warehouses.delete')
             && $this->belongsToSameBusiness($user, $warehouse)
-            && $user->hasBranchAccess($warehouse->branch_id);
+            && $user->hasWarehouseAccess($warehouse->id);
     }
 }

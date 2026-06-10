@@ -19,13 +19,13 @@ class LotPolicy
     {
         return $user->can('inventory.index')
             && $this->belongsToSameBusiness($user, $stockLot)
-            && $user->hasBranchAccess($stockLot->warehouse?->branch_id);
+            && $user->hasWarehouseAccess($stockLot->warehouse_id);
     }
 
     public function updateStatus(User $user, StockLot $stockLot): bool
     {
         return $user->can('inventory.adjust')
             && $this->belongsToSameBusiness($user, $stockLot)
-            && $user->hasBranchAccess($stockLot->warehouse?->branch_id);
+            && $user->hasWarehouseAccess($stockLot->warehouse_id);
     }
 }

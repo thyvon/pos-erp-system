@@ -78,6 +78,7 @@ export function InvoicePrintDialog({ open, sale, onClose }: InvoicePrintDialogPr
               <FormControl>
                 <InputLabel id="invoice-template-label">{t('print.template')}</InputLabel>
                 <Select
+                  MenuProps={{ disableScrollLock: true }}
                   labelId="invoice-template-label"
                   label={t('print.template')}
                   value={activeTemplate}

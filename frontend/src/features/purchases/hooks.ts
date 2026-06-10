@@ -1,8 +1,8 @@
 'use client'
 
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query'
-import { purchaseReturnsApi, purchasesApi } from './api'
-import type { PurchaseFilters, PurchasePayload, PurchasePaymentCorrectionPayload, PurchasePaymentDeletePayload, PurchasePaymentPayload, PurchaseReturnFilters, PurchaseReturnPayload, ReceivePurchasePayload } from '@/types/purchase'
+import { purchaseReceivesApi, purchaseReturnsApi, purchasesApi } from './api'
+import type { PurchaseFilters, PurchasePayload, PurchasePaymentCorrectionPayload, PurchasePaymentDeletePayload, PurchasePaymentPayload, PurchaseReturnFilters, PurchaseReturnPayload, ReceivePurchasePayload, UpdatePurchaseReceivePayload } from '@/types/purchase'
 
 export const purchaseKeys = {
   all: ['purchases'] as const,
@@ -140,6 +140,38 @@ export function useDeletePurchasePaymentMutation() {
     onSuccess: (result) => {
       queryClient.invalidateQueries({ queryKey: purchaseKeys.all })
       queryClient.invalidateQueries({ queryKey: purchaseKeys.detail(result.purchase.id) })
+    },
+  })
+}
+
+export function usePurchaseReceiveQuery(purchaseId: string, receiveId: string | null) {
+  return useQuery({
+    queryKey: ['purchase-receives', 'detail', receiveId],
+    queryFn: () => purchaseReceivesApi.show(purchaseId, receiveId!),
+    enabled: !!receiveId,
+  })
+}
+
+export function useUpdatePurchaseReceiveMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ purchaseId, receiveId, payload }: { purchaseId: string; receiveId: string; payload: UpdatePurchaseReceivePayload }) =>
+      purchaseReceivesApi.update(purchaseId, receiveId, payload),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: purchaseKeys.all })
+    },
+  })
+}
+
+export function useDeletePurchaseReceiveMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ purchaseId, receiveId }: { purchaseId: string; receiveId: string }) =>
+      purchaseReceivesApi.delete(purchaseId, receiveId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: purchaseKeys.all })
     },
   })
 }

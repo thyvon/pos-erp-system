@@ -36,6 +36,7 @@ class PurchaseItemResource extends JsonResource
                 'sku' => $this->product->sku,
                 'type' => $this->product->type,
                 'stock_tracking' => $this->product->stock_tracking,
+                'has_expiry' => (bool) $this->product->has_expiry,
                 'unit' => $this->product->unit ? [
                     'id' => $this->product->unit->id,
                     'name' => $this->product->unit->name,

@@ -17,6 +17,7 @@ export default {
     user: 'អ្នកប្រើប្រាស់',
     role: 'តួនាទី',
     branches: 'សាខា',
+    warehouses: 'ឃ្លាំង',
     salesLimits: 'ដែនកំណត់ការលក់',
     status: 'ស្ថានភាព',
     actions: 'សកម្មភាព',
@@ -33,6 +34,7 @@ export default {
     password: 'ពាក្យសម្ងាត់',
     phone: 'ទូរស័ព្ទ',
     avatarUrl: 'URL រូបតំណាង',
+    avatarFile: 'រូបតំណាង',
     status: 'ស្ថានភាព',
     role: 'តួនាទី',
     roles: 'តួនាទី',
@@ -42,10 +44,15 @@ export default {
     branches: 'សាខាដែលបានចាត់តាំង',
     defaultBranch: 'សាខាលំនាំដើម',
     warehouses: 'ឃ្លាំងដែលបានចាត់តាំង',
+    defaultWarehouse: 'ឃ្លាំងលំនាំដើម',
     directPermissions: 'សិទ្ធិផ្ទាល់',
     preferences: 'ចំណូលចិត្ត',
     preferenceLocale: 'ភាសាដែលចូលចិត្ត',
     preferenceTimezone: 'តំបន់ពេលវេលា',
+  },
+  buttons: {
+    uploadImage: 'បង្ហោះរូប',
+    removeImage: 'លុប',
   },
   help: {
     passwordCreate: 'យ៉ាងតិច ៨ តួអក្សរ។',
@@ -62,8 +69,10 @@ export default {
   },
   placeholders: {
     noDefaultBranch: 'គ្មានសាខាលំនាំដើម',
+    noDefaultWarehouse: 'គ្មានឃ្លាំងលំនាំដើម',
     noRole: 'គ្មានតួនាទី',
     noBranches: 'គ្មានសាខាដែលបានចាត់តាំង',
+    noWarehouses: 'គ្មានឃ្លាំងដែលបានចាត់តាំង',
   },
   summary: {
     permissionsSelected: 'បានជ្រើស {{count}} សិទ្ធិ',
@@ -71,6 +80,8 @@ export default {
     salesLimits: 'បញ្ចុះតម្លៃ {{discount}}% / កម្រៃ {{commission}}%',
   },
   form: {
+    create: 'បង្កើតអ្នកប្រើប្រាស់',
+    edit: 'កែប្រែអ្នកប្រើប្រាស់',
     createTitle: 'បង្កើតអ្នកប្រើប្រាស់',
     editTitle: 'កែប្រែអ្នកប្រើប្រាស់',
   },

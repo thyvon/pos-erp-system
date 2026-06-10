@@ -11,6 +11,7 @@ use App\Models\Warehouse;
 use App\Repositories\Foundation\UserRepository;
 use App\Support\Audit\AuditLogger;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
@@ -20,6 +21,7 @@ class UserService
     public function __construct(
         protected UserRepository $users,
         protected AuditLogger $auditLogger,
+        protected FileAssetService $fileAssets,
     ) {}
 
     public function paginate(array $filters): LengthAwarePaginator
@@ -34,17 +36,20 @@ class UserService
         $branchIds = array_values(array_unique($data['branch_ids'] ?? []));
         $defaultBranchId = $data['default_branch_id'] ?? null;
         $warehouseIds = array_values(array_unique($data['warehouse_ids'] ?? []));
-        unset($data['role'], $data['roles'], $data['direct_permissions'], $data['branch_ids'], $data['default_branch_id'], $data['warehouse_ids']);
+        $defaultWarehouseId = $data['default_warehouse_id'] ?? null;
+        $avatarFile = $data['avatar_file'] ?? null;
+        unset($data['role'], $data['roles'], $data['direct_permissions'], $data['branch_ids'], $data['default_branch_id'], $data['warehouse_ids'], $data['default_warehouse_id'], $data['avatar_file']);
 
         $this->ensureRestrictedRolesCannotBeAssigned($roles);
 
         $business = $this->resolveBusiness();
         $this->ensureUserLimitNotExceeded($business);
         [$branchIds, $defaultBranchId] = $this->normalizeBranchAccess($business, $branchIds, $defaultBranchId);
-        $warehouseIds = $this->normalizeWarehouseAccess($business, $warehouseIds, $branchIds);
+        [$warehouseIds, $defaultWarehouseId] = $this->normalizeWarehouseAccess($business, $warehouseIds, $branchIds, $defaultWarehouseId);
 
         $data['business_id'] = $data['business_id'] ?? $business->id;
         $data['default_branch_id'] = $defaultBranchId;
+        $data['default_warehouse_id'] = $defaultWarehouseId;
         $data['password'] = Hash::make($data['password']);
 
         $user = DB::transaction(function () use ($data, $roles, $directPermissions, $branchIds, $warehouseIds): User {
@@ -55,9 +60,10 @@ class UserService
             $user->branches()->sync($branchIds);
             $user->warehouses()->sync($warehouseIds);
 
-            return $user->load(['business', 'roles', 'permissions', 'branches', 'defaultBranch', 'warehouses']);
+            return $user->load(['business', 'roles', 'permissions', 'branches', 'defaultBranch', 'warehouses', 'defaultWarehouse']);
         });
 
+        $this->syncAvatar($user, $avatarFile);
         $this->writeCreateAuditLogs($user, $actor, $business->id);
         SendUserInviteJob::dispatch($user);
 
@@ -75,10 +81,12 @@ class UserService
             ? array_values(array_unique($data['branch_ids'] ?? []))
             : null;
         $defaultBranchId = $data['default_branch_id'] ?? null;
+        $defaultWarehouseId = $data['default_warehouse_id'] ?? null;
         $warehouseIds = array_key_exists('warehouse_ids', $data)
             ? array_values(array_unique($data['warehouse_ids'] ?? []))
             : null;
-        unset($data['role'], $data['roles'], $data['direct_permissions'], $data['branch_ids'], $data['default_branch_id'], $data['warehouse_ids']);
+        $avatarFile = $data['avatar_file'] ?? null;
+        unset($data['role'], $data['roles'], $data['direct_permissions'], $data['branch_ids'], $data['default_branch_id'], $data['warehouse_ids'], $data['default_warehouse_id'], $data['avatar_file']);
 
         if ($roles !== null) {
             $this->ensureRestrictedRolesCannotBeAssigned($roles);
@@ -106,11 +114,15 @@ class UserService
         }
 
         if ($warehouseIds !== null) {
-            $warehouseIds = $this->normalizeWarehouseAccess(
+            [$warehouseIds, $defaultWarehouseId] = $this->normalizeWarehouseAccess(
                 $this->resolveBusiness(),
                 $warehouseIds ?? [],
-                $branchIds ?? $user->accessibleBranchIds()
+                $branchIds ?? $user->accessibleBranchIds(),
+                $defaultWarehouseId
             );
+            $data['default_warehouse_id'] = $defaultWarehouseId;
+        } elseif ($defaultWarehouseId !== null) {
+            throw new DomainException('Default warehouse must be updated together with assigned warehouses.', 422);
         }
 
         $updatedUser = DB::transaction(function () use ($user, $data, $roles, $directPermissions, $branchIds, $warehouseIds): User {
@@ -134,9 +146,10 @@ class UserService
                 $updatedUser->warehouses()->sync($warehouseIds);
             }
 
-            return $updatedUser->load(['business', 'roles', 'permissions', 'branches', 'defaultBranch', 'warehouses']);
+            return $updatedUser->load(['business', 'roles', 'permissions', 'branches', 'defaultBranch', 'warehouses', 'defaultWarehouse']);
         });
 
+        $this->syncAvatar($updatedUser, $avatarFile);
         $this->writeUpdateAuditLogs($before, $updatedUser, $actor);
 
         return $updatedUser;
@@ -219,6 +232,7 @@ class UserService
 
         DB::transaction(function () use ($user): void {
             $user->forceFill(['status' => 'inactive'])->save();
+            $this->fileAssets->deleteAll($user);
             $this->users->delete($user);
         });
 
@@ -309,10 +323,10 @@ class UserService
         return [$branches, $defaultBranchId];
     }
 
-    protected function normalizeWarehouseAccess(Business $business, array $warehouseIds, array $allowedBranchIds): array
+    protected function normalizeWarehouseAccess(Business $business, array $warehouseIds, array $allowedBranchIds, ?string $defaultWarehouseId = null): array
     {
         if ($warehouseIds === []) {
-            return [];
+            return [[], null];
         }
 
         $validWarehouseIds = Warehouse::query()
@@ -329,7 +343,13 @@ class UserService
             throw new DomainException("{$invalidCount} warehouse(s) are invalid or not in assigned branches.", 422);
         }
 
-        return $validWarehouseIds;
+        if ($defaultWarehouseId !== null && ! in_array($defaultWarehouseId, $validWarehouseIds, true)) {
+            throw new DomainException('Default warehouse must be one of the assigned warehouses.', 422);
+        }
+
+        $defaultWarehouseId ??= $validWarehouseIds[0] ?? null;
+
+        return [$validWarehouseIds, $defaultWarehouseId];
     }
 
     protected function extractRoles(array $data, bool $required): ?array
@@ -347,10 +367,12 @@ class UserService
 
     protected function userAuditState(User $user): array
     {
-        $user->loadMissing(['roles', 'permissions', 'branches', 'defaultBranch']);
+        $user->loadMissing(['roles', 'permissions', 'branches', 'defaultBranch', 'warehouses', 'defaultWarehouse']);
 
         $branchIds = $user->branches->modelKeys();
         sort($branchIds);
+        $warehouseIds = $user->warehouses->modelKeys();
+        sort($warehouseIds);
         $permissions = $user->permissions->pluck('name')->all();
         sort($permissions);
         $roles = $user->getRoleNames()->all();
@@ -366,6 +388,8 @@ class UserService
             'direct_permissions' => $permissions,
             'branch_ids' => $branchIds,
             'default_branch_id' => $user->default_branch_id,
+            'default_warehouse_id' => $user->default_warehouse_id,
+            'warehouse_ids' => $warehouseIds,
         ];
     }
 
@@ -396,6 +420,21 @@ class UserService
                     'branch_ids' => $state['branch_ids'],
                     'default_branch_id' => $state['default_branch_id'],
                 ]
+            );
+        }
+
+        if ($state['warehouse_ids'] !== [] || $state['default_warehouse_id'] !== null) {
+            $this->auditLogger->log(
+                'warehouse_access_changed',
+                User::class,
+                $user->id,
+                $actor,
+                $businessId,
+                ['warehouse_ids' => [], 'default_warehouse_id' => null],
+                [
+                    'warehouse_ids' => $state['warehouse_ids'],
+                    'default_warehouse_id' => $state['default_warehouse_id'],
+                ],
             );
         }
     }
@@ -459,6 +498,46 @@ class UserService
                 $beforeBranchState,
                 $afterBranchState,
             );
+        }
+
+        $beforeWarehouseState = [
+            'warehouse_ids' => $before['warehouse_ids'] ?? [],
+            'default_warehouse_id' => $before['default_warehouse_id'] ?? null,
+        ];
+        $afterWarehouseState = [
+            'warehouse_ids' => $after['warehouse_ids'] ?? [],
+            'default_warehouse_id' => $after['default_warehouse_id'] ?? null,
+        ];
+
+        if ($beforeWarehouseState !== $afterWarehouseState) {
+            $this->auditLogger->log(
+                'warehouse_access_changed',
+                User::class,
+                $updatedUser->id,
+                $actor,
+                $updatedUser->business_id,
+                $beforeWarehouseState,
+                $afterWarehouseState,
+            );
+        }
+    }
+
+    protected function syncAvatar(User $user, mixed $uploadedFile): void
+    {
+        if (! $uploadedFile instanceof UploadedFile) {
+            return;
+        }
+
+        $asset = $this->fileAssets->replaceSingleImage(
+            $user,
+            $uploadedFile,
+            'users/'.$user->business_id.'/avatars',
+        );
+
+        if ($asset !== null) {
+            $user->forceFill([
+                'avatar_url' => $asset->publicUrl(),
+            ])->save();
         }
     }
 }

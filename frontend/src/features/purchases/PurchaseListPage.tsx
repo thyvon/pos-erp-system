@@ -9,6 +9,8 @@ import {
   Card,
   CardContent,
   Chip,
+  ListItemIcon,
+  ListItemText,
   MenuItem,
   Stack,
   Table,
@@ -21,7 +23,7 @@ import {
   TextField,
   Typography,
 } from '@mui/material'
-import { Add } from '@/components/ui/icons'
+import { Add, Inventory2Outlined } from '@/components/ui/icons'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
@@ -47,6 +49,7 @@ const rowsPerPageOptions = [10, 25, 50]
 const statuses: PurchaseStatus[] = ['draft', 'confirmed', 'partially_received', 'received', 'cancelled']
 const paymentStatuses: PurchasePaymentStatus[] = ['unpaid', 'partial', 'paid']
 const deletableStatuses: PurchaseStatus[] = ['draft', 'confirmed', 'cancelled']
+const receiveableStatuses: PurchaseStatus[] = ['confirmed', 'partially_received']
 
 export default function PurchasesPage() {
   const { t, i18n } = useTranslation(['purchases', 'common'])
@@ -97,6 +100,7 @@ export default function PurchasesPage() {
   const canCreate = can('purchases.create')
   const canEdit = can('purchases.edit')
   const canDelete = can('purchases.delete')
+  const canReceive = can('purchases.receive')
 
   const clearFilters = () => {
     setStatusFilter('')
@@ -383,7 +387,16 @@ export default function PurchasesPage() {
                         onView={() => router.push(`/purchases/${purchase.id}`)}
                         onEdit={() => router.push(`/purchases/${purchase.id}/edit`)}
                         onDelete={() => setDeleteTarget(purchase)}
-                      />
+                      >
+                        {canReceive && receiveableStatuses.includes(purchase.status) && (
+                          <MenuItem onClick={() => router.push(`/purchases/${purchase.id}/receive`)}>
+                            <ListItemIcon>
+                              <Inventory2Outlined />
+                            </ListItemIcon>
+                            <ListItemText>{t('actions.receive')}</ListItemText>
+                          </MenuItem>
+                        )}
+                      </RowActions>
                     </TableCell>
                   </TableRow>
                 ))}

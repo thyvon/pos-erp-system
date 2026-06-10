@@ -126,6 +126,12 @@ export const SETTINGS_GROUPS: SettingsGroupDefinition[] = [
     ],
   },
   {
+    key: 'purchases',
+    fields: [
+      { key: 'purchase_edit_lifetime_days', type: 'number' },
+    ],
+  },
+  {
     key: 'notifications',
     fields: [
       { key: 'low_stock_threshold', type: 'number' },

@@ -9,6 +9,7 @@ import { useProductQuery } from '@/features/products/hooks'
 import { useStockCountQuery, useStockTransferQuery } from '@/features/inventory/hooks'
 import { usePurchaseQuery, usePurchaseReturnQuery } from '@/features/purchases/hooks'
 import { useQuotationQuery, useSaleQuery, useSaleReturnQuery } from '@/features/sales/hooks'
+import { useUserQuery } from '@/features/users/hooks'
 
 const BREADCRUMB_KEY_MAP: Record<string, string> = {
   '/dashboard': 'dashboard',
@@ -46,6 +47,7 @@ const BREADCRUMB_KEY_MAP: Record<string, string> = {
   '/roles': 'roles',
   '/businesses': 'businesses',
   '/users': 'users',
+  '/users/create': 'userCreate',
   '/branches': 'branches',
   '/warehouses': 'warehouses',
   '/settings': 'settings',
@@ -107,6 +109,20 @@ function breadcrumbLabelKey(to: string, pathnames: string[], index: number) {
     if (pathnames[2] === 'edit' && index === 2) {
       return 'purchaseEdit'
     }
+
+    if (pathnames[2] === 'receive' && index === 2) {
+      return 'purchaseReceive'
+    }
+  }
+
+  if (pathnames[0] === 'users') {
+    if (pathnames[1] === 'create' && index === 1) {
+      return 'userCreate'
+    }
+
+    if (pathnames[2] === 'edit' && index === 2) {
+      return 'userEdit'
+    }
   }
 
   return BREADCRUMB_KEY_MAP[to]
@@ -144,6 +160,9 @@ export default function Breadcrumbs() {
   const isPurchaseRouteWithId = pathnames[0] === 'purchases' && !!pathnames[1] && pathnames[1] !== 'create'
   const purchaseId = isPurchaseRouteWithId ? pathnames[1] : null
   const purchaseQuery = usePurchaseQuery(purchaseId)
+  const isUserRouteWithId = pathnames[0] === 'users' && !!pathnames[1] && pathnames[1] !== 'create'
+  const userId = isUserRouteWithId ? pathnames[1] : null
+  const userQuery = useUserQuery(userId)
   const purchaseReturnId = isPurchaseReturnRouteWithId ? pathnames[1] : null
   const purchaseReturnQuery = usePurchaseReturnQuery(purchaseReturnId)
 
@@ -182,6 +201,8 @@ export default function Breadcrumbs() {
             ? (purchaseQuery.data?.purchase_number ?? t('breadcrumbs.purchaseDetail'))
             : isPurchaseReturnRouteWithId && index === 1
             ? (purchaseReturnQuery.data?.return_number ?? t('breadcrumbs.purchaseReturnDetail'))
+            : isUserRouteWithId && index === 1
+            ? (userQuery.data?.full_name ?? t('breadcrumbs.userEdit'))
             : labelKey
             ? t(`breadcrumbs.${labelKey}`)
             : value.charAt(0).toUpperCase() + value.slice(1)
@@ -201,7 +222,8 @@ export default function Breadcrumbs() {
             || (isSaleReturnRouteWithId && index === 1)
             || (isQuotationRouteWithId && index === 1)
             || (isPurchaseRouteWithId && index === 1)
-            || (isPurchaseReturnRouteWithId && index === 1) ? (
+            || (isPurchaseReturnRouteWithId && index === 1)
+            || (isUserRouteWithId && index === 1) ? (
             <Typography
               key={to}
               variant="body2"

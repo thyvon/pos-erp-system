@@ -41,6 +41,10 @@ export const userSchema = z.object({
   branch_ids: z.array(z.string()),
   warehouse_ids: z.array(z.string()),
   default_branch_id: z.union([z.string(), z.literal('')]).transform((value) => value || null),
+  default_warehouse_id: z.union([z.string(), z.literal('')]).transform((value) => value || null),
+  avatar_file: z.custom<File | null>(
+    (value) => value === null || (typeof File !== 'undefined' && value instanceof File)
+  ),
 })
 
 export type UserFormInput = z.input<typeof userSchema>

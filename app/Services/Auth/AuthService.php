@@ -59,7 +59,7 @@ class AuthService
             );
         });
 
-        return $user->fresh(['business', 'roles', 'permissions', 'branches', 'defaultBranch']);
+        return $user->fresh(['business', 'roles', 'permissions', 'branches', 'defaultBranch', 'defaultWarehouse']);
     }
 
     public function logout(?User $user): void
@@ -99,7 +99,7 @@ class AuthService
             );
         });
 
-        return $user->fresh(['business', 'roles', 'permissions', 'branches', 'defaultBranch']);
+        return $user->fresh(['business', 'roles', 'permissions', 'branches', 'defaultBranch', 'defaultWarehouse']);
     }
 
     public function updatePreferences(User $user, array $preferences): User
@@ -108,7 +108,7 @@ class AuthService
             'preferences' => $preferences,
         ])->save();
 
-        return $user->fresh(['business', 'roles', 'permissions', 'branches', 'defaultBranch']);
+        return $user->fresh(['business', 'roles', 'permissions', 'branches', 'defaultBranch', 'defaultWarehouse']);
     }
 
     public function recordPasswordReset(?User $user): void

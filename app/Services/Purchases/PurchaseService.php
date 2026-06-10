@@ -8,6 +8,8 @@ use App\Models\Product;
 use App\Models\ProductVariation;
 use App\Models\Purchase;
 use App\Models\PurchaseItem;
+use App\Models\PurchaseReceive;
+use App\Models\PurchaseReceiveItem;
 use App\Models\StockLot;
 use App\Models\StockSerial;
 use App\Models\SubUnit;
@@ -16,6 +18,7 @@ use App\Models\User;
 use App\Models\Warehouse;
 use App\Repositories\Purchases\PurchaseRepository;
 use App\Services\AuditService;
+use App\Services\Foundation\EditWindowService;
 use App\Services\Inventory\StockMovementService;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
@@ -26,6 +29,7 @@ class PurchaseService
         protected PurchaseRepository $purchases,
         protected AuditService $auditService,
         protected StockMovementService $stockMovementService,
+        protected EditWindowService $editWindow,
     ) {
     }
 
@@ -85,32 +89,23 @@ class PurchaseService
     public function update(string $businessId, Purchase $purchase, array $data, ?User $actor = null): Purchase
     {
         return DB::transaction(function () use ($businessId, $purchase, $data, $actor): Purchase {
-            /** @var Purchase $lockedPurchase */
-            $lockedPurchase = Purchase::withoutGlobalScopes()
-                ->with('items')
-                ->where('business_id', $businessId)
-                ->whereKey($purchase->id)
-                ->lockForUpdate()
-                ->firstOrFail();
-
-            if (! in_array($lockedPurchase->status, ['draft', 'confirmed'], true)) {
-                throw new DomainException('Only draft or confirmed purchases can be updated.', 422);
-            }
-
-            $oldValues = $this->auditPayload($lockedPurchase->loadMissing(['branch', 'warehouse', 'supplier']));
             $branch = $this->resolveBranch($businessId, $data['branch_id']);
             $warehouse = $this->resolveWarehouse($businessId, $data['warehouse_id']);
-            $supplier = $this->resolveSupplier($businessId, $data['supplier_id']);
             $this->ensureWarehouseBelongsToBranch($warehouse, $branch);
             $this->ensureUserCanAccessBranch($actor, $branch);
+
+            if (in_array($purchase->status, ['received'], true)) {
+                throw new DomainException('Purchase cannot be edited once fully received.', 422);
+            }
+
             $totals = $this->calculateTotals($data);
 
-            $lockedPurchase->fill([
+            $purchase->update([
                 'branch_id' => $branch->id,
                 'warehouse_id' => $warehouse->id,
-                'supplier_id' => $supplier->id,
+                'supplier_id' => $data['supplier_id'],
                 'supplier_invoice_no' => $data['supplier_invoice_no'] ?? null,
-                'status' => $data['status'] ?? $lockedPurchase->status,
+                'status' => $data['status'] ?? $purchase->status,
                 'purchase_date' => $data['purchase_date'],
                 'expected_date' => $data['expected_date'] ?? null,
                 'subtotal' => $totals['subtotal'],
@@ -127,96 +122,402 @@ class PurchaseService
                 'notes' => $data['notes'] ?? null,
                 'staff_note' => $data['staff_note'] ?? null,
             ]);
-            $lockedPurchase->save();
 
-            $hasReceivedItems = $lockedPurchase->items->contains(fn ($item) => (float) $item->received_quantity > 0);
-            if ($hasReceivedItems) {
-                $this->syncItemsUpdate($businessId, $lockedPurchase, $data['items']);
-            } else {
-                $lockedPurchase->items()->delete();
-                $this->syncItems($businessId, $lockedPurchase, $data['items']);
-            }
+            $this->syncItemsUpdate($businessId, $purchase, $data['items']);
+            $purchase = $this->loadPurchase($purchase);
+            $this->audit('updated', $purchase, $actor, null);
 
-            $lockedPurchase = $this->loadPurchase($lockedPurchase);
-            $this->audit('updated', $lockedPurchase, $actor, $oldValues);
-
-            return $lockedPurchase;
-        });
-    }
-
-    public function delete(string $businessId, Purchase $purchase, ?User $actor = null): void
-    {
-        DB::transaction(function () use ($businessId, $purchase, $actor): void {
-            /** @var Purchase $lockedPurchase */
-            $lockedPurchase = Purchase::withoutGlobalScopes()
-                ->with('items')
-                ->where('business_id', $businessId)
-                ->whereKey($purchase->id)
-                ->lockForUpdate()
-                ->firstOrFail();
-
-            if (! in_array($lockedPurchase->status, ['draft', 'confirmed', 'cancelled'], true)) {
-                throw new DomainException('Received purchases cannot be deleted.', 422);
-            }
-
-            if ($lockedPurchase->items->contains(fn ($item) => (float) $item->received_quantity > 0)) {
-                throw new DomainException('Purchases with received quantities cannot be deleted.', 422);
-            }
-
-            $oldValues = $this->auditPayload($lockedPurchase->loadMissing(['branch', 'warehouse', 'supplier']));
-            $this->purchases->delete($lockedPurchase);
-            $this->auditService->log('deleted', Purchase::class, $lockedPurchase->id, $actor, $businessId, $oldValues, null);
+            return $purchase;
         });
     }
 
     public function receive(string $businessId, Purchase $purchase, array $data, ?User $actor = null): Purchase
     {
         return DB::transaction(function () use ($businessId, $purchase, $data, $actor): Purchase {
-            /** @var Purchase $lockedPurchase */
             $lockedPurchase = Purchase::withoutGlobalScopes()
-                ->with(['items.product.unit', 'items.variation', 'items.subUnit', 'items.taxRate', 'warehouse', 'branch', 'supplier'])
+                ->with(['items.product', 'items.variation', 'items.subUnit'])
                 ->where('business_id', $businessId)
                 ->whereKey($purchase->id)
                 ->lockForUpdate()
                 ->firstOrFail();
 
             if (! in_array($lockedPurchase->status, ['confirmed', 'partially_received'], true)) {
-                throw new DomainException('Only confirmed purchases can be received.', 422);
+                throw new DomainException('Purchase must be confirmed or partially received to receive stock.', 422);
             }
 
-            $this->ensureUserCanAccessBranch($actor, $lockedPurchase->branch);
-            $itemsById = $lockedPurchase->items->keyBy('id');
+            $purchaseReceive = PurchaseReceive::withoutGlobalScopes()->create([
+                'business_id' => $businessId,
+                'purchase_id' => $lockedPurchase->id,
+                'branch_id' => $lockedPurchase->branch_id,
+                'warehouse_id' => $lockedPurchase->warehouse_id,
+                'receive_number' => $this->generateReceiveNumber($businessId),
+                'received_at' => $data['received_at'] ?? now(),
+                'notes' => $data['notes'] ?? null,
+                'created_by' => $actor?->id,
+            ]);
 
             foreach ($data['items'] as $receiveLine) {
                 /** @var PurchaseItem|null $item */
-                $item = $itemsById->get($receiveLine['purchase_item_id']);
+                $item = $lockedPurchase->items->firstWhere('id', $receiveLine['purchase_item_id']);
 
                 if (! $item) {
-                    throw new DomainException('Selected purchase item does not belong to this purchase.', 422);
+                    throw new DomainException('Purchase item not found.', 422);
                 }
 
-                $this->receiveItem($businessId, $lockedPurchase, $item, $receiveLine, $actor);
+                $this->receiveItem($businessId, $lockedPurchase, $item, $receiveLine, $purchaseReceive, $actor);
             }
 
             $lockedPurchase->refresh()->load('items');
+            $lockedPurchase->received_at ??= now();
+            $lockedPurchase->received_by ??= $actor?->id;
             $lockedPurchase->status = $this->resolveReceivedStatus($lockedPurchase);
-            $lockedPurchase->received_by = $actor?->id;
-            $lockedPurchase->received_at = $data['received_at'] ?? now();
             $lockedPurchase->save();
-            $lockedPurchase = $this->loadPurchase($lockedPurchase);
 
-            $this->auditService->log(
-                'received',
-                Purchase::class,
-                $lockedPurchase->id,
-                $actor,
-                $businessId,
-                null,
-                $this->auditPayload($lockedPurchase)
-            );
-
-            return $lockedPurchase;
+            return $this->loadPurchase($lockedPurchase->fresh());
         });
+    }
+
+    public function updateReceive(string $businessId, PurchaseReceive $purchaseReceive, array $data, ?User $actor = null): PurchaseReceive
+    {
+        return DB::transaction(function () use ($businessId, $purchaseReceive, $data, $actor): PurchaseReceive {
+            $lockedReceive = PurchaseReceive::withoutGlobalScopes()
+                ->with(['purchase.items.product', 'items'])
+                ->where('business_id', $businessId)
+                ->whereKey($purchaseReceive->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            $lockedReceive->update([
+                'received_at' => $data['received_at'] ?? $lockedReceive->received_at,
+                'notes' => $data['notes'] ?? $lockedReceive->notes,
+            ]);
+
+            $oldItems = $lockedReceive->items->keyBy('id');
+
+            foreach ($data['items'] as $receiveLine) {
+                /** @var PurchaseReceiveItem|null $oldReceiveItem */
+                $oldReceiveItem = $oldItems->get($receiveLine['id'] ?? '');
+
+                if (! $oldReceiveItem) {
+                    throw new DomainException('Receive item not found in this receive record.', 422);
+                }
+
+                $newQty = round((float) $receiveLine['quantity'], 4);
+                $oldQty = round((float) $oldReceiveItem->quantity, 4);
+                $delta = $newQty - $oldQty;
+
+                if ($delta === 0.0) {
+                    continue;
+                }
+
+                /** @var PurchaseItem $purchaseItem */
+                $purchaseItem = $lockedReceive->purchase->items->firstWhere('id', $oldReceiveItem->purchase_item_id);
+
+                if (! $purchaseItem) {
+                    throw new DomainException('Purchase item not found.', 422);
+                }
+
+                $stockTracking = $purchaseItem->product?->stock_tracking ?? 'none';
+
+                if ($stockTracking === 'serial' && $delta > 0) {
+                    throw new DomainException('Cannot increase quantity of a serial-tracked receive item without providing new serial numbers.', 422);
+                }
+
+                $inventoryDelta = $this->inventoryQuantityFromPurchaseItem($purchaseItem, abs($delta));
+
+                if ($delta > 0) {
+                    if ($stockTracking === 'lot') {
+                        $this->adjustLotQuantity($businessId, $lockedReceive->purchase, $purchaseItem, $delta, $oldReceiveItem, $lockedReceive, $actor, $receiveLine['notes'] ?? null);
+                    } else {
+                        $this->recordReceiptMovement($businessId, $lockedReceive->purchase, $purchaseItem, $inventoryDelta, $actor, $receiveLine['notes'] ?? null);
+                    }
+                } else {
+                    if ($stockTracking === 'lot') {
+                        $this->adjustLotQuantity($businessId, $lockedReceive->purchase, $purchaseItem, $delta, $oldReceiveItem, $lockedReceive, $actor, 'Correction for purchase receive edit');
+                    } elseif ($stockTracking === 'serial') {
+                        $this->removeSerialQuantities($businessId, $purchaseItem, $oldReceiveItem, $lockedReceive, abs($delta), $actor);
+                    } else {
+                        $this->stockMovementService->record($businessId, [
+                            'product_id' => $purchaseItem->product_id,
+                            'variation_id' => $purchaseItem->variation_id,
+                            'warehouse_id' => $lockedReceive->purchase->warehouse_id,
+                            'type' => 'adjustment_out',
+                            'quantity' => $inventoryDelta,
+                            'unit_cost' => $this->baseUnitCostFromPurchaseItem($purchaseItem),
+                            'reference_type' => PurchaseReceive::class,
+                            'reference_id' => $lockedReceive->id,
+                            'notes' => 'Correction for purchase receive edit',
+                        ], $actor);
+                    }
+                }
+
+                $purchaseItem->received_quantity = number_format((float) $purchaseItem->received_quantity + $delta, 4, '.', '');
+                $purchaseItem->save();
+
+                $serialNumbers = $oldReceiveItem->serial_numbers ?? [];
+
+                if ($stockTracking === 'serial' && $delta < 0) {
+                    $removeCount = abs((int) $delta);
+                    $serialNumbers = array_slice($serialNumbers, 0, -$removeCount);
+                }
+
+                $oldReceiveItem->update([
+                    'quantity' => $newQty,
+                    'notes' => $receiveLine['notes'] ?? $oldReceiveItem->notes,
+                    'serial_numbers' => $stockTracking === 'serial' ? $serialNumbers : ($oldReceiveItem->serial_numbers ?? null),
+                ]);
+            }
+
+            $lockedReceive->purchase->refresh()->load('items');
+            $lockedReceive->purchase->status = $this->resolveReceivedStatus($lockedReceive->purchase);
+            $lockedReceive->purchase->save();
+
+            return $lockedReceive->fresh()->load('items', 'purchase');
+        });
+    }
+
+    protected function adjustLotQuantity(
+        string $businessId,
+        Purchase $purchase,
+        PurchaseItem $purchaseItem,
+        float $delta,
+        PurchaseReceiveItem $receiveItem,
+        PurchaseReceive $lockedReceive,
+        ?User $actor = null,
+        ?string $notes = null,
+    ): void {
+        $lot = StockLot::withoutGlobalScopes()
+            ->where('business_id', $businessId)
+            ->where('product_id', $purchaseItem->product_id)
+            ->where('warehouse_id', $purchase->warehouse_id)
+            ->where('lot_number', $receiveItem->lot_number)
+            ->first();
+
+        $inventoryDelta = $this->inventoryQuantityFromPurchaseItem($purchaseItem, abs($delta));
+
+        if ($delta > 0) {
+            if ($lot) {
+                $lot->qty_received = number_format((float) $lot->qty_received + abs($delta), 4, '.', '');
+                $lot->save();
+            }
+
+            $this->recordReceiptMovement(
+                $businessId, $purchase, $purchaseItem, $inventoryDelta, $actor, $notes, $lot?->id
+            );
+        } else {
+            if ($lot) {
+                $lot->qty_received = number_format(
+                    max(0, (float) $lot->qty_received - abs($delta)), 4, '.', ''
+                );
+                $lot->save();
+            }
+
+            $this->stockMovementService->record($businessId, [
+                'product_id' => $purchaseItem->product_id,
+                'variation_id' => $purchaseItem->variation_id,
+                'warehouse_id' => $purchase->warehouse_id,
+                'lot_id' => $lot?->id,
+                'type' => 'adjustment_out',
+                'quantity' => $inventoryDelta,
+                'unit_cost' => $this->baseUnitCostFromPurchaseItem($purchaseItem),
+                'reference_type' => PurchaseReceive::class,
+                'reference_id' => $lockedReceive->id,
+                'notes' => $notes ?? 'Correction for purchase receive edit',
+            ], $actor);
+        }
+    }
+
+    protected function removeSerialQuantities(
+        string $businessId,
+        PurchaseItem $purchaseItem,
+        PurchaseReceiveItem $receiveItem,
+        PurchaseReceive $lockedReceive,
+        int $removeCount,
+        ?User $actor = null,
+    ): void {
+        $serialNumbers = $receiveItem->serial_numbers ?? [];
+        $toRemove = array_slice($serialNumbers, -$removeCount);
+
+        foreach ($toRemove as $serialNumber) {
+            $serial = StockSerial::withoutGlobalScopes()
+                ->where('business_id', $businessId)
+                ->where('product_id', $purchaseItem->product_id)
+                ->where('serial_number', trim((string) $serialNumber))
+                ->first();
+
+            if (! $serial) {
+                continue;
+            }
+
+            $this->stockMovementService->record($businessId, [
+                'product_id' => $purchaseItem->product_id,
+                'variation_id' => $purchaseItem->variation_id,
+                'warehouse_id' => $lockedReceive->purchase->warehouse_id,
+                'serial_id' => $serial->id,
+                'type' => 'adjustment_out',
+                'quantity' => 1,
+                'unit_cost' => $this->baseUnitCostFromPurchaseItem($purchaseItem),
+                'reference_type' => PurchaseReceive::class,
+                'reference_id' => $lockedReceive->id,
+                'notes' => 'Correction for purchase receive edit',
+            ], $actor);
+
+            $serial->delete();
+        }
+    }
+
+    public function deleteReceive(string $businessId, PurchaseReceive $purchaseReceive, ?User $actor = null): void
+    {
+        DB::transaction(function () use ($businessId, $purchaseReceive, $actor): void {
+            $lockedReceive = PurchaseReceive::withoutGlobalScopes()
+                ->with(['purchase.items.product', 'items'])
+                ->where('business_id', $businessId)
+                ->whereKey($purchaseReceive->id)
+                ->lockForUpdate()
+                ->firstOrFail();
+
+            foreach ($lockedReceive->items as $receiveItem) {
+                $quantity = round((float) $receiveItem->quantity, 4);
+
+                if ($quantity === 0.0) {
+                    continue;
+                }
+
+                /** @var PurchaseItem $purchaseItem */
+                $purchaseItem = $lockedReceive->purchase->items->firstWhere('id', $receiveItem->purchase_item_id);
+
+                if (! $purchaseItem) {
+                    throw new DomainException('Purchase item not found.', 422);
+                }
+
+                $stockTracking = $purchaseItem->product?->stock_tracking ?? 'none';
+
+                if ($stockTracking === 'lot') {
+                    $this->reverseLotTrackedReceive($businessId, $lockedReceive->purchase, $purchaseItem, $quantity, $receiveItem, $lockedReceive, $actor);
+                } elseif ($stockTracking === 'serial') {
+                    $this->reverseSerialTrackedReceive($businessId, $purchaseItem, $receiveItem, $lockedReceive, $actor);
+                } else {
+                    $inventoryQuantity = $this->inventoryQuantityFromPurchaseItem($purchaseItem, $quantity);
+
+                    $this->stockMovementService->record($businessId, [
+                        'product_id' => $purchaseItem->product_id,
+                        'variation_id' => $purchaseItem->variation_id,
+                        'warehouse_id' => $lockedReceive->purchase->warehouse_id,
+                        'type' => 'adjustment_out',
+                        'quantity' => $inventoryQuantity,
+                        'unit_cost' => $this->baseUnitCostFromPurchaseItem($purchaseItem),
+                        'reference_type' => PurchaseReceive::class,
+                        'reference_id' => $lockedReceive->id,
+                        'notes' => 'Purchase receive record deleted',
+                    ], $actor);
+                }
+
+                $purchaseItem->received_quantity = number_format(
+                    max(0, (float) $purchaseItem->received_quantity - $quantity), 4, '.', ''
+                );
+                $purchaseItem->save();
+            }
+
+            $lockedReceive->delete();
+
+            $lockedReceive->purchase->refresh()->load('items');
+            $lockedReceive->purchase->status = $this->resolveReceivedStatus($lockedReceive->purchase);
+            $lockedReceive->purchase->save();
+        });
+    }
+
+    protected function reverseLotTrackedReceive(
+        string $businessId,
+        Purchase $purchase,
+        PurchaseItem $purchaseItem,
+        float $quantity,
+        PurchaseReceiveItem $receiveItem,
+        PurchaseReceive $lockedReceive,
+        ?User $actor = null,
+    ): void {
+        $lot = StockLot::withoutGlobalScopes()
+            ->where('business_id', $businessId)
+            ->where('product_id', $purchaseItem->product_id)
+            ->where('warehouse_id', $purchase->warehouse_id)
+            ->where('lot_number', $receiveItem->lot_number)
+            ->first();
+
+        if ($lot) {
+            $lot->qty_received = number_format(
+                max(0, (float) $lot->qty_received - $quantity), 4, '.', ''
+            );
+            $lot->save();
+        }
+
+        $inventoryQuantity = $this->inventoryQuantityFromPurchaseItem($purchaseItem, $quantity);
+
+        $this->stockMovementService->record($businessId, [
+            'product_id' => $purchaseItem->product_id,
+            'variation_id' => $purchaseItem->variation_id,
+            'warehouse_id' => $purchase->warehouse_id,
+            'lot_id' => $lot?->id,
+            'type' => 'adjustment_out',
+            'quantity' => $inventoryQuantity,
+            'unit_cost' => $this->baseUnitCostFromPurchaseItem($purchaseItem),
+            'reference_type' => PurchaseReceive::class,
+            'reference_id' => $lockedReceive->id,
+            'notes' => 'Purchase receive record deleted',
+        ], $actor);
+    }
+
+    protected function reverseSerialTrackedReceive(
+        string $businessId,
+        PurchaseItem $purchaseItem,
+        PurchaseReceiveItem $receiveItem,
+        PurchaseReceive $lockedReceive,
+        ?User $actor = null,
+    ): void {
+        $serialNumbers = $receiveItem->serial_numbers ?? [];
+
+        foreach ($serialNumbers as $serialNumber) {
+            $serial = StockSerial::withoutGlobalScopes()
+                ->where('business_id', $businessId)
+                ->where('product_id', $purchaseItem->product_id)
+                ->where('serial_number', trim((string) $serialNumber))
+                ->first();
+
+            if (! $serial) {
+                continue;
+            }
+
+            $this->stockMovementService->record($businessId, [
+                'product_id' => $purchaseItem->product_id,
+                'variation_id' => $purchaseItem->variation_id,
+                'warehouse_id' => $lockedReceive->purchase->warehouse_id,
+                'serial_id' => $serial->id,
+                'type' => 'adjustment_out',
+                'quantity' => 1,
+                'unit_cost' => $this->baseUnitCostFromPurchaseItem($purchaseItem),
+                'reference_type' => PurchaseReceive::class,
+                'reference_id' => $lockedReceive->id,
+                'notes' => 'Purchase receive record deleted',
+            ], $actor);
+
+            $serial->delete();
+        }
+    }
+
+    protected function generateReceiveNumber(string $businessId): string
+    {
+        $prefix = 'REC-'.now()->format('Y').'-';
+
+        $lastNumber = PurchaseReceive::withoutGlobalScopes()
+            ->where('business_id', $businessId)
+            ->where('receive_number', 'like', $prefix.'%')
+            ->lockForUpdate()
+            ->orderByDesc('receive_number')
+            ->value('receive_number');
+
+        $next = $lastNumber === null
+            ? 1
+            : ((int) substr($lastNumber, strlen($prefix))) + 1;
+
+        return sprintf('%s%05d', $prefix, $next);
     }
 
     protected function receiveItem(
@@ -224,13 +525,18 @@ class PurchaseService
         Purchase $purchase,
         PurchaseItem $item,
         array $receiveLine,
+        PurchaseReceive $purchaseReceive,
         ?User $actor = null,
     ): void {
         $quantity = round((float) $receiveLine['quantity'], 4);
-        $remaining = round((float) $item->quantity - (float) $item->received_quantity, 4);
+        $originalQty = round((float) $item->quantity, 4);
 
-        if ($quantity > $remaining) {
-            throw new DomainException('Received quantity cannot exceed the remaining purchase quantity.', 422);
+        if ($quantity > $originalQty) {
+            throw new DomainException('Received quantity cannot exceed the original purchase quantity.', 422);
+        }
+
+        if ($quantity === 0.0) {
+            return;
         }
 
         $product = $item->product;
@@ -241,6 +547,18 @@ class PurchaseService
 
         $this->validatePurchaseItemSubUnit($item);
         $inventoryQuantity = $this->inventoryQuantityFromPurchaseItem($item, $quantity);
+
+        PurchaseReceiveItem::create([
+            'purchase_receive_id' => $purchaseReceive->id,
+            'purchase_item_id' => $item->id,
+            'quantity' => $quantity,
+            'lot_number' => $receiveLine['lot_number'] ?? null,
+            'manufacture_date' => $receiveLine['manufacture_date'] ?? null,
+            'expiry_date' => $receiveLine['expiry_date'] ?? null,
+            'warranty_expires' => $receiveLine['warranty_expires'] ?? null,
+            'serial_numbers' => isset($receiveLine['serial_numbers']) ? $receiveLine['serial_numbers'] : null,
+            'notes' => $receiveLine['notes'] ?? null,
+        ]);
 
         match ($product->stock_tracking) {
             'lot' => $this->receiveLotTrackedItem($businessId, $purchase, $item, $receiveLine, $quantity, $inventoryQuantity, $actor),
@@ -759,5 +1077,12 @@ class PurchaseService
             'purchase_date' => optional($purchase->purchase_date)->toDateString(),
             'total_amount' => (string) $purchase->total_amount,
         ];
+    }
+
+    protected function assertPurchaseHasNoReturnDocuments(Purchase $purchase): void
+    {
+        if ($purchase->returns->isNotEmpty()) {
+            throw new DomainException('Purchases with return documents cannot be edited because return lines reference the original purchase items.', 422);
+        }
     }
 }

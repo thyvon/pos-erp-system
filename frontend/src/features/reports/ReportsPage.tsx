@@ -659,6 +659,7 @@ export default function ReportsPage() {
           <FormControl sx={{ minWidth: { xs: '100%', sm: 220 } }}>
             <InputLabel>{t('filters.report')}</InputLabel>
             <Select
+              MenuProps={{ disableScrollLock: true }}
               value={reportType}
               label={t('filters.report')}
               onChange={(event) => {
@@ -680,6 +681,7 @@ export default function ReportsPage() {
               <FormControl sx={{ minWidth: { xs: '100%', lg: 160 } }}>
                 <InputLabel>{t('filters.status')}</InputLabel>
                 <Select
+                  MenuProps={{ disableScrollLock: true }}
                   value={status}
                   label={t('filters.status')}
                   onChange={(event) => {
@@ -701,6 +703,7 @@ export default function ReportsPage() {
                 <FormControl sx={{ minWidth: { xs: '100%', lg: 155 } }}>
                   <InputLabel>{t('filters.paymentStatus')}</InputLabel>
                   <Select
+                    MenuProps={{ disableScrollLock: true }}
                     value={paymentStatus}
                     label={t('filters.paymentStatus')}
                     onChange={(event) => {
@@ -720,6 +723,7 @@ export default function ReportsPage() {
                   <FormControl sx={{ minWidth: { xs: '100%', lg: 145 } }}>
                     <InputLabel>{t('filters.type')}</InputLabel>
                     <Select
+                      MenuProps={{ disableScrollLock: true }}
                       value={type}
                       label={t('filters.type')}
                       onChange={(event) => {
@@ -742,6 +746,7 @@ export default function ReportsPage() {
               <FormControl sx={{ minWidth: { xs: '100%', lg: 175 } }}>
                 <InputLabel>{t('filters.refundMethod')}</InputLabel>
                 <Select
+                  MenuProps={{ disableScrollLock: true }}
                   value={refundMethod}
                   label={t('filters.refundMethod')}
                   onChange={(event) => {
@@ -762,6 +767,7 @@ export default function ReportsPage() {
               <FormControl sx={{ minWidth: { xs: '100%', lg: 175 } }}>
                 <InputLabel>{t('filters.paymentMethod')}</InputLabel>
                 <Select
+                  MenuProps={{ disableScrollLock: true }}
                   value={paymentMethodFilter}
                   label={t('filters.paymentMethod')}
                   onChange={(event) => {
@@ -782,6 +788,7 @@ export default function ReportsPage() {
               <FormControl sx={{ minWidth: { xs: '100%', lg: 170 } }}>
                 <InputLabel>{t('filters.stockMode')}</InputLabel>
                 <Select
+                  MenuProps={{ disableScrollLock: true }}
                   value={stockMode}
                   label={t('filters.stockMode')}
                   onChange={(event) => {

@@ -24,8 +24,8 @@ class StockTransferPolicy
 
     public function view(User $user, StockTransfer $transfer): bool
     {
-        $hasSourceAccess = $user->hasBranchAccess($transfer->fromWarehouse?->branch_id);
-        $hasDestinationAccess = $user->hasBranchAccess($transfer->toWarehouse?->branch_id);
+        $hasSourceAccess = $transfer->from_warehouse_id !== null && $user->hasWarehouseAccess($transfer->from_warehouse_id);
+        $hasDestinationAccess = $transfer->to_warehouse_id !== null && $user->hasWarehouseAccess($transfer->to_warehouse_id);
 
         return ! $this->isPlatformOnlyUser($user)
             && $user->can('inventory.index')
@@ -49,7 +49,7 @@ class StockTransferPolicy
             && $this->belongsToSameBusiness($user, $transfer)
             && in_array($transfer->status, ['pending', 'in_transit'], true)
             && app(EditWindowService::class)->isWithinWindow($transfer->date ?? $transfer->created_at, 'stock', 'transfer_edit_lifetime_days')
-            && $user->hasBranchAccess($transfer->fromWarehouse?->branch_id);
+            && $transfer->from_warehouse_id !== null && $user->hasWarehouseAccess($transfer->from_warehouse_id);
     }
 
     public function delete(User $user, StockTransfer $transfer): bool
@@ -63,6 +63,6 @@ class StockTransferPolicy
             && $user->can('inventory.transfer')
             && $this->belongsToSameBusiness($user, $transfer)
             && $transfer->status === 'in_transit'
-            && $user->hasBranchAccess($transfer->toWarehouse?->branch_id);
+            && $transfer->to_warehouse_id !== null && $user->hasWarehouseAccess($transfer->to_warehouse_id);
     }
 }

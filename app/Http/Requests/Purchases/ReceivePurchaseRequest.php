@@ -19,7 +19,7 @@ class ReceivePurchaseRequest extends FormRequest
             'notes' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.purchase_item_id' => ['required', 'uuid', Rule::exists('purchase_items', 'id')],
-            'items.*.quantity' => ['required', 'numeric', 'gt:0'],
+            'items.*.quantity' => ['required', 'numeric', 'gte:0'],
             'items.*.lot_number' => ['nullable', 'string', 'max:100'],
             'items.*.manufacture_date' => ['nullable', 'date'],
             'items.*.expiry_date' => ['nullable', 'date', 'after_or_equal:manufacture_date'],

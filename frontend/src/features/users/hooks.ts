@@ -7,6 +7,7 @@ import type { UserFilters, UserPayload } from '@/types/user'
 export const userKeys = {
   all: ['users'] as const,
   list: (filters: UserFilters) => [...userKeys.all, 'list', filters] as const,
+  detail: (id: string) => [...userKeys.all, 'detail', id] as const,
   options: () => [...userKeys.all, 'options'] as const,
 }
 
@@ -15,6 +16,14 @@ export function useUsersQuery(filters: UserFilters, enabled = true) {
     queryKey: userKeys.list(filters),
     queryFn: () => usersApi.list(filters),
     enabled,
+  })
+}
+
+export function useUserQuery(id: string | null) {
+  return useQuery({
+    queryKey: userKeys.detail(id ?? ''),
+    queryFn: () => usersApi.get(id!),
+    enabled: !!id,
   })
 }
 

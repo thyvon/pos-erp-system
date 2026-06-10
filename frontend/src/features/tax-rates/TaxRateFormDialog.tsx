@@ -137,7 +137,7 @@ export function TaxRateFormDialog({
                 render={({ field }) => (
                   <FormControl error={!!errors.type}>
                     <InputLabel id="tax-rate-type-label">{t('fields.type')}</InputLabel>
-                    <Select {...field} labelId="tax-rate-type-label" label={t('fields.type')}>
+                    <Select {...field} MenuProps={{ disableScrollLock: true }} labelId="tax-rate-type-label" label={t('fields.type')}>
                       <MenuItem value="percentage">{t('type.percentage')}</MenuItem>
                       <MenuItem value="fixed">{t('type.fixed')}</MenuItem>
                     </Select>

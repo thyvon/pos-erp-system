@@ -96,4 +96,9 @@ class Purchase extends BaseModel
     {
         return $this->hasMany(PurchaseReturn::class)->orderBy('created_at');
     }
+
+    public function receives(): HasMany
+    {
+        return $this->hasMany(PurchaseReceive::class)->orderBy('created_at');
+    }
 }

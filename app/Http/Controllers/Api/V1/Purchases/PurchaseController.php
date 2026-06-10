@@ -8,12 +8,15 @@ use App\Http\Requests\Purchases\ReceivePurchaseRequest;
 use App\Http\Requests\Purchases\StorePurchasePaymentRequest;
 use App\Http\Requests\Purchases\StorePurchaseRequest;
 use App\Http\Requests\Purchases\UpdatePurchasePaymentRequest;
+use App\Http\Requests\Purchases\UpdatePurchaseReceiveRequest;
 use App\Http\Requests\Purchases\UpdatePurchaseRequest;
 use App\Http\Resources\Purchases\PurchasePaymentResource;
+use App\Http\Resources\Purchases\PurchaseReceiveResource;
 use App\Http\Resources\Purchases\PurchaseResource;
 use App\Http\Resources\Accounting\JournalResource;
 use App\Models\Purchase;
 use App\Models\PurchasePayment;
+use App\Models\PurchaseReceive;
 use App\Services\Purchases\PurchasePaymentService;
 use App\Services\Purchases\PurchaseService;
 use Illuminate\Http\JsonResponse;
@@ -62,7 +65,7 @@ class PurchaseController extends BaseApiController
         $this->authorize('view', $purchase);
 
         return $this->success(new PurchaseResource(
-            $purchase->load(['branch', 'warehouse.branch', 'supplier', 'creator', 'receiver', 'returns', 'items.purchase', 'items.product.unit', 'items.variation', 'items.subUnit', 'items.taxRate', 'payments.paymentAccount', 'payments.replacedPayment', 'payments.reverser'])
+            $purchase->load(['branch', 'warehouse.branch', 'supplier', 'creator', 'receiver', 'returns', 'items.purchase', 'items.product.unit', 'items.variation', 'items.subUnit', 'items.taxRate', 'payments.paymentAccount', 'payments.replacedPayment', 'payments.reverser', 'receives.items', 'receives.creator'])
         ));
     }
 
@@ -101,6 +104,44 @@ class PurchaseController extends BaseApiController
         );
 
         return $this->success(new PurchaseResource($purchase), 'Purchase received successfully.');
+    }
+
+    public function showReceive(Request $request, Purchase $purchase, PurchaseReceive $purchaseReceive): JsonResponse
+    {
+        $this->authorize('manageReceives', $purchase);
+
+        return $this->success(new PurchaseReceiveResource(
+            $purchaseReceive->load('items', 'creator')
+        ));
+    }
+
+    public function updateReceive(UpdatePurchaseReceiveRequest $request, Purchase $purchase, PurchaseReceive $purchaseReceive): JsonResponse
+    {
+        $this->authorize('manageReceives', $purchase);
+
+        $purchaseReceive = $this->purchases->updateReceive(
+            $request->user()->business_id,
+            $purchaseReceive,
+            $request->validated(),
+            $request->user()
+        );
+
+        return $this->success(new PurchaseReceiveResource(
+            $purchaseReceive->load('items', 'creator')
+        ), 'Purchase receive updated successfully.');
+    }
+
+    public function deleteReceive(Request $request, Purchase $purchase, PurchaseReceive $purchaseReceive): JsonResponse
+    {
+        $this->authorize('manageReceives', $purchase);
+
+        $this->purchases->deleteReceive(
+            $request->user()->business_id,
+            $purchaseReceive,
+            $request->user()
+        );
+
+        return $this->success(null, 'Purchase receive deleted successfully.');
     }
 
     public function recordPayment(StorePurchasePaymentRequest $request, Purchase $purchase, PurchasePaymentService $purchasePayments): JsonResponse

@@ -836,7 +836,7 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
                 <FormControl error={!!errors.tax_scope}>
                   <InputLabel id="sale-tax-scope-label">{t('fields.taxScope')}</InputLabel>
                   <Controller name="tax_scope" control={control} render={({ field }) => (
-                    <Select {...field} labelId="sale-tax-scope-label" label={t('fields.taxScope')}>
+                    <Select {...field} MenuProps={{ disableScrollLock: true }} labelId="sale-tax-scope-label" label={t('fields.taxScope')}>
                       {taxScopes.map((scope) => <MenuItem key={scope} value={scope}>{t(`taxScopes.${scope}`)}</MenuItem>)}
                     </Select>
                   )} />

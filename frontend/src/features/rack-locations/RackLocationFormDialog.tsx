@@ -158,6 +158,7 @@ export function RackLocationFormDialog({
                 render={({ field }) => (
                   <Select
                     {...field}
+                    MenuProps={{ disableScrollLock: true }}
                     value={field.value ?? ''}
                     labelId="rack-location-warehouse-label"
                     label={t('fields.warehouse')}

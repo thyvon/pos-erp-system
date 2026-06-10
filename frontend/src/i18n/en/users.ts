@@ -17,6 +17,7 @@ export default {
     user: 'User',
     role: 'Role',
     branches: 'Branches',
+    warehouses: 'Warehouses',
     salesLimits: 'Sales limits',
     status: 'Status',
     actions: 'Actions',
@@ -33,6 +34,7 @@ export default {
     password: 'Password',
     phone: 'Phone',
     avatarUrl: 'Avatar URL',
+    avatarFile: 'Avatar',
     status: 'Status',
     role: 'Role',
     roles: 'Roles',
@@ -42,10 +44,15 @@ export default {
     branches: 'Assigned branches',
     defaultBranch: 'Default branch',
     warehouses: 'Assigned warehouses',
+    defaultWarehouse: 'Default warehouse',
     directPermissions: 'Direct permissions',
     preferences: 'Preferences',
     preferenceLocale: 'Preferred language',
     preferenceTimezone: 'Timezone',
+  },
+  buttons: {
+    uploadImage: 'Upload image',
+    removeImage: 'Remove',
   },
   help: {
     passwordCreate: 'Minimum 8 characters.',
@@ -62,8 +69,10 @@ export default {
   },
   placeholders: {
     noDefaultBranch: 'No default branch',
+    noDefaultWarehouse: 'No default warehouse',
     noRole: 'No role',
     noBranches: 'No assigned branches',
+    noWarehouses: 'No assigned warehouses',
   },
   summary: {
     permissionsSelected: '{{count}} permission selected',
@@ -71,6 +80,8 @@ export default {
     salesLimits: 'Discount {{discount}}% / Commission {{commission}}%',
   },
   form: {
+    create: 'Create user',
+    edit: 'Edit user',
     createTitle: 'Create user',
     editTitle: 'Edit user',
   },

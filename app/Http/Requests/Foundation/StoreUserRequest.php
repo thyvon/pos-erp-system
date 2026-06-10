@@ -21,6 +21,7 @@ class StoreUserRequest extends FormRequest
             'password' => ['required', 'string', 'min:8'],
             'phone' => ['nullable', 'string', 'max:20'],
             'avatar_url' => ['nullable', 'url', 'max:500'],
+            'avatar_file' => ['nullable', 'file', 'image', 'max:5120'],
             'status' => ['nullable', 'in:active,inactive,suspended'],
             'max_discount' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'commission_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
@@ -34,6 +35,7 @@ class StoreUserRequest extends FormRequest
             'branch_ids' => ['nullable', 'array'],
             'branch_ids.*' => ['string', 'distinct', 'exists:branches,id'],
             'default_branch_id' => ['nullable', 'string', 'exists:branches,id'],
+            'default_warehouse_id' => ['nullable', 'string', 'exists:warehouses,id'],
             'warehouse_ids' => ['nullable', 'array'],
             'warehouse_ids.*' => ['string', 'distinct', 'exists:warehouses,id'],
         ];

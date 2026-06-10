@@ -155,6 +155,7 @@ export function CustomerGroupFormDialog({
                     <InputLabel id="customer-group-price-group-label">{t('fields.priceGroup')}</InputLabel>
                     <Select
                       {...field}
+                      MenuProps={{ disableScrollLock: true }}
                       value={field.value ?? ''}
                       labelId="customer-group-price-group-label"
                       label={t('fields.priceGroup')}

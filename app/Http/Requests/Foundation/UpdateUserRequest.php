@@ -23,6 +23,7 @@ class UpdateUserRequest extends FormRequest
             'password' => ['nullable', 'string', 'min:8'],
             'phone' => ['nullable', 'string', 'max:20'],
             'avatar_url' => ['nullable', 'url', 'max:500'],
+            'avatar_file' => ['nullable', 'file', 'image', 'max:5120'],
             'status' => ['sometimes', 'required', 'in:active,inactive,suspended'],
             'max_discount' => ['nullable', 'numeric', 'min:0', 'max:100'],
             'commission_percentage' => ['nullable', 'numeric', 'min:0', 'max:100'],
@@ -36,6 +37,7 @@ class UpdateUserRequest extends FormRequest
             'branch_ids' => ['sometimes', 'array'],
             'branch_ids.*' => ['string', 'distinct', 'exists:branches,id'],
             'default_branch_id' => ['nullable', 'string', 'exists:branches,id'],
+            'default_warehouse_id' => ['nullable', 'string', 'exists:warehouses,id'],
             'warehouse_ids' => ['sometimes', 'array'],
             'warehouse_ids.*' => ['string', 'distinct', 'exists:warehouses,id'],
         ];

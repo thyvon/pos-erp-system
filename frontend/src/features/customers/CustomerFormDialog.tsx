@@ -346,7 +346,7 @@ export function CustomerFormDialog({
                 render={({ field }) => (
                   <FormControl error={!!errors.type}>
                     <InputLabel id="customer-type-label">{t('fields.type')}</InputLabel>
-                    <Select {...field} labelId="customer-type-label" label={t('fields.type')}>
+                    <Select {...field} MenuProps={{ disableScrollLock: true }} labelId="customer-type-label" label={t('fields.type')}>
                       <MenuItem value="individual">{t('type.individual')}</MenuItem>
                       <MenuItem value="company">{t('type.company')}</MenuItem>
                     </Select>
@@ -405,6 +405,7 @@ export function CustomerFormDialog({
                     <InputLabel id="customer-group-label">{t('fields.customerGroup')}</InputLabel>
                     <Select
                       {...field}
+                      MenuProps={{ disableScrollLock: true }}
                       value={field.value ?? ''}
                       labelId="customer-group-label"
                       label={t('fields.customerGroup')}
@@ -505,7 +506,7 @@ export function CustomerFormDialog({
                 render={({ field }) => (
                   <FormControl error={!!errors.status}>
                     <InputLabel id="customer-status-label">{t('fields.status')}</InputLabel>
-                    <Select {...field} labelId="customer-status-label" label={t('fields.status')}>
+                    <Select {...field} MenuProps={{ disableScrollLock: true }} labelId="customer-status-label" label={t('fields.status')}>
                       <MenuItem value="active">{t('common:status.active')}</MenuItem>
                       <MenuItem value="inactive">{t('common:status.inactive')}</MenuItem>
                     </Select>
@@ -621,6 +622,7 @@ export function CustomerFormDialog({
                               </InputLabel>
                               <Select
                                 {...field}
+                                MenuProps={{ disableScrollLock: true }}
                                 value={typeof field.value === 'string' ? field.value : ''}
                                 labelId={`customer-custom-field-${definition.id}`}
                                 label={definition.field_label}

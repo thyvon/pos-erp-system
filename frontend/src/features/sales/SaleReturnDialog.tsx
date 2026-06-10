@@ -128,6 +128,7 @@ export function SaleReturnDialog({ open, sale, isSaving, onClose, onSubmit }: Sa
               <FormControl disabled={isSaving}>
                 <InputLabel id="refund-method-label">{t('returns.fields.refundMethod')}</InputLabel>
                 <Select
+                  MenuProps={{ disableScrollLock: true }}
                   labelId="refund-method-label"
                   label={t('returns.fields.refundMethod')}
                   value={refundMethod}

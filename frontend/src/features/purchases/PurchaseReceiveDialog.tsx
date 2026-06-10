@@ -62,20 +62,21 @@ function buildDefaults(purchase: Purchase | null): ReceivePurchaseFormInput {
         product_label: itemLabel(item),
         sku: itemSku(item),
         stock_tracking: item.product?.stock_tracking ?? 'none',
+        has_expiry: item.product?.has_expiry ?? false,
         sub_unit_id: item.sub_unit_id ?? null,
         _conversion_factor: item.sub_unit?.conversion_factor ?? null,
         _base_unit_label: item.product?.unit?.short_name ?? null,
         sub_unit_label: item.sub_unit?.short_name ?? null,
         remaining_quantity: Math.max(0, toNumber(item.quantity) - toNumber(item.received_quantity)),
-        quantity: Math.max(0, toNumber(item.quantity) - toNumber(item.received_quantity)),
+        item_quantity: toNumber(item.quantity),
+        quantity: toNumber(item.received_quantity),
         lot_number: '',
         manufacture_date: null,
         expiry_date: null,
         serial_numbers_text: '',
         warranty_expires: null,
         notes: '',
-      }))
-      .filter((item) => item.remaining_quantity > 0),
+      })),
   }
 }
 
@@ -247,21 +248,23 @@ export function PurchaseReceiveDialog({ open, purchase, isSaving, onClose, onSub
                         />
                     </TableCell>
                     <TableCell sx={columnSx.lot}>
-                      {field.stock_tracking === 'lot' ? (
+                      {field.stock_tracking === 'lot' || field.has_expiry ? (
                         <Stack spacing={1}>
-                          <Controller
-                            name={`items.${index}.lot_number`}
-                            control={control}
-                            render={({ field: f }) => (
-                              <TextField
-                                {...f}
-                                value={f.value ?? ''}
-                                label={t('receive.lot')}
-                                error={!!errors.items?.[index]?.lot_number}
-                                helperText={errors.items?.[index]?.lot_number?.message}
-                              />
-                            )}
-                          />
+                          {field.stock_tracking === 'lot' && (
+                            <Controller
+                              name={`items.${index}.lot_number`}
+                              control={control}
+                              render={({ field: f }) => (
+                                <TextField
+                                  {...f}
+                                  value={f.value ?? ''}
+                                  label={t('receive.lot')}
+                                  error={!!errors.items?.[index]?.lot_number}
+                                  helperText={errors.items?.[index]?.lot_number?.message}
+                                />
+                              )}
+                            />
+                          )}
                           <Controller
                             name={`items.${index}.manufacture_date`}
                             control={control}
@@ -284,17 +287,19 @@ export function PurchaseReceiveDialog({ open, purchase, isSaving, onClose, onSub
                               />
                             )}
                           />
-                          <Controller
-                            name={`items.${index}.warranty_expires`}
-                            control={control}
-                            render={({ field: f }) => (
-                              <AppDatePicker
-                                label={t('receive.warrantyExpires')}
-                                value={f.value ?? ''}
-                                onChange={f.onChange}
-                              />
-                            )}
-                          />
+                          {field.stock_tracking === 'lot' && (
+                            <Controller
+                              name={`items.${index}.warranty_expires`}
+                              control={control}
+                              render={({ field: f }) => (
+                                <AppDatePicker
+                                  label={t('receive.warrantyExpires')}
+                                  value={f.value ?? ''}
+                                  onChange={f.onChange}
+                                />
+                              )}
+                            />
+                          )}
                         </Stack>
                       ) : (
                         <Typography variant="body2" sx={{ color: 'text.disabled' }}>—</Typography>

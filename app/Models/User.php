@@ -2,6 +2,8 @@
 
 namespace App\Models;
 
+use App\Support\WarehouseAccess;
+use App\Traits\HasFileAssets;
 use App\Traits\HasUuid;
 use App\Traits\BelongsToTenant;
 use App\Traits\HasUserTracking;
@@ -19,6 +21,7 @@ class User extends Authenticatable
     /** @use HasFactory<\Database\Factories\UserFactory> */
     use HasApiTokens;
     use HasFactory;
+    use HasFileAssets;
     use HasRoles;
     use HasUuid;
     use BelongsToTenant;
@@ -36,6 +39,7 @@ class User extends Authenticatable
     protected $fillable = [
         'business_id',
         'default_branch_id',
+        'default_warehouse_id',
         'first_name',
         'last_name',
         'email',
@@ -114,6 +118,11 @@ class User extends Authenticatable
         return in_array($branchId, $this->accessibleBranchIds(), true);
     }
 
+    public function defaultWarehouse(): BelongsTo
+    {
+        return $this->belongsTo(Warehouse::class, 'default_warehouse_id');
+    }
+
     public function warehouses(): BelongsToMany
     {
         return $this->belongsToMany(Warehouse::class)
@@ -137,6 +146,12 @@ class User extends Authenticatable
             return true;
         }
 
-        return in_array($warehouseId, $this->assignedWarehouseIds(), true);
+        $accessibleIds = WarehouseAccess::accessibleWarehouseIds($this);
+
+        if ($accessibleIds === null || $accessibleIds === []) {
+            return false;
+        }
+
+        return in_array($warehouseId, $accessibleIds, true);
     }
 }

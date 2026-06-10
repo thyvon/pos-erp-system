@@ -29,7 +29,7 @@ class AuthController extends BaseApiController
 
         return $this->success([
             'token' => $token,
-            'user' => new UserResource($user->fresh(['business.settings', 'roles', 'permissions', 'branches', 'defaultBranch'])),
+            'user' => new UserResource($user->fresh(['business.settings', 'roles', 'permissions', 'branches', 'defaultBranch', 'defaultWarehouse'])),
         ], __('Login successful.'));
     }
 
@@ -47,7 +47,7 @@ class AuthController extends BaseApiController
     public function me(Request $request)
     {
         return $this->success(
-            new UserResource($request->user()->load(['business.settings', 'roles', 'permissions', 'branches', 'defaultBranch']))
+            new UserResource($request->user()->load(['business.settings', 'roles', 'permissions', 'branches', 'defaultBranch', 'defaultWarehouse']))
         );
     }
 

@@ -19,7 +19,7 @@ class RackLocationPolicy
     {
         return $user->can('rack_locations.index')
             && $this->belongsToSameBusiness($user, $rackLocation)
-            && $user->hasBranchAccess($rackLocation->warehouse->branch_id);
+            && $user->hasWarehouseAccess($rackLocation->warehouse_id);
     }
 
     public function create(User $user): bool
@@ -31,13 +31,13 @@ class RackLocationPolicy
     {
         return $user->can('rack_locations.edit')
             && $this->belongsToSameBusiness($user, $rackLocation)
-            && $user->hasBranchAccess($rackLocation->warehouse->branch_id);
+            && $user->hasWarehouseAccess($rackLocation->warehouse_id);
     }
 
     public function delete(User $user, RackLocation $rackLocation): bool
     {
         return $user->can('rack_locations.delete')
             && $this->belongsToSameBusiness($user, $rackLocation)
-            && $user->hasBranchAccess($rackLocation->warehouse->branch_id);
+            && $user->hasWarehouseAccess($rackLocation->warehouse_id);
     }
 }

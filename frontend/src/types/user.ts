@@ -14,6 +14,12 @@ export interface UserDefaultBranch {
   code: string | null
 }
 
+export interface UserDefaultWarehouse {
+  id: string
+  name: string
+  code: string | null
+}
+
 export interface UserWarehouse {
   id: string
   name: string
@@ -43,6 +49,8 @@ export interface UserListItem {
   warehouses?: UserWarehouse[]
   warehouse_ids: string[]
   default_branch: UserDefaultBranch | null
+  default_warehouse_id?: string | null
+  default_warehouse?: UserDefaultWarehouse | null
   preferences?: Record<string, unknown> | null
   created_at: string
   updated_at: string
@@ -55,6 +63,7 @@ export interface UserPayload {
   password?: string | null
   phone?: string | null
   avatar_url?: string | null
+  avatar_file?: File | null
   status?: UserStatus
   max_discount?: number | null
   commission_percentage?: number | null
@@ -65,6 +74,7 @@ export interface UserPayload {
   direct_permissions?: string[]
   branch_ids?: string[]
   warehouse_ids?: string[]
+  default_warehouse_id?: string | null
   default_branch_id?: string | null
 }
 

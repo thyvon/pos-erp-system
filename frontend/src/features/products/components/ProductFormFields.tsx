@@ -62,6 +62,7 @@ export function SelectField({ name, control, label, error, required, size = 'med
         render={({ field }) => (
           <Select
             {...field}
+            MenuProps={{ disableScrollLock: true }}
             multiple={isMultiple}
             value={field.value ?? (isMultiple ? [] : '')}
             label={hasLabel ? label : undefined}

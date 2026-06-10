@@ -19,13 +19,13 @@ class SerialPolicy
     {
         return $user->can('inventory.index')
             && $this->belongsToSameBusiness($user, $stockSerial)
-            && $user->hasBranchAccess($stockSerial->warehouse?->branch_id);
+            && $user->hasWarehouseAccess($stockSerial->warehouse_id);
     }
 
     public function writeOff(User $user, StockSerial $stockSerial): bool
     {
         return $user->can('inventory.adjust')
             && $this->belongsToSameBusiness($user, $stockSerial)
-            && $user->hasBranchAccess($stockSerial->warehouse?->branch_id);
+            && $user->hasWarehouseAccess($stockSerial->warehouse_id);
     }
 }

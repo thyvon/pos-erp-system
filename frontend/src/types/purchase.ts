@@ -42,7 +42,7 @@ export interface PurchaseItem {
   total_amount: string
   notes: string | null
   unit_label: string | null
-  product?: Pick<Product, 'id' | 'name' | 'sku' | 'type' | 'stock_tracking'> & { unit?: { id: string; name: string; short_name: string | null } | null } | null
+  product?: Pick<Product, 'id' | 'name' | 'sku' | 'type' | 'stock_tracking' | 'has_expiry'> & { unit?: { id: string; name: string; short_name: string | null } | null } | null
   variation?: Pick<ProductVariation, 'id' | 'name' | 'sku'> | null
   sub_unit?: { id: string; name: string; short_name: string | null; conversion_factor: string | null } | null
   tax_rate_info?: { id: string; name: string; rate: string; type: string } | null
@@ -101,6 +101,7 @@ export interface Purchase {
   receiver?: PurchaseUser | null
   items: PurchaseItem[]
   payments?: PurchasePayment[]
+  receives?: PurchaseReceive[]
   created_at: string
   updated_at: string
 }
@@ -331,4 +332,43 @@ export interface PurchaseReturnFilters {
   date_to?: string | null
   page?: number
   per_page?: number
+}
+
+export interface PurchaseReceiveItem {
+  id: string
+  purchase_receive_id: string
+  purchase_item_id: string
+  quantity: number
+  lot_number: string | null
+  manufacture_date: string | null
+  expiry_date: string | null
+  warranty_expires: string | null
+  serial_numbers: string[] | null
+  notes: string | null
+}
+
+export interface PurchaseReceive {
+  id: string
+  purchase_id: string
+  receive_number: string
+  received_at: string | null
+  notes: string | null
+  created_by: string | null
+  creator?: { id: string; name: string } | null
+  items?: PurchaseReceiveItem[]
+  items_count?: number
+  created_at: string
+  updated_at: string
+}
+
+export interface UpdatePurchaseReceiveItemPayload {
+  id: string
+  quantity: number
+  notes?: string | null
+}
+
+export interface UpdatePurchaseReceivePayload {
+  received_at?: string | null
+  notes?: string | null
+  items: UpdatePurchaseReceiveItemPayload[]
 }

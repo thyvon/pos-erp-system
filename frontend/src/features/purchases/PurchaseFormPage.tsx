@@ -218,7 +218,11 @@ export function PurchaseFormPage({ purchaseId }: PurchaseFormPageProps) {
       } else {
         const purchase = await createPurchase.mutateAsync(payload)
         enqueueSnackbar(t('messages.created'), { variant: 'success' })
-        router.push(`/purchases/${purchase.id}`)
+        if (values.status === 'confirmed') {
+          router.push(`/purchases/${purchase.id}/receive`)
+        } else {
+          router.push(`/purchases/${purchase.id}`)
+        }
       }
     } catch (error) {
       const apiError = toAppApiError(error)

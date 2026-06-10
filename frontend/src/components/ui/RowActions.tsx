@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { DeleteOutlined, EditOutlined, MoreVert, VisibilityOutlined } from '@/components/ui/icons'
 import { IconButton, ListItemIcon, ListItemText, Menu, MenuItem, Tooltip } from '@mui/material'
 
@@ -15,6 +15,7 @@ interface RowActionsProps {
   onView?: () => void
   onEdit?: () => void
   onDelete?: () => void
+  children?: ReactNode
 }
 
 export function RowActions({
@@ -28,6 +29,7 @@ export function RowActions({
   onView,
   onEdit,
   onDelete,
+  children,
 }: RowActionsProps) {
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null)
   const open = !!anchorEl
@@ -99,7 +101,8 @@ export function RowActions({
           <ListItemText>{deleteLabel}</ListItemText>
         </MenuItem>
       )}
-      </Menu>
+      {children}
+    </Menu>
     </>
   )
 }

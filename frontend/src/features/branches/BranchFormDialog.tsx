@@ -202,7 +202,7 @@ export function BranchFormDialog({
                 render={({ field }) => (
                   <FormControl error={!!errors.type}>
                     <InputLabel id="branch-type-label">{t('fields.type')}</InputLabel>
-                    <Select {...field} labelId="branch-type-label" label={t('fields.type')}>
+                    <Select {...field} MenuProps={{ disableScrollLock: true }} labelId="branch-type-label" label={t('fields.type')}>
                       <MenuItem value="retail">{t('type.retail')}</MenuItem>
                       <MenuItem value="warehouse">{t('type.warehouse')}</MenuItem>
                       <MenuItem value="office">{t('type.office')}</MenuItem>
@@ -220,6 +220,7 @@ export function BranchFormDialog({
                     <InputLabel id="branch-manager-label">{t('fields.manager')}</InputLabel>
                     <Select
                       {...field}
+                      MenuProps={{ disableScrollLock: true }}
                       value={field.value ?? ''}
                       labelId="branch-manager-label"
                       label={t('fields.manager')}

@@ -76,6 +76,7 @@ export default {
     purchaseDetail: 'Purchase detail',
     purchaseReturns: 'Purchase Returns',
     purchaseReturnDetail: 'Purchase return detail',
+    purchaseReceive: 'Receive Purchase',
     customers: 'Customers',
     suppliers: 'Suppliers',
     products: 'Product Catalog',
@@ -119,5 +120,7 @@ export default {
     taxGroups: 'Tax Groups',
     customerGroups: 'Customer Groups',
     auditLogs: 'Audit Logs',
+    userCreate: 'Create User',
+    userEdit: 'Edit User',
   },
 }

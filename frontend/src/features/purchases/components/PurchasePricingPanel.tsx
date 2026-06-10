@@ -115,7 +115,7 @@ export function PurchasePricingPanel({
             name="tax_scope"
             control={control}
             render={({ field }) => (
-              <Select {...field} labelId="purchase-tax-scope-label" label={t('form.taxScope')}>
+              <Select {...field} MenuProps={{ disableScrollLock: true }} labelId="purchase-tax-scope-label" label={t('form.taxScope')}>
                 <MenuItem value="line">{t('form.taxScopeLine')}</MenuItem>
                 <MenuItem value="sale">{t('form.taxScopeSale')}</MenuItem>
               </Select>

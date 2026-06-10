@@ -330,6 +330,35 @@
 - [x] User management allows admin branch assignments instead of clearing or rejecting them.
 - [x] Cash register and journal role shortcuts replaced with permission-based checks.
 
+## Warehouse Scope Access
+
+- [x] `User::hasWarehouseAccess()` now uses the IoC `warehouse_scope` (respects both explicit assignments and branch-based fallback) instead of only checking direct `user_warehouse` pivot records.
+- [x] `UserResource` and `UserListResource` now include `warehouses` and `warehouse_ids` in their responses, matching the frontend `UserListItem` type contract.
+- [x] All warehouse-scoped model policies (StockAdjustment, StockCount, StockLevel, StockTransfer, RackLocation, Lot, Serial, StockOpeningBalance, Warehouse) now enforce `hasWarehouseAccess()` instead of only `hasBranchAccess()`.
+- [x] `UserService` audit state now captures `warehouse_ids` and logs `warehouse_access_changed` events on create and update.
+- [x] Full backend test suite (260 passed) and frontend type-check/lint verified.
+
+## Default Warehouse Assignment
+
+- [x] Database migration `2026_06_10_000001_add_default_warehouse_to_users` adds nullable `default_warehouse_id` FK to `warehouses` with nullOnDelete, and backfills existing users with their first warehouse (by is_default desc, name).
+- [x] User model has `defaultWarehouse()` BelongsTo relationship and `default_warehouse_id` in `$fillable`.
+- [x] StoreUserRequest and UpdateUserRequest validate `default_warehouse_id` as `nullable|string|exists:warehouses,id`.
+- [x] UserController's `authorizeBranchAccessAssignment()` treats `default_warehouse_id` as warehouse access assignment (gated by `assignBranchAccess` permission).
+- [x] UserService `normalizeWarehouseAccess()` validates default warehouse is among assigned warehouses and falls back to the first assigned warehouse if not set. Update enforces `default_warehouse_id` must be sent with `warehouse_ids`.
+- [x] UserResource and UserListResource expose `default_warehouse_id` and `default_warehouse` (id/name/code) in API responses.
+- [x] UserRepository eagerly loads `defaultWarehouse` on paginated queries.
+- [x] AuthService and AuthController load `defaultWarehouse` with auth responses.
+- [x] WarehouseService blocks deletion when a warehouse is set as default for users.
+- [x] UserService audit state captures `default_warehouse_id` and logs it in `warehouse_access_changed` events.
+- [x] Frontend types: `UserDefaultWarehouse` interface, `default_warehouse_id`/`default_warehouse` on `UserListItem` and `UserPayload` and auth `User`.
+- [x] Frontend schema: `default_warehouse_id` with empty-string-to-null transform.
+- [x] Frontend UserFormPage replaces UserFormDialog: dedicated form page routes (`/users/create`, `/users/[id]/edit`) with PageHeader, back navigation, Card layout, form footer, loading/error/create/edit states, server-error mapping, and all existing form fields including default warehouse Select filtered to assigned warehouse IDs.
+- [x] User form re-arranged into grouped cards (Profile, Account, Sales Limits, Access, Preferences) with `AppImageUpload` replacing the plain avatar URL field; frontend type-check, lint, and all 260 backend tests pass.
+- [x] Backend avatar upload: `avatar_file` validation in StoreUserRequest/UpdateUserRequest, `HasFileAssets` trait on User model, `syncAvatar()` in UserService stores via `FileAssetService::replaceSingleImage()` and updates `avatar_url`, file assets cleaned up on user destroy.
+- [x] Frontend user list page: warehouses column with assigned warehouse names and default warehouse caption.
+- [x] Frontend i18n: English and Khmer translations for `fields.defaultWarehouse`, `columns.warehouses`, `placeholders.noDefaultWarehouse`, `placeholders.noWarehouses`.
+- [x] Full backend test suite (260 passed) and frontend type-check + lint (0 errors) verified.
+
 ## Important Reminders
 
 - `AGENTS.md` was shortened to main points only and now references the actual `Docs/v11-split/00-INDEX.md` filename.

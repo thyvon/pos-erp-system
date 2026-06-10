@@ -5,6 +5,8 @@ namespace App\Policies;
 use App\Models\Purchase;
 use App\Models\User;
 use App\Policies\Concerns\HandlesTenantPolicy;
+use App\Services\Foundation\EditWindowService;
+use Carbon\CarbonInterface;
 
 class PurchasePolicy
 {
@@ -32,7 +34,20 @@ class PurchasePolicy
         return $user->can('purchases.edit')
             && $this->belongsToSameBusiness($user, $purchase)
             && $user->hasBranchAccess($purchase->branch_id)
-            && in_array($purchase->status, ['draft', 'confirmed'], true);
+            && $this->isWithinEditWindow($purchase);
+    }
+
+    protected function isWithinEditWindow(Purchase $purchase): bool
+    {
+        $referenceDate = $purchase->purchase_date instanceof CarbonInterface
+            ? $purchase->purchase_date->copy()->startOfDay()
+            : $purchase->created_at?->copy()->startOfDay();
+
+        return app(EditWindowService::class)->isWithinWindow(
+            $referenceDate,
+            'purchases',
+            'purchase_edit_lifetime_days',
+        );
     }
 
     public function delete(User $user, Purchase $purchase): bool
@@ -49,6 +64,14 @@ class PurchasePolicy
             && $this->belongsToSameBusiness($user, $purchase)
             && $user->hasBranchAccess($purchase->branch_id)
             && in_array($purchase->status, ['confirmed', 'partially_received'], true);
+    }
+
+    public function manageReceives(User $user, Purchase $purchase): bool
+    {
+        return $user->can('purchases.receive')
+            && $this->belongsToSameBusiness($user, $purchase)
+            && $user->hasBranchAccess($purchase->branch_id)
+            && in_array($purchase->status, ['confirmed', 'partially_received', 'received'], true);
     }
 
     public function recordPayment(User $user, Purchase $purchase): bool

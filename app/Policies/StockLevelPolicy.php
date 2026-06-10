@@ -19,6 +19,6 @@ class StockLevelPolicy
     {
         return $user->can('inventory.index')
             && $this->belongsToSameBusiness($user, $stockLevel)
-            && $user->hasBranchAccess($stockLevel->warehouse?->branch_id);
+            && $user->hasWarehouseAccess($stockLevel->warehouse_id);
     }
 }

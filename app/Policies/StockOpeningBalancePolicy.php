@@ -19,7 +19,7 @@ class StockOpeningBalancePolicy
     {
         return $user->can('inventory.index')
             && $this->belongsToSameBusiness($user, $openingBalance)
-            && $user->hasBranchAccess($openingBalance->warehouse?->branch_id);
+            && $user->hasWarehouseAccess($openingBalance->warehouse_id);
     }
 
     public function create(User $user): bool

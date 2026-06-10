@@ -34,6 +34,7 @@ export function UnitToggle({
   return (
     <Select
       fullWidth
+      MenuProps={{ disableScrollLock: true }}
       value={currentSubUnitId === subUnitOptionId ? subUnitOptionId : '__none__'}
       onChange={(e) => {
         const val = e.target.value

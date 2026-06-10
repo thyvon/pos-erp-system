@@ -186,6 +186,7 @@ export function WarehouseFormDialog({
                     <InputLabel id="warehouse-branch-label">{t('fields.branch')}</InputLabel>
                     <Select
                       {...field}
+                      MenuProps={{ disableScrollLock: true }}
                       value={field.value ?? ''}
                       labelId="warehouse-branch-label"
                       label={t('fields.branch')}
@@ -208,7 +209,7 @@ export function WarehouseFormDialog({
                 render={({ field }) => (
                   <FormControl error={!!errors.type}>
                     <InputLabel id="warehouse-type-label">{t('fields.type')}</InputLabel>
-                    <Select {...field} labelId="warehouse-type-label" label={t('fields.type')}>
+                    <Select {...field} MenuProps={{ disableScrollLock: true }} labelId="warehouse-type-label" label={t('fields.type')}>
                       <MenuItem value="main">{t('type.main')}</MenuItem>
                       <MenuItem value="transit">{t('type.transit')}</MenuItem>
                       <MenuItem value="returns">{t('type.returns')}</MenuItem>

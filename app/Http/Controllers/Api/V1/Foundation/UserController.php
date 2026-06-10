@@ -121,8 +121,10 @@ class UserController extends BaseApiController
             static fn ($id) => filled($id)
         ));
 
+        $defaultWarehouseId = $data['default_warehouse_id'] ?? null;
+
         $hasBranchAccess = $branchIds !== [] || filled($defaultBranchId);
-        $hasWarehouseAccess = $warehouseIds !== [];
+        $hasWarehouseAccess = $warehouseIds !== [] || filled($defaultWarehouseId);
 
         if (! $hasBranchAccess && ! $hasWarehouseAccess) {
             return;

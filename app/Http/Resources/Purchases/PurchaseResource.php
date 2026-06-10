@@ -83,6 +83,7 @@ class PurchaseResource extends JsonResource
             ] : null),
             'items' => PurchaseItemResource::collection($this->whenLoaded('items')),
             'payments' => PurchasePaymentResource::collection($this->whenLoaded('payments')),
+            'receives' => PurchaseReceiveResource::collection($this->whenLoaded('receives')),
         ];
     }
 }

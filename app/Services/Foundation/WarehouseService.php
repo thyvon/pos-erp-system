@@ -75,6 +75,10 @@ class WarehouseService
             throw new DomainException('Warehouse cannot be deleted because it has stock movements.', 422);
         }
 
+        if (DB::table('users')->where('default_warehouse_id', $warehouse->id)->exists()) {
+            throw new DomainException('Warehouse cannot be deleted because it is set as a default warehouse for users.', 422);
+        }
+
         $this->warehouses->delete($warehouse);
     }
 

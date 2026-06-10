@@ -11,7 +11,6 @@ import {
   CardContent,
   Chip,
   CircularProgress,
-  Collapse,
   IconButton,
   Stack,
   Table,
@@ -23,13 +22,13 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
-import { ArrowBack, CompareArrowsOutlined, DeleteOutlined, EditOutlined, LocalShippingOutlined, PaymentsOutlined } from '@/components/ui/icons'
+import { ArrowBack, CompareArrowsOutlined, DeleteOutlined, EditOutlined, Inventory2Outlined, LocalShippingOutlined, PaymentsOutlined } from '@/components/ui/icons'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { UnitConversionBadge } from '@/features/sales/components/UnitConversionBadge'
-import { PurchaseReceiveDialog } from './PurchaseReceiveDialog'
+
 import { PurchasePaymentDialog } from './PurchasePaymentDialog'
 import { PurchasePaymentDeleteDialog } from './PurchasePaymentDeleteDialog'
 import { PurchaseReturnDialog } from './PurchaseReturnDialog'
@@ -38,6 +37,7 @@ import { useDefaultExchangeRateQuery, usePaymentAccountsQuery } from '@/features
 import {
   useCreatePurchaseReturnMutation,
   useDeletePurchaseMutation,
+  useDeletePurchaseReceiveMutation,
   usePurchaseQuery,
   useReceivePurchaseMutation,
   useRecordPurchasePaymentMutation,
@@ -49,7 +49,7 @@ import { useCurrencyFormatter } from '@/features/settings/useAppCurrency'
 import { useAuthStore } from '@/stores/authStore'
 import { formatAppDate, formatAppDateTime } from '@/utils/dateFormat'
 import { formatMoney } from '@/utils/formatMoney'
-import type { PurchaseItem, PurchasePayment, PurchasePaymentCorrectionPayload, PurchasePaymentPayload, PurchaseReturnPayload, ReceivePurchasePayload } from '@/types/purchase'
+import type { PurchaseItem, PurchasePayment, PurchasePaymentCorrectionPayload, PurchasePaymentPayload, PurchaseReceive, PurchaseReturnPayload } from '@/types/purchase'
 
 interface PurchaseDetailPageProps {
   purchaseId: string
@@ -118,12 +118,12 @@ export function PurchaseDetailPage({ purchaseId }: PurchaseDetailPageProps) {
   const { enqueueSnackbar } = useSnackbar()
   const can = useAuthStore((state) => state.can)
   const [deleteOpen, setDeleteOpen] = useState(false)
-  const [receiveOpen, setReceiveOpen] = useState(false)
   const [returnOpen, setReturnOpen] = useState(false)
   const [paymentOpen, setPaymentOpen] = useState(false)
   const [editingPayment, setEditingPayment] = useState<PurchasePayment | null>(null)
-  const [historyOpen, setHistoryOpen] = useState(false)
   const [confirmPaymentDeleteId, setConfirmPaymentDeleteId] = useState<string | null>(null)
+  const [confirmReceiveDeleteId, setConfirmReceiveDeleteId] = useState<string | null>(null)
+  const [confirmReceiveDeleteNumber, setConfirmReceiveDeleteNumber] = useState('')
   const dateFormat = useAppDateFormat()
   const currencyFormatter = useCurrencyFormatter()
 
@@ -136,14 +136,16 @@ export function PurchaseDetailPage({ purchaseId }: PurchaseDetailPageProps) {
   const recordPayment = useRecordPurchasePaymentMutation()
   const updatePayment = useUpdatePurchasePaymentMutation()
   const deletePayment = useDeletePurchasePaymentMutation()
-  const isMutating = deletePurchase.isPending || receivePurchase.isPending || createReturn.isPending || recordPayment.isPending || updatePayment.isPending || deletePayment.isPending
+  const deleteReceive = useDeletePurchaseReceiveMutation()
+  const isMutating = deletePurchase.isPending || receivePurchase.isPending || createReturn.isPending || recordPayment.isPending || updatePayment.isPending || deletePayment.isPending || deleteReceive.isPending
 
   const purchase = purchaseQuery.data
   const paymentAccounts = paymentAccountsQuery.data?.data ?? []
 
-  const canEdit = can('purchases.edit') && purchase && ['draft', 'confirmed'].includes(purchase.status)
+  const canEdit = can('purchases.edit') && purchase
   const canDelete = can('purchases.delete') && purchase && ['draft', 'confirmed', 'cancelled'].includes(purchase.status)
   const canReceive = can('purchases.receive') && purchase && ['confirmed', 'partially_received'].includes(purchase.status)
+  const canManageReceives = can('purchases.receive') && purchase && ['confirmed', 'partially_received', 'received'].includes(purchase.status)
   const canReturn = can('purchases.return') && purchase && ['received', 'partially_received'].includes(purchase.status)
   const canRecordPayment = !!purchase
     && can('payments.create')
@@ -161,12 +163,6 @@ export function PurchaseDetailPage({ purchaseId }: PurchaseDetailPageProps) {
     enqueueSnackbar(t('messages.deleted'), { variant: 'success' })
     setDeleteOpen(false)
     router.push('/purchases')
-  }
-
-  const handleReceive = async (payload: ReceivePurchasePayload) => {
-    await receivePurchase.mutateAsync({ id: purchaseId, payload })
-    enqueueSnackbar(t('messages.received'), { variant: 'success' })
-    setReceiveOpen(false)
   }
 
   const handleReturn = async (payload: PurchaseReturnPayload) => {
@@ -196,6 +192,14 @@ export function PurchaseDetailPage({ purchaseId }: PurchaseDetailPageProps) {
     setConfirmPaymentDeleteId(null)
   }
 
+  const handleDeleteReceive = async () => {
+    if (!purchase || !confirmReceiveDeleteId) return
+    await deleteReceive.mutateAsync({ purchaseId: purchase.id, receiveId: confirmReceiveDeleteId })
+    enqueueSnackbar(t('receive.receiveDeleted'), { variant: 'success' })
+    setConfirmReceiveDeleteId(null)
+    setConfirmReceiveDeleteNumber('')
+  }
+
   if (purchaseQuery.isLoading) {
     return (
       <Box sx={{ display: 'flex', justifyContent: 'center', py: 8 }}>
@@ -214,6 +218,7 @@ export function PurchaseDetailPage({ purchaseId }: PurchaseDetailPageProps) {
 
   const items = purchase.items ?? []
   const payments = purchase.payments ?? []
+  const receives = purchase.receives ?? []
   const returnedAmount = Number(purchase.returned_amount ?? 0)
   const netPayableAmount = Number(purchase.net_payable_amount ?? Math.max(Number(purchase.total_amount ?? 0) - returnedAmount, 0))
   const dueAmount = Number(purchase.due_amount ?? Math.max(netPayableAmount - Number(purchase.paid_amount ?? 0), 0))
@@ -254,10 +259,10 @@ export function PurchaseDetailPage({ purchaseId }: PurchaseDetailPageProps) {
           )}
           {canReceive && (
             <Button
+              component={NextLink}
+              href={`/purchases/${purchaseId}/receive`}
               variant="contained"
-              startIcon={<LocalShippingOutlined />}
-              onClick={() => setReceiveOpen(true)}
-              disabled={isMutating}
+              startIcon={<Inventory2Outlined />}
             >
               {t('detail.receive')}
             </Button>
@@ -500,86 +505,146 @@ export function PurchaseDetailPage({ purchaseId }: PurchaseDetailPageProps) {
                 </Box>
               </Box>
             </Stack>
-
-            <Box sx={{ borderTop: 1, borderColor: 'divider', pt: 2.5 }}>
-              <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5} sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between', mb: historyOpen ? 2 : 0 }}>
-                <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-                  <Typography variant="h6">{t('payment.title')}</Typography>
-                  <Tooltip title={t(historyOpen ? 'payment.hide' : 'payment.show')}>
-                    <IconButton size="small" onClick={() => setHistoryOpen((open) => !open)}>
-                      <PaymentsOutlined />
-                    </IconButton>
-                  </Tooltip>
-                </Stack>
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                  {(payments.length).toLocaleString()} {t('payment.title').toLowerCase()}
-                </Typography>
-              </Stack>
-              <Collapse in={historyOpen}>
-                {payments.length === 0 ? (
-                  <Alert severity="info">{t('payment.noHistory')}</Alert>
-                ) : (
-                  <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1, overflowX: 'auto' }}>
-                    <Table sx={{ minWidth: 1100, tableLayout: 'fixed' }}>
-                      <TableHead>
-                        <TableRow>
-                          <TableCell sx={{ width: 140 }}>{t('payment.date')}</TableCell>
-                          <TableCell sx={{ width: 220 }}>{t('payment.account')}</TableCell>
-                          <TableCell sx={{ width: 140 }}>{t('payment.method')}</TableCell>
-                          <TableCell sx={{ width: 170 }} align="right">{t('payment.amount')}</TableCell>
-                          <TableCell sx={{ width: 170 }} align="right">{t('payment.converted')}</TableCell>
-                          <TableCell sx={{ width: 140 }}>{t('payment.status')}</TableCell>
-                          <TableCell sx={{ width: 170 }}>{t('payment.reference')}</TableCell>
-                          <TableCell sx={{ width: 100 }} align="center">{t('detail.actions')}</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {payments.map((payment) => (
-                          <TableRow key={payment.id}>
-                            <TableCell>{payment.payment_date ? formatAppDate(payment.payment_date, dateFormat, i18n.language) : '-'}</TableCell>
-                            <TableCell>{paymentAccountLabel(payment)}</TableCell>
-                            <TableCell>{t(`paymentMethods.${payment.method}`, { defaultValue: payment.method })}</TableCell>
-                            <TableCell align="right">{paymentEnteredAmount(payment)}</TableCell>
-                            <TableCell align="right">{formatMoney(payment.amount, currencyFormatter)}</TableCell>
-                            <TableCell>{t(`payment.${payment.status}`, { defaultValue: payment.status })}</TableCell>
-                            <TableCell>{payment.reference || '-'}</TableCell>
-                            <TableCell align="center">
-                              <Stack direction="row" spacing={0.5} sx={{ justifyContent: 'center' }}>
-                                {canCorrectPayment && payment.status === 'completed' && (
-                                  <Tooltip title={t('payment.editAction')}>
-                                    <IconButton size="small" onClick={() => setEditingPayment(payment)}>
-                                      <EditOutlined fontSize="small" />
-                                    </IconButton>
-                                  </Tooltip>
-                                )}
-                                {canDeletePayment && payment.status === 'completed' && (
-                                  <Tooltip title={t('payment.deleteAction')}>
-                                    <IconButton size="small" color="error" onClick={() => setConfirmPaymentDeleteId(payment.id)}>
-                                      <DeleteOutlined fontSize="small" />
-                                    </IconButton>
-                                  </Tooltip>
-                                )}
-                              </Stack>
-                            </TableCell>
-                          </TableRow>
-                        ))}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                )}
-              </Collapse>
-            </Box>
           </Stack>
         </CardContent>
       </Card>
 
-      <PurchaseReceiveDialog
-        open={receiveOpen}
-        purchase={purchase}
-        isSaving={receivePurchase.isPending}
-        onClose={() => setReceiveOpen(false)}
-        onSubmit={handleReceive}
-      />
+      <Card>
+        <CardContent>
+          <Stack spacing={2.5}>
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+              <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                <Inventory2Outlined color="primary" />
+                <Box>
+                  <Typography variant="subtitle2">{t('receive.historyTitle')}</Typography>
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                    {(receives.length).toLocaleString()} {t('receive.historyTitle').toLowerCase()}
+                  </Typography>
+                </Box>
+              </Stack>
+            </Stack>
+            {receives.length === 0 ? (
+              <Alert severity="info">{t('receive.noHistory')}</Alert>
+            ) : (
+              <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1, overflowX: 'auto' }}>
+                <Table size="small" sx={{ minWidth: 900, tableLayout: 'fixed' }}>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ width: 160 }}>{t('receive.receiveNumber')}</TableCell>
+                      <TableCell sx={{ width: 140 }}>{t('receive.receiveDate')}</TableCell>
+                      <TableCell sx={{ width: 100 }} align="center">{t('receive.item')}</TableCell>
+                      <TableCell sx={{ width: 200 }}>{t('receive.notes')}</TableCell>
+                      <TableCell sx={{ width: 140 }}>{t('detail.createdBy')}</TableCell>
+                      <TableCell sx={{ width: 100 }} align="center">{t('detail.actions')}</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {receives.map((receive: PurchaseReceive) => (
+                      <TableRow key={receive.id}>
+                        <TableCell>{receive.receive_number}</TableCell>
+                        <TableCell>{receive.received_at ? formatAppDate(receive.received_at, dateFormat, i18n.language) : '-'}</TableCell>
+                        <TableCell align="center">{receive.items_count ?? receive.items?.length ?? 0}</TableCell>
+                        <TableCell>{receive.notes || '-'}</TableCell>
+                        <TableCell>{receive.creator?.name ?? '-'}</TableCell>
+                        <TableCell align="center">
+                          <Stack direction="row" spacing={0.5} sx={{ justifyContent: 'center' }}>
+                            {canManageReceives && (
+                              <Tooltip title={t('receive.editAction')}>
+                                <IconButton size="small" component={NextLink} href={`/purchases/${purchaseId}/receive?receiveId=${receive.id}`}>
+                                  <EditOutlined fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                            {canManageReceives && (
+                              <Tooltip title={t('receive.deleteAction')}>
+                                <IconButton size="small" color="error" onClick={() => {
+                                  setConfirmReceiveDeleteId(receive.id)
+                                  setConfirmReceiveDeleteNumber(receive.receive_number)
+                                }}>
+                                  <DeleteOutlined fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                          </Stack>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </Stack>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardContent>
+          <Stack spacing={2.5}>
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
+              <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                <PaymentsOutlined color="primary" />
+                <Box>
+                  <Typography variant="subtitle2">{t('payment.title')}</Typography>
+                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                    {(payments.length).toLocaleString()} {t('payment.title').toLowerCase()}
+                  </Typography>
+                </Box>
+              </Stack>
+            </Stack>
+            {payments.length === 0 ? (
+              <Alert severity="info">{t('payment.noHistory')}</Alert>
+            ) : (
+              <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1, overflowX: 'auto' }}>
+                <Table size="small" sx={{ minWidth: 1100, tableLayout: 'fixed' }}>
+                  <TableHead>
+                    <TableRow>
+                      <TableCell sx={{ width: 140 }}>{t('payment.date')}</TableCell>
+                      <TableCell sx={{ width: 220 }}>{t('payment.account')}</TableCell>
+                      <TableCell sx={{ width: 140 }}>{t('payment.method')}</TableCell>
+                      <TableCell sx={{ width: 170 }} align="right">{t('payment.amount')}</TableCell>
+                      <TableCell sx={{ width: 170 }} align="right">{t('payment.converted')}</TableCell>
+                      <TableCell sx={{ width: 140 }}>{t('payment.status')}</TableCell>
+                      <TableCell sx={{ width: 170 }}>{t('payment.reference')}</TableCell>
+                      <TableCell sx={{ width: 100 }} align="center">{t('detail.actions')}</TableCell>
+                    </TableRow>
+                  </TableHead>
+                  <TableBody>
+                    {payments.map((payment) => (
+                      <TableRow key={payment.id}>
+                        <TableCell>{payment.payment_date ? formatAppDate(payment.payment_date, dateFormat, i18n.language) : '-'}</TableCell>
+                        <TableCell>{paymentAccountLabel(payment)}</TableCell>
+                        <TableCell>{t(`paymentMethods.${payment.method}`, { defaultValue: payment.method })}</TableCell>
+                        <TableCell align="right">{paymentEnteredAmount(payment)}</TableCell>
+                        <TableCell align="right">{formatMoney(payment.amount, currencyFormatter)}</TableCell>
+                        <TableCell>{t(`payment.${payment.status}`, { defaultValue: payment.status })}</TableCell>
+                        <TableCell>{payment.reference || '-'}</TableCell>
+                        <TableCell align="center">
+                          <Stack direction="row" spacing={0.5} sx={{ justifyContent: 'center' }}>
+                            {canCorrectPayment && payment.status === 'completed' && (
+                              <Tooltip title={t('payment.editAction')}>
+                                <IconButton size="small" onClick={() => setEditingPayment(payment)}>
+                                  <EditOutlined fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                            {canDeletePayment && payment.status === 'completed' && (
+                              <Tooltip title={t('payment.deleteAction')}>
+                                <IconButton size="small" color="error" onClick={() => setConfirmPaymentDeleteId(payment.id)}>
+                                  <DeleteOutlined fontSize="small" />
+                                </IconButton>
+                              </Tooltip>
+                            )}
+                          </Stack>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            )}
+          </Stack>
+        </CardContent>
+      </Card>
 
       <PurchaseReturnDialog
         open={returnOpen}
@@ -622,6 +687,18 @@ export function PurchaseDetailPage({ purchaseId }: PurchaseDetailPageProps) {
           onConfirm={handleDeletePayment}
         />
       )}
+
+      <ConfirmDialog
+        open={!!confirmReceiveDeleteId}
+        title={t('receive.deleteTitle')}
+        message={t('receive.deleteConfirm', { number: confirmReceiveDeleteNumber })}
+        confirmText={t('common:buttons.delete')}
+        cancelText={t('common:buttons.cancel')}
+        loading={deleteReceive.isPending}
+        confirmColor="error"
+        onClose={() => { setConfirmReceiveDeleteId(null); setConfirmReceiveDeleteNumber('') }}
+        onConfirm={handleDeleteReceive}
+      />
     </Stack>
   )
 }

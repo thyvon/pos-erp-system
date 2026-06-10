@@ -46,16 +46,20 @@ export const purchaseSchema = z.object({
 })
 
 export const receivePurchaseItemSchema = z.object({
+  id: z.string().optional(),
   purchase_item_id: z.string().uuid(),
   product_label: z.string(),
   sku: z.string().nullable().optional(),
   stock_tracking: z.string().nullable().optional(),
+  has_expiry: z.boolean().optional(),
   sub_unit_id: z.string().nullable().optional(),
   _conversion_factor: z.string().nullable().optional(),
   _base_unit_label: z.string().nullable().optional(),
   sub_unit_label: z.string().nullable().optional(),
   remaining_quantity: z.number(),
-  quantity: z.coerce.number().gt(0),
+  item_quantity: z.number(),
+  fully_received: z.boolean().optional(),
+  quantity: z.coerce.number().gte(0),
   lot_number: z.string().nullable().optional(),
   manufacture_date: z.string().nullable().optional(),
   expiry_date: z.string().nullable().optional(),
@@ -63,8 +67,8 @@ export const receivePurchaseItemSchema = z.object({
   warranty_expires: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
 }).superRefine((value, ctx) => {
-  if (value.quantity > value.remaining_quantity) {
-    ctx.addIssue({ code: 'custom', path: ['quantity'], message: 'Quantity exceeds remaining quantity' })
+  if (value.quantity > value.item_quantity) {
+    ctx.addIssue({ code: 'custom', path: ['quantity'], message: 'Quantity exceeds original purchase quantity' })
   }
 
   if (value.stock_tracking === 'lot' && !value.lot_number?.trim()) {
