@@ -13,6 +13,7 @@ return static function (): void {
     Route::get('purchases/{purchase}', [PurchaseController::class, 'show'])->middleware('can:view,purchase');
     Route::put('purchases/{purchase}', [PurchaseController::class, 'update'])->middleware('can:update,purchase');
     Route::delete('purchases/{purchase}', [PurchaseController::class, 'destroy'])->middleware('can:delete,purchase');
+    Route::get('purchases/next-lot-number', [PurchaseController::class, 'nextLotNumber']);
     Route::post('purchases/{purchase}/receive', [PurchaseController::class, 'receive'])->middleware('can:receive,purchase');
     Route::get('purchases/{purchase}/receives/{purchaseReceive}', [PurchaseController::class, 'showReceive'])->middleware('can:manageReceives,purchase');
     Route::put('purchases/{purchase}/receives/{purchaseReceive}', [PurchaseController::class, 'updateReceive'])->middleware('can:manageReceives,purchase');

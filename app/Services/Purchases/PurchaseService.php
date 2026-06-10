@@ -31,7 +31,41 @@ class PurchaseService
         protected StockMovementService $stockMovementService,
         protected EditWindowService $editWindow,
         protected \App\Services\Accounting\AccountingService $accountingService,
+        protected \App\Services\Foundation\SettingsService $settings,
     ) {
+    }
+
+    public function nextLotNumber(string $businessId): ?string
+    {
+        $stockSettings = $this->settings->getGroup('stock', $businessId);
+
+        if (! ($stockSettings['enable_auto_lot_number'] ?? false)) {
+            return null;
+        }
+
+        $prefix = $stockSettings['lot_number_prefix'] ?? 'LOT';
+        $format = $stockSettings['lot_number_format'] ?? 'MMYY';
+        $datePart = '';
+
+        if ($format === 'MMYY') {
+            $datePart = now()->format('my');
+        } elseif ($format === 'YYYYMM') {
+            $datePart = now()->format('Ym');
+        }
+
+        $fullPrefix = $prefix.$datePart.'-';
+
+        $lastLot = \App\Models\StockLot::withoutGlobalScopes()
+            ->where('business_id', $businessId)
+            ->where('lot_number', 'like', $fullPrefix.'%')
+            ->orderByDesc('lot_number')
+            ->value('lot_number');
+
+        $nextSequence = $lastLot === null
+            ? 1
+            : ((int) substr($lastLot, strlen($fullPrefix))) + 1;
+
+        return sprintf('%s%04d', $fullPrefix, $nextSequence);
     }
 
     public function paginate(array $filters, ?User $user = null): LengthAwarePaginator

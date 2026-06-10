@@ -144,6 +144,13 @@ class PurchaseController extends BaseApiController
         return $this->success(null, 'Purchase receive deleted successfully.');
     }
 
+    public function nextLotNumber(Request $request): JsonResponse
+    {
+        return $this->success([
+            'lot_number' => $this->purchases->nextLotNumber((string) $request->user()->business_id),
+        ]);
+    }
+
     public function recordPayment(StorePurchasePaymentRequest $request, Purchase $purchase, PurchasePaymentService $purchasePayments): JsonResponse
     {
         $this->authorize('recordPayment', $purchase);

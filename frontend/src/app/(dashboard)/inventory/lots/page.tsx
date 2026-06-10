@@ -1,12 +1,10 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import {
   Alert,
   Box,
   Button,
-  Card,
-  CardContent,
   Chip,
   CircularProgress,
   Dialog,
@@ -14,26 +12,21 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
-  InputAdornment,
   MenuItem,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TablePagination,
-  TableRow,
   TextField,
   Typography,
 } from '@mui/material'
-import { Inventory2Outlined, Search } from '@/components/ui/icons'
+import { Inventory2Outlined } from '@/components/ui/icons'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { RowActions } from '@/components/ui/RowActions'
 import { SearchableFilterSelect } from '@/components/ui/SearchableFilterSelect'
-import { TableStateRow } from '@/components/ui/TableStateRow'
+import PageHeader from '@/components/common/PageHeader'
+import PageToolbar from '@/components/common/PageToolbar'
+import EntityTable from '@/components/common/EntityTable'
+import type { EntityTableColumn } from '@/components/common/EntityTable'
 import {
   useInventoryOptionsQuery,
   useStockLotQuery,
@@ -45,7 +38,6 @@ import { useAuthStore } from '@/stores/authStore'
 import { formatAppDate, formatAppDateTime } from '@/utils/dateFormat'
 import type { StockLot, StockLotFilters, StockLotStatus } from '@/types/inventory'
 
-const rowsPerPageOptions = [10, 25, 50]
 const lotStatuses: StockLotStatus[] = ['active', 'depleted', 'expired', 'recalled', 'quarantine']
 
 function statusColor(status: StockLotStatus) {
@@ -125,43 +117,145 @@ export default function StockLotsPage() {
     setReason('')
   }
 
-  return (
-    <Stack spacing={3}>
-      <Box>
-        <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-          <Inventory2Outlined color="primary" />
-          <Typography variant="h4">{t('lots.title')}</Typography>
-        </Stack>
-        <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
-          {t('lots.subtitle')}
-        </Typography>
-      </Box>
+  const clearFilters = useCallback(() => {
+    setWarehouseFilter('')
+    setStatusFilter('')
+    setPage(0)
+  }, [])
 
-      <Card>
-        <CardContent>
-          <Stack
-            direction={{ xs: 'column', lg: 'row' }}
-            spacing={2}
-            sx={{ alignItems: { xs: 'stretch', lg: 'center' }, mb: 2.5 }}
-          >
-            <TextField
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value)
-                setPage(0)
-              }}
-              placeholder={t('lots.filters.search')}
-              sx={{ flexGrow: 1 }}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Search fontSize="small" />
-                    </InputAdornment>
-                  ),
-                },
-              }}
-            />
+  const handleSearchChange = useCallback((value: string) => {
+    setSearch(value)
+    setPage(0)
+  }, [])
+
+  const handleWarehouseChange = useCallback((value: string) => {
+    setWarehouseFilter(value)
+    setPage(0)
+  }, [])
+
+  const handleStatusChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    setStatusFilter(event.target.value)
+    setPage(0)
+  }, [])
+
+  const selectedWarehouse = warehouses.find((w) => w.id === warehouseFilter)
+
+  const activeFilters = useMemo(() => {
+    const chips: Array<{ key: string; label: string; onDelete: () => void }> = []
+    if (warehouseFilter && selectedWarehouse) {
+      chips.push({
+        key: 'warehouse',
+        label: selectedWarehouse.name,
+        onDelete: () => { setWarehouseFilter(''); setPage(0) },
+      })
+    }
+    if (statusFilter) {
+      chips.push({
+        key: 'status',
+        label: t(`lots.status.${statusFilter}`),
+        onDelete: () => { setStatusFilter(''); setPage(0) },
+      })
+    }
+    return chips
+  }, [warehouseFilter, statusFilter, selectedWarehouse, t])
+
+  const columns: EntityTableColumn<StockLot>[] = useMemo(() => [
+    {
+      key: 'lot_number',
+      label: t('lots.columns.lotNumber'),
+      render: (lot) => (
+        <Typography variant="subtitle2">{lot.lot_number}</Typography>
+      ),
+    },
+    {
+      key: 'product',
+      label: t('lots.columns.product'),
+      render: (lot) => (
+        <Stack spacing={0.25}>
+          <Typography variant="body2">{productLabel(lot)}</Typography>
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+            {lot.variation?.sku ?? lot.product?.sku ?? '-'}
+          </Typography>
+        </Stack>
+      ),
+    },
+    {
+      key: 'warehouse',
+      label: t('lots.columns.warehouse'),
+      render: (lot) => (
+        <Stack spacing={0.25}>
+          <Typography variant="body2">{lot.warehouse?.name ?? '-'}</Typography>
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+            {lot.warehouse?.branch_name ?? '-'}
+          </Typography>
+        </Stack>
+      ),
+    },
+    {
+      key: 'status',
+      label: t('lots.columns.status'),
+      render: (lot) => (
+        <Chip
+          size="small"
+          label={t(`lots.status.${lot.status}`)}
+          color={statusColor(lot.status)}
+          variant="outlined"
+        />
+      ),
+    },
+    {
+      key: 'qty_on_hand',
+      label: t('lots.columns.onHand'),
+      align: 'right',
+      render: (lot) => <>{formatQuantity(lot.qty_on_hand)}</>,
+    },
+    {
+      key: 'qty_reserved',
+      label: t('lots.columns.reserved'),
+      align: 'right',
+      render: (lot) => <>{formatQuantity(lot.qty_reserved)}</>,
+    },
+    {
+      key: 'expiry_date',
+      label: t('lots.columns.expiryDate'),
+      render: (lot) => <>{formatAppDate(lot.expiry_date, dateFormat, i18n.language)}</>,
+    },
+    {
+      key: 'received_at',
+      label: t('lots.columns.receivedAt'),
+      render: (lot) => <>{formatAppDateTime(lot.received_at, dateFormat, i18n.language)}</>,
+    },
+  ], [t, dateFormat, i18n.language])
+
+  return (
+    <Stack spacing={2.5}>
+      <PageHeader
+        eyebrow="Inventory"
+        title={t('lots.title')}
+        description={t('lots.subtitle')}
+      />
+
+      {(lotsQuery.isError || optionsQuery.isError) && (
+        <Stack spacing={1}>
+          {lotsQuery.isError && (
+            <Alert severity="error">{toAppApiError(lotsQuery.error).message}</Alert>
+          )}
+          {optionsQuery.isError && (
+            <Alert severity="error">{toAppApiError(optionsQuery.error).message}</Alert>
+          )}
+        </Stack>
+      )}
+
+      <PageToolbar
+        searchValue={search}
+        searchPlaceholder={t('lots.filters.search')}
+        onSearchChange={handleSearchChange}
+        activeFilters={activeFilters}
+        onClearFilters={clearFilters}
+        filterButtonLabel={t('lots.filters.status')}
+        defaultFiltersOpen={false}
+        filters={
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
             <SearchableFilterSelect
               value={warehouseFilter}
               options={warehouses}
@@ -171,21 +265,14 @@ export default function StockLotsPage() {
               getOptionValue={(warehouse) => warehouse.id}
               getOptionLabel={(warehouse) => warehouse.name}
               getOptionDescription={(warehouse) => [warehouse.code, warehouse.branch_name].filter(Boolean).join(' / ')}
-              onChange={(value) => {
-                setWarehouseFilter(value)
-                setPage(0)
-              }}
-              sx={{ minWidth: { xs: '100%', lg: 240 } }}
+              onChange={handleWarehouseChange}
             />
             <TextField
               select
               value={statusFilter}
-              onChange={(event) => {
-                setStatusFilter(event.target.value)
-                setPage(0)
-              }}
+              onChange={handleStatusChange}
               label={t('lots.filters.status')}
-              sx={{ minWidth: { xs: '100%', lg: 190 } }}
+              sx={{ minWidth: 190 }}
             >
               <MenuItem value="">{t('lots.filters.allStatuses')}</MenuItem>
               {lotStatuses.map((status) => (
@@ -195,106 +282,40 @@ export default function StockLotsPage() {
               ))}
             </TextField>
           </Stack>
+        }
+      />
 
-          {lotsQuery.isError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {toAppApiError(lotsQuery.error).message}
-            </Alert>
-          )}
-
-          {optionsQuery.isError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {toAppApiError(optionsQuery.error).message}
-            </Alert>
-          )}
-
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('lots.columns.lotNumber')}</TableCell>
-                  <TableCell>{t('lots.columns.product')}</TableCell>
-                  <TableCell>{t('lots.columns.warehouse')}</TableCell>
-                  <TableCell>{t('lots.columns.status')}</TableCell>
-                  <TableCell align="right">{t('lots.columns.onHand')}</TableCell>
-                  <TableCell align="right">{t('lots.columns.reserved')}</TableCell>
-                  <TableCell>{t('lots.columns.expiryDate')}</TableCell>
-                  <TableCell>{t('lots.columns.receivedAt')}</TableCell>
-                  <TableCell align="center">{t('lots.columns.actions')}</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {lotsQuery.isLoading && <TableStateRow colSpan={9} loading />}
-
-                {!lotsQuery.isLoading && lots.length === 0 && (
-                  <TableStateRow colSpan={9} message={t('lots.empty')} />
-                )}
-
-                {lots.map((lot) => (
-                  <TableRow key={lot.id} hover>
-                    <TableCell>
-                      <Typography variant="subtitle2">{lot.lot_number}</Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Stack spacing={0.25}>
-                        <Typography variant="body2">{productLabel(lot)}</Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {lot.variation?.sku ?? lot.product?.sku ?? '-'}
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-                    <TableCell>
-                      <Stack spacing={0.25}>
-                        <Typography variant="body2">{lot.warehouse?.name ?? '-'}</Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {lot.warehouse?.branch_name ?? '-'}
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        size="small"
-                        label={t(`lots.status.${lot.status}`)}
-                        color={statusColor(lot.status)}
-                        variant="outlined"
-                      />
-                    </TableCell>
-                    <TableCell align="right">{formatQuantity(lot.qty_on_hand)}</TableCell>
-                    <TableCell align="right">{formatQuantity(lot.qty_reserved)}</TableCell>
-                    <TableCell>{formatAppDate(lot.expiry_date, dateFormat, i18n.language)}</TableCell>
-                    <TableCell>{formatAppDateTime(lot.received_at, dateFormat, i18n.language)}</TableCell>
-                    <TableCell align="center">
-                      <RowActions
-                        viewLabel={t('lots.actions.view')}
-                        editLabel={t('lots.actions.updateStatus')}
-                        deleteLabel={t('common:buttons.delete')}
-                        showView
-                        showEdit={canAdjust}
-                        showDelete={false}
-                        onView={() => setViewingLot(lot)}
-                        onEdit={() => openStatusDialog(lot)}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          <TablePagination
-            component="div"
-            count={meta?.total ?? 0}
-            page={page}
-            rowsPerPage={perPage}
-            rowsPerPageOptions={rowsPerPageOptions}
-            onPageChange={(_, nextPage) => setPage(nextPage)}
-            onRowsPerPageChange={(event) => {
-              setPerPage(Number(event.target.value))
-              setPage(0)
-            }}
+      <EntityTable
+        rows={lots}
+        columns={columns}
+        getRowKey={(lot) => lot.id}
+        loading={lotsQuery.isLoading}
+        emptyIcon={<Inventory2Outlined />}
+        emptyTitle={t('lots.empty')}
+        emptyDescription=""
+        pagination={{
+          page,
+          rowsPerPage: perPage,
+          count: meta?.total ?? 0,
+          onPageChange: (newPage) => setPage(newPage),
+          onRowsPerPageChange: (newRowsPerPage) => {
+            setPerPage(newRowsPerPage)
+            setPage(0)
+          },
+        }}
+        rowActions={(lot) => (
+          <RowActions
+            viewLabel={t('lots.actions.view')}
+            editLabel={t('lots.actions.updateStatus')}
+            deleteLabel={t('common:buttons.delete')}
+            showView
+            showEdit={canAdjust}
+            showDelete={false}
+            onView={() => setViewingLot(lot)}
+            onEdit={() => openStatusDialog(lot)}
           />
-        </CardContent>
-      </Card>
+        )}
+      />
 
       <Dialog open={!!viewingLot} onClose={() => setViewingLot(null)} fullWidth maxWidth="md">
         <DialogTitle>{selectedLot?.lot_number ?? t('lots.detail.title')}</DialogTitle>
