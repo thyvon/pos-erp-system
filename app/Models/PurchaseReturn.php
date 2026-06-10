@@ -57,6 +57,6 @@ class PurchaseReturn extends BaseModel
 
     public function items(): HasMany
     {
-        return $this->hasMany(PurchaseReturnItem::class)->orderBy('created_at');
+        return $this->hasMany(PurchaseReturnItem::class);
     }
 }

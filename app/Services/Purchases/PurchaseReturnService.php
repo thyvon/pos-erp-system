@@ -22,6 +22,7 @@ class PurchaseReturnService
     public function __construct(
         protected PurchaseReturnRepository $purchaseReturns,
         protected StockMovementService $stockMovementService,
+        protected \App\Services\Accounting\AccountingService $accountingService,
     ) {
     }
 
@@ -75,8 +76,58 @@ class PurchaseReturnService
                 $this->recordReturnMovement($businessId, $purchaseReturn, $item, $linePayload, $actor);
             }
 
+            $this->postReturnJournal($businessId, $purchaseReturn, $actor);
+
             return $this->loadPurchaseReturn($purchaseReturn);
         });
+    }
+
+    protected function postReturnJournal(string $businessId, PurchaseReturn $purchaseReturn, ?User $actor = null): \App\Models\Journal
+    {
+        $totalReturnAmount = round((float) $purchaseReturn->total_amount, 2);
+
+        if ($totalReturnAmount <= 0) {
+            throw new DomainException('Total return amount must be greater than zero to post a journal.', 422);
+        }
+
+        $inventoryAccount = $this->resolveAccountByCode($businessId, '1300');
+        $payableAccount = $this->resolveAccountByCode($businessId, '2100');
+
+        return $this->accountingService->postJournal($businessId, [
+            'type' => 'purchase_return',
+            'reference_type' => PurchaseReturn::class,
+            'reference_id' => $purchaseReturn->id,
+            'description' => "Purchase return for purchase {$purchaseReturn->purchase->purchase_number} (Return #{$purchaseReturn->return_number})",
+            'posted_at' => $purchaseReturn->return_date,
+            'entries' => [
+                [
+                    'account_id' => $payableAccount->id,
+                    'type' => 'debit',
+                    'amount' => $totalReturnAmount,
+                    'description' => 'Accounts payable reduction',
+                ],
+                [
+                    'account_id' => $inventoryAccount->id,
+                    'type' => 'credit',
+                    'amount' => $totalReturnAmount,
+                    'description' => 'Inventory asset reduction',
+                ],
+            ],
+        ], $actor);
+    }
+
+    protected function resolveAccountByCode(string $businessId, string $code): \App\Models\ChartOfAccount
+    {
+        $account = \App\Models\ChartOfAccount::withoutGlobalScopes()
+            ->where('business_id', $businessId)
+            ->where('code', $code)
+            ->first();
+
+        if (! $account) {
+            throw new DomainException("Required account {$code} is missing for this business.", 422);
+        }
+
+        return $account;
     }
 
     protected function buildReturnPayloads(string $businessId, Purchase $purchase, Collection $items): array

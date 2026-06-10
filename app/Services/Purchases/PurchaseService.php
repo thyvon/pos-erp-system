@@ -30,6 +30,7 @@ class PurchaseService
         protected AuditService $auditService,
         protected StockMovementService $stockMovementService,
         protected EditWindowService $editWindow,
+        protected \App\Services\Accounting\AccountingService $accountingService,
     ) {
     }
 
@@ -173,6 +174,8 @@ class PurchaseService
             $lockedPurchase->status = $this->resolveReceivedStatus($lockedPurchase);
             $lockedPurchase->save();
 
+            $this->postReceiveJournal($businessId, $purchaseReceive, $actor);
+
             return $this->loadPurchase($lockedPurchase->fresh());
         });
     }
@@ -186,6 +189,17 @@ class PurchaseService
                 ->whereKey($purchaseReceive->id)
                 ->lockForUpdate()
                 ->firstOrFail();
+
+            $oldJournal = \App\Models\Journal::withoutGlobalScopes()
+                ->where('business_id', $businessId)
+                ->where('reference_type', PurchaseReceive::class)
+                ->where('reference_id', $lockedReceive->id)
+                ->whereNull('reversed_by_id')
+                ->first();
+
+            if ($oldJournal) {
+                $this->accountingService->reverseJournal($businessId, $oldJournal, 'Correction for purchase receive edit', $actor);
+            }
 
             $lockedReceive->update([
                 'received_at' => $data['received_at'] ?? $lockedReceive->received_at,
@@ -271,6 +285,8 @@ class PurchaseService
             $lockedReceive->purchase->refresh()->load('items');
             $lockedReceive->purchase->status = $this->resolveReceivedStatus($lockedReceive->purchase);
             $lockedReceive->purchase->save();
+
+            $this->postReceiveJournal($businessId, $lockedReceive->fresh(), $actor);
 
             return $lockedReceive->fresh()->load('items', 'purchase');
         });
@@ -423,7 +439,81 @@ class PurchaseService
             $lockedReceive->purchase->refresh()->load('items');
             $lockedReceive->purchase->status = $this->resolveReceivedStatus($lockedReceive->purchase);
             $lockedReceive->purchase->save();
+
+            $oldJournal = \App\Models\Journal::withoutGlobalScopes()
+                ->where('business_id', $businessId)
+                ->where('reference_type', PurchaseReceive::class)
+                ->where('reference_id', $lockedReceive->id)
+                ->whereNull('reversed_by_id')
+                ->first();
+
+            if ($oldJournal) {
+                $this->accountingService->reverseJournal($businessId, $oldJournal, 'Purchase receive record deleted', $actor);
+            }
         });
+    }
+
+    protected function postReceiveJournal(string $businessId, PurchaseReceive $receive, ?User $actor = null): \App\Models\Journal
+    {
+        $receive->load(['items.purchaseItem', 'purchase']);
+        $totalReceivedValue = 0.0;
+
+        foreach ($receive->items as $item) {
+            $purchaseItem = $item->purchaseItem;
+            if (! $purchaseItem) {
+                continue;
+            }
+            $qty = (float) $item->quantity;
+            $itemTotalQty = (float) $purchaseItem->quantity;
+
+            if ($itemTotalQty > 0) {
+                $lineValue = ($qty / $itemTotalQty) * (float) $purchaseItem->total_amount;
+                $totalReceivedValue += round($lineValue, 2);
+            }
+        }
+
+        if ($totalReceivedValue <= 0) {
+            throw new DomainException('Total received value must be greater than zero to post a journal.', 422);
+        }
+
+        $inventoryAccount = $this->resolveAccountByCode($businessId, '1300');
+        $payableAccount = $this->resolveAccountByCode($businessId, '2100');
+
+        return $this->accountingService->postJournal($businessId, [
+            'type' => 'purchase',
+            'reference_type' => PurchaseReceive::class,
+            'reference_id' => $receive->id,
+            'description' => "Inventory receipt for purchase {$receive->purchase->purchase_number} (Receive #{$receive->receive_number})",
+            'posted_at' => $receive->received_at,
+            'entries' => [
+                [
+                    'account_id' => $inventoryAccount->id,
+                    'type' => 'debit',
+                    'amount' => $totalReceivedValue,
+                    'description' => 'Inventory asset increase',
+                ],
+                [
+                    'account_id' => $payableAccount->id,
+                    'type' => 'credit',
+                    'amount' => $totalReceivedValue,
+                    'description' => 'Accounts payable recognition',
+                ],
+            ],
+        ], $actor);
+    }
+
+    protected function resolveAccountByCode(string $businessId, string $code): \App\Models\ChartOfAccount
+    {
+        $account = \App\Models\ChartOfAccount::withoutGlobalScopes()
+            ->where('business_id', $businessId)
+            ->where('code', $code)
+            ->first();
+
+        if (! $account) {
+            throw new DomainException("Required account {$code} is missing for this business.", 422);
+        }
+
+        return $account;
     }
 
     protected function reverseLotTrackedReceive(
@@ -562,7 +652,7 @@ class PurchaseService
 
         match ($product->stock_tracking) {
             'lot' => $this->receiveLotTrackedItem($businessId, $purchase, $item, $receiveLine, $quantity, $inventoryQuantity, $actor),
-            'serial' => $this->receiveSerialTrackedItem($businessId, $purchase, $item, $receiveLine, $quantity, $actor),
+            'serial' => $this->receiveSerialTrackedItem($businessId, $purchase, $item, $receiveLine, $quantity, $inventoryQuantity, $actor),
             default => $this->recordReceiptMovement($businessId, $purchase, $item, $inventoryQuantity, $actor, $receiveLine['notes'] ?? null),
         };
 
@@ -629,12 +719,13 @@ class PurchaseService
         PurchaseItem $item,
         array $receiveLine,
         float $quantity,
+        float $inventoryQuantity,
         ?User $actor = null,
     ): void {
         $serialNumbers = array_values($receiveLine['serial_numbers'] ?? []);
 
-        if (count($serialNumbers) !== (int) $quantity || round($quantity, 4) !== (float) ((int) $quantity)) {
-            throw new DomainException('Serial-tracked purchase items require one serial number per received unit.', 422);
+        if (count($serialNumbers) !== (int) $inventoryQuantity || round($inventoryQuantity, 4) !== (float) ((int) $inventoryQuantity)) {
+            throw new DomainException('Serial-tracked purchase items require one serial number per base unit received.', 422);
         }
 
         foreach ($serialNumbers as $serialNumber) {
@@ -958,13 +1049,8 @@ class PurchaseService
 
     protected function validateSubUnitEligibility(Product $product, ?SubUnit $subUnit): void
     {
-        if ($subUnit === null) {
-            return;
-        }
-
-        if (in_array($product->stock_tracking, ['lot', 'serial'], true)) {
-            throw new DomainException("Tracked product {$product->name} must be purchased in the base unit.", 422);
-        }
+        // Restriction removed: Tracked products (lot/serial) can now be purchased in sub-units.
+        // For serial tracking, we will validate that the converted base quantity is an integer during receive.
     }
 
     protected function validatePurchaseItemSubUnit(PurchaseItem $item): void

@@ -194,6 +194,13 @@ class PurchaseApiTest extends TestCase
             'type' => 'purchase_receipt',
             'quantity' => '1.0000',
         ]);
+
+        $this->assertDatabaseHas('journals', [
+            'business_id' => $business->id,
+            'type' => 'purchase',
+            'total_amount' => '10.00',
+        ]);
+
         $this->assertSame('1.0000', StockLevel::query()->firstOrFail()->quantity);
     }
 
@@ -404,6 +411,59 @@ class PurchaseApiTest extends TestCase
             'event' => 'payment_recorded',
             'auditable_id' => $purchase->id,
         ]);
+    }
+
+    public function test_serial_tracked_purchase_can_be_received_in_sub_units(): void
+    {
+        $business = Business::factory()->create();
+        $branch = Branch::factory()->create(['business_id' => $business->id]);
+        $warehouse = \App\Models\Warehouse::factory()->create(['business_id' => $business->id, 'branch_id' => $branch->id]);
+        $admin = User::factory()->create(['business_id' => $business->id]);
+        $admin->branches()->attach($branch->id);
+        $admin->syncRoles(['admin']);
+        $supplier = Supplier::factory()->for($business)->create();
+
+        $unit = Unit::factory()->create(['business_id' => $business->id, 'name' => 'Piece']);
+        $subUnit = \App\Models\SubUnit::factory()->create([
+            'business_id' => $business->id,
+            'parent_unit_id' => $unit->id,
+            'name' => 'Box',
+            'conversion_factor' => 10,
+        ]);
+
+        $product = Product::factory()->create([
+            'business_id' => $business->id,
+            'unit_id' => $unit->id,
+            'sub_unit_id' => $subUnit->id,
+            'stock_tracking' => 'serial',
+            'track_inventory' => true,
+        ]);
+
+        $purchase = $this->makePurchase($business, $branch, $warehouse, $supplier, $product, 'PO-SUB-001', 'confirmed', 1);
+        $item = $purchase->items->first();
+        $item->update(['sub_unit_id' => $subUnit->id]);
+        $itemId = $item->id;
+
+        $serialNumbers = ['SN-B1-01', 'SN-B1-02', 'SN-B1-03', 'SN-B1-04', 'SN-B1-05', 'SN-B1-06', 'SN-B1-07', 'SN-B1-08', 'SN-B1-09', 'SN-B1-10'];
+
+        $this->actingAs($admin)->postJson("/api/v1/purchases/{$purchase->id}/receive", [
+            'received_at' => '2026-05-28',
+            'items' => [
+                [
+                    'purchase_item_id' => $itemId,
+                    'quantity' => 1, // 1 Box = 10 Pieces
+                    'serial_numbers' => $serialNumbers,
+                ],
+            ],
+        ])->assertOk();
+
+        $this->assertDatabaseCount('stock_serials', 10);
+        $this->assertEquals(10, \App\Models\StockMovement::where([
+            'business_id' => $business->id,
+            'product_id' => $product->id,
+            'quantity' => '1.0000',
+            'type' => 'purchase_receipt',
+        ])->count());
     }
 
     public function test_confirmed_purchase_can_record_split_payments(): void

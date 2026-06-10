@@ -96,6 +96,12 @@ class PurchaseReturnApiTest extends TestCase
             'type' => 'purchase_return',
         ]);
 
+        $this->assertDatabaseHas('journals', [
+            'business_id' => $business->id,
+            'type' => 'purchase_return',
+            'total_amount' => '20.00',
+        ]);
+
         $this->assertEquals(
             $originalStock - 2,
             StockLevel::where('warehouse_id', $warehouse->id)

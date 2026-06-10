@@ -56,6 +56,6 @@ class PurchaseReceive extends BaseModel
 
     public function items(): HasMany
     {
-        return $this->hasMany(PurchaseReceiveItem::class)->orderBy('created_at');
+        return $this->hasMany(PurchaseReceiveItem::class);
     }
 }
