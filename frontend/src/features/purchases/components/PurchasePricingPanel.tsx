@@ -71,6 +71,7 @@ export function PurchasePricingPanel({
               label={t('form.discountType')}
               error={!!errors.discount_type}
               helperText={errors.discount_type?.message}
+              slotProps={{ select: { MenuProps: { disableScrollLock: true } } }}
             >
               <MenuItem value="">{t('form.noDiscount')}</MenuItem>
               {discountTypes.map((type) => (

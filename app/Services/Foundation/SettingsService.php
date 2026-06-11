@@ -8,6 +8,7 @@ use App\Models\Setting;
 use App\Models\User;
 use App\Repositories\Foundation\SettingRepository;
 use App\Support\Audit\AuditLogger;
+use App\Support\Foundation\DefaultSettings;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Throwable;
@@ -29,6 +30,8 @@ class SettingsService
         if ($cached !== null) {
             return $cached;
         }
+
+        $this->ensureDefaultSettings($businessId, $group);
 
         $setting = $this->settings->findByGroupAndKey($group, $key);
 
@@ -83,11 +86,11 @@ class SettingsService
             return $cached;
         }
 
-        $settings = $this->settings->getGroup($group);
-
-        if ($settings->isEmpty()) {
+        if (! $this->ensureDefaultSettings($businessId, $group)) {
             throw new DomainException("Setting group {$group} was not found.", 404);
         }
+
+        $settings = $this->settings->getGroup($group);
 
         $payload = [];
 
@@ -161,6 +164,35 @@ class SettingsService
         } catch (Throwable) {
             // Cache failures should not block settings writes.
         }
+    }
+
+    protected function ensureDefaultSettings(string $businessId, string $group): bool
+    {
+        $defaults = collect(DefaultSettings::definitions())
+            ->where('group', $group)
+            ->values();
+
+        if ($defaults->isEmpty()) {
+            return false;
+        }
+
+        foreach ($defaults as $default) {
+            if ($this->settings->findByGroupAndKey($group, $default['key']) !== null) {
+                continue;
+            }
+
+            $this->settings->create([
+                'business_id' => $businessId,
+                'group' => $group,
+                'key' => $default['key'],
+                'value' => $default['value'],
+                'type' => $default['type'],
+                'is_encrypted' => $default['is_encrypted'],
+            ]);
+            $this->forgetCache($businessId, $group, $default['key']);
+        }
+
+        return true;
     }
 
     protected function castValue(Setting $setting): mixed

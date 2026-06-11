@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Controller, type FieldErrors, useFieldArray, useForm } from 'react-hook-form'
+import { Controller, type FieldErrors, useFieldArray, useForm, useWatch } from 'react-hook-form'
 import {
   Alert,
   Box,
@@ -82,6 +82,10 @@ export function UnitFormDialog({
   const [serverError, setServerError] = useState('')
   const title = unit ? t('form.editTitle') : t('form.createTitle')
   const values = useMemo(() => unitToFormValues(unit), [unit])
+  const usedSubUnitIds = useMemo(
+    () => new Set((unit?.sub_units ?? []).filter((su) => su.is_used).map((su) => su.id)),
+    [unit],
+  )
 
   const {
     control,
@@ -94,6 +98,7 @@ export function UnitFormDialog({
     resolver: zodResolver(unitSchema),
     defaultValues,
   })
+  const watchedSubUnits = useWatch({ control, name: 'sub_units' })
 
   const { fields, append, remove } = useFieldArray({
     control,
@@ -284,25 +289,35 @@ export function UnitFormDialog({
                   <Controller
                     name={`sub_units.${index}.conversion_factor`}
                     control={control}
-                    render={({ field }) => (
-                      <TextField
-                        {...field}
-                        value={field.value ?? ''}
-                        label={t('fields.conversionFactor')}
-                        type="number"
-                        error={!!errors.sub_units?.[index]?.conversion_factor}
-                        helperText={errors.sub_units?.[index]?.conversion_factor?.message}
-                        required
-                        slotProps={{ htmlInput: { min: 0.0001, step: 0.0001 } }}
-                      />
-                    )}
+                    render={({ field }) => {
+                      const currentSubUnit = watchedSubUnits?.[index]
+                      const dbId = currentSubUnit?.id
+                      const isUsed = dbId ? usedSubUnitIds.has(dbId) : false
+                      return (
+                        <TextField
+                          {...field}
+                          value={field.value ?? ''}
+                          label={t('fields.conversionFactor')}
+                          type="number"
+                          error={!!errors.sub_units?.[index]?.conversion_factor}
+                          helperText={
+                            isUsed
+                              ? t('fields.conversionFactorLocked')
+                              : errors.sub_units?.[index]?.conversion_factor?.message
+                          }
+                          disabled={isUsed}
+                          required
+                          slotProps={{ htmlInput: { min: 0.0001, step: 0.0001 } }}
+                        />
+                      )
+                    }}
                   />
 
                   <Tooltip title={t('actions.removeSubUnit')}>
                     <span>
                       <IconButton
                         color="error"
-                        disabled={isSaving}
+                        disabled={isSaving || (watchedSubUnits?.[index]?.id ? usedSubUnitIds.has(watchedSubUnits[index].id) : false)}
                         onClick={() => remove(index)}
                         sx={{ mt: { xs: 0, md: 1 } }}
                       >

@@ -184,7 +184,10 @@
 - [x] Purchase Return backend now preserves branch access on list/show/store, converts sub-unit return quantities to base inventory movements, validates selected serial returns, and exposes return item product/variation details.
 - [x] Purchase Return backend now supports multiple return documents without writing unsupported purchase status values, and lot returns can use the remaining current lot quantity after prior returns; focused Purchase Return and Purchase API suites verified.
 - [x] Purchase payments now respect net payable after completed purchase returns, preventing overpayment beyond `purchase total - completed returns`; focused Purchase and Purchase Return API suites verified.
-- [ ] Purchase receipt and purchase return AP/inventory accounting lifecycle: post receipt as `DR Inventory Asset / CR Accounts Payable` and return as `DR Accounts Payable / CR Inventory Asset`; keep supplier credits/refunds as a separate future feature.
+- [x] Purchase receiving stabilized to prevent over-receiving across partial receipts, require receive records to match the purchase URL, keep lot/serial sub-unit reversals in base inventory units, and preserve focused Purchase API coverage.
+- [x] Purchase edit now preserves newly added item lines instead of deleting them during removed-line cleanup; focused Purchase API regression coverage added.
+- [x] Purchase edit now locks received item lines: frontend disables quantity/unit/cost/discount/tax/delete controls and backend rejects edits or deletion for lines with received quantity.
+- [x] Purchase receipt and purchase return AP/inventory accounting lifecycle posts receipt as `DR Inventory Asset / CR Accounts Payable` and return as `DR Accounts Payable / CR Inventory Asset`; focused Purchase and Purchase Return API suites now assert the exact journal entries.
 - [x] Purchase API focused tests verified after enabling the PHP SQLite driver.
 - [x] Full backend suite re-verified after Purchase UoM, Purchase Return, and Expense accounting hardening with `php artisan test` passing 206 tests and 895 assertions.
 
@@ -201,9 +204,15 @@
 - [x] Purchases detail page with header info, items table, summary, notes, and action buttons (receive/edit/delete) is present.
 - [x] Purchase detail summary now displays returned amount, net payable, and due amount from backend-calculated fields so payment limits after returns are visible to users; focused Purchase API test plus frontend type-check/lint/build verified.
 - [x] Purchase receive dialog with per-item quantity/lot/serial entry is present.
+- [x] Purchase receive page now validates against remaining quantity, uses remaining quantity as the input limit, and normalizes receive dates for edit mode; frontend type-check verified.
 - [x] Purchase return dialog now uses backend-provided valid lot and serial options for tracked purchase lines, with frontend validation before submit; focused Purchase/Purchase Return API tests plus frontend type-check/lint/build verified.
 - [x] Purchase payment deletion now requires an explicit reversal reason in the frontend and backend, with the reason stored on the reversed payment audit trail; focused Purchase API test, frontend type-check, and frontend lint verified.
 - [x] Purchase Returns list page header, filters, table loading, and empty state now use shared `PageHeader`/`PageToolbar`/`EntityTable` patterns with active branch/warehouse/date filter chips; frontend type-check, lint, and build verified.
+- [x] Purchase create/edit now shows clear save-blocked feedback for client validation, server validation, and backend business-rule failures, and explains why received item lines are locked.
+- [x] Purchase receive label printing added with default label settings, adjustable print-time options, Code 39 SVG barcode preview, all/single receive source selection, purchase detail print entry points, and automatic label-print routing after new receive saves.
+- [x] Label printing settings added to central default settings and settings reads now lazily create missing known defaults, preventing `label_printing` group-not-found errors for existing tenants.
+- [x] Label printing now supports an optional two-line barcode caption showing SKU plus serial or lot under the barcode, configurable in settings and during print.
+- [x] Label printing barcode layout options now support one barcode, two barcodes for SKU plus lot/serial, and combined `SKU|lot/serial` barcode values.
 - [x] Sidebar navigation (`/purchases`), breadcrumbs, and route pages (list, create, detail, edit) are registered.
 - [x] English and Khmer translations are complete with namespace registered in i18n.
 - [x] Frontend type-check, lint (0 new errors), and build verified.

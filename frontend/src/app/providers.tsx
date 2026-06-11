@@ -13,12 +13,14 @@ import i18n, { I18nProvider } from '@/i18n'
 import { createQueryClient } from '@/api/queryClient'
 
 export function Providers({ children }: { children: React.ReactNode }) {
+  const hasHydrated = useUIStore((s) => s.hasHydrated)
   const themeMode = useUIStore((s) => s.themeMode)
   const fontPreset = useUIStore((s) => s.fontPreset)
   const colorPreset = useUIStore((s) => s.colorPreset)
   const layoutSize = useUIStore((s) => s.layoutSize)
   const borderRadiusLevel = useUIStore((s) => s.borderRadiusLevel)
   const language = useUIStore((s) => s.language)
+
   const theme = useMemo(
     () => createAppTheme(themeMode, fontPreset, colorPreset, layoutSize, borderRadiusLevel),
     [borderRadiusLevel, colorPreset, fontPreset, layoutSize, themeMode]
@@ -31,6 +33,8 @@ export function Providers({ children }: { children: React.ReactNode }) {
       void i18n.changeLanguage(language)
     }
   }, [language])
+
+  if (!hasHydrated) return null
 
   return (
     <I18nProvider>

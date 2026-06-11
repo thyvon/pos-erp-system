@@ -13,6 +13,7 @@ export const purchaseItemSchema = z.object({
   _default_sub_unit_id: z.string().nullable().optional(),
   conversion_factor: z.string().nullable().optional(),
   stock_tracking: z.string().nullable().optional(),
+  received_quantity: z.coerce.number().min(0).optional().default(0),
   quantity: z.coerce.number().gt(0),
   unit_cost: z.coerce.number().min(0),
   discount_type: z.enum(['fixed', 'percentage']).nullable().optional(),
@@ -50,6 +51,7 @@ export const receivePurchaseItemSchema = z.object({
   purchase_item_id: z.string().uuid(),
   product_label: z.string(),
   sku: z.string().nullable().optional(),
+  unit_cost: z.string().nullable().optional(),
   stock_tracking: z.string().nullable().optional(),
   has_expiry: z.boolean().optional(),
   sub_unit_id: z.string().nullable().optional(),
@@ -58,7 +60,6 @@ export const receivePurchaseItemSchema = z.object({
   sub_unit_label: z.string().nullable().optional(),
   remaining_quantity: z.number(),
   item_quantity: z.number(),
-  fully_received: z.boolean().optional(),
   quantity: z.coerce.number().gte(0),
   lot_number: z.string().nullable().optional(),
   manufacture_date: z.string().nullable().optional(),
@@ -67,8 +68,8 @@ export const receivePurchaseItemSchema = z.object({
   warranty_expires: z.string().nullable().optional(),
   notes: z.string().nullable().optional(),
 }).superRefine((value, ctx) => {
-  if (value.quantity > value.item_quantity) {
-    ctx.addIssue({ code: 'custom', path: ['quantity'], message: 'Quantity exceeds original purchase quantity' })
+  if (value.quantity > value.remaining_quantity) {
+    ctx.addIssue({ code: 'custom', path: ['quantity'], message: 'Quantity exceeds remaining purchase quantity' })
   }
 
   if (value.stock_tracking === 'lot' && !value.lot_number?.trim()) {
@@ -77,8 +78,10 @@ export const receivePurchaseItemSchema = z.object({
 
   if (value.stock_tracking === 'serial') {
     const serials = (value.serial_numbers_text ?? '').split(/\r?\n|,/).map((item) => item.trim()).filter(Boolean)
-    if (serials.length !== value.quantity) {
-      ctx.addIssue({ code: 'custom', path: ['serial_numbers_text'], message: 'Enter one serial number per unit' })
+    const conversionFactor = Number(value._conversion_factor) || 1
+    const expectedCount = value.quantity * conversionFactor
+    if (serials.length !== expectedCount) {
+      ctx.addIssue({ code: 'custom', path: ['serial_numbers_text'], message: `Enter ${expectedCount} serial numbers (1 per base unit)` })
     }
   }
 })

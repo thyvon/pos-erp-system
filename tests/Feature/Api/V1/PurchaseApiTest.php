@@ -9,6 +9,7 @@ use App\Models\PaymentAccount;
 use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\PurchasePayment;
+use App\Models\PurchaseReceive;
 use App\Models\PurchaseReturn;
 use App\Models\StockLevel;
 use App\Models\StockLot;
@@ -165,6 +166,117 @@ class PurchaseApiTest extends TestCase
             ->assertJsonPath('data.items.0.quantity', '2.0000');
     }
 
+    public function test_purchase_update_keeps_newly_added_item_lines(): void
+    {
+        [$business, $admin, $branch, $warehouse, $supplier, $product] = $this->makePurchaseContext();
+        $secondProduct = Product::factory()->create(['business_id' => $business->id]);
+        $purchase = $this->makePurchase($business, $branch, $warehouse, $supplier, $product, 'PO-2026-00001', 'confirmed');
+
+        Sanctum::actingAs($admin);
+
+        $this->putJson("/api/v1/purchases/{$purchase->id}", [
+            'branch_id' => $branch->id,
+            'warehouse_id' => $warehouse->id,
+            'supplier_id' => $supplier->id,
+            'status' => 'confirmed',
+            'purchase_date' => '2026-05-28',
+            'items' => [
+                [
+                    'product_id' => $product->id,
+                    'quantity' => 1,
+                    'unit_cost' => 10,
+                ],
+                [
+                    'product_id' => $secondProduct->id,
+                    'quantity' => 2,
+                    'unit_cost' => 6,
+                ],
+            ],
+        ])->assertOk()
+            ->assertJsonCount(2, 'data.items')
+            ->assertJsonPath('data.total_amount', '22.00');
+
+        $this->assertDatabaseHas('purchase_items', [
+            'purchase_id' => $purchase->id,
+            'product_id' => $secondProduct->id,
+            'quantity' => '2.0000',
+            'unit_cost' => '6.0000',
+        ]);
+    }
+
+    public function test_received_purchase_item_line_cannot_be_edited(): void
+    {
+        [$business, $admin, $branch, $warehouse, $supplier, $product] = $this->makePurchaseContext();
+        $purchase = $this->makePurchase($business, $branch, $warehouse, $supplier, $product, 'PO-2026-00001', 'partially_received', 2);
+        $purchase->items()->update(['received_quantity' => 1]);
+
+        Sanctum::actingAs($admin);
+
+        $this->putJson("/api/v1/purchases/{$purchase->id}", [
+            'branch_id' => $branch->id,
+            'warehouse_id' => $warehouse->id,
+            'supplier_id' => $supplier->id,
+            'status' => 'confirmed',
+            'purchase_date' => '2026-05-28',
+            'items' => [
+                [
+                    'product_id' => $product->id,
+                    'quantity' => 2,
+                    'unit_cost' => 11,
+                ],
+            ],
+        ])->assertStatus(422);
+
+        $this->assertDatabaseHas('purchase_items', [
+            'purchase_id' => $purchase->id,
+            'product_id' => $product->id,
+            'quantity' => '2.0000',
+            'unit_cost' => '10.0000',
+            'received_quantity' => '1.0000',
+        ]);
+    }
+
+    public function test_received_purchase_item_line_cannot_be_deleted(): void
+    {
+        [$business, $admin, $branch, $warehouse, $supplier, $product] = $this->makePurchaseContext();
+        $secondProduct = Product::factory()->create(['business_id' => $business->id]);
+        $purchase = $this->makePurchase($business, $branch, $warehouse, $supplier, $product, 'PO-2026-00001', 'partially_received', 2);
+        $purchase->items()->update(['received_quantity' => 1]);
+        $purchase->items()->create([
+            'product_id' => $secondProduct->id,
+            'quantity' => 1,
+            'received_quantity' => 0,
+            'unit_cost' => 5,
+            'discount_amount' => 0,
+            'tax_rate' => 0,
+            'tax_amount' => 0,
+            'total_amount' => 5,
+        ]);
+
+        Sanctum::actingAs($admin);
+
+        $this->putJson("/api/v1/purchases/{$purchase->id}", [
+            'branch_id' => $branch->id,
+            'warehouse_id' => $warehouse->id,
+            'supplier_id' => $supplier->id,
+            'status' => 'confirmed',
+            'purchase_date' => '2026-05-28',
+            'items' => [
+                [
+                    'product_id' => $secondProduct->id,
+                    'quantity' => 1,
+                    'unit_cost' => 5,
+                ],
+            ],
+        ])->assertStatus(422);
+
+        $this->assertDatabaseHas('purchase_items', [
+            'purchase_id' => $purchase->id,
+            'product_id' => $product->id,
+            'received_quantity' => '1.0000',
+        ]);
+    }
+
     public function test_confirmed_purchase_can_be_received_into_stock(): void
     {
         [$business, $admin, $branch, $warehouse, $supplier, $product] = $this->makePurchaseContext();
@@ -198,10 +310,95 @@ class PurchaseApiTest extends TestCase
         $this->assertDatabaseHas('journals', [
             'business_id' => $business->id,
             'type' => 'purchase',
+            'reference_type' => PurchaseReceive::class,
             'total_amount' => '10.00',
         ]);
 
+        $receiptJournal = \App\Models\Journal::withoutGlobalScopes()
+            ->where('business_id', $business->id)
+            ->where('type', 'purchase')
+            ->where('reference_type', PurchaseReceive::class)
+            ->firstOrFail();
+        $inventoryAccount = ChartOfAccount::withoutGlobalScopes()
+            ->where('business_id', $business->id)
+            ->where('code', '1300')
+            ->firstOrFail();
+        $payableAccount = ChartOfAccount::withoutGlobalScopes()
+            ->where('business_id', $business->id)
+            ->where('code', '2100')
+            ->firstOrFail();
+
+        $this->assertDatabaseHas('journal_entries', [
+            'journal_id' => $receiptJournal->id,
+            'account_id' => $inventoryAccount->id,
+            'type' => 'debit',
+            'amount' => '10.00',
+        ]);
+        $this->assertDatabaseHas('journal_entries', [
+            'journal_id' => $receiptJournal->id,
+            'account_id' => $payableAccount->id,
+            'type' => 'credit',
+            'amount' => '10.00',
+        ]);
+
         $this->assertSame('1.0000', StockLevel::query()->firstOrFail()->quantity);
+    }
+
+    public function test_purchase_receive_cannot_exceed_remaining_quantity(): void
+    {
+        [$business, $admin, $branch, $warehouse, $supplier, $product] = $this->makePurchaseContext();
+        $purchase = $this->makePurchase($business, $branch, $warehouse, $supplier, $product, 'PO-2026-00001', 'confirmed', 2);
+        $item = $purchase->items()->firstOrFail();
+
+        Sanctum::actingAs($admin);
+
+        $this->postJson("/api/v1/purchases/{$purchase->id}/receive", [
+            'items' => [
+                [
+                    'purchase_item_id' => $item->id,
+                    'quantity' => 1,
+                ],
+            ],
+        ])->assertOk()
+            ->assertJsonPath('data.status', 'partially_received');
+
+        $this->postJson("/api/v1/purchases/{$purchase->id}/receive", [
+            'items' => [
+                [
+                    'purchase_item_id' => $item->id,
+                    'quantity' => 2,
+                ],
+            ],
+        ])->assertStatus(422);
+
+        $this->assertSame('1.0000', $item->fresh()->received_quantity);
+        $this->assertSame('1.0000', StockLevel::query()->firstOrFail()->quantity);
+    }
+
+    public function test_purchase_receive_management_requires_matching_purchase(): void
+    {
+        [$business, $admin, $branch, $warehouse, $supplier, $product] = $this->makePurchaseContext();
+        $firstPurchase = $this->makePurchase($business, $branch, $warehouse, $supplier, $product, 'PO-2026-00001', 'confirmed');
+        $secondPurchase = $this->makePurchase($business, $branch, $warehouse, $supplier, $product, 'PO-2026-00002', 'confirmed');
+        $item = $firstPurchase->items()->firstOrFail();
+
+        Sanctum::actingAs($admin);
+
+        $this->postJson("/api/v1/purchases/{$firstPurchase->id}/receive", [
+            'items' => [
+                [
+                    'purchase_item_id' => $item->id,
+                    'quantity' => 1,
+                ],
+            ],
+        ])->assertOk();
+
+        $receive = PurchaseReceive::withoutGlobalScopes()
+            ->where('purchase_id', $firstPurchase->id)
+            ->firstOrFail();
+
+        $this->getJson("/api/v1/purchases/{$secondPurchase->id}/receives/{$receive->id}")
+            ->assertNotFound();
     }
 
     public function test_confirmed_purchase_receives_sub_unit_as_base_stock_quantity(): void

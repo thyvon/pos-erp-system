@@ -4,6 +4,7 @@ export type SettingsGroupKey =
   | 'business_profile'
   | 'general'
   | 'invoice'
+  | 'label_printing'
   | 'pos'
   | 'stock'
   | 'sales'

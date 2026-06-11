@@ -5,6 +5,7 @@ export interface SubUnit {
   name: string
   short_name: string
   conversion_factor: string
+  is_used: boolean
   created_at: string
   updated_at: string
 }

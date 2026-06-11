@@ -14,12 +14,6 @@ import {
   CircularProgress,
   IconButton,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TableRow,
   TextField,
   Tooltip,
   Typography,
@@ -27,16 +21,18 @@ import {
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
-import PageHeader from '@/components/common/PageHeader'
+import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import PageLoader from '@/components/ui/PageLoader'
 import { ArrowBack } from '@/components/ui/icons'
 import { useSnackbar } from 'notistack'
 import { receivePurchaseSchema, type ReceivePurchaseFormInput, type ReceivePurchaseFormValues } from './schema'
-import { UnitConversionBadge } from '@/features/sales/components/UnitConversionBadge'
+import { PurchaseReceiveItemsTable } from './components/PurchaseReceiveItemsTable'
 import { useAppDateFormat } from '@/features/settings/useAppDateFormat'
-import { usePurchaseQuery, usePurchaseReceiveQuery, useReceivePurchaseMutation, useUpdatePurchaseReceiveMutation } from './hooks'
+import { usePurchaseQuery, usePurchaseReceiveQuery, useReceivePurchaseMutation, useUpdatePurchaseReceiveMutation, useDeletePurchaseReceiveItemMutation } from './hooks'
 import { formatAppDate, formatAppDateTime } from '@/utils/dateFormat'
+import { PurchaseReceiveItemDialog } from './components/PurchaseReceiveItemDialog'
 import type { PurchaseReceive, ReceivePurchasePayload, UpdatePurchaseReceivePayload } from '@/types/purchase'
+import { useCurrencyFormatter } from '@/features/settings/useAppCurrency'
 
 interface PurchaseReceivePageProps {
   purchaseId: string
@@ -48,6 +44,10 @@ const today = () => new Date().toISOString().slice(0, 10)
 function toNumber(value: string | number | null | undefined) {
   const numeric = Number(value ?? 0)
   return Number.isFinite(numeric) ? numeric : 0
+}
+
+function toDateInput(value: string | null | undefined) {
+  return value ? value.slice(0, 10) : null
 }
 
 function itemLabel(item: NonNullable<ReturnType<typeof usePurchaseQuery>['data']>['items'][number]) {
@@ -64,7 +64,7 @@ function buildDefaults(
 ): ReceivePurchaseFormInput {
   if (receiveRecord) {
     return {
-      received_at: receiveRecord.received_at ?? today(),
+      received_at: toDateInput(receiveRecord.received_at) ?? today(),
       notes: receiveRecord.notes ?? '',
       items: (receiveRecord.items ?? []).map((item) => {
         const purchaseItem = purchase?.items?.find((pi) => pi.id === item.purchase_item_id)
@@ -74,6 +74,7 @@ function buildDefaults(
           purchase_item_id: item.purchase_item_id,
           product_label: purchaseItem ? itemLabel(purchaseItem) : item.purchase_item_id,
           sku: purchaseItem ? itemSku(purchaseItem) : null,
+          unit_cost: purchaseItem?.unit_cost ?? null,
           stock_tracking: purchaseItem?.product?.stock_tracking ?? 'none',
           has_expiry: purchaseItem?.product?.has_expiry ?? false,
           sub_unit_id: purchaseItem?.sub_unit_id ?? null,
@@ -82,13 +83,12 @@ function buildDefaults(
           sub_unit_label: purchaseItem?.sub_unit?.short_name ?? null,
           remaining_quantity: itemQuantity - toNumber(purchaseItem?.received_quantity ?? 0) + item.quantity,
           item_quantity: itemQuantity,
-          fully_received: false,
           quantity: item.quantity,
           lot_number: item.lot_number ?? '',
-          manufacture_date: item.manufacture_date ?? null,
-          expiry_date: item.expiry_date ?? null,
+          manufacture_date: toDateInput(item.manufacture_date),
+          expiry_date: toDateInput(item.expiry_date),
           serial_numbers_text: (item.serial_numbers ?? []).join('\n'),
-          warranty_expires: item.warranty_expires ?? null,
+          warranty_expires: toDateInput(item.warranty_expires),
           notes: item.notes ?? '',
         }
       }),
@@ -99,6 +99,11 @@ function buildDefaults(
     received_at: today(),
     notes: '',
     items: (purchase?.items ?? [])
+      .filter((item) => {
+        const itemQuantity = toNumber(item.quantity)
+        const receivedQuantity = toNumber(item.received_quantity)
+        return itemQuantity > receivedQuantity
+      })
       .map((item) => {
         const itemQuantity = toNumber(item.quantity)
         const receivedQuantity = toNumber(item.received_quantity)
@@ -107,6 +112,7 @@ function buildDefaults(
           purchase_item_id: item.id,
           product_label: itemLabel(item),
           sku: itemSku(item),
+          unit_cost: item.unit_cost ?? null,
           stock_tracking: item.product?.stock_tracking ?? 'none',
           has_expiry: item.product?.has_expiry ?? false,
           sub_unit_id: item.sub_unit_id ?? null,
@@ -115,7 +121,6 @@ function buildDefaults(
           sub_unit_label: item.sub_unit?.short_name ?? null,
           remaining_quantity: remainingQuantity,
           item_quantity: itemQuantity,
-          fully_received: remainingQuantity === 0,
           quantity: remainingQuantity,
           lot_number: '',
           manufacture_date: null,
@@ -164,7 +169,11 @@ export function PurchaseReceivePage({ purchaseId, receiveId }: PurchaseReceivePa
   const router = useRouter()
   const { enqueueSnackbar } = useSnackbar()
   const [serverError, setServerError] = useState('')
+  const [detailItemIndex, setDetailItemIndex] = useState<number | null>(null)
+  const [selectedItemIds, setSelectedItemIds] = useState<Set<string>>(new Set())
+  const [deleteTarget, setDeleteTarget] = useState<{ itemId: string; label: string; index?: number } | null>(null)
   const dateFormat = useAppDateFormat()
+  const currencyFormatter = useCurrencyFormatter()
   const isEditing = !!receiveId
 
   const purchaseQuery = usePurchaseQuery(purchaseId)
@@ -172,6 +181,7 @@ export function PurchaseReceivePage({ purchaseId, receiveId }: PurchaseReceivePa
   const receivePurchase = useReceivePurchaseMutation()
   const updateReceive = useUpdatePurchaseReceiveMutation()
   const isSaving = receivePurchase.isPending || updateReceive.isPending
+  const deleteItemMutation = useDeletePurchaseReceiveItemMutation()
   const purchase = purchaseQuery.data
   const receiveRecord = receiveQuery.data
 
@@ -187,7 +197,7 @@ export function PurchaseReceivePage({ purchaseId, receiveId }: PurchaseReceivePa
     resolver: zodResolver(receivePurchaseSchema),
     values: defaultValues,
   })
-  const { fields } = useFieldArray({ control, name: 'items', keyName: 'fieldId' })
+  const { fields, remove } = useFieldArray({ control, name: 'items', keyName: 'fieldId' })
 
   const submit = handleSubmit(async (formValues) => {
     setServerError('')
@@ -195,11 +205,14 @@ export function PurchaseReceivePage({ purchaseId, receiveId }: PurchaseReceivePa
       if (isEditing && receiveId) {
         await updateReceive.mutateAsync({ purchaseId, receiveId, payload: buildUpdatePayload(formValues) })
         enqueueSnackbar(t('receive.receiveUpdated'), { variant: 'success' })
+        router.push(`/purchases/${purchaseId}`)
       } else {
-        await receivePurchase.mutateAsync({ id: purchaseId, payload: buildCreatePayload(formValues) })
+        const updatedPurchase = await receivePurchase.mutateAsync({ id: purchaseId, payload: buildCreatePayload(formValues) })
         enqueueSnackbar(t('messages.received'), { variant: 'success' })
+        const latestReceive = [...(updatedPurchase.receives ?? [])]
+          .sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0]
+        router.push(`/purchases/${purchaseId}/labels${latestReceive ? `?receiveId=${latestReceive.id}` : ''}`)
       }
-      router.push(`/purchases/${purchaseId}`)
     } catch (error) {
       const apiError = toAppApiError(error)
       setServerError(apiError.message)
@@ -213,13 +226,14 @@ export function PurchaseReceivePage({ purchaseId, receiveId }: PurchaseReceivePa
   if (purchaseQuery.isError) {
     return (
       <Stack spacing={3}>
-        <PageHeader title={t('receive.title')} actions={
-          <Tooltip title={t('common:buttons.back')}>
+        <Stack direction="row" spacing={2} sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="h4">{t('receive.title')}</Typography>
+          <Tooltip title="Back">
             <IconButton size="small" onClick={() => router.push(`/purchases/${purchaseId}`)}>
               <ArrowBack />
             </IconButton>
           </Tooltip>
-        } />
+        </Stack>
         <Alert severity="error">{toAppApiError(purchaseQuery.error).message}</Alert>
       </Stack>
     )
@@ -228,46 +242,56 @@ export function PurchaseReceivePage({ purchaseId, receiveId }: PurchaseReceivePa
   if (isEditing && receiveQuery.isError) {
     return (
       <Stack spacing={3}>
-        <PageHeader title={t('receive.title')} actions={
-          <Tooltip title={t('common:buttons.back')}>
+        <Stack direction="row" spacing={2} sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+          <Typography variant="h4">{t('receive.title')}</Typography>
+          <Tooltip title="Back">
             <IconButton size="small" onClick={() => router.push(`/purchases/${purchaseId}`)}>
               <ArrowBack />
             </IconButton>
           </Tooltip>
-        } />
+        </Stack>
         <Alert severity="error">{toAppApiError(receiveQuery.error).message}</Alert>
       </Stack>
     )
   }
 
   const columnSx = {
-    item: { width: 180, minWidth: 180 },
+    checkbox: { width: 48, minWidth: 48 },
+    item: { width: 280, minWidth: 280 },
     unit: { width: 70, minWidth: 70 },
+    unitCost: { width: 100, minWidth: 100 },
     originalQty: { width: 80, minWidth: 80 },
     receivedQty: { width: 100, minWidth: 100 },
     qty: { width: 110, minWidth: 110 },
-    lot: { width: 200, minWidth: 200 },
+    lot: { width: 170, minWidth: 170 },
     serials: { width: 160, minWidth: 160 },
-    notes: { width: 130, minWidth: 130 },
+    details: { width: 60, minWidth: 60 },
   }
 
   return (
     <Stack spacing={3}>
-      <PageHeader
-        title={isEditing ? t('common:buttons.edit') : t('receive.title')}
-        description={purchase?.purchase_number ? `${isEditing ? t('common:buttons.edit') : t('receive.title')} - ${purchase.purchase_number}` : undefined}
-        actions={
-          <Tooltip title={t('common:buttons.back')}>
-            <IconButton size="small" onClick={() => router.push(`/purchases/${purchaseId}`)}>
-              <ArrowBack />
-            </IconButton>
-          </Tooltip>
-        }
-      />
+      <Stack direction="row" spacing={2} sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
+        <Stack spacing={0.5}>
+          <Typography variant="h4">
+            {isEditing ? t('common:buttons.edit') : t('receive.title')}
+          </Typography>
+          {purchase?.purchase_number && (
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+              {purchase.purchase_number}
+            </Typography>
+          )}
+        </Stack>
+        <Tooltip title={t('common:buttons.back')}>
+          <IconButton size="small" onClick={() => router.push(`/purchases/${purchaseId}`)}>
+            <ArrowBack />
+          </IconButton>
+        </Tooltip>
+      </Stack>
 
       <Card variant="outlined">
-        <CardContent sx={{ p: { xs: 2, md: 3 }, '&:last-child': { pb: { xs: 2, md: 3 } } }}>
-          <Stack spacing={2}>
+        <CardContent>
+          <Stack spacing={2.5}>
+            <Typography variant="subtitle2">{t('detail.title')}</Typography>
             <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
               <Typography variant="h5">{purchase?.purchase_number}</Typography>
               {purchase?.status && <Chip size="small" label={t(`statuses.${purchase.status}`)} variant="outlined" />}
@@ -319,205 +343,50 @@ export function PurchaseReceivePage({ purchaseId, receiveId }: PurchaseReceivePa
 
           <Card variant="outlined">
             <CardContent>
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '220px 1fr' }, gap: 2 }}>
-                <Controller
-                  name="received_at"
-                  control={control}
-                  render={({ field }) => (
-                    <AppDatePicker
-                      label={t('receive.receiveDate')}
-                      value={field.value || ''}
-                      onChange={field.onChange}
-                      error={!!errors.received_at}
-                      helperText={errors.received_at?.message}
-                    />
-                  )}
-                />
-                <Controller
-                  name="notes"
-                  control={control}
-                  render={({ field }) => (
-                    <TextField {...field} value={field.value ?? ''} label={t('receive.notes')} error={!!errors.notes} helperText={errors.notes?.message} />
-                  )}
-                />
-              </Box>
+              <Stack spacing={2.5}>
+                <Typography variant="subtitle2">{t('receive.receiveDetails')}</Typography>
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '220px 1fr' }, gap: 2 }}>
+                  <Controller
+                    name="received_at"
+                    control={control}
+                    render={({ field }) => (
+                      <AppDatePicker
+                        label={t('receive.receiveDate')}
+                        value={field.value || ''}
+                        onChange={field.onChange}
+                        error={!!errors.received_at}
+                        helperText={errors.received_at?.message}
+                      />
+                    )}
+                  />
+                  <Controller
+                    name="notes"
+                    control={control}
+                    render={({ field }) => (
+                      <TextField {...field} value={field.value ?? ''} label={t('receive.notes')} error={!!errors.notes} helperText={errors.notes?.message} />
+                    )}
+                  />
+                </Box>
+              </Stack>
             </CardContent>
           </Card>
 
           <Card variant="outlined">
-            <CardContent sx={{ p: '0 !important' }}>
-              <TableContainer sx={{ overflowX: 'auto' }}>
-                <Table size="small" sx={{ minWidth: 1200, tableLayout: 'fixed' }}>
-                  <TableHead>
-                    <TableRow>
-                      <TableCell sx={columnSx.item}>{t('receive.item')}</TableCell>
-                      <TableCell sx={columnSx.unit}>{t('form.subUnit')}</TableCell>
-                      <TableCell sx={columnSx.originalQty} align="center">{t('receive.originalQty')}</TableCell>
-                      <TableCell sx={columnSx.receivedQty} align="center">{t('receive.receivedQty')}</TableCell>
-                      <TableCell sx={columnSx.qty}>{t('receive.receiveQty')}</TableCell>
-                      <TableCell sx={columnSx.lot}>{t('receive.lot')}</TableCell>
-                      <TableCell sx={columnSx.serials}>{t('receive.serials')}</TableCell>
-                      <TableCell sx={columnSx.notes}>{t('receive.notes')}</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {fields.map((field, index) => (
-                      <TableRow key={field.fieldId}>
-                        <TableCell sx={columnSx.item}>
-                          <Stack spacing={0.25}>
-                            <Typography variant="body2" sx={{ fontWeight: 600 }}>{field.product_label}</Typography>
-                            <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
-                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                {field.sku || '-'}
-                              </Typography>
-                              {field.sub_unit_id && field._conversion_factor ? (
-                                <UnitConversionBadge
-                                  conversionFactor={field._conversion_factor}
-                                  baseUnitLabel={field._base_unit_label ?? ''}
-                                  subUnitLabel={field.sub_unit_label ?? ''}
-                                  quantity={Number(field.quantity)}
-                                />
-                              ) : field._base_unit_label ? (
-                                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                  · {field._base_unit_label}
-                                </Typography>
-                              ) : null}
-                            </Stack>
-                            {field.stock_tracking && field.stock_tracking !== 'none' && (
-                              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                {field.stock_tracking}
-                              </Typography>
-                            )}
-                          </Stack>
-                        </TableCell>
-                        <TableCell sx={columnSx.unit}>
-                          {field.sub_unit_id ? (field.sub_unit_label ?? '-') : (field._base_unit_label ?? '-')}
-                        </TableCell>
-                        <TableCell sx={columnSx.originalQty} align="center">
-                          <Typography variant="body2">{field.item_quantity}</Typography>
-                        </TableCell>
-                        <TableCell sx={columnSx.receivedQty} align="center">
-                          <Typography variant="body2">{field.item_quantity - field.remaining_quantity}</Typography>
-                        </TableCell>
-                        <TableCell sx={columnSx.qty}>
-                            <Controller
-                              name={`items.${index}.quantity`}
-                              control={control}
-                              render={({ field: f }) => (
-                                <TextField
-                                  {...f}
-                                  type="number"
-                                  error={!!errors.items?.[index]?.quantity}
-                                  helperText={errors.items?.[index]?.quantity?.message}
-                                  slotProps={{ htmlInput: { min: 0, max: field.item_quantity, step: 0.0001 } }}
-                                />
-                              )}
-                            />
-                        </TableCell>
-                        <TableCell sx={columnSx.lot}>
-                          {field.stock_tracking === 'lot' || field.has_expiry ? (
-                            <Stack spacing={1}>
-                              {field.stock_tracking === 'lot' && (
-                                <Controller
-                                  name={`items.${index}.lot_number`}
-                                  control={control}
-                                  render={({ field: f }) => (
-                                    <TextField
-                                      {...f}
-                                      value={f.value ?? ''}
-                                      label={t('receive.lot')}
-                                      error={!!errors.items?.[index]?.lot_number}
-                                      helperText={errors.items?.[index]?.lot_number?.message}
-                                    />
-                                  )}
-                                />
-                              )}
-                              <Controller
-                                name={`items.${index}.manufacture_date`}
-                                control={control}
-                                render={({ field: f }) => (
-                                  <AppDatePicker
-                                    label={t('receive.manufactureDate')}
-                                    value={f.value ?? ''}
-                                    onChange={f.onChange}
-                                  />
-                                )}
-                              />
-                              <Controller
-                                name={`items.${index}.expiry_date`}
-                                control={control}
-                                render={({ field: f }) => (
-                                  <AppDatePicker
-                                    label={t('receive.expiryDate')}
-                                    value={f.value ?? ''}
-                                    onChange={f.onChange}
-                                  />
-                                )}
-                              />
-                              {field.stock_tracking === 'lot' && (
-                                <Controller
-                                  name={`items.${index}.warranty_expires`}
-                                  control={control}
-                                  render={({ field: f }) => (
-                                  <AppDatePicker
-                                    label={t('receive.warrantyExpires')}
-                                    value={f.value ?? ''}
-                                    onChange={f.onChange}
-                                  />
-                                  )}
-                                />
-                              )}
-                            </Stack>
-                          ) : (
-                            <Typography variant="body2" sx={{ color: 'text.disabled' }}>—</Typography>
-                          )}
-                        </TableCell>
-                        <TableCell sx={columnSx.serials}>
-                          {field.stock_tracking === 'serial' ? (
-                            <Controller
-                              name={`items.${index}.serial_numbers_text`}
-                              control={control}
-                              render={({ field: f }) => (
-                                <TextField
-                                  {...f}
-                                  value={f.value ?? ''}
-                                  multiline
-                                  minRows={1}
-                                  maxRows={3}
-                                  placeholder={t('receive.serialsPlaceholder')}
-                                  error={!!errors.items?.[index]?.serial_numbers_text}
-                                  helperText={errors.items?.[index]?.serial_numbers_text?.message}
-                                  onPaste={(event: React.ClipboardEvent) => {
-                                    const pasted = event.clipboardData.getData('text')
-                                    const split = pasted.split(/[\r\n,;\t]+|  +/).map((s) => s.trim()).filter(Boolean)
-                                    if (split.length > 1) {
-                                      event.preventDefault()
-                                      const existing = (f.value ?? '').trim()
-                                      const merged = existing ? existing + '\n' + split.join('\n') : split.join('\n')
-                                      f.onChange(merged)
-                                    }
-                                  }}
-                                />
-                              )}
-                            />
-                          ) : (
-                            <Typography variant="body2" sx={{ color: 'text.disabled' }}>—</Typography>
-                          )}
-                        </TableCell>
-                        <TableCell sx={columnSx.notes}>
-                          <Controller
-                            name={`items.${index}.notes`}
-                            control={control}
-                            render={({ field: f }) => (
-                          <TextField {...f} value={f.value ?? ''}  />
-                        )}
-                      />
-                    </TableCell>
-                  </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+            <CardContent>
+              <Stack spacing={2.5}>
+                <PurchaseReceiveItemsTable
+                  fields={fields}
+                  control={control}
+                  errors={errors}
+                  selectedItemIds={selectedItemIds}
+                  onSelectedItemIdsChange={setSelectedItemIds}
+                  onDetailItem={setDetailItemIndex}
+                  onDeleteTarget={setDeleteTarget}
+                  t={t}
+                  columnSx={columnSx}
+                  currencyFormatter={currencyFormatter}
+                />
+              </Stack>
             </CardContent>
           </Card>
 
@@ -532,6 +401,70 @@ export function PurchaseReceivePage({ purchaseId, receiveId }: PurchaseReceivePa
           </Box>
         </Stack>
       </Box>
+
+      {detailItemIndex !== null && (
+        <PurchaseReceiveItemDialog
+          open={detailItemIndex !== null}
+          index={detailItemIndex}
+          productLabel={fields[detailItemIndex]?.product_label ?? ''}
+          sku={fields[detailItemIndex]?.sku}
+          stockTracking={fields[detailItemIndex]?.stock_tracking}
+          hasExpiry={fields[detailItemIndex]?.has_expiry}
+          control={control}
+          errors={errors}
+          onClose={() => setDetailItemIndex(null)}
+        />
+      )}
+
+      <ConfirmDialog
+        open={deleteTarget !== null}
+        title={deleteTarget?.itemId === '__bulk__' ? t('receive.deleteBulkTitle') : t('receive.deleteItemTitle')}
+        message={
+          deleteTarget?.itemId === '__bulk__'
+            ? t('receive.deleteBulkConfirm', { count: selectedItemIds.size })
+            : t('receive.deleteItemConfirm', { label: deleteTarget?.label ?? '' })
+        }
+        confirmText={t('common:buttons.delete')}
+        cancelText={t('common:buttons.cancel')}
+        loading={deleteItemMutation.isPending}
+        confirmColor="error"
+        onClose={() => setDeleteTarget(null)}
+        onConfirm={async () => {
+          if (!deleteTarget) return
+
+          try {
+            if (isEditing && receiveId) {
+              const ids = deleteTarget.itemId === '__bulk__'
+                ? fields.filter((f) => selectedItemIds.has(String(f.fieldId))).map((f) => f.id).filter(Boolean) as string[]
+                : [fields.find((f) => String(f.fieldId) === deleteTarget.itemId)?.id].filter(Boolean) as string[]
+
+              if (ids.length === 0) return
+
+              for (const itemId of ids) {
+                await deleteItemMutation.mutateAsync({ purchaseId, receiveId, itemId })
+              }
+
+              enqueueSnackbar(t('receive.itemDeleted'), { variant: 'success' })
+            } else {
+              if (deleteTarget.itemId === '__bulk__') {
+                const indices = fields
+                  .map((f, i) => (selectedItemIds.has(String(f.fieldId)) ? i : -1))
+                  .filter((i) => i >= 0)
+                  .sort((a, b) => b - a)
+                indices.forEach((i) => remove(i))
+              } else if (deleteTarget.index !== undefined) {
+                remove(deleteTarget.index)
+              }
+            }
+
+            setSelectedItemIds(new Set())
+          } catch (error) {
+            enqueueSnackbar(toAppApiError(error).message, { variant: 'error' })
+          } finally {
+            setDeleteTarget(null)
+          }
+        }}
+      />
     </Stack>
   )
 }

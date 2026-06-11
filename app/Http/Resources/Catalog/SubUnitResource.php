@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Catalog;
 
+use App\Models\SubUnit;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -16,6 +17,7 @@ class SubUnitResource extends JsonResource
             'name' => $this->name,
             'short_name' => $this->short_name,
             'conversion_factor' => (string) $this->conversion_factor,
+            'is_used' => SubUnit::isUsedInTransactions($this->id),
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];

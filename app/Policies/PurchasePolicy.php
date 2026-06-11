@@ -34,7 +34,8 @@ class PurchasePolicy
         return $user->can('purchases.edit')
             && $this->belongsToSameBusiness($user, $purchase)
             && $user->hasBranchAccess($purchase->branch_id)
-            && $this->isWithinEditWindow($purchase);
+            && $this->isWithinEditWindow($purchase)
+            && in_array($purchase->status, ['draft', 'confirmed', 'partially_received'], true);
     }
 
     protected function isWithinEditWindow(Purchase $purchase): bool

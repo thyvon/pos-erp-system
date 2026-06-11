@@ -132,6 +132,16 @@ class UnitService
                     throw new DomainException('Selected sub unit is invalid for this unit.', 422);
                 }
 
+                $newFactor = (float) ($subUnitData['conversion_factor'] ?? $subUnit->conversion_factor);
+                $oldFactor = (float) $subUnit->conversion_factor;
+
+                if (abs($newFactor - $oldFactor) > 0.0001 && SubUnit::isUsedInTransactions($subUnitId)) {
+                    throw new DomainException(
+                        'Conversion factor for "' . $subUnit->name . '" cannot be changed because it has already been used in purchase or sale transactions.',
+                        422
+                    );
+                }
+
                 $subUnit->fill($this->normalizeSubUnitPayload($businessId, $unit, $subUnitData, $subUnit));
                 $subUnit->save();
                 $seenIds[] = $subUnit->id;
@@ -223,6 +233,24 @@ class UnitService
         ) {
             throw new DomainException('Unit cannot be deleted because one of its sub units is still assigned to product variations.', 422);
         }
+
+        if (
+            ! empty($subUnitIds)
+            && Schema::hasTable('purchase_items')
+            && Schema::hasColumn('purchase_items', 'sub_unit_id')
+            && DB::table('purchase_items')->whereIn('sub_unit_id', $subUnitIds)->exists()
+        ) {
+            throw new DomainException('Unit cannot be deleted because one of its sub units has already been used in purchase transactions.', 422);
+        }
+
+        if (
+            ! empty($subUnitIds)
+            && Schema::hasTable('sale_items')
+            && Schema::hasColumn('sale_items', 'sub_unit_id')
+            && DB::table('sale_items')->whereIn('sub_unit_id', $subUnitIds)->exists()
+        ) {
+            throw new DomainException('Unit cannot be deleted because one of its sub units has already been used in sale transactions.', 422);
+        }
     }
 
     protected function ensureSubUnitsCanBeDeleted(array $subUnitIds): void
@@ -243,6 +271,24 @@ class UnitService
             && DB::table('product_variations')->whereIn('sub_unit_id', $subUnitIds)->exists()
         ) {
             throw new DomainException('A sub unit cannot be removed because it is still assigned to product variations.', 422);
+        }
+
+        if (
+            ! empty($subUnitIds)
+            && Schema::hasTable('purchase_items')
+            && Schema::hasColumn('purchase_items', 'sub_unit_id')
+            && DB::table('purchase_items')->whereIn('sub_unit_id', $subUnitIds)->exists()
+        ) {
+            throw new DomainException('A sub unit cannot be removed because it has already been used in purchase transactions.', 422);
+        }
+
+        if (
+            ! empty($subUnitIds)
+            && Schema::hasTable('sale_items')
+            && Schema::hasColumn('sale_items', 'sub_unit_id')
+            && DB::table('sale_items')->whereIn('sub_unit_id', $subUnitIds)->exists()
+        ) {
+            throw new DomainException('A sub unit cannot be removed because it has already been used in sale transactions.', 422);
         }
     }
 

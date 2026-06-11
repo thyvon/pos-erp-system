@@ -12,8 +12,6 @@ class PurchaseReceiveItem extends Model
     use HasFactory;
     use HasUuid;
 
-    public $timestamps = false;
-
     protected $fillable = [
         'purchase_receive_id',
         'purchase_item_id',

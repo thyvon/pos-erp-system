@@ -62,6 +62,72 @@ export const SETTINGS_GROUPS: SettingsGroupDefinition[] = [
     ],
   },
   {
+    key: 'label_printing',
+    fields: [
+      {
+        key: 'default_template',
+        type: 'select',
+        options: [
+          { value: 'product', label: 'Product label' },
+          { value: 'lot', label: 'Lot / expiry label' },
+          { value: 'serial', label: 'Serial label' },
+          { value: 'price_tag', label: 'Price tag' },
+        ],
+      },
+      {
+        key: 'paper_size',
+        type: 'select',
+        options: [
+          { value: 'a4', label: 'A4 sheet' },
+          { value: 'roll', label: 'Label roll' },
+          { value: 'custom', label: 'Custom' },
+        ],
+      },
+      { key: 'label_width_mm', type: 'number' },
+      { key: 'label_height_mm', type: 'number' },
+      { key: 'columns', type: 'number' },
+      { key: 'gap_mm', type: 'number' },
+      { key: 'margin_mm', type: 'number' },
+      {
+        key: 'quantity_mode',
+        type: 'select',
+        options: [
+          { value: 'received_quantity', label: 'Received quantity' },
+          { value: 'one_each_line', label: 'One per line' },
+          { value: 'one_each_serial', label: 'One per serial' },
+          { value: 'fixed', label: 'Fixed quantity' },
+        ],
+      },
+      {
+        key: 'barcode_type',
+        type: 'select',
+        options: [
+          { value: 'code39', label: 'Code 39 barcode' },
+          { value: 'none', label: 'No barcode' },
+        ],
+      },
+      {
+        key: 'barcode_layout',
+        type: 'select',
+        options: [
+          { value: 'single', label: 'One barcode' },
+          { value: 'two_barcodes', label: 'Two barcodes: SKU + lot/serial' },
+          { value: 'combined', label: 'Combined: SKU|lot/serial' },
+        ],
+      },
+      { key: 'show_business_name', type: 'boolean' },
+      { key: 'show_product_name', type: 'boolean' },
+      { key: 'show_sku', type: 'boolean' },
+      { key: 'show_price', type: 'boolean' },
+      { key: 'show_lot', type: 'boolean' },
+      { key: 'show_expiry', type: 'boolean' },
+      { key: 'show_barcode_text_lines', type: 'boolean' },
+      { key: 'show_received_date', type: 'boolean' },
+      { key: 'show_purchase_number', type: 'boolean' },
+      { key: 'show_warehouse', type: 'boolean' },
+    ],
+  },
+  {
     key: 'pos',
     fields: [
       { key: 'default_warehouse_id', type: 'text' },

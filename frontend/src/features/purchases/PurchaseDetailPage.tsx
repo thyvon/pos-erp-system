@@ -22,7 +22,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
-import { ArrowBack, CompareArrowsOutlined, DeleteOutlined, EditOutlined, Inventory2Outlined, LocalShippingOutlined, PaymentsOutlined } from '@/components/ui/icons'
+import { ArrowBack, CompareArrowsOutlined, DeleteOutlined, EditOutlined, Inventory2Outlined, LocalOfferOutlined, LocalShippingOutlined, PaymentsOutlined } from '@/components/ui/icons'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
@@ -142,7 +142,7 @@ export function PurchaseDetailPage({ purchaseId }: PurchaseDetailPageProps) {
   const purchase = purchaseQuery.data
   const paymentAccounts = paymentAccountsQuery.data?.data ?? []
 
-  const canEdit = can('purchases.edit') && purchase
+  const canEdit = can('purchases.edit') && purchase && ['draft', 'confirmed', 'partially_received'].includes(purchase.status)
   const canDelete = can('purchases.delete') && purchase && ['draft', 'confirmed', 'cancelled'].includes(purchase.status)
   const canReceive = can('purchases.receive') && purchase && ['confirmed', 'partially_received'].includes(purchase.status)
   const canManageReceives = can('purchases.receive') && purchase && ['confirmed', 'partially_received', 'received'].includes(purchase.status)
@@ -267,6 +267,16 @@ export function PurchaseDetailPage({ purchaseId }: PurchaseDetailPageProps) {
               {t('detail.receive')}
             </Button>
           )}
+          {receives.length > 0 && (
+            <Button
+              component={NextLink}
+              href={`/purchases/${purchaseId}/labels`}
+              variant="outlined"
+              startIcon={<LocalOfferOutlined />}
+            >
+              {t('labelPrinting.printLabels')}
+            </Button>
+          )}
           {canReturn && (
             <Button
               variant="contained"
@@ -334,12 +344,7 @@ export function PurchaseDetailPage({ purchaseId }: PurchaseDetailPageProps) {
               <Stack spacing={1}>
                 <InvoiceHeaderLine label={t('detail.createdAt')} value={formatAppDateTime(purchase.created_at, dateFormat, i18n.language)} />
                 <InvoiceHeaderLine label={t('detail.createdBy')} value={purchase.creator?.name ?? '-'} />
-                {purchase.received_at && (
-                  <InvoiceHeaderLine label={t('detail.received')} value={formatAppDateTime(purchase.received_at, dateFormat, i18n.language)} />
-                )}
-                {purchase.receiver && (
-                  <InvoiceHeaderLine label={t('detail.receivedBy')} value={purchase.receiver?.name ?? '-'} />
-                )}
+
               </Stack>
             </Box>
 
@@ -531,23 +536,28 @@ export function PurchaseDetailPage({ purchaseId }: PurchaseDetailPageProps) {
                   <TableHead>
                     <TableRow>
                       <TableCell sx={{ width: 160 }}>{t('receive.receiveNumber')}</TableCell>
-                      <TableCell sx={{ width: 140 }}>{t('receive.receiveDate')}</TableCell>
+                      <TableCell sx={{ width: 160 }}>{t('receive.receivedAt')}</TableCell>
                       <TableCell sx={{ width: 100 }} align="center">{t('receive.item')}</TableCell>
                       <TableCell sx={{ width: 200 }}>{t('receive.notes')}</TableCell>
-                      <TableCell sx={{ width: 140 }}>{t('detail.createdBy')}</TableCell>
-                      <TableCell sx={{ width: 100 }} align="center">{t('detail.actions')}</TableCell>
+                      <TableCell sx={{ width: 140 }}>{t('detail.receivedBy')}</TableCell>
+                      <TableCell sx={{ width: 132 }} align="center">{t('detail.actions')}</TableCell>
                     </TableRow>
                   </TableHead>
                   <TableBody>
                     {receives.map((receive: PurchaseReceive) => (
                       <TableRow key={receive.id}>
                         <TableCell>{receive.receive_number}</TableCell>
-                        <TableCell>{receive.received_at ? formatAppDate(receive.received_at, dateFormat, i18n.language) : '-'}</TableCell>
+                        <TableCell>{receive.received_at ? formatAppDateTime(receive.received_at, dateFormat, i18n.language) : '-'}</TableCell>
                         <TableCell align="center">{receive.items_count ?? receive.items?.length ?? 0}</TableCell>
                         <TableCell>{receive.notes || '-'}</TableCell>
                         <TableCell>{receive.creator?.name ?? '-'}</TableCell>
                         <TableCell align="center">
                           <Stack direction="row" spacing={0.5} sx={{ justifyContent: 'center' }}>
+                            <Tooltip title={t('labelPrinting.printLabels')}>
+                              <IconButton size="small" component={NextLink} href={`/purchases/${purchaseId}/labels?receiveId=${receive.id}`}>
+                                <LocalOfferOutlined fontSize="small" />
+                              </IconButton>
+                            </Tooltip>
                             {canManageReceives && (
                               <Tooltip title={t('receive.editAction')}>
                                 <IconButton size="small" component={NextLink} href={`/purchases/${purchaseId}/receive?receiveId=${receive.id}`}>

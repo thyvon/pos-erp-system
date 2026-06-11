@@ -25,6 +25,8 @@ export const purchaseReceivesApi = {
     apiClient.put<PurchaseReceive, UpdatePurchaseReceivePayload>(`/v1/purchases/${purchaseId}/receives/${receiveId}`, payload),
   delete: (purchaseId: string, receiveId: string) =>
     apiClient.delete<void>(`/v1/purchases/${purchaseId}/receives/${receiveId}`),
+  deleteItem: (purchaseId: string, receiveId: string, itemId: string) =>
+    apiClient.delete<PurchaseReceive>(`/v1/purchases/${purchaseId}/receives/${receiveId}/items/${itemId}`),
 }
 
 export const purchaseReturnsApi = {

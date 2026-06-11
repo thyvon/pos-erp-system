@@ -1,7 +1,9 @@
 'use client'
 
 import {
+  Alert,
   Autocomplete,
+  Chip,
   IconButton,
   MenuItem,
   Select,
@@ -13,6 +15,7 @@ import {
   TableHead,
   TableRow,
   TextField,
+  Tooltip,
   Typography,
 } from '@mui/material'
 import { Controller } from 'react-hook-form'
@@ -69,6 +72,7 @@ export function PurchaseItemsTable({
 }: PurchaseItemsTableProps) {
   const { t } = useTranslation(['purchases', 'common'])
   const currencyFormatter = useCurrencyFormatter()
+  const hasReceivedLines = watchedItems.some((item) => Number(item?.received_quantity ?? 0) > 0)
 
   const applyTaxRate = (index: number, taxRateId: string) => {
     const taxRate = taxRates.find((item) => item.id === taxRateId)
@@ -86,6 +90,12 @@ export function PurchaseItemsTable({
         disabled={!warehouseId || isSaving}
         onSelect={onSelectProduct}
       />
+
+      {hasReceivedLines && (
+        <Alert severity="info">
+          {t('form.receivedLineLocked')}
+        </Alert>
+      )}
 
       <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1, overflowX: 'auto' }}>
         <Table sx={{ minWidth: 1300, tableLayout: 'fixed' }}>
@@ -115,12 +125,28 @@ export function PurchaseItemsTable({
             {itemFields.map((field, index) => {
               const watchedItem = watchedItems[index]
               const calc = lineCalculations[index] ?? { lineTotal: 0 }
+              const receivedQuantity = Number(watchedItem?.received_quantity ?? 0)
+              const isReceivedLine = receivedQuantity > 0
 
               return (
                 <TableRow key={field.fieldId}>
                   <TableCell>
                     <Stack spacing={0.25}>
-                      <Typography variant="body2">{field.product_label || '-'}</Typography>
+                      <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+                        <Typography variant="body2">{field.product_label || '-'}</Typography>
+                        {field.stock_tracking && field.stock_tracking !== 'none' && (
+                          <Chip label={field.stock_tracking} size="small" variant="outlined" sx={{ height: 20, fontSize: 11 }} />
+                        )}
+                        {isReceivedLine && (
+                          <Chip
+                            label={`${t('detail.receivedQty')}: ${receivedQuantity}`}
+                            size="small"
+                            color="success"
+                            variant="outlined"
+                            sx={{ height: 20, fontSize: 11 }}
+                          />
+                        )}
+                      </Stack>
                       <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
                         <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                           {field.sku || '-'}
@@ -138,11 +164,6 @@ export function PurchaseItemsTable({
                           </Typography>
                         ) : null}
                       </Stack>
-                      {field.stock_tracking && field.stock_tracking !== 'none' && (
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {field.stock_tracking}
-                        </Typography>
-                      )}
                     </Stack>
                   </TableCell>
                   <TableCell align="right">
@@ -157,6 +178,7 @@ export function PurchaseItemsTable({
                           error={!!errors.items?.[index]?.quantity}
                           helperText={errors.items?.[index]?.quantity?.message}
                           required
+                          disabled={isSaving || isReceivedLine}
                           slotProps={{ htmlInput: { min: 0.0001, step: 0.0001 } }}
                         />
                       )}
@@ -168,6 +190,7 @@ export function PurchaseItemsTable({
                       fullWidth
                       MenuProps={{ disableScrollLock: true }}
                       value={watchedItem?.sub_unit_id ?? '__none__'}
+                      disabled={isSaving || isReceivedLine}
                         onChange={(event) => {
                           const value = event.target.value === '__none__' ? null : event.target.value
                           setValue(`items.${index}.sub_unit_id`, value)
@@ -201,6 +224,7 @@ export function PurchaseItemsTable({
                           error={!!errors.items?.[index]?.unit_cost}
                           helperText={errors.items?.[index]?.unit_cost?.message}
                           required
+                          disabled={isSaving || isReceivedLine}
                           slotProps={{ htmlInput: { min: 0, step: 0.01 } }}
                         />
                       )}
@@ -211,7 +235,7 @@ export function PurchaseItemsTable({
                       name={`items.${index}.discount_type`}
                       control={control}
                       render={({ field: itemField }) => (
-                        <TextField {...itemField} fullWidth value={itemField.value ?? ''} select>
+                        <TextField {...itemField} fullWidth value={itemField.value ?? ''} select disabled={isSaving || isReceivedLine} slotProps={{ select: { MenuProps: { disableScrollLock: true } } }}>
                           <MenuItem value="">{t('form.noDiscount')}</MenuItem>
                           {discountTypes.map((type) => (
                             <MenuItem key={type} value={type}>{t(`discountTypes.${type}`)}</MenuItem>
@@ -230,6 +254,7 @@ export function PurchaseItemsTable({
                           fullWidth
                           value={itemField.value ?? ''}
                           type="number"
+                          disabled={isSaving || isReceivedLine}
                           slotProps={{ htmlInput: { min: 0, step: 0.01 } }}
                         />
                       )}
@@ -247,7 +272,7 @@ export function PurchaseItemsTable({
                           loading={isTaxRatesLoading}
                           getOptionLabel={taxRateLabel}
                           isOptionEqualToValue={(option, value) => option.id === value.id}
-                          disabled={taxScope === 'sale'}
+                          disabled={taxScope === 'sale' || isSaving || isReceivedLine}
                           onBlur={itemField.onBlur}
                           onChange={(_, rate) => applyTaxRate(index, rate?.id ?? '')}
                           renderInput={(params) => (
@@ -267,9 +292,13 @@ export function PurchaseItemsTable({
                     </Typography>
                   </TableCell>
                   <TableCell align="center">
-                    <IconButton size="small" color="error" disabled={isSaving} onClick={() => remove(index)}>
-                      <DeleteOutlined />
-                    </IconButton>
+                    <Tooltip title={isReceivedLine ? t('form.receivedLineLockedShort') : t('common:buttons.delete')}>
+                      <span>
+                        <IconButton size="small" color="error" disabled={isSaving || isReceivedLine} onClick={() => remove(index)}>
+                          <DeleteOutlined />
+                        </IconButton>
+                      </span>
+                    </Tooltip>
                   </TableCell>
                 </TableRow>
               )

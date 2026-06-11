@@ -10,6 +10,11 @@ export const purchaseKeys = {
   detail: (id: string) => [...purchaseKeys.all, 'detail', id] as const,
 }
 
+export const purchaseReceiveKeys = {
+  all: ['purchase-receives'] as const,
+  detail: (purchaseId: string, receiveId: string) => [...purchaseReceiveKeys.all, 'detail', purchaseId, receiveId] as const,
+}
+
 export function usePurchasesQuery(filters: PurchaseFilters) {
   return useQuery({
     queryKey: purchaseKeys.list(filters),
@@ -146,7 +151,7 @@ export function useDeletePurchasePaymentMutation() {
 
 export function usePurchaseReceiveQuery(purchaseId: string, receiveId: string | null) {
   return useQuery({
-    queryKey: ['purchase-receives', 'detail', receiveId],
+    queryKey: purchaseReceiveKeys.detail(purchaseId, receiveId!),
     queryFn: () => purchaseReceivesApi.show(purchaseId, receiveId!),
     enabled: !!receiveId,
   })
@@ -159,6 +164,7 @@ export function useUpdatePurchaseReceiveMutation() {
     mutationFn: ({ purchaseId, receiveId, payload }: { purchaseId: string; receiveId: string; payload: UpdatePurchaseReceivePayload }) =>
       purchaseReceivesApi.update(purchaseId, receiveId, payload),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: purchaseReceiveKeys.all })
       queryClient.invalidateQueries({ queryKey: purchaseKeys.all })
     },
   })
@@ -171,6 +177,20 @@ export function useDeletePurchaseReceiveMutation() {
     mutationFn: ({ purchaseId, receiveId }: { purchaseId: string; receiveId: string }) =>
       purchaseReceivesApi.delete(purchaseId, receiveId),
     onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: purchaseReceiveKeys.all })
+      queryClient.invalidateQueries({ queryKey: purchaseKeys.all })
+    },
+  })
+}
+
+export function useDeletePurchaseReceiveItemMutation() {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: ({ purchaseId, receiveId, itemId }: { purchaseId: string; receiveId: string; itemId: string }) =>
+      purchaseReceivesApi.deleteItem(purchaseId, receiveId, itemId),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: purchaseReceiveKeys.all })
       queryClient.invalidateQueries({ queryKey: purchaseKeys.all })
     },
   })

@@ -24,6 +24,7 @@ interface UIState {
   sidebarTheme: LayoutSurfaceTheme
   topbarTheme: LayoutSurfaceTheme
   contentStretch: boolean
+  hasHydrated: boolean
 }
 
 interface UIActions {
@@ -43,6 +44,7 @@ interface UIActions {
   setSidebarTheme: (theme: LayoutSurfaceTheme) => void
   setTopbarTheme: (theme: LayoutSurfaceTheme) => void
   setContentStretch: (stretch: boolean) => void
+  setHasHydrated: (hasHydrated: boolean) => void
 }
 
 type UIStore = UIState & UIActions
@@ -60,6 +62,7 @@ const initialState: UIState = {
   sidebarTheme: 'inherit',
   topbarTheme: 'inherit',
   contentStretch: true,
+  hasHydrated: false,
 }
 
 const COLOR_SURFACE_THEMES: LayoutSurfaceTheme[] = ['default', 'blue', 'darkGreen']
@@ -100,11 +103,19 @@ export const useUIStore = create<UIStore>()(
       setSidebarTheme: (sidebarTheme) => set({ sidebarTheme }),
       setTopbarTheme: (topbarTheme) => set({ topbarTheme }),
       setContentStretch: (contentStretch) => set({ contentStretch }),
+      setHasHydrated: (hasHydrated) => set({ hasHydrated }),
     }),
     {
       name: 'erp-ui',
       storage: createJSONStorage(() => localStorage),
       version: 8,
+      partialize: (state) => {
+        const { hasHydrated: _, ...rest } = state
+        return rest
+      },
+      onRehydrateStorage: () => (state) => {
+        state?.setHasHydrated(true)
+      },
       migrate: (persistedState) => {
         const previousState = persistedState as Partial<UIStore> & {
           borderRadiusPreset?: unknown

@@ -18,14 +18,17 @@ use App\Models\Purchase;
 use App\Models\PurchasePayment;
 use App\Models\PurchaseReceive;
 use App\Services\Purchases\PurchasePaymentService;
+use App\Services\Purchases\PurchaseReceiveService;
 use App\Services\Purchases\PurchaseService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 
 class PurchaseController extends BaseApiController
 {
-    public function __construct(protected PurchaseService $purchases)
-    {
+    public function __construct(
+        protected PurchaseService $purchases,
+        protected PurchaseReceiveService $receives,
+    ) {
     }
 
     public function index(Request $request): JsonResponse
@@ -96,7 +99,7 @@ class PurchaseController extends BaseApiController
     {
         $this->authorize('receive', $purchase);
 
-        $purchase = $this->purchases->receive(
+        $purchase = $this->receives->receive(
             $request->user()->business_id,
             $purchase,
             $request->validated(),
@@ -109,6 +112,9 @@ class PurchaseController extends BaseApiController
     public function showReceive(Request $request, Purchase $purchase, PurchaseReceive $purchaseReceive): JsonResponse
     {
         $this->authorize('manageReceives', $purchase);
+        if (! $this->receiveBelongsToPurchase($purchase, $purchaseReceive)) {
+            return $this->error('Purchase receive record was not found for this purchase.', 404);
+        }
 
         return $this->success(new PurchaseReceiveResource(
             $purchaseReceive->load('items', 'creator')
@@ -118,8 +124,11 @@ class PurchaseController extends BaseApiController
     public function updateReceive(UpdatePurchaseReceiveRequest $request, Purchase $purchase, PurchaseReceive $purchaseReceive): JsonResponse
     {
         $this->authorize('manageReceives', $purchase);
+        if (! $this->receiveBelongsToPurchase($purchase, $purchaseReceive)) {
+            return $this->error('Purchase receive record was not found for this purchase.', 404);
+        }
 
-        $purchaseReceive = $this->purchases->updateReceive(
+        $purchaseReceive = $this->receives->updateReceive(
             $request->user()->business_id,
             $purchaseReceive,
             $request->validated(),
@@ -131,11 +140,31 @@ class PurchaseController extends BaseApiController
         ), 'Purchase receive updated successfully.');
     }
 
+    public function deleteReceiveItem(Request $request, Purchase $purchase, PurchaseReceive $purchaseReceive, string $item): JsonResponse
+    {
+        $this->authorize('manageReceives', $purchase);
+        if (! $this->receiveBelongsToPurchase($purchase, $purchaseReceive)) {
+            return $this->error('Purchase receive record was not found for this purchase.', 404);
+        }
+
+        $purchaseReceive = $this->receives->removeReceiveItem(
+            $request->user()->business_id,
+            $purchaseReceive,
+            $item,
+            $request->user()
+        );
+
+        return $this->success(new PurchaseReceiveResource($purchaseReceive->load('items', 'creator')), 'Purchase receive item deleted successfully.');
+    }
+
     public function deleteReceive(Request $request, Purchase $purchase, PurchaseReceive $purchaseReceive): JsonResponse
     {
         $this->authorize('manageReceives', $purchase);
+        if (! $this->receiveBelongsToPurchase($purchase, $purchaseReceive)) {
+            return $this->error('Purchase receive record was not found for this purchase.', 404);
+        }
 
-        $this->purchases->deleteReceive(
+        $this->receives->deleteReceive(
             $request->user()->business_id,
             $purchaseReceive,
             $request->user()
@@ -149,6 +178,12 @@ class PurchaseController extends BaseApiController
         return $this->success([
             'lot_number' => $this->purchases->nextLotNumber((string) $request->user()->business_id),
         ]);
+    }
+
+    protected function receiveBelongsToPurchase(Purchase $purchase, PurchaseReceive $purchaseReceive): bool
+    {
+        return (string) $purchaseReceive->purchase_id === (string) $purchase->id
+            && (string) $purchaseReceive->business_id === (string) $purchase->business_id;
     }
 
     public function recordPayment(StorePurchasePaymentRequest $request, Purchase $purchase, PurchasePaymentService $purchasePayments): JsonResponse

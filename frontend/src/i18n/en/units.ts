@@ -30,6 +30,7 @@ export default {
     subUnitName: 'Sub-unit name',
     subUnitShortName: 'Short name',
     conversionFactor: 'Conversion factor',
+    conversionFactorLocked: 'Locked — already used in transactions',
   },
   sections: {
     subUnits: 'Sub-units',

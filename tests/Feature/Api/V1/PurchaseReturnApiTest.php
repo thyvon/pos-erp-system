@@ -4,6 +4,8 @@ namespace Tests\Feature\Api\V1;
 
 use App\Models\Branch;
 use App\Models\Business;
+use App\Models\ChartOfAccount;
+use App\Models\Journal;
 use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\PurchaseReturn;
@@ -99,7 +101,35 @@ class PurchaseReturnApiTest extends TestCase
         $this->assertDatabaseHas('journals', [
             'business_id' => $business->id,
             'type' => 'purchase_return',
+            'reference_type' => PurchaseReturn::class,
             'total_amount' => '20.00',
+        ]);
+
+        $returnJournal = Journal::withoutGlobalScopes()
+            ->where('business_id', $business->id)
+            ->where('type', 'purchase_return')
+            ->where('reference_type', PurchaseReturn::class)
+            ->firstOrFail();
+        $inventoryAccount = ChartOfAccount::withoutGlobalScopes()
+            ->where('business_id', $business->id)
+            ->where('code', '1300')
+            ->firstOrFail();
+        $payableAccount = ChartOfAccount::withoutGlobalScopes()
+            ->where('business_id', $business->id)
+            ->where('code', '2100')
+            ->firstOrFail();
+
+        $this->assertDatabaseHas('journal_entries', [
+            'journal_id' => $returnJournal->id,
+            'account_id' => $payableAccount->id,
+            'type' => 'debit',
+            'amount' => '20.00',
+        ]);
+        $this->assertDatabaseHas('journal_entries', [
+            'journal_id' => $returnJournal->id,
+            'account_id' => $inventoryAccount->id,
+            'type' => 'credit',
+            'amount' => '20.00',
         ]);
 
         $this->assertEquals(

@@ -30,6 +30,7 @@ export default {
     subUnitName: 'ឈ្មោះខ្នាតរង',
     subUnitShortName: 'ឈ្មោះកាត់',
     conversionFactor: 'មេគុណបម្លែង',
+    conversionFactorLocked: 'ចាក់សោ — បានប្រើក្នុងប្រតិបត្តិការរួចហើយ',
   },
   sections: {
     subUnits: 'ខ្នាតរង',

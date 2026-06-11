@@ -427,6 +427,7 @@ export function PurchasePaymentDialog({
                                 helperText={errors.payments?.[index]?.payment_currency?.message}
                                 required
                                 onChange={(event) => changePaymentCurrency(index, event.target.value as 'USD' | 'KHR')}
+                                slotProps={{ select: { MenuProps: { disableScrollLock: true } } }}
                               >
                                 <MenuItem value="USD">USD</MenuItem>
                                 <MenuItem value="KHR" disabled={!defaultExchangeRate}>KHR</MenuItem>
@@ -468,6 +469,7 @@ export function PurchasePaymentDialog({
                                 error={!!errors.payments?.[index]?.method}
                                 helperText={errors.payments?.[index]?.method?.message}
                                 required
+                                slotProps={{ select: { MenuProps: { disableScrollLock: true } } }}
                               >
                                 {paymentMethods.map((method) => (
                                   <MenuItem key={method} value={method}>

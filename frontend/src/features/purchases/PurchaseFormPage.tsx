@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form'
+import type { FieldErrors, FieldPath } from 'react-hook-form'
 import {
   Alert,
   Autocomplete,
@@ -58,6 +59,38 @@ function discountAmount(type: string | null | undefined, amount: unknown, base: 
   if (type === 'percentage') return Math.min(base, base * value / 100)
   if (type === 'fixed') return Math.min(base, value)
   return value
+}
+
+function firstFormErrorMessage(errors: FieldErrors<PurchaseFormInput>): string | null {
+  const findMessage = (value: unknown): string | null => {
+    if (!value || typeof value !== 'object') return null
+
+    const maybeError = value as { message?: unknown }
+    if (typeof maybeError.message === 'string' && maybeError.message.trim()) {
+      return maybeError.message
+    }
+
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        const message = findMessage(item)
+        if (message) return message
+      }
+      return null
+    }
+
+    for (const nested of Object.values(value as Record<string, unknown>)) {
+      const message = findMessage(nested)
+      if (message) return message
+    }
+
+    return null
+  }
+
+  return findMessage(errors)
+}
+
+function purchaseSaveBlockedMessage(summary: string, detail?: string | null) {
+  return detail ? `${summary} ${detail}` : summary
 }
 
 export function PurchaseFormPage({ purchaseId }: PurchaseFormPageProps) {
@@ -183,6 +216,7 @@ export function PurchaseFormPage({ purchaseId }: PurchaseFormPageProps) {
       _default_sub_unit_id: item.sub_unit?.id ?? null,
       conversion_factor: item.sub_unit?.conversion_factor ?? null,
       stock_tracking: item.stock_tracking ?? 'none',
+      received_quantity: 0,
       quantity: 1,
       unit_cost: Number(item.unit_cost) || 0,
       discount_type: null,
@@ -226,15 +260,31 @@ export function PurchaseFormPage({ purchaseId }: PurchaseFormPageProps) {
       }
     } catch (error) {
       const apiError = toAppApiError(error)
+      let firstFieldError: string | undefined
+
       if (apiError.fieldErrors) {
         Object.entries(apiError.fieldErrors).forEach(([field, messages]) => {
-          setError(field as keyof PurchaseFormInput, { type: 'server', message: messages[0] })
+          const message = messages[0]
+          if (!firstFieldError) firstFieldError = message
+          setError(field as FieldPath<PurchaseFormInput>, { type: 'server', message })
         })
       }
-      setServerError(apiError.message)
+
+      const message = apiError.fieldErrors
+        ? purchaseSaveBlockedMessage(t('form.fixValidationErrors'), firstFieldError ?? apiError.message)
+        : apiError.message || t('form.saveFailed')
+
+      setServerError(message)
+      enqueueSnackbar(message, { variant: 'error' })
     } finally {
       setIsSubmitting(false)
     }
+  }
+
+  const handleInvalidSubmit = (formErrors: FieldErrors<PurchaseFormInput>) => {
+    const message = purchaseSaveBlockedMessage(t('form.fixValidationErrors'), firstFormErrorMessage(formErrors))
+    setServerError(message)
+    enqueueSnackbar(message, { variant: 'error' })
   }
 
   if (isEdit && purchaseQuery.isLoading) {
@@ -259,7 +309,7 @@ export function PurchaseFormPage({ purchaseId }: PurchaseFormPageProps) {
 
       {purchaseQuery.isError && <Alert severity="error">{toAppApiError(purchaseQuery.error).message}</Alert>}
 
-      <Box component="form" noValidate onSubmit={handleSubmit(submitForm)}>
+      <Box component="form" noValidate onSubmit={handleSubmit(submitForm, handleInvalidSubmit)}>
         <Stack spacing={3}>
           {serverError && <Alert severity="error">{serverError}</Alert>}
 
@@ -403,7 +453,7 @@ export function PurchaseFormPage({ purchaseId }: PurchaseFormPageProps) {
                     name="status"
                     control={control}
                     render={({ field }) => (
-                      <TextField {...field} select label={t('form.status')} error={!!errors.status} helperText={errors.status?.message}>
+                      <TextField {...field} select label={t('form.status')} error={!!errors.status} helperText={errors.status?.message} slotProps={{ select: { MenuProps: { disableScrollLock: true } } }}>
                         <MenuItem value="draft">{t('form.draftOption')}</MenuItem>
                         <MenuItem value="confirmed">{t('form.confirmedOption')}</MenuItem>
                       </TextField>

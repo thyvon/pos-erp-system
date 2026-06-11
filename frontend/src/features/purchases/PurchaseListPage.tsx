@@ -232,6 +232,7 @@ export default function PurchasesPage() {
               }}
               label={t('filters.status')}
               sx={{ minWidth: { xs: '100%', lg: 170 } }}
+              slotProps={{ select: { MenuProps: { disableScrollLock: true } } }}
             >
               <MenuItem value="">{t('filters.allStatuses')}</MenuItem>
               {statuses.map((status) => (
@@ -247,6 +248,7 @@ export default function PurchasesPage() {
               }}
               label={t('filters.paymentStatus')}
               sx={{ minWidth: { xs: '100%', lg: 170 } }}
+              slotProps={{ select: { MenuProps: { disableScrollLock: true } } }}
             >
               <MenuItem value="">{t('filters.allPaymentStatuses')}</MenuItem>
               {paymentStatuses.map((status) => (

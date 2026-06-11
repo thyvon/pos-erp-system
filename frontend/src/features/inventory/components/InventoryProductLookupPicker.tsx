@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import {
   Autocomplete,
   Box,
+  Chip,
   TextField,
   Typography,
   Stack,
@@ -25,7 +26,12 @@ interface InventoryProductLookupPickerProps {
 
 export function getInventoryLookupLabel(item: InventoryProductLookupItem) {
   const details = [item.sku, item.lot_number, item.serial_number].filter(Boolean).join(' / ')
-  return details ? `${item.label} (${details})` : item.label
+  const label = details ? `${item.label} (${details})` : item.label
+  const tracking = item.stock_tracking
+  if (tracking && tracking !== 'none') {
+    return `${label} [${tracking}]`
+  }
+  return label
 }
 
 function normalize(value: string | null | undefined) {
@@ -131,10 +137,20 @@ export function InventoryProductLookupPicker({
       renderOption={(props, option) => (
         <Box component="li" {...props} key={option.lookup_key}>
           <Stack spacing={0.25}>
-            <Typography variant="body2">{getInventoryLookupLabel(option)}</Typography>
-            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-              {t('lookup.available', { quantity: option.available_quantity ?? '-' })}
-            </Typography>
+            <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+              <Typography variant="body2">{option.label}</Typography>
+              {option.stock_tracking && option.stock_tracking !== 'none' && (
+                <Chip label={option.stock_tracking} size="small" variant="outlined" sx={{ height: 20, fontSize: 11 }} />
+              )}
+            </Stack>
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+              {option.sku && <Typography variant="caption" sx={{ color: 'text.secondary' }}>{option.sku}</Typography>}
+              {option.lot_number && <Typography variant="caption" sx={{ color: 'text.secondary' }}>{option.lot_number}</Typography>}
+              {option.serial_number && <Typography variant="caption" sx={{ color: 'text.secondary' }}>{option.serial_number}</Typography>}
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                {t('lookup.available', { quantity: option.available_quantity ?? '-' })}
+              </Typography>
+            </Stack>
           </Stack>
         </Box>
       )}

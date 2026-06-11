@@ -56,6 +56,7 @@ export function valuesFromPurchase(purchase: Purchase): PurchaseFormInput {
       _default_sub_unit_id: item.sub_unit_id ?? null,
       conversion_factor: item.sub_unit?.conversion_factor ?? null,
       stock_tracking: item.product?.stock_tracking ?? 'none',
+      received_quantity: Number(item.received_quantity) || 0,
       quantity: Number(item.quantity),
       unit_cost: Number(item.unit_cost),
       discount_type: item.discount_type as 'fixed' | 'percentage' | null,
