@@ -163,7 +163,7 @@ export const salePaymentSchema = z.object({
 export type SalePaymentFormInput = z.input<typeof salePaymentSchema>
 export type SalePaymentFormValues = z.output<typeof salePaymentSchema>
 
-const refundMethods = ['cash', 'credit_note', 'bank_transfer', 'reward_points'] as const
+const refundMethods = ['cash', 'credit_note', 'bank_transfer'] as const
 
 export const saleReturnLineSchema = z.object({
   sale_item_id: z.string().min(1, 'Sale item is required'),
@@ -174,9 +174,18 @@ export const saleReturnLineSchema = z.object({
 
 export const saleReturnSchema = z.object({
   return_date: z.string().min(1, 'Return date is required'),
-  refund_method: z.enum(refundMethods).nullable().optional(),
+  refund_method: z.enum(refundMethods),
+  payment_account_id: z.string().nullable().optional(),
   notes: z.string().trim().nullable().optional(),
   items: z.array(saleReturnLineSchema).min(1, 'Add at least one return line'),
+}).superRefine((values, context) => {
+  if (values.refund_method !== 'credit_note' && !values.payment_account_id) {
+    context.addIssue({
+      code: 'custom',
+      path: ['payment_account_id'],
+      message: 'Select a payment account for the refund',
+    })
+  }
 })
 
 export type SaleReturnFormInput = z.input<typeof saleReturnSchema>

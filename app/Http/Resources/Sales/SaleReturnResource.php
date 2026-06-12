@@ -9,7 +9,7 @@ class SaleReturnResource extends JsonResource
 {
     public function toArray(Request $request): array
     {
-        $this->loadMissing(['sale', 'branch', 'warehouse', 'creator', 'items.saleItem.product', 'items.saleItem.variation', 'items.lot']);
+        $this->loadMissing(['sale', 'branch', 'warehouse', 'paymentAccount', 'creator', 'items.saleItem.product', 'items.saleItem.variation', 'items.lot']);
 
         return [
             'id' => $this->id,
@@ -22,6 +22,12 @@ class SaleReturnResource extends JsonResource
             'return_date' => optional($this->return_date)->toDateString(),
             'total_amount' => $this->total_amount !== null ? (string) $this->total_amount : null,
             'refund_method' => $this->refund_method,
+            'payment_account_id' => $this->payment_account_id,
+            'payment_account' => $this->paymentAccount ? [
+                'id' => $this->paymentAccount->id,
+                'name' => $this->paymentAccount->name,
+                'type' => $this->paymentAccount->account_type,
+            ] : null,
             'notes' => $this->notes,
             'sale' => $this->sale ? [
                 'id' => $this->sale->id,

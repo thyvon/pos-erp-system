@@ -4,6 +4,7 @@ namespace App\Services\Sales;
 
 use App\Exceptions\Domain\DomainException;
 use App\Models\ChartOfAccount;
+use App\Models\PaymentAccount;
 use App\Models\Sale;
 use App\Models\SaleItem;
 use App\Models\SaleReturn;
@@ -53,6 +54,13 @@ class SaleReturnService
 
             $linePayloads = $this->buildReturnPayloads($lockedSale, collect($data['items']));
             $totalAmount = round((float) collect($linePayloads)->sum('item.total_amount'), 2);
+            $refundMethod = (string) $data['refund_method'];
+            $paymentAccount = $this->resolveRefundPaymentAccount(
+                $businessId,
+                $refundMethod,
+                $data['payment_account_id'] ?? null
+            );
+            $this->validateRefundSettlement($lockedSale, $totalAmount, $refundMethod);
 
             /** @var SaleReturn $saleReturn */
             $saleReturn = $this->saleReturns->create([
@@ -64,7 +72,8 @@ class SaleReturnService
                 'status' => 'completed',
                 'return_date' => $data['return_date'],
                 'total_amount' => $totalAmount,
-                'refund_method' => $data['refund_method'] ?? null,
+                'refund_method' => $refundMethod,
+                'payment_account_id' => $paymentAccount?->id,
                 'notes' => $data['notes'] ?? null,
                 'created_by' => $actor?->id,
             ]);
@@ -75,30 +84,28 @@ class SaleReturnService
                 $this->restoreInventory($businessId, $saleReturn, $item, $linePayload, $actor);
             }
 
-            $this->postReturnJournal($businessId, $saleReturn->fresh('items'), $actor);
+            $saleReturn->load('items');
+            $this->postReturnJournal($businessId, $saleReturn, $paymentAccount, $actor);
+            $this->recordRefundTransaction($businessId, $saleReturn, $paymentAccount);
+            $this->updateSaleAfterReturn($lockedSale, $linePayloads, $totalAmount, $refundMethod);
 
-            if ($lockedSale->status === 'completed') {
-                $previousStatus = $lockedSale->status;
-                $lockedSale->status = 'returned';
-                $lockedSale->save();
-
-                $this->auditService->log(
-                    'state_change',
-                    Sale::class,
-                    $lockedSale->id,
-                    $actor,
-                    $businessId,
-                    [
-                        'status' => $previousStatus,
-                    ],
-                    [
-                        'status' => 'returned',
-                        'return_amount' => (string) $totalAmount,
-                        'refund_method' => $saleReturn->refund_method,
-                        'branch_id' => $lockedSale->branch_id,
-                    ]
-                );
-            }
+            $this->auditService->log(
+                'sale_return_recorded',
+                Sale::class,
+                $lockedSale->id,
+                $actor,
+                $businessId,
+                null,
+                [
+                    'status' => $lockedSale->status,
+                    'payment_status' => $lockedSale->payment_status,
+                    'paid_amount' => (string) $lockedSale->paid_amount,
+                    'return_amount' => (string) $totalAmount,
+                    'refund_method' => $saleReturn->refund_method,
+                    'payment_account_id' => $saleReturn->payment_account_id,
+                    'branch_id' => $lockedSale->branch_id,
+                ]
+            );
 
             return $this->loadSaleReturn($saleReturn);
         });
@@ -278,12 +285,18 @@ class SaleReturnService
         $this->stockMovementService->record($businessId, $movementData, $actor);
     }
 
-    protected function postReturnJournal(string $businessId, SaleReturn $saleReturn, ?User $actor): void
+    protected function postReturnJournal(
+        string $businessId,
+        SaleReturn $saleReturn,
+        ?PaymentAccount $paymentAccount,
+        ?User $actor
+    ): void
     {
         $revenueAccount = $this->resolveAccountByCode($businessId, '4100');
-        $receivableAccount = $this->resolveAccountByCode($businessId, '1200');
         $inventoryAccount = $this->resolveAccountByCode($businessId, '1300');
         $cogsAccount = $this->resolveAccountByCode($businessId, '5100');
+        $settlementAccountId = $paymentAccount?->coa_account_id
+            ?? $this->resolveAccountByCode($businessId, '1200')->id;
         $costAmount = round((float) $saleReturn->items->sum(fn ($item) => (float) $item->quantity * (float) $item->unit_cost), 2);
 
         $this->accountingService->postJournal($businessId, [
@@ -291,6 +304,7 @@ class SaleReturnService
             'reference_type' => SaleReturn::class,
             'reference_id' => $saleReturn->id,
             'description' => 'Sale return '.$saleReturn->return_number,
+            'posted_at' => $saleReturn->return_date,
             'entries' => array_values(array_filter([
                 [
                     'account_id' => $revenueAccount->id,
@@ -299,10 +313,12 @@ class SaleReturnService
                     'description' => 'Sales return reversal',
                 ],
                 [
-                    'account_id' => $receivableAccount->id,
+                    'account_id' => $settlementAccountId,
                     'type' => 'credit',
                     'amount' => (float) $saleReturn->total_amount,
-                    'description' => 'Accounts receivable reduction',
+                    'description' => $paymentAccount
+                        ? 'Customer refund paid'
+                        : 'Accounts receivable reduction',
                 ],
                 $costAmount > 0 ? [
                     'account_id' => $inventoryAccount->id,
@@ -318,6 +334,126 @@ class SaleReturnService
                 ] : null,
             ])),
         ], $actor);
+    }
+
+    protected function resolveRefundPaymentAccount(
+        string $businessId,
+        string $refundMethod,
+        ?string $paymentAccountId
+    ): ?PaymentAccount {
+        if ($refundMethod === 'credit_note') {
+            return null;
+        }
+
+        /** @var PaymentAccount|null $paymentAccount */
+        $paymentAccount = PaymentAccount::withoutGlobalScopes()
+            ->where('business_id', $businessId)
+            ->find($paymentAccountId);
+
+        if (! $paymentAccount) {
+            throw new DomainException('Select a valid payment account for this refund.', 422);
+        }
+
+        if (! $paymentAccount->is_active) {
+            throw new DomainException('Refunds can only be paid from an active payment account.', 422);
+        }
+
+        if (! $paymentAccount->coa_account_id) {
+            throw new DomainException('The refund payment account must be linked to a chart of account record.', 422);
+        }
+
+        $expectedType = $refundMethod === 'cash' ? 'cash' : 'bank';
+        if ($paymentAccount->account_type !== $expectedType) {
+            throw new DomainException(
+                $refundMethod === 'cash'
+                    ? 'Cash refunds require a cash payment account.'
+                    : 'Bank transfer refunds require a bank payment account.',
+                422
+            );
+        }
+
+        return $paymentAccount;
+    }
+
+    protected function validateRefundSettlement(Sale $sale, float $returnAmount, string $refundMethod): void
+    {
+        $priorReturnAmount = round((float) $sale->returns->sum('total_amount'), 2);
+        $netSaleAmountBeforeReturn = round(max(0, (float) $sale->total_amount - $priorReturnAmount), 2);
+        $outstandingAmount = round(max(0, $netSaleAmountBeforeReturn - (float) $sale->paid_amount), 2);
+
+        if ($refundMethod === 'credit_note' && $returnAmount > $outstandingAmount) {
+            throw new DomainException(
+                'Credit notes can only reduce the unpaid balance. Use cash or bank transfer for amounts already paid.',
+                422
+            );
+        }
+
+        if ($refundMethod !== 'credit_note' && $returnAmount > round((float) $sale->paid_amount, 2)) {
+            throw new DomainException('Refund amount cannot exceed the amount paid by the customer.', 422);
+        }
+    }
+
+    protected function recordRefundTransaction(
+        string $businessId,
+        SaleReturn $saleReturn,
+        ?PaymentAccount $paymentAccount
+    ): void {
+        if (! $paymentAccount) {
+            return;
+        }
+
+        $paymentAccount->transactions()->create([
+            'business_id' => $businessId,
+            'type' => 'debit',
+            'amount' => $saleReturn->total_amount,
+            'reference_type' => SaleReturn::class,
+            'reference_id' => $saleReturn->id,
+            'transaction_date' => $saleReturn->return_date,
+            'note' => 'Customer refund for '.$saleReturn->return_number,
+        ]);
+    }
+
+    protected function updateSaleAfterReturn(
+        Sale $sale,
+        array $linePayloads,
+        float $returnAmount,
+        string $refundMethod
+    ): void {
+        if ($refundMethod !== 'credit_note') {
+            $sale->paid_amount = round(max(0, (float) $sale->paid_amount - $returnAmount), 2);
+        }
+
+        $returnedByItem = $sale->returns
+            ->flatMap(fn ($return) => $return->items)
+            ->groupBy('sale_item_id')
+            ->map(fn ($items) => round((float) $items->sum('quantity'), 4));
+
+        foreach ($linePayloads as $linePayload) {
+            $saleItemId = (string) $linePayload['item']['sale_item_id'];
+            $returnedByItem[$saleItemId] = round(
+                (float) ($returnedByItem[$saleItemId] ?? 0) + (float) $linePayload['item']['quantity'],
+                4
+            );
+        }
+
+        $fullyReturned = $sale->items->every(
+            fn (SaleItem $item): bool => (float) ($returnedByItem[$item->id] ?? 0) >= round((float) $item->quantity, 4)
+        );
+        $totalReturnedAmount = round((float) $sale->returns->sum('total_amount') + $returnAmount, 2);
+        $netSaleAmount = round(max(0, (float) $sale->total_amount - $totalReturnedAmount), 2);
+
+        $sale->status = $fullyReturned ? 'returned' : 'completed';
+        $sale->payment_status = $this->resolvePaymentStatus((float) $sale->paid_amount, $netSaleAmount);
+        $sale->save();
+    }
+
+    protected function resolvePaymentStatus(float $paidAmount, float $netSaleAmount): string
+    {
+        if ($netSaleAmount <= 0 || $paidAmount >= $netSaleAmount) {
+            return 'paid';
+        }
+
+        return $paidAmount <= 0 ? 'unpaid' : 'partial';
     }
 
     protected function resolveAccountByCode(string $businessId, string $code): ChartOfAccount
@@ -359,6 +495,7 @@ class SaleReturnService
             'sale',
             'branch',
             'warehouse',
+            'paymentAccount',
             'creator',
             'items.saleItem.product',
             'items.saleItem.variation',

@@ -426,7 +426,7 @@ export interface SalePaymentDeleteResult {
   reversal_journal: unknown
 }
 
-export type SaleRefundMethod = 'cash' | 'credit_note' | 'bank_transfer' | 'reward_points'
+export type SaleRefundMethod = 'cash' | 'credit_note' | 'bank_transfer'
 
 export interface SaleReturnItemPayload {
   sale_item_id: string
@@ -437,7 +437,8 @@ export interface SaleReturnItemPayload {
 
 export interface SaleReturnPayload {
   return_date: string
-  refund_method?: SaleRefundMethod | null
+  refund_method: SaleRefundMethod
+  payment_account_id?: string | null
   notes?: string | null
   items: SaleReturnItemPayload[]
 }
@@ -492,6 +493,12 @@ export interface SaleReturn {
   return_date: string | null
   total_amount: string | null
   refund_method: SaleRefundMethod | null
+  payment_account_id: string | null
+  payment_account?: {
+    id: string
+    name: string
+    type: string
+  } | null
   notes: string | null
   sale?: {
     id: string

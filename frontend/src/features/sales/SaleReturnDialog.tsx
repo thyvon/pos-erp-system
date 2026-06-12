@@ -10,6 +10,7 @@ import {
   DialogContent,
   DialogTitle,
   FormControl,
+  FormHelperText,
   InputLabel,
   MenuItem,
   Select,
@@ -23,17 +24,19 @@ import { toAppApiError } from '@/api/errors'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
 import { saleReturnSchema } from './schema'
 import { SaleReturnLineTable, type SaleReturnDraftLine } from './components/SaleReturnLineTable'
+import type { PaymentAccount } from '@/types/accounting'
 import type { Sale, SaleRefundMethod, SaleReturnPayload } from '@/types/sales'
 
 interface SaleReturnDialogProps {
   open: boolean
   sale: Sale | null
+  paymentAccounts: PaymentAccount[]
   isSaving: boolean
   onClose: () => void
   onSubmit: (payload: SaleReturnPayload) => Promise<void>
 }
 
-const refundMethods: SaleRefundMethod[] = ['cash', 'credit_note', 'bank_transfer', 'reward_points']
+const refundMethods: SaleRefundMethod[] = ['credit_note', 'cash', 'bank_transfer']
 
 function today() {
   return dayjs().format('YYYY-MM-DD')
@@ -59,10 +62,11 @@ function lineUnitAmount(total: string | null | undefined, quantity: string | nul
   return toNumber(total) / qty
 }
 
-export function SaleReturnDialog({ open, sale, isSaving, onClose, onSubmit }: SaleReturnDialogProps) {
+export function SaleReturnDialog({ open, sale, paymentAccounts, isSaving, onClose, onSubmit }: SaleReturnDialogProps) {
   const { t } = useTranslation(['sales', 'common'])
   const [returnDate, setReturnDate] = useState(today())
   const [refundMethod, setRefundMethod] = useState<SaleRefundMethod | ''>('credit_note')
+  const [paymentAccountId, setPaymentAccountId] = useState('')
   const [notes, setNotes] = useState('')
   const [lines, setLines] = useState<SaleReturnDraftLine[]>(() => initialLines(sale))
   const [formError, setFormError] = useState('')
@@ -86,13 +90,18 @@ export function SaleReturnDialog({ open, sale, isSaving, onClose, onSubmit }: Sa
       return total + lineUnitAmount(saleItem.total_amount, saleItem.quantity) * line.quantity
     }, 0)
   }, [sale?.items, selectedPayloadLines])
+  const refundAccounts = useMemo(
+    () => paymentAccounts.filter((account) => account.type === (refundMethod === 'cash' ? 'cash' : 'bank')),
+    [paymentAccounts, refundMethod],
+  )
 
   const handleSubmit = async () => {
     setFormError('')
 
     const payload: SaleReturnPayload = {
       return_date: returnDate,
-      refund_method: refundMethod || null,
+      refund_method: refundMethod || 'credit_note',
+      payment_account_id: refundMethod === 'credit_note' ? null : paymentAccountId || null,
       notes: notes.trim() || null,
       items: selectedPayloadLines,
     }
@@ -132,16 +141,42 @@ export function SaleReturnDialog({ open, sale, isSaving, onClose, onSubmit }: Sa
                   labelId="refund-method-label"
                   label={t('returns.fields.refundMethod')}
                   value={refundMethod}
-                  onChange={(event) => setRefundMethod(event.target.value as SaleRefundMethod | '')}
+                  onChange={(event) => {
+                    setRefundMethod(event.target.value as SaleRefundMethod)
+                    setPaymentAccountId('')
+                  }}
                 >
-                  <MenuItem value="">{t('returns.refundMethods.none')}</MenuItem>
                   {refundMethods.map((method) => (
                     <MenuItem key={method} value={method}>
                       {t(`returns.refundMethods.${method}`)}
                     </MenuItem>
                   ))}
                 </Select>
+                <FormHelperText>{t(`returns.refundHelp.${refundMethod || 'credit_note'}`)}</FormHelperText>
               </FormControl>
+              {refundMethod !== 'credit_note' && (
+                <FormControl required disabled={isSaving || refundAccounts.length === 0}>
+                  <InputLabel id="refund-payment-account-label">{t('returns.fields.paymentAccount')}</InputLabel>
+                  <Select
+                    MenuProps={{ disableScrollLock: true }}
+                    labelId="refund-payment-account-label"
+                    label={t('returns.fields.paymentAccount')}
+                    value={paymentAccountId}
+                    onChange={(event) => setPaymentAccountId(event.target.value)}
+                  >
+                    {refundAccounts.map((account) => (
+                      <MenuItem key={account.id} value={account.id}>
+                        {account.name}
+                      </MenuItem>
+                    ))}
+                  </Select>
+                  <FormHelperText>
+                    {refundAccounts.length === 0
+                      ? t('returns.form.noRefundAccounts')
+                      : t('returns.form.paymentAccountHelp')}
+                  </FormHelperText>
+                </FormControl>
+              )}
             </Box>
 
             <SaleReturnLineTable

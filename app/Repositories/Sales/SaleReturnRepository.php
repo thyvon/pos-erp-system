@@ -18,7 +18,7 @@ class SaleReturnRepository extends BaseRepository
         $perPage = max(1, min((int) ($filters['per_page'] ?? 15), 100));
 
         $query = $this->query()
-            ->with(['sale', 'branch', 'warehouse', 'creator'])
+            ->with(['sale', 'branch', 'warehouse', 'paymentAccount', 'creator'])
             ->withCount('items')
             ->when(
                 filled($filters['search'] ?? null),

@@ -22,6 +22,7 @@ class SaleReturn extends BaseModel
         'return_date',
         'total_amount',
         'refund_method',
+        'payment_account_id',
         'notes',
         'created_by',
     ];
@@ -52,6 +53,11 @@ class SaleReturn extends BaseModel
     public function creator(): BelongsTo
     {
         return $this->belongsTo(User::class, 'created_by');
+    }
+
+    public function paymentAccount(): BelongsTo
+    {
+        return $this->belongsTo(PaymentAccount::class);
     }
 
     public function items(): HasMany

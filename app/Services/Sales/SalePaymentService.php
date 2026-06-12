@@ -10,6 +10,7 @@ use App\Models\Journal;
 use App\Models\PaymentAccount;
 use App\Models\Sale;
 use App\Models\SalePayment;
+use App\Models\SaleReturn;
 use App\Models\User;
 use App\Services\Accounting\AccountingService;
 use App\Services\AuditService;
@@ -356,7 +357,30 @@ class SalePaymentService
 
     protected function outstandingAmount(Sale $sale): float
     {
-        return round(max(0, (float) $sale->total_amount - (float) $sale->paid_amount), 2);
+        return round(max(0, $this->payableAmount($sale) - (float) $sale->paid_amount), 2);
+    }
+
+    protected function payableAmount(Sale $sale): float
+    {
+        $returnedAmount = (float) SaleReturn::withoutGlobalScopes()
+            ->where('business_id', $sale->business_id)
+            ->where('sale_id', $sale->id)
+            ->where('status', 'completed')
+            ->sum('total_amount');
+
+        return round(max(0, (float) $sale->total_amount - $returnedAmount), 2);
+    }
+
+    protected function resolvePaymentStatus(Sale $sale): string
+    {
+        $paidAmount = round((float) $sale->paid_amount, 2);
+        $payableAmount = $this->payableAmount($sale);
+
+        if ($payableAmount <= 0 || $paidAmount >= $payableAmount) {
+            return 'paid';
+        }
+
+        return $paidAmount <= 0 ? 'unpaid' : 'partial';
     }
 
     protected function applyPaymentLines(
@@ -455,9 +479,7 @@ class SalePaymentService
         }
 
         $sale->paid_amount = round((float) $sale->paid_amount + $paymentTotal, 2);
-        $sale->payment_status = $sale->paid_amount >= (float) $sale->total_amount
-            ? 'paid'
-            : 'partial';
+        $sale->payment_status = $this->resolvePaymentStatus($sale);
         $sale->save();
 
         return [
@@ -519,9 +541,7 @@ class SalePaymentService
         $payment->save();
 
         $sale->paid_amount = round(max(0, (float) $sale->paid_amount - (float) $payment->amount), 2);
-        $sale->payment_status = $sale->paid_amount <= 0
-            ? 'unpaid'
-            : ($sale->paid_amount >= (float) $sale->total_amount ? 'paid' : 'partial');
+        $sale->payment_status = $this->resolvePaymentStatus($sale);
         $sale->save();
 
         return $reversalJournal;

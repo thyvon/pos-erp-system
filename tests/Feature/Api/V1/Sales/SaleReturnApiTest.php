@@ -4,6 +4,8 @@ namespace Tests\Feature\Api\V1\Sales;
 
 use App\Models\Branch;
 use App\Models\Business;
+use App\Models\ChartOfAccount;
+use App\Models\PaymentAccount;
 use App\Models\Product;
 use App\Models\Sale;
 use App\Models\StockLevel;
@@ -64,7 +66,8 @@ class SaleReturnApiTest extends TestCase
 
         $this->assertDatabaseHas('sales', [
             'id' => $saleId,
-            'status' => 'returned',
+            'status' => 'completed',
+            'payment_status' => 'unpaid',
         ]);
 
         $this->assertDatabaseHas('stock_levels', [
@@ -90,6 +93,22 @@ class SaleReturnApiTest extends TestCase
             'reference_type' => 'App\\Models\\SaleReturn',
             'type' => 'sale_return',
         ]);
+
+        $paymentAccount = $this->createPaymentAccount($business, 'cash');
+        $saleAfterReturn = Sale::withoutGlobalScopes()->findOrFail($saleId);
+        $this->assertSame('30.00', (string) $saleAfterReturn->total_amount);
+        $this->assertSame('0.00', (string) $saleAfterReturn->paid_amount);
+        $this->assertSame(
+            $expectedReturnAmount,
+            number_format((float) $saleAfterReturn->returns()->sum('total_amount'), 2, '.', '')
+        );
+        $this->postJson("/api/v1/sales/{$saleId}/payments", [
+            'payment_account_id' => $paymentAccount->id,
+            'amount' => (float) $expectedReturnAmount,
+            'method' => 'cash',
+            'payment_date' => now()->toDateString(),
+        ])->assertCreated()
+            ->assertJsonPath('data.sale.payment_status', 'paid');
     }
 
     public function test_serial_tracked_sale_return_restores_serial_to_stock(): void
@@ -198,6 +217,12 @@ class SaleReturnApiTest extends TestCase
             ]],
         ])->assertCreated();
 
+        $this->assertDatabaseHas('sales', [
+            'id' => $saleId,
+            'status' => 'returned',
+            'payment_status' => 'paid',
+        ]);
+
         $this->postJson("/api/v1/sales/{$saleId}/returns", [
             'return_date' => now()->toDateString(),
             'refund_method' => 'credit_note',
@@ -206,6 +231,92 @@ class SaleReturnApiTest extends TestCase
                 'quantity' => 2,
             ]],
         ])->assertStatus(422);
+    }
+
+    public function test_paid_sale_cash_return_records_refund_and_reconciles_sale_balance(): void
+    {
+        [$business, , , , $saleId, $user] = $this->createCompletedSale();
+        $paymentAccount = $this->createPaymentAccount($business, 'cash');
+
+        Sanctum::actingAs($user);
+
+        $sale = Sale::withoutGlobalScopes()->with('items')->findOrFail($saleId);
+        $this->postJson("/api/v1/sales/{$saleId}/payments", [
+            'payment_account_id' => $paymentAccount->id,
+            'amount' => (float) $sale->total_amount,
+            'method' => 'cash',
+            'payment_date' => now()->toDateString(),
+        ])->assertCreated();
+
+        $saleItem = $sale->items->first();
+        $returnAmount = round(
+            ((float) $saleItem->total_amount / max((float) $saleItem->quantity, 1)),
+            2
+        );
+
+        $response = $this->postJson("/api/v1/sales/{$saleId}/returns", [
+            'return_date' => now()->toDateString(),
+            'refund_method' => 'cash',
+            'payment_account_id' => $paymentAccount->id,
+            'items' => [[
+                'sale_item_id' => $saleItem->id,
+                'quantity' => 1,
+            ]],
+        ])->assertCreated()
+            ->assertJsonPath('data.payment_account.id', $paymentAccount->id);
+
+        $saleReturnId = $response->json('data.id');
+        $remainingPaidAmount = number_format((float) $sale->total_amount - $returnAmount, 2, '.', '');
+
+        $this->assertDatabaseHas('sales', [
+            'id' => $saleId,
+            'status' => 'completed',
+            'payment_status' => 'paid',
+            'paid_amount' => $remainingPaidAmount,
+        ]);
+        $this->assertDatabaseHas('account_transactions', [
+            'payment_account_id' => $paymentAccount->id,
+            'type' => 'debit',
+            'amount' => number_format($returnAmount, 2, '.', ''),
+            'reference_type' => 'App\\Models\\SaleReturn',
+            'reference_id' => $saleReturnId,
+        ]);
+        $this->assertDatabaseHas('journal_entries', [
+            'account_id' => $paymentAccount->coa_account_id,
+            'type' => 'credit',
+            'amount' => number_format($returnAmount, 2, '.', ''),
+        ]);
+    }
+
+    public function test_paid_sale_cannot_use_credit_note_for_refunded_amount(): void
+    {
+        [$business, , , , $saleId, $user] = $this->createCompletedSale();
+        $paymentAccount = $this->createPaymentAccount($business, 'cash');
+
+        Sanctum::actingAs($user);
+
+        $sale = Sale::withoutGlobalScopes()->with('items')->findOrFail($saleId);
+        $this->postJson("/api/v1/sales/{$saleId}/payments", [
+            'payment_account_id' => $paymentAccount->id,
+            'amount' => (float) $sale->total_amount,
+            'method' => 'cash',
+            'payment_date' => now()->toDateString(),
+        ])->assertCreated();
+
+        $this->postJson("/api/v1/sales/{$saleId}/returns", [
+            'return_date' => now()->toDateString(),
+            'refund_method' => 'credit_note',
+            'items' => [[
+                'sale_item_id' => $sale->items->first()->id,
+                'quantity' => 1,
+            ]],
+        ])->assertStatus(422)
+            ->assertJsonPath(
+                'message',
+                'Credit notes can only reduce the unpaid balance. Use cash or bank transfer for amounts already paid.'
+            );
+
+        $this->assertDatabaseCount('sale_returns', 0);
     }
 
     protected function createCompletedSale(): array
@@ -254,5 +365,23 @@ class SaleReturnApiTest extends TestCase
         $this->postJson("/api/v1/sales/{$saleId}/complete")->assertOk();
 
         return [$business, $branch, $warehouse, $product, $saleId, $user];
+    }
+
+    protected function createPaymentAccount(Business $business, string $type): PaymentAccount
+    {
+        $accountCode = $type === 'cash' ? '1110' : '1120';
+        $chartAccount = ChartOfAccount::withoutGlobalScopes()
+            ->where('business_id', $business->id)
+            ->where('code', $accountCode)
+            ->firstOrFail();
+
+        return PaymentAccount::withoutGlobalScopes()->create([
+            'business_id' => $business->id,
+            'name' => $type === 'cash' ? 'Main Cash Drawer' : 'Main Bank Account',
+            'account_type' => $type,
+            'opening_balance' => 0,
+            'coa_account_id' => $chartAccount->id,
+            'is_active' => true,
+        ]);
     }
 }

@@ -14,9 +14,20 @@ class StoreSaleReturnRequest extends FormRequest
 
     public function rules(): array
     {
+        $businessId = $this->user()?->business_id;
+
         return [
             'return_date' => ['required', 'date'],
-            'refund_method' => ['nullable', Rule::in(['cash', 'credit_note', 'bank_transfer', 'reward_points'])],
+            'refund_method' => ['required', Rule::in(['cash', 'credit_note', 'bank_transfer'])],
+            'payment_account_id' => [
+                'nullable',
+                'required_if:refund_method,cash,bank_transfer',
+                'prohibited_if:refund_method,credit_note',
+                'uuid',
+                Rule::exists('payment_accounts', 'id')->where(
+                    fn ($query) => $query->where('business_id', $businessId)
+                ),
+            ],
             'notes' => ['nullable', 'string'],
             'items' => ['required', 'array', 'min:1'],
             'items.*.sale_item_id' => ['required', 'uuid'],

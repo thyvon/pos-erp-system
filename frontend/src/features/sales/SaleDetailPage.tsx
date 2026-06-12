@@ -622,6 +622,7 @@ export function SaleDetailPage({ saleId }: SaleDetailPageProps) {
         <SaleReturnDialog
           open={returnOpen}
           sale={sale}
+          paymentAccounts={paymentAccounts}
           isSaving={createReturn.isPending}
           onClose={() => setReturnOpen(false)}
           onSubmit={handleReturn}

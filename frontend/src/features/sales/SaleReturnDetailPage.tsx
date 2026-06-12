@@ -144,6 +144,7 @@ export function SaleReturnDetailPage({ saleReturnId }: SaleReturnDetailPageProps
               <DetailLine label={t('returns.fields.items')} value={saleReturn.items_count.toLocaleString()} />
               <DetailLine label={t('returns.fields.total')} value={formatMoney(saleReturn.total_amount, currencyFormatter)} />
               <DetailLine label={t('returns.fields.refundMethod')} value={saleReturn.refund_method ? t(`returns.refundMethods.${saleReturn.refund_method}`) : '-'} />
+              <DetailLine label={t('returns.fields.paymentAccount')} value={saleReturn.payment_account?.name ?? '-'} />
             </Box>
 
             <TableContainer sx={{ overflowX: 'auto' }}>

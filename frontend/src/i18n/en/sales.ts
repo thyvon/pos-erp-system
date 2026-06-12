@@ -373,6 +373,7 @@ const sales = {
       sale: 'Sale',
       returnDate: 'Return date',
       refundMethod: 'Refund method',
+      paymentAccount: 'Refund account',
       notes: 'Notes',
       items: 'Items',
       total: 'Total',
@@ -388,13 +389,19 @@ const sales = {
       autoLot: 'Auto-select lot',
       selectSerials: 'Select serials',
       invalid: 'Check the return details and try again.',
+      noRefundAccounts: 'No active account is available for this refund method.',
+      paymentAccountHelp: 'The refund will be recorded as money leaving this account.',
+    },
+    refundHelp: {
+      credit_note: 'Reduces only the customer balance that has not been paid yet.',
+      cash: 'Returns money already paid by the customer from a cash account.',
+      bank_transfer: 'Returns money already paid by the customer from a bank account.',
     },
     refundMethods: {
       none: 'No refund method',
       cash: 'Cash',
       credit_note: 'Credit note',
       bank_transfer: 'Bank transfer',
-      reward_points: 'Reward points',
     },
     statuses: {
       completed: 'Completed',
