@@ -101,6 +101,7 @@ import { useAppCurrency, useCurrencyFormatter } from '@/features/settings/useApp
 import { useAppDateFormat } from '@/features/settings/useAppDateFormat'
 import { useTaxRatesQuery } from '@/features/tax-rates/hooks'
 import { useWarehousesQuery } from '@/features/warehouses/hooks'
+import { useDefaultWarehouseSelection } from '@/features/warehouses/useDefaultWarehouseSelection'
 import { useAuthStore } from '@/stores/authStore'
 import { useUIStore } from '@/stores/uiStore'
 import { useSettingsGroupQuery } from '@/features/settings/hooks'
@@ -314,6 +315,19 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
   const canAddPaymentLines = (isEdit ? can('payments.create') && currentSaleStatus === 'completed' : true)
   const defaultExchangeRateValue = toNumber(defaultExchangeRate?.rate)
   const selectedWarehouse = warehouses.find((warehouse) => warehouse.id === warehouseId) ?? null
+  const selectDefaultWarehouse = useCallback((warehouse: (typeof warehouses)[number]) => {
+    setValue('warehouse_id', warehouse.id, { shouldDirty: false, shouldValidate: true })
+    if (warehouse.branch_id) {
+      setValue('branch_id', warehouse.branch_id, { shouldDirty: false, shouldValidate: true })
+    }
+  }, [setValue])
+
+  useDefaultWarehouseSelection({
+    warehouses,
+    warehouseId,
+    onWarehouseChange: selectDefaultWarehouse,
+    enabled: !isEdit,
+  })
   const selectedOpenCashRegister = useMemo(() => {
     if (!branchId) return null
 
@@ -368,20 +382,6 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
       canCapturePayment: !suspended && (!isEdit || currentSaleStatus === 'completed'),
     }
   }, [watchedDirectPayments, defaultExchangeRateValue, totals.total, saleType, isEdit, currentSaleStatus])
-
-  useEffect(() => {
-    if (warehouses.length > 0 && !warehouseId && currentUser?.default_warehouse_id) {
-      const defaultWh = warehouses.find((w) => w.id === currentUser.default_warehouse_id)
-      if (defaultWh) {
-        if (defaultWh.id != null) {
-          setValue('warehouse_id', String(defaultWh.id), { shouldDirty: true, shouldValidate: true })
-        }
-        if (defaultWh.branch_id != null) {
-          setValue('branch_id', String(defaultWh.branch_id), { shouldDirty: true, shouldValidate: true })
-        }
-      }
-    }
-  }, [warehouses, warehouseId, currentUser?.default_warehouse_id, setValue])
 
   useEffect(() => {
     if (!currentSale) return

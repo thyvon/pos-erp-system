@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useFieldArray, useForm, useWatch, type Control, type FieldErrors, type UseFormSetValue } from 'react-hook-form'
@@ -51,6 +51,7 @@ import { usePriceGroupsQuery } from '@/features/price-groups/hooks'
 import { useAppCurrency, useCurrencyFormatter } from '@/features/settings/useAppCurrency'
 import { useTaxRatesQuery } from '@/features/tax-rates/hooks'
 import { useWarehousesQuery } from '@/features/warehouses/hooks'
+import { useDefaultWarehouseSelection } from '@/features/warehouses/useDefaultWarehouseSelection'
 import { useAuthStore } from '@/stores/authStore'
 import {
   useCreateSaleMutation,
@@ -432,6 +433,19 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
     () => warehouses.find((warehouse) => warehouse.id === warehouseId) ?? null,
     [warehouseId, warehouses],
   )
+  const selectDefaultWarehouse = useCallback((warehouse: (typeof warehouses)[number]) => {
+    setValue('warehouse_id', warehouse.id, { shouldDirty: false, shouldValidate: true })
+    if (warehouse.branch_id) {
+      setValue('branch_id', warehouse.branch_id, { shouldDirty: false, shouldValidate: true })
+    }
+  }, [setValue])
+
+  useDefaultWarehouseSelection({
+    warehouses,
+    warehouseId,
+    onWarehouseChange: selectDefaultWarehouse,
+    enabled: !isEdit,
+  })
   const shouldBlockOverStock = !isQuotationMode && saleType !== 'quotation' && selectedWarehouse?.allow_negative_stock === false
   const customers = useMemo(() => {
     const baseCustomers = customersQuery.data?.data ?? []

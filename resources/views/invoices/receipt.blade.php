@@ -18,10 +18,8 @@
   $isSmallPaper = $paperSize === '58mm';
 @endphp
 <title>{{ $documentTitle }} {{ $sale->sale_number }}</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,100..900;1,100..900&family=Kantumruy+Pro:ital,wght@0,100..700;1,100..700&display=swap" rel="stylesheet">
 <style>
+@include('invoices.partials.font-face')
 @page {
     size: {{ $paperSize }} auto;
     margin: 0;
@@ -29,7 +27,7 @@
 * { box-sizing: border-box; }
 body {
     margin: 0; padding: {{ $isSmallPaper ? '2mm' : '4mm' }};
-    font-family: 'Public Sans', 'Kantumruy Pro', sans-serif;
+    font-family: 'Kantumruy Pro', sans-serif;
     font-size: {{ $isSmallPaper ? '8pt' : '9pt' }}; color: #000; background: #fff;
     line-height: 1.3;
 }

@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo, useRef, useState } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form'
 import {
@@ -54,6 +54,7 @@ import {
   type StockOpeningBalanceFormValues,
 } from '@/features/inventory/schema'
 import { useAppDateFormat } from '@/features/settings/useAppDateFormat'
+import { useDefaultWarehouseSelection } from '@/features/warehouses/useDefaultWarehouseSelection'
 import { useAuthStore } from '@/stores/authStore'
 import { formatAppDate } from '@/utils/dateFormat'
 import type {
@@ -138,6 +139,7 @@ function OpeningBalanceDialog({
     handleSubmit,
     reset,
     setError,
+    setValue,
     formState: { errors },
   } = useForm<StockOpeningBalanceFormInput, unknown, StockOpeningBalanceFormValues>({
     resolver: zodResolver(stockOpeningBalanceSchema),
@@ -146,6 +148,16 @@ function OpeningBalanceDialog({
   const { fields, append, remove } = useFieldArray({ control, name: 'items', keyName: 'fieldId' })
   const warehouseId = useWatch({ control, name: 'warehouse_id' })
   const watchedItems = useWatch({ control, name: 'items' }) ?? []
+  const selectDefaultWarehouse = useCallback((warehouse: InventoryWarehouseOption) => {
+    setValue('warehouse_id', warehouse.id, { shouldDirty: false, shouldValidate: true })
+  }, [setValue])
+
+  useDefaultWarehouseSelection({
+    warehouses,
+    warehouseId,
+    onWarehouseChange: selectDefaultWarehouse,
+    enabled: open,
+  })
 
   const addLookupItem = (item: InventoryProductLookupItem) => {
     append({

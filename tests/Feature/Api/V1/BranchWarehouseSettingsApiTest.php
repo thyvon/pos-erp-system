@@ -75,6 +75,32 @@ class BranchWarehouseSettingsApiTest extends TestCase
             ->assertJsonMissing(['name' => 'Branch B']);
     }
 
+    public function test_warehouses_index_only_returns_warehouses_assigned_to_user(): void
+    {
+        $business = Business::factory()->create();
+        $admin = User::factory()->for($business)->create();
+        $admin->assignRole('admin');
+        $branch = Branch::factory()->for($business)->create();
+        $admin->branches()->sync([$branch->id]);
+        $assignedWarehouse = Warehouse::factory()->forBranch($branch)->create(['name' => 'Assigned Warehouse']);
+        Warehouse::factory()->forBranch($branch)->create(['name' => 'Unassigned Warehouse']);
+        $admin->warehouses()->sync([$assignedWarehouse->id]);
+        $admin->forceFill([
+            'default_branch_id' => $branch->id,
+            'default_warehouse_id' => $assignedWarehouse->id,
+        ])->save();
+
+        Sanctum::actingAs($admin);
+
+        $response = $this->getJson('/api/v1/warehouses');
+
+        $response
+            ->assertOk()
+            ->assertJsonPath('meta.total', 1)
+            ->assertJsonFragment(['name' => 'Assigned Warehouse'])
+            ->assertJsonMissing(['name' => 'Unassigned Warehouse']);
+    }
+
     public function test_setting_one_default_branch_clears_default_flag_on_other_branches(): void
     {
         $business = Business::factory()->create();

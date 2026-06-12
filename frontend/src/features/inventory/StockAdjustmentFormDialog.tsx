@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form'
 import {
@@ -31,6 +31,7 @@ import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
 import { InventoryProductLookupPicker } from './components/InventoryProductLookupPicker'
+import { useDefaultWarehouseSelection } from '@/features/warehouses/useDefaultWarehouseSelection'
 import {
   stockAdjustmentSchema,
   type StockAdjustmentFormInput,
@@ -141,6 +142,7 @@ export function StockAdjustmentFormDialog({
     handleSubmit,
     reset,
     setError,
+    setValue,
     formState: { errors },
   } = useForm<StockAdjustmentFormInput, unknown, StockAdjustmentFormValues>({
     resolver: zodResolver(stockAdjustmentSchema),
@@ -156,6 +158,16 @@ export function StockAdjustmentFormDialog({
   const warehouseId = useWatch({ control, name: 'warehouse_id' })
   const warehouseOptions = useMemo(() => warehouses, [warehouses])
   const isEdit = !!adjustment
+  const selectDefaultWarehouse = useCallback((warehouse: InventoryWarehouseOption) => {
+    setValue('warehouse_id', warehouse.id, { shouldDirty: false, shouldValidate: true })
+  }, [setValue])
+
+  useDefaultWarehouseSelection({
+    warehouses: warehouseOptions,
+    warehouseId,
+    onWarehouseChange: selectDefaultWarehouse,
+    enabled: open && !isEdit,
+  })
 
   useEffect(() => {
     if (open) {

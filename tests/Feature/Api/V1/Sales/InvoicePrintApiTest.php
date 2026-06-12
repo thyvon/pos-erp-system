@@ -54,6 +54,43 @@ class InvoicePrintApiTest extends TestCase
             ->assertSee($sale->sale_number, false);
     }
 
+    public function test_all_invoice_templates_use_the_local_mixed_language_font(): void
+    {
+        [$user, $sale] = $this->invoiceFixtures();
+
+        Sanctum::actingAs($user);
+
+        foreach (['classic', 'modern', 'receipt'] as $template) {
+            $response = $this->get("/api/v1/sales/{$sale->id}/invoice-preview?template={$template}");
+
+            $response
+                ->assertOk()
+                ->assertSee("font-family: 'Kantumruy Pro'", false)
+                ->assertSee('fonts/kantumruy-pro/kantumruy-pro-khmer-400-normal.woff2', false)
+                ->assertSee('fonts/kantumruy-pro/kantumruy-pro-latin-400-normal.woff2', false)
+                ->assertSee('fonts/kantumruy-pro/kantumruy-pro-400-normal.ttf', false)
+                ->assertSee('Mixed Product ផលិតផល', false)
+                ->assertDontSee('fonts.googleapis.com', false)
+                ->assertDontSee('Public Sans', false);
+        }
+    }
+
+    public function test_mixed_language_invoice_can_be_downloaded_as_pdf(): void
+    {
+        [$user, $sale] = $this->invoiceFixtures();
+
+        Sanctum::actingAs($user);
+
+        $response = $this->get("/api/v1/sales/{$sale->id}/invoice-download?template=classic");
+
+        $response
+            ->assertOk()
+            ->assertHeader('Content-Type', 'application/pdf');
+
+        $this->assertStringContainsString('%PDF-', $response->getContent());
+        $this->assertStringContainsString('Kantumruy', $response->getContent());
+    }
+
     public function test_user_without_sale_branch_access_cannot_preview_invoice(): void
     {
         [, $sale, $business] = $this->invoiceFixtures();
@@ -75,6 +112,7 @@ class InvoicePrintApiTest extends TestCase
         $product = Product::factory()->create([
             'business_id' => $business->id,
             'unit_id' => $unit->id,
+            'name' => 'Mixed Product ផលិតផល',
             'selling_price' => 20,
             'purchase_price' => 8,
         ]);

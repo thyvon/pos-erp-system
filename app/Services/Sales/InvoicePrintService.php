@@ -7,6 +7,7 @@ use App\Models\Business;
 use App\Services\Foundation\SettingsService;
 use App\Support\Sales\InvoiceTemplateRegistry;
 use Barryvdh\DomPDF\Facade\Pdf;
+use Illuminate\Support\Facades\File;
 
 class InvoicePrintService
 {
@@ -58,11 +59,50 @@ class InvoicePrintService
     public function renderPdf(Sale $sale, ?string $template = null): \Barryvdh\DomPDF\PDF
     {
         $html = $this->renderHtml($sale, $template);
+        $html = $this->useLocalFontUrls($html);
 
-        return Pdf::loadHTML($html)
-            ->setPaper('a4')
+        $pdf = Pdf::setPaper('a4')
             ->setOption('isRemoteEnabled', true)
             ->setOption('isHtml5ParserEnabled', true);
+
+        $this->registerPdfFonts($pdf);
+
+        return $pdf
+            ->loadHTML($html)
+            ->setPaper('a4')
+            ->setOption('isRemoteEnabled', true);
+    }
+
+    protected function useLocalFontUrls(string $html): string
+    {
+        $publicFontPath = str_replace('\\', '/', public_path('fonts/kantumruy-pro'));
+        $localFontUrl = str_starts_with($publicFontPath, '/')
+            ? "file://{$publicFontPath}/"
+            : "file:///{$publicFontPath}/";
+
+        return str_replace(
+            asset('fonts/kantumruy-pro').'/',
+            $localFontUrl,
+            $html
+        );
+    }
+
+    protected function registerPdfFonts(\Barryvdh\DomPDF\PDF $pdf): void
+    {
+        $dompdf = $pdf->getDomPDF();
+        File::ensureDirectoryExists($dompdf->getOptions()->getFontDir());
+        $fontMetrics = $dompdf->getFontMetrics();
+
+        foreach ([300, 400, 600, 700] as $weight) {
+            $fontMetrics->registerFont(
+                [
+                    'family' => 'Kantumruy Pro',
+                    'style' => 'normal',
+                    'weight' => $weight,
+                ],
+                public_path("fonts/kantumruy-pro/kantumruy-pro-{$weight}-normal.ttf")
+            );
+        }
     }
 
     protected function getInvoiceSettings(Sale $sale): array

@@ -7,13 +7,11 @@
   $documentLabel = $sale->type === 'pos_sale' ? __('Receipt') : __('Invoice');
 @endphp
 <title>{{ $documentTitle }} {{ $sale->sale_number }}</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,100..900;1,100..900&family=Kantumruy+Pro:ital,wght@0,100..700;1,100..700&display=swap" rel="stylesheet">
 <style>
+  @include('invoices.partials.font-face')
   @page { margin: 0; }
   body {
-    font-family: 'Public Sans', 'Kantumruy Pro', sans-serif;
+    font-family: 'Kantumruy Pro', sans-serif;
     font-size: 9.5pt;
     color: #333;
     line-height: 1.6;

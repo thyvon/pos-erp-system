@@ -1,9 +1,9 @@
 'use client'
 
-import { useState } from 'react'
+import { useCallback, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Controller, useForm } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import {
   Alert,
   Autocomplete,
@@ -24,6 +24,7 @@ import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
 import { useCreateStockCountMutation, useInventoryOptionsQuery } from './hooks'
+import { useDefaultWarehouseSelection } from '@/features/warehouses/useDefaultWarehouseSelection'
 import { stockCountSchema, type StockCountFormInput, type StockCountFormValues } from './schema'
 import type { InventoryWarehouseOption, StockCountPayload } from '@/types/inventory'
 
@@ -62,10 +63,21 @@ export function StockCountFormPage() {
     control,
     handleSubmit,
     setError,
+    setValue,
     formState: { errors },
   } = useForm<StockCountFormInput, unknown, StockCountFormValues>({
     resolver: zodResolver(stockCountSchema),
     defaultValues: getDefaultValues(),
+  })
+  const warehouseId = useWatch({ control, name: 'warehouse_id' })
+  const selectDefaultWarehouse = useCallback((warehouse: InventoryWarehouseOption) => {
+    setValue('warehouse_id', warehouse.id, { shouldDirty: false, shouldValidate: true })
+  }, [setValue])
+
+  useDefaultWarehouseSelection({
+    warehouses: warehouseOptions,
+    warehouseId,
+    onWarehouseChange: selectDefaultWarehouse,
   })
 
   const submitForm = async (values: StockCountFormValues) => {

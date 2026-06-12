@@ -1,8 +1,8 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Controller, useForm } from 'react-hook-form'
+import { Controller, useForm, useWatch } from 'react-hook-form'
 import {
   Alert,
   Box,
@@ -22,6 +22,7 @@ import {
 } from '@mui/material'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
+import { useDefaultWarehouseSelection } from '@/features/warehouses/useDefaultWarehouseSelection'
 import {
   rackLocationSchema,
   type RackLocationFormInput,
@@ -109,10 +110,22 @@ export function RackLocationFormDialog({
     handleSubmit,
     reset,
     setError,
+    setValue,
     formState: { errors },
   } = useForm<RackLocationFormInput, unknown, RackLocationFormValues>({
     resolver: zodResolver(rackLocationSchema),
     defaultValues,
+  })
+  const warehouseId = useWatch({ control, name: 'warehouse_id' })
+  const selectDefaultWarehouse = useCallback((warehouse: Warehouse) => {
+    setValue('warehouse_id', warehouse.id, { shouldDirty: false, shouldValidate: true })
+  }, [setValue])
+
+  useDefaultWarehouseSelection({
+    warehouses: warehouseOptions,
+    warehouseId,
+    onWarehouseChange: selectDefaultWarehouse,
+    enabled: open && !rackLocation,
   })
 
   useEffect(() => {

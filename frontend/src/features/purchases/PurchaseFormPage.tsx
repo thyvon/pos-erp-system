@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form'
@@ -29,6 +29,7 @@ import PageLoader from '@/components/ui/PageLoader'
 import { SupplierFormDialog } from '@/features/suppliers/SupplierFormDialog'
 import { useCreateSupplierMutation, useSuppliersQuery } from '@/features/suppliers/hooks'
 import { useWarehousesQuery } from '@/features/warehouses/hooks'
+import { useDefaultWarehouseSelection } from '@/features/warehouses/useDefaultWarehouseSelection'
 import { useCustomFieldsQuery } from '@/features/custom-fields/hooks'
 import { useAuthStore } from '@/stores/authStore'
 import type { InventoryProductLookupItem } from '@/types/inventory'
@@ -137,6 +138,19 @@ export function PurchaseFormPage({ purchaseId }: PurchaseFormPageProps) {
   const watchedItemsValue = useWatch({ control, name: 'items' })
   const watchedItems = useMemo(() => watchedItemsValue ?? [], [watchedItemsValue])
   const warehouses = useMemo(() => warehousesQuery.data?.data ?? [], [warehousesQuery.data?.data])
+  const selectDefaultWarehouse = useCallback((warehouse: (typeof warehouses)[number]) => {
+    setValue('warehouse_id', warehouse.id, { shouldDirty: false, shouldValidate: true })
+    if (warehouse.branch_id) {
+      setValue('branch_id', warehouse.branch_id, { shouldDirty: false, shouldValidate: true })
+    }
+  }, [setValue])
+
+  useDefaultWarehouseSelection({
+    warehouses,
+    warehouseId,
+    onWarehouseChange: selectDefaultWarehouse,
+    enabled: !isEdit,
+  })
 
   const supplierCustomFields = useMemo(
     () => [...(supplierCustomFieldsQuery.data?.data ?? [])].sort((a, b) => {

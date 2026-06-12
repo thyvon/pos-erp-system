@@ -41,6 +41,8 @@ export interface User {
   allowed_branches: AllowedBranch[]
   branches?: Array<AllowedBranch & { code?: string; is_default?: boolean; is_active?: boolean }>
   branch_ids?: string[]
+  warehouses?: Array<AllowedBranch & { code?: string; is_default?: boolean; is_active?: boolean }>
+  warehouse_ids?: string[]
   default_branch?: (AllowedBranch & { code?: string }) | null
   default_warehouse_id?: string | null
   default_warehouse?: (AllowedBranch & { code?: string }) | null

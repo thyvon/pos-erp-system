@@ -24,15 +24,13 @@
   $businessNameEn = $business->name;
 @endphp
 <title>{{ $documentTitle }} {{ $sale->sale_number }}</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,100..900;1,100..900&family=Kantumruy+Pro:ital,wght@0,100..700;1,100..700&display=swap" rel="stylesheet">
 <style>
+@include('invoices.partials.font-face')
 @page { size: A4 portrait; margin: 8mm; }
 * { box-sizing: border-box; }
 body {
     margin: 0; padding: 0;
-    font-family: 'Public Sans', 'Kantumruy Pro', sans-serif;
+    font-family: 'Kantumruy Pro', sans-serif;
     font-size: 11px; color: #000; background: #fff;
 }
 .invoice { width: 194mm; min-height: 281mm; margin: 0 auto; background: #fff; }

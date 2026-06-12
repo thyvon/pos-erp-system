@@ -17,19 +17,21 @@ export function printHtmlInFrame(html: string, title: string, frameUnavailableMe
     window.setTimeout(() => frame.remove(), 1_000)
   }
 
-  frame.onload = () => {
-    window.setTimeout(() => {
-      frame.contentWindow?.focus()
-      frame.contentWindow?.print()
-      cleanup()
-    }, 200)
-  }
-
   const frameDocument = frame.contentDocument
 
   if (!frameDocument) {
     frame.remove()
     throw new Error(frameUnavailableMessage)
+  }
+
+  frame.onload = () => {
+    void frameDocument.fonts.ready.then(() => {
+      window.setTimeout(() => {
+        frame.contentWindow?.focus()
+        frame.contentWindow?.print()
+        cleanup()
+      }, 100)
+    })
   }
 
   frameDocument.open()

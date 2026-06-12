@@ -6,6 +6,7 @@ use App\Models\Warehouse;
 use App\Models\User;
 use App\Repositories\BaseRepository;
 use App\Support\BranchAccess;
+use App\Support\WarehouseAccess;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class WarehouseRepository extends BaseRepository
@@ -46,6 +47,9 @@ class WarehouseRepository extends BaseRepository
             ->orderBy('name');
 
         BranchAccess::scopeBranchQuery($query, $branchAccessScope, 'branch_id');
+        if ($branchAccessScope instanceof User) {
+            WarehouseAccess::scopeWarehouseQuery($query, $branchAccessScope, 'id');
+        }
 
         return $query->paginate($perPage)->withQueryString();
     }
