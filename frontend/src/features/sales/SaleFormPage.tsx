@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
-import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form'
+import { Controller, useFieldArray, useForm, useWatch, type Control, type FieldErrors, type UseFormSetValue } from 'react-hook-form'
 import {
   Alert,
   Autocomplete,
@@ -32,7 +32,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
-import { Add, ArrowBack, DangerCircleOutlined, DeleteOutlined, SaveOutlined } from '@/components/ui/icons'
+import { Add, ArrowBack, DeleteOutlined, SaveOutlined } from '@/components/ui/icons'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
@@ -42,9 +42,11 @@ import { useCreateCustomerMutation, useCustomersQuery } from '@/features/custome
 import { CustomerFormDialog } from '@/features/customers/CustomerFormDialog'
 import { useCustomerGroupsQuery } from '@/features/customer-groups/hooks'
 import { useCustomFieldsQuery } from '@/features/custom-fields/hooks'
+import { InventoryLookupLineSummary } from '@/features/inventory/components/InventoryLookupLineSummary'
 import { UnitConversionBadge } from '@/features/sales/components/UnitConversionBadge'
 import { UnitToggle } from '@/features/sales/components/UnitToggle'
 import { InventoryProductLookupPicker } from '@/features/inventory/components/InventoryProductLookupPicker'
+import { useStockLotsQuery, useStockSerialsQuery } from '@/features/inventory/hooks'
 import { usePriceGroupsQuery } from '@/features/price-groups/hooks'
 import { useAppCurrency, useCurrencyFormatter } from '@/features/settings/useAppCurrency'
 import { useTaxRatesQuery } from '@/features/tax-rates/hooks'
@@ -80,6 +82,7 @@ import type { Warehouse } from '@/types/warehouse'
 import type { Customer, CustomerPayload } from '@/types/customer'
 import type { PriceGroup } from '@/types/priceGroup'
 import type { TaxRate } from '@/types/taxRate'
+import type { StockLot, StockSerial } from '@/types/inventory'
 
 interface SaleFormPageProps {
   saleId?: string
@@ -87,7 +90,8 @@ interface SaleFormPageProps {
 }
 
 const itemColumnSx = {
-  product: { width: 310, minWidth: 310 },
+  product: { width: 320, minWidth: 320 },
+  tracking: { width: 260, minWidth: 260 },
   unit: { width: 110, minWidth: 110 },
   quantity: { width: 130, minWidth: 130 },
   price: { width: 150, minWidth: 150 },
@@ -107,6 +111,25 @@ const directPaymentColumnSx = {
   reference: { width: 220, minWidth: 220 },
   converted: { width: 160, minWidth: 160 },
   actions: { width: 72, minWidth: 72 },
+} as const
+
+const formSectionSx = { minWidth: 0, maxWidth: '100%' } as const
+
+const scrollTableContainerSx = {
+  border: 1,
+  borderColor: 'divider',
+  borderRadius: 1,
+  overflowX: 'auto',
+  width: '100%',
+  maxWidth: '100%',
+} as const
+
+const selectSlotProps = {
+  select: {
+    MenuProps: {
+      disableScrollLock: true,
+    },
+  },
 } as const
 
 const saleTypes = ['invoice', 'pos_sale', 'draft', 'suspended', 'quotation'] as const
@@ -135,13 +158,215 @@ function paymentAccountLabel(account: PaymentAccount) {
   return [account.name, account.type].filter(Boolean).join(' / ')
 }
 
-function InstructionTooltip({ title }: { title: string }) {
+function lotLabel(lot: StockLot) {
+  const parts = [
+    lot.lot_number,
+    lot.expiry_date ? `Exp: ${lot.expiry_date}` : null,
+    `Available: ${lot.qty_available}`,
+  ].filter(Boolean)
+
+  return parts.join(' / ')
+}
+
+function serialLabel(serial: StockSerial) {
+  return [serial.serial_number, serial.status].filter(Boolean).join(' / ')
+}
+
+interface StockCheckItem {
+  quantity?: unknown
+  sub_unit_id?: string | null
+  _conversion_factor?: string | number | null
+  available_quantity?: string | number | null
+}
+
+function requestedBaseQuantity(item: StockCheckItem | undefined) {
+  const quantity = toNumber(item?.quantity)
+  const conversionFactor = item?.sub_unit_id ? toNumber(item?._conversion_factor, 1) : 1
+
+  return round(quantity * (conversionFactor > 0 ? conversionFactor : 1))
+}
+
+function itemAvailableQuantity(item: StockCheckItem | undefined) {
+  const available = item?.available_quantity
+
+  if (available === null || available === undefined || available === '') return null
+
+  return toNumber(available)
+}
+
+function isOverAvailableStock(item: StockCheckItem | undefined) {
+  const available = itemAvailableQuantity(item)
+
+  if (available === null) return false
+
+  return requestedBaseQuantity(item) > available
+}
+
+interface TrackedItemSelectorProps {
+  index: number
+  item: Partial<SaleFormInput['items'][number]> | undefined
+  warehouseId: string
+  disabled: boolean
+  control: Control<SaleFormInput, unknown, SaleFormValues>
+  errors: FieldErrors<SaleFormInput>
+  setValue: UseFormSetValue<SaleFormInput>
+}
+
+function TrackedItemSelector({ index, item, warehouseId, disabled, control, errors, setValue }: TrackedItemSelectorProps) {
+  const tracking = item?.stock_tracking
+
+  if (tracking === 'lot') {
+    return (
+      <LotItemSelector
+        index={index}
+        item={item}
+        warehouseId={warehouseId}
+        disabled={disabled}
+        control={control}
+        errors={errors}
+        setValue={setValue}
+      />
+    )
+  }
+
+  if (tracking === 'serial') {
+    return (
+      <SerialItemSelector
+        index={index}
+        item={item}
+        warehouseId={warehouseId}
+        disabled={disabled}
+        control={control}
+        errors={errors}
+        setValue={setValue}
+      />
+    )
+  }
+
+  return null
+}
+
+function LotItemSelector({ index, item, warehouseId, disabled, control, errors, setValue }: TrackedItemSelectorProps) {
+  const { t } = useTranslation('sales')
+  const productId = item?.product_id ?? ''
+  const variationId = item?.variation_id ?? null
+
+  const lotsQuery = useStockLotsQuery({
+    warehouse_id: warehouseId,
+    product_id: productId,
+    variation_id: variationId ?? undefined,
+    status: 'active',
+    per_page: 100,
+  })
+
+  const lots = lotsQuery.data?.data ?? []
+
   return (
-    <Tooltip title={title}>
-      <IconButton size="small" color="warning" sx={{ ml: 0.5 }} aria-label={title}>
-        <DangerCircleOutlined fontSize="small" />
-      </IconButton>
-    </Tooltip>
+    <Controller
+      name={`items.${index}.lot_id`}
+      control={control}
+      render={({ field }) => {
+        const currentLot = lots.find((lot) => lot.id === field.value)
+        const selectedLot = currentLot ?? (field.value
+          ? {
+            id: field.value,
+            lot_number: item?.lot_number ?? field.value,
+            expiry_date: null,
+            qty_available: item?.available_quantity ?? '-',
+          } as StockLot
+          : null)
+        const options = selectedLot && !currentLot ? [selectedLot, ...lots] : lots
+
+        return (
+          <Autocomplete
+            options={options}
+            value={selectedLot}
+            loading={lotsQuery.isLoading}
+            disabled={disabled || !warehouseId || !productId}
+            getOptionLabel={lotLabel}
+            isOptionEqualToValue={(option, value) => option.id === value.id}
+            onBlur={field.onBlur}
+            onChange={(_, lot) => {
+              field.onChange(lot?.id ?? null)
+              setValue(`items.${index}.lot_number`, lot?.lot_number ?? null, { shouldDirty: true, shouldValidate: true })
+              setValue(`items.${index}.serial_id`, null, { shouldDirty: true, shouldValidate: true })
+              setValue(`items.${index}.serial_number`, null, { shouldDirty: true, shouldValidate: true })
+              setValue(`items.${index}.unit_cost`, Number(lot?.unit_cost ?? item?.unit_cost ?? 0), { shouldDirty: true, shouldValidate: true })
+            }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label={t('pos.lineDialog.lotLookup')}
+                error={!!errors.items?.[index]?.lot_id}
+                helperText={errors.items?.[index]?.lot_id?.message}
+              />
+            )}
+          />
+        )
+      }}
+    />
+  )
+}
+
+function SerialItemSelector({ index, item, warehouseId, disabled, control, errors, setValue }: TrackedItemSelectorProps) {
+  const { t } = useTranslation('sales')
+  const productId = item?.product_id ?? ''
+  const variationId = item?.variation_id ?? null
+
+  const serialsQuery = useStockSerialsQuery({
+    warehouse_id: warehouseId,
+    product_id: productId,
+    variation_id: variationId ?? undefined,
+    status: 'in_stock',
+    per_page: 100,
+  })
+
+  const serials = serialsQuery.data?.data ?? []
+
+  return (
+    <Controller
+      name={`items.${index}.serial_id`}
+      control={control}
+      render={({ field }) => {
+        const currentSerial = serials.find((serial) => serial.id === field.value)
+        const selectedSerial = currentSerial ?? (field.value
+          ? {
+            id: field.value,
+            serial_number: item?.serial_number ?? field.value,
+            status: 'selected',
+          } as unknown as StockSerial
+          : null)
+        const options = selectedSerial && !currentSerial ? [selectedSerial, ...serials] : serials
+
+        return (
+          <Autocomplete
+            options={options}
+            value={selectedSerial}
+            loading={serialsQuery.isLoading}
+            disabled={disabled || !warehouseId || !productId}
+            getOptionLabel={serialLabel}
+            isOptionEqualToValue={(option, value) => option.id === value.id}
+            onBlur={field.onBlur}
+            onChange={(_, serial) => {
+              field.onChange(serial?.id ?? null)
+              setValue(`items.${index}.serial_number`, serial?.serial_number ?? null, { shouldDirty: true, shouldValidate: true })
+              setValue(`items.${index}.lot_id`, null, { shouldDirty: true, shouldValidate: true })
+              setValue(`items.${index}.lot_number`, null, { shouldDirty: true, shouldValidate: true })
+              setValue(`items.${index}.quantity`, serial ? 1 : item?.quantity ?? 1, { shouldDirty: true, shouldValidate: true })
+              setValue(`items.${index}.unit_cost`, Number(serial?.unit_cost ?? item?.unit_cost ?? 0), { shouldDirty: true, shouldValidate: true })
+            }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label={t('pos.lineDialog.serialLookup')}
+                error={!!errors.items?.[index]?.serial_id}
+                helperText={errors.items?.[index]?.serial_id?.message}
+              />
+            )}
+          />
+        )
+      }}
+    />
   )
 }
 
@@ -203,6 +428,11 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
   const defaultExchangeRateQuery = useDefaultExchangeRateQuery('USD', 'KHR')
 
   const warehouses = useMemo(() => warehousesQuery.data?.data ?? [], [warehousesQuery.data?.data])
+  const selectedWarehouse = useMemo(
+    () => warehouses.find((warehouse) => warehouse.id === warehouseId) ?? null,
+    [warehouseId, warehouses],
+  )
+  const shouldBlockOverStock = !isQuotationMode && saleType !== 'quotation' && selectedWarehouse?.allow_negative_stock === false
   const customers = useMemo(() => {
     const baseCustomers = customersQuery.data?.data ?? []
     if (!createdCustomer || baseCustomers.some((c) => c.id === createdCustomer.id)) {
@@ -239,6 +469,21 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
     () => watchedItems.map((item) => lineTotal(item, taxScope)),
     [watchedItems, taxScope],
   )
+  const hasSubUnitLines = useMemo(
+    () => itemFields.some((field, index) => Boolean((watchedItems[index] ?? field)._sub_unit_option_id)),
+    [itemFields, watchedItems],
+  )
+  const saleItemsTableColumnCount = hasSubUnitLines ? 11 : 10
+  const saleItemsTableMinWidth = hasSubUnitLines ? 1580 : 1470
+  const overStockLineIndexes = useMemo(
+    () => shouldBlockOverStock
+      ? watchedItems
+        .map((item, index) => isOverAvailableStock(item) ? index : null)
+        .filter((index): index is number => index !== null)
+      : [],
+    [shouldBlockOverStock, watchedItems],
+  )
+  const hasOverStockLines = overStockLineIndexes.length > 0
   const currentSale = saleQuery.data ?? null
   const currentSaleStatus = currentSale?.status
   const existingPayments = useMemo(
@@ -403,6 +648,20 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
   const submitForm = async (values: SaleFormValues) => {
     if (isSubmittingSale) return
 
+    if (shouldBlockOverStock) {
+      const firstOverStockIndex = values.items.findIndex((item) => isOverAvailableStock(item))
+
+      if (firstOverStockIndex >= 0) {
+        const message = t('form.overStockBlocked', {
+          available: values.items[firstOverStockIndex]?.available_quantity ?? 0,
+        })
+        setError(`items.${firstOverStockIndex}.quantity`, { type: 'validate', message })
+        setServerError(t('form.overStockSubmitBlocked'))
+        enqueueSnackbar(t('form.overStockSubmitBlocked'), { variant: 'warning' })
+        return
+      }
+    }
+
     setIsSubmittingSale(true)
     setServerError('')
 
@@ -505,12 +764,9 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
     <Stack spacing={3}>
       <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ justifyContent: 'space-between' }}>
         <Box>
-          <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
-            <Typography variant="h4">
-              {isQuotationMode ? t('quotations.form.createTitle') : t(isEdit ? 'form.editTitle' : 'form.createTitle')}
-            </Typography>
-            <InstructionTooltip title={isQuotationMode ? t('quotations.form.subtitle') : t('form.subtitle')} />
-          </Stack>
+          <Typography variant="h4">
+            {isQuotationMode ? t('quotations.form.createTitle') : t(isEdit ? 'form.editTitle' : 'form.createTitle')}
+          </Typography>
         </Box>
         <Tooltip title={isQuotationMode ? t('quotations.actions.backToQuotations') : t('actions.backToSales')}>
           <IconButton
@@ -525,14 +781,14 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
 
       {saleQuery.isError && <Alert severity="error">{toAppApiError(saleQuery.error).message}</Alert>}
 
-      <Box component="form" noValidate onSubmit={handleSubmit(submitForm)}>
-        <Stack spacing={3}>
+      <Box component="form" noValidate onSubmit={handleSubmit(submitForm)} sx={formSectionSx}>
+        <Stack spacing={3} sx={formSectionSx}>
           {serverError && <Alert severity="error">{serverError}</Alert>}
 
-          <Card variant="outlined">
-            <CardContent>
-              <Stack spacing={2.5}>
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1.3fr) minmax(0, 1fr) 180px 180px' }, gap: 2 }}>
+          <Card variant="outlined" sx={formSectionSx}>
+            <CardContent sx={formSectionSx}>
+              <Stack spacing={2.5} sx={formSectionSx}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1.3fr) minmax(0, 1fr) minmax(0, 180px) minmax(0, 180px)' }, gap: 2, minWidth: 0 }}>
                 <Controller
                   name="warehouse_id"
                   control={control}
@@ -573,7 +829,7 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
                     />
                   )}
                 />
-                <Stack direction="row" spacing={1} sx={{ alignItems: 'flex-start' }}>
+                <Stack direction="row" spacing={1} sx={{ alignItems: 'flex-start', minWidth: 0 }}>
                   <Controller
                     name="customer_id"
                     control={control}
@@ -592,7 +848,7 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
                             {...params}
                             label={t('fields.customer')}
                             error={!!errors.customer_id}
-                            helperText={errors.customer_id?.message || t('labels.walkInCustomer')}
+                            helperText={errors.customer_id?.message}
                           />
                         )}
                       />
@@ -632,7 +888,7 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
                     name="type"
                     control={control}
                     render={({ field }) => (
-                      <TextField {...field} select label={t('fields.type')} error={!!errors.type} helperText={errors.type?.message} required>
+                      <TextField {...field} select label={t('fields.type')} error={!!errors.type} helperText={errors.type?.message} required slotProps={selectSlotProps}>
                         {saleTypes.map((type) => <MenuItem key={type} value={type}>{t(`types.${type}`)}</MenuItem>)}
                       </TextField>
                     )}
@@ -640,7 +896,7 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
                 )}
               </Box>
 
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) minmax(0, 1fr)' }, gap: 2, minWidth: 0 }}>
                 <Controller
                   name="due_date"
                   control={control}
@@ -663,7 +919,7 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
                           {...params}
                           label={t('fields.priceGroup')}
                           error={!!errors.price_group_id}
-                          helperText={errors.price_group_id?.message || t('form.noPriceGroup')}
+                          helperText={errors.price_group_id?.message}
                         />
                       )}
                     />
@@ -674,9 +930,9 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
             </CardContent>
           </Card>
 
-          <Card variant="outlined">
-            <CardContent>
-              <Stack spacing={2.5}>
+          <Card variant="outlined" sx={formSectionSx}>
+            <CardContent sx={formSectionSx}>
+              <Stack spacing={2.5} sx={formSectionSx}>
                 <Box>
                   <Typography variant="subtitle2">{t('form.items')}</Typography>
                 </Box>
@@ -687,13 +943,19 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
                   onSelect={addLookupItem}
                 />
                 {typeof errors.items?.message === 'string' && <Alert severity="error">{errors.items.message}</Alert>}
+                {hasOverStockLines && (
+                  <Alert severity="warning">
+                    {t('form.overStockAlert')}
+                  </Alert>
+                )}
 
-                <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1, overflowX: 'auto' }}>
-                  <Table sx={{ minWidth: 1580, tableLayout: 'fixed' }}>
+                <TableContainer sx={scrollTableContainerSx}>
+                  <Table sx={{ minWidth: saleItemsTableMinWidth, tableLayout: 'fixed' }}>
                     <TableHead>
                       <TableRow>
                         <TableCell sx={itemColumnSx.product}>{t('items.product')}</TableCell>
-                        <TableCell sx={itemColumnSx.unit}>{t('items.unit')}</TableCell>
+                        <TableCell sx={itemColumnSx.tracking}>{t('items.lotSerial')}</TableCell>
+                        {hasSubUnitLines && <TableCell sx={itemColumnSx.unit}>{t('items.unit')}</TableCell>}
                         <TableCell sx={itemColumnSx.quantity} align="right">{t('items.quantity')}</TableCell>
                         <TableCell sx={itemColumnSx.price} align="right">{t('items.unitPrice')}</TableCell>
                         <TableCell sx={itemColumnSx.discountType}>{t('items.discountType')}</TableCell>
@@ -707,50 +969,99 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
                     <TableBody>
                       {itemFields.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={10} align="center" sx={{ py: 4 }}>
+                          <TableCell colSpan={saleItemsTableColumnCount} align="center" sx={{ py: 4 }}>
                             <Typography variant="body2" sx={{ color: 'text.secondary' }}>{t('form.emptyItems')}</Typography>
                           </TableCell>
                         </TableRow>
                       )}
-                        {itemFields.map((field, index) => (
+                        {itemFields.map((field, index) => {
+                          const watchedItem = watchedItems[index]
+                          const stockTracking = watchedItem?.stock_tracking ?? field.stock_tracking
+                          const isTrackedItem = stockTracking === 'lot' || stockTracking === 'serial'
+                          const isSerialItem = stockTracking === 'serial'
+                          const quantityOverStock = shouldBlockOverStock && isOverAvailableStock(watchedItem ?? field)
+                          const availableQuantity = itemAvailableQuantity(watchedItem ?? field)
+                          const overStockMessage = quantityOverStock
+                            ? t('form.overStockBlocked', { available: availableQuantity ?? 0 })
+                            : undefined
+
+                          return (
                           <TableRow key={field.fieldId}>
                             <TableCell sx={itemColumnSx.product}>
-                              <Stack spacing={0.25}>
-                                <Typography variant="body2">{field.product_label || field.product_id}</Typography>
-                                <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
-                                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                    {field.sku || '-'}
-                                  </Typography>
-                                  {watchedItems[index]?.sub_unit_id && field._conversion_factor ? (
-                                    <UnitConversionBadge
-                                      conversionFactor={field._conversion_factor}
-                                      baseUnitLabel={field._base_unit_label ?? ''}
-                                      subUnitLabel={field.sub_unit_label ?? ''}
-                                      quantity={Number(watchedItems[index]?.quantity ?? 0)}
-                                    />
-                                  ) : field._base_unit_label ? (
-                                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                                      · {field._base_unit_label}
-                                    </Typography>
-                                  ) : null}
-                                </Stack>
-                              </Stack>
-                            </TableCell>
-                            <TableCell sx={itemColumnSx.unit}>
-                              <UnitToggle
-                                subUnitOptionId={field._sub_unit_option_id ?? null}
-                                currentSubUnitId={field.sub_unit_id ?? null}
-                                baseUnitLabel={field._base_unit_label ?? null}
-                                subUnitLabel={field.sub_unit_label ?? null}
-                                baseUnitPrice={Number(field._base_unit_price ?? 0) || 0}
-                                subUnitPrice={Number(field._sub_unit_price ?? 0) || 0}
-                                disabled={isSaving}
-                                onChange={(nextSubUnitId, nextLabel, nextPrice) => changeItemUnit(index, nextSubUnitId, nextLabel, nextPrice)}
+                              <InventoryLookupLineSummary
+                                productLabel={field.product_label}
+                                fallbackLabel={field.product_id}
+                                sku={field.sku}
+                                unitLabel={field._base_unit_label}
+                                stockTracking={stockTracking}
+                                lotNumber={(watchedItem ?? field).lot_number}
+                                serialNumber={(watchedItem ?? field).serial_number}
+                                availableQuantity={(watchedItem ?? field).available_quantity}
+                                conversion={watchedItems[index]?.sub_unit_id && field._conversion_factor ? (
+                                  <UnitConversionBadge
+                                    conversionFactor={field._conversion_factor}
+                                    baseUnitLabel={field._base_unit_label ?? ''}
+                                    subUnitLabel={field.sub_unit_label ?? ''}
+                                    quantity={Number(watchedItems[index]?.quantity ?? 0)}
+                                  />
+                                ) : undefined}
                               />
                             </TableCell>
+                            <TableCell sx={itemColumnSx.tracking}>
+                              {isTrackedItem ? (
+                                <TrackedItemSelector
+                                  index={index}
+                                  item={watchedItem ?? field}
+                                  warehouseId={warehouseId}
+                                  disabled={isSaving}
+                                  control={control}
+                                  errors={errors}
+                                  setValue={setValue}
+                                />
+                              ) : (
+                                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                  -
+                                </Typography>
+                              )}
+                            </TableCell>
+                            {hasSubUnitLines && (
+                              <TableCell sx={itemColumnSx.unit}>
+                                {(watchedItem ?? field)._sub_unit_option_id ? (
+                                  <UnitToggle
+                                    subUnitOptionId={(watchedItem ?? field)._sub_unit_option_id ?? ''}
+                                    currentSubUnitId={field.sub_unit_id ?? null}
+                                    baseUnitLabel={field._base_unit_label ?? null}
+                                    subUnitLabel={field.sub_unit_label ?? null}
+                                    baseUnitPrice={Number(field._base_unit_price ?? 0) || 0}
+                                    subUnitPrice={Number(field._sub_unit_price ?? 0) || 0}
+                                    disabled={isSaving || isSerialItem}
+                                    onChange={(nextSubUnitId, nextLabel, nextPrice) => changeItemUnit(index, nextSubUnitId, nextLabel, nextPrice)}
+                                  />
+                                ) : (
+                                  <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                                    -
+                                  </Typography>
+                                )}
+                              </TableCell>
+                            )}
                             <TableCell align="right" sx={itemColumnSx.quantity}>
                               <Controller name={`items.${index}.quantity`} control={control} render={({ field }) => (
-                                <TextField {...field} fullWidth type="number" error={!!errors.items?.[index]?.quantity} helperText={errors.items?.[index]?.quantity?.message} required slotProps={{ htmlInput: { min: 0.0001, step: 0.0001 } }} />
+                                <TextField
+                                  {...field}
+                                  fullWidth
+                                  type="number"
+                                  disabled={isSaving || isSerialItem}
+                                  error={!!errors.items?.[index]?.quantity || quantityOverStock}
+                                  helperText={errors.items?.[index]?.quantity?.message || overStockMessage}
+                                  required
+                                  slotProps={{
+                                    htmlInput: {
+                                      min: 0.0001,
+                                      step: 0.0001,
+                                      ...(shouldBlockOverStock && availableQuantity !== null ? { max: availableQuantity } : {}),
+                                    },
+                                  }}
+                                />
                               )} />
                             </TableCell>
                             <TableCell align="right" sx={itemColumnSx.price}>
@@ -760,7 +1071,7 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
                             </TableCell>
                             <TableCell sx={itemColumnSx.discountType}>
                               <Controller name={`items.${index}.discount_type`} control={control} render={({ field }) => (
-                                <TextField {...field} fullWidth value={field.value ?? ''} select error={!!errors.items?.[index]?.discount_type} helperText={errors.items?.[index]?.discount_type?.message}>
+                                <TextField {...field} fullWidth value={field.value ?? ''} select error={!!errors.items?.[index]?.discount_type} helperText={errors.items?.[index]?.discount_type?.message} slotProps={selectSlotProps}>
                                   <MenuItem value="">{t('form.noDiscount')}</MenuItem>
                                   {discountTypes.map((type) => <MenuItem key={type} value={type}>{t(`discountTypes.${type}`)}</MenuItem>)}
                                 </TextField>
@@ -809,7 +1120,7 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
                               </Tooltip>
                             </TableCell>
                           </TableRow>
-                      ))}
+                        )})}
                     </TableBody>
                   </Table>
                 </TableContainer>
@@ -817,12 +1128,12 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
             </CardContent>
           </Card>
 
-          <Card variant="outlined">
-            <CardContent>
-              <Stack spacing={2.5}>
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr 1fr 1fr' }, gap: 2 }}>
+          <Card variant="outlined" sx={formSectionSx}>
+            <CardContent sx={formSectionSx}>
+              <Stack spacing={2.5} sx={formSectionSx}>
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'repeat(4, minmax(0, 1fr))' }, gap: 2, minWidth: 0 }}>
                 <Controller name="discount_type" control={control} render={({ field }) => (
-                  <TextField {...field} value={field.value ?? ''} select label={t('fields.discountType')} error={!!errors.discount_type} helperText={errors.discount_type?.message}>
+                  <TextField {...field} value={field.value ?? ''} select label={t('fields.discountType')} error={!!errors.discount_type} helperText={errors.discount_type?.message} slotProps={selectSlotProps}>
                     <MenuItem value="">{t('form.noDiscount')}</MenuItem>
                     {discountTypes.map((type) => <MenuItem key={type} value={type}>{t(`discountTypes.${type}`)}</MenuItem>)}
                   </TextField>
@@ -845,7 +1156,7 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
               </Box>
 
               {taxScope === 'sale' && (
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) minmax(0, 1fr)' }, gap: 2, minWidth: 0 }}>
                   <Controller name="tax_rate_id" control={control} render={({ field }) => (
                     <Autocomplete
                       options={taxRates}
@@ -864,20 +1175,20 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
                           {...params}
                           label={t('fields.tax')}
                           error={!!errors.tax_rate_id}
-                          helperText={errors.tax_rate_id?.message || t('form.noTax')}
+                          helperText={errors.tax_rate_id?.message}
                         />
                       )}
                     />
                   )} />
                   <Controller name="tax_type" control={control} render={({ field }) => (
-                    <TextField {...field} value={field.value ?? 'exclusive'} select label={t('fields.taxType')} error={!!errors.tax_type} helperText={errors.tax_type?.message}>
+                    <TextField {...field} value={field.value ?? 'exclusive'} select label={t('fields.taxType')} error={!!errors.tax_type} helperText={errors.tax_type?.message} slotProps={selectSlotProps}>
                       {taxTypes.map((type) => <MenuItem key={type} value={type}>{t(`taxTypes.${type}`)}</MenuItem>)}
                     </TextField>
                   )} />
                 </Box>
               )}
 
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(5, 1fr)' }, gap: 2 }}>
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', md: 'repeat(5, minmax(0, 1fr))' }, gap: 2, minWidth: 0 }}>
                 {[
                   ['subtotal', totals.subtotal],
                   ['discount', totals.discount],
@@ -907,9 +1218,9 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
           </Card>
 
           {showPaymentSection && (
-            <Card variant="outlined">
-              <CardContent>
-                <Stack spacing={1.5}>
+            <Card variant="outlined" sx={formSectionSx}>
+              <CardContent sx={formSectionSx}>
+                <Stack spacing={1.5} sx={formSectionSx}>
                   {canTakeDirectPayment && (
                     <>
                     <Stack
@@ -918,10 +1229,7 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
                       sx={{ alignItems: { sm: 'center' }, justifyContent: 'space-between' }}
                     >
                       <Box>
-                        <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
-                          <Typography variant="subtitle2">{t('payment.directTitle')}</Typography>
-                          <InstructionTooltip title={t('payment.directHelp')} />
-                        </Stack>
+                        <Typography variant="subtitle2">{t('payment.directTitle')}</Typography>
                       </Box>
                       <Controller
                         name="direct_payment_enabled"
@@ -969,7 +1277,7 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
                           </Button>
                         </Stack>
 
-                        <TableContainer sx={{ border: 1, borderColor: 'divider', borderRadius: 1, overflowX: 'auto' }}>
+                        <TableContainer sx={scrollTableContainerSx}>
                           <Table sx={{ minWidth: 1214, tableLayout: 'fixed' }}>
                             <TableHead>
                               <TableRow>
@@ -1032,6 +1340,7 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
                                             error={!!errors.direct_payments?.[index]?.payment_currency}
                                             helperText={errors.direct_payments?.[index]?.payment_currency?.message}
                                             required
+                                            slotProps={selectSlotProps}
                                             onChange={(event) => changeDirectPaymentCurrency(index, event.target.value as 'USD' | 'KHR')}
                                           >
                                             <MenuItem value="USD">USD</MenuItem>
@@ -1078,6 +1387,7 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
                                             error={!!errors.direct_payments?.[index]?.method}
                                             helperText={errors.direct_payments?.[index]?.method?.message}
                                             required
+                                            slotProps={selectSlotProps}
                                           >
                                             {paymentMethods.map((method) => (
                                               <MenuItem key={method} value={method}>
@@ -1233,8 +1543,8 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
             </Card>
           )}
 
-          <Card variant="outlined">
-            <CardContent>
+          <Card variant="outlined" sx={formSectionSx}>
+            <CardContent sx={formSectionSx}>
               <Stack spacing={2.5}>
                 <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', md: '1fr 1fr' }, gap: 2 }}>
                   <Controller name="notes" control={control} render={({ field }) => (
@@ -1252,7 +1562,7 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
             <Button variant="outlined" onClick={() => router.push(isQuotationMode ? '/quotations' : isEdit && saleId ? `/sales/${saleId}` : '/sales')} disabled={isSaving}>
               {t('common:buttons.cancel')}
             </Button>
-            <Button type="submit" variant="contained" startIcon={isSaving ? undefined : <SaveOutlined />} disabled={isSaving}>
+            <Button type="submit" variant="contained" startIcon={isSaving ? undefined : <SaveOutlined />} disabled={isSaving || hasOverStockLines}>
               {isSaving ? <CircularProgress size={20} color="inherit" /> : t('common:buttons.save')}
             </Button>
           </Stack>

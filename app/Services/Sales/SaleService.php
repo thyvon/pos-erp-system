@@ -610,7 +610,7 @@ class SaleService
                 ->all();
 
             $this->validateSubUnitEligibility($product, $subUnit);
-            $this->validateTrackedItemShape($product, $quantity, $lots, $serials);
+            $this->validateTrackedItemShape($product, $quantity, $lots, $serials, $inventoryQuantity);
 
             return [
                 'item' => [
@@ -1307,7 +1307,7 @@ class SaleService
         return $account;
     }
 
-    protected function validateTrackedItemShape(Product $product, float $quantity, array $lots, array $serials): void
+    protected function validateTrackedItemShape(Product $product, float $quantity, array $lots, array $serials, ?float $inventoryQuantity = null): void
     {
         if ($lots !== [] && $serials !== []) {
             $this->failValidation('A sale line cannot mix lot allocations and serial allocations.');
@@ -1320,7 +1320,9 @@ class SaleService
 
             $lotQuantity = round((float) collect($lots)->sum('quantity'), 4);
 
-            if ($lotQuantity !== $quantity) {
+            $compareQuantity = $inventoryQuantity ?? $quantity;
+
+            if ($lotQuantity !== $compareQuantity) {
                 $this->failValidation("Lot allocation quantity must match the sale quantity for {$product->name}.");
             }
         }
@@ -1342,8 +1344,8 @@ class SaleService
             return;
         }
 
-        if (in_array($product->stock_tracking, ['lot', 'serial'], true)) {
-            $this->failValidation("Tracked product {$product->name} must be sold in the base unit.");
+        if ($product->stock_tracking === 'serial') {
+            $this->failValidation("Serial tracked product {$product->name} must be sold in the base unit.");
         }
     }
 

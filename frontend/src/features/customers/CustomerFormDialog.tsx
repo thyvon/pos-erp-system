@@ -47,6 +47,7 @@ interface CustomerFormDialogProps {
 const defaultValues: CustomerFormInput = {
   customer_group_id: '',
   name: '',
+  contact_person: '',
   type: 'individual',
   email: '',
   phone: '',
@@ -107,6 +108,7 @@ function customerToFormValues(customer: Customer | null): CustomerFormInput {
   return {
     customer_group_id: customer.customer_group_id ?? '',
     name: customer.name,
+    contact_person: customer.contact_person ?? '',
     type: customer.type,
     email: customer.email ?? '',
     phone: customer.phone ?? '',
@@ -211,6 +213,7 @@ export function CustomerFormDialog({
     const fieldLabels: Record<string, string> = {
       customer_group_id: t('fields.customerGroup'),
       name: t('fields.name'),
+      contact_person: t('fields.contactPerson'),
       type: t('fields.type'),
       email: t('fields.email'),
       phone: t('fields.phone'),
@@ -336,6 +339,20 @@ export function CustomerFormDialog({
                     error={!!errors.name}
                     helperText={errors.name?.message}
                     required
+                  />
+                )}
+              />
+
+              <Controller
+                name="contact_person"
+                control={control}
+                render={({ field }) => (
+                  <TextField
+                    {...field}
+                    value={field.value ?? ''}
+                    label={t('fields.contactPerson')}
+                    error={!!errors.contact_person}
+                    helperText={errors.contact_person?.message}
                   />
                 )}
               />
@@ -520,7 +537,6 @@ export function CustomerFormDialog({
               errors={errors}
               setValue={setValue}
               labels={{
-                country: t('fields.country'),
                 province_city: t('fields.provinceCity'),
                 district: t('fields.district'),
                 commune: t('fields.commune'),

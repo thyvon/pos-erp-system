@@ -15,6 +15,7 @@ class Customer extends BaseModel
         'created_by',
         'code',
         'name',
+        'contact_person',
         'type',
         'email',
         'phone',

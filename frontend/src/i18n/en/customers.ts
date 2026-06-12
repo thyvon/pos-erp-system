@@ -25,6 +25,7 @@ export default {
   fields: {
     customerGroup: 'Customer group',
     name: 'Name',
+    contactPerson: 'Contact person',
     type: 'Type',
     email: 'Email',
     phone: 'Phone',

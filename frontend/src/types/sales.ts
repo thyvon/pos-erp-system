@@ -239,6 +239,7 @@ export interface SaleItem {
   tax_type: string | null
   tax_amount: string | null
   unit_cost: string | null
+  available_quantity: string | null
   total_amount: string | null
   notes: string | null
   product?: SaleProductSummary | null

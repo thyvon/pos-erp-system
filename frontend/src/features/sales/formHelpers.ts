@@ -177,7 +177,7 @@ export function saleFormValuesFromSale(
       lot_number: item.lots?.[0]?.lot?.lot_number ?? null,
       serial_number: item.serials?.[0]?.serial?.serial_number ?? null,
       unit_label: item.sub_unit?.short_name ?? item.product?.unit?.short_name ?? null,
-      available_quantity: null,
+      available_quantity: item.available_quantity ?? null,
       quantity: toNumber(item.quantity, 1),
       unit_price: toNumber(item.unit_price),
       discount_type: item.discount_type === 'fixed' || item.discount_type === 'percentage' ? item.discount_type : null,
@@ -412,7 +412,7 @@ export function buildSalePayload(values: SaleFormValues): SalePayload {
       tax_type: values.tax_scope === 'line' ? item.tax_type ?? 'exclusive' : null,
       unit_cost: item.unit_cost ?? 0,
       notes: item.notes ?? null,
-      lot_allocations: item.lot_id ? [{ lot_id: item.lot_id, quantity: item.quantity }] : undefined,
+      lot_allocations: item.lot_id ? [{ lot_id: item.lot_id, quantity: item.sub_unit_id ? round(item.quantity * toNumber(item._conversion_factor, 1)) : item.quantity }] : undefined,
       serial_ids: item.serial_id ? [item.serial_id] : undefined,
     })),
   }

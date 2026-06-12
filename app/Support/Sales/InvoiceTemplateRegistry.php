@@ -15,6 +15,11 @@ class InvoiceTemplateRegistry
             'description' => 'Clean modern layout with dark top bar and card design',
             'view' => 'invoices.modern',
         ],
+        'receipt' => [
+            'name' => 'POS Receipt',
+            'description' => 'Compact 80mm layout optimized for thermal receipt printers',
+            'view' => 'invoices.receipt',
+        ],
     ];
 
     public static function all(): array

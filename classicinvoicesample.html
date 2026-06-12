@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Invoice</title>
+
+<style>
+@page{
+    size:A4 portrait;
+    margin:8mm;
+}
+
+*{
+    box-sizing:border-box;
+}
+
+body{
+    margin:0;
+    padding:0;
+    font-family:Arial, Helvetica, sans-serif;
+    font-size:11px;
+    color:#000;
+}
+
+.invoice{
+    width:210mm;
+    height:297mm;
+    margin:0 auto;
+    padding:8mm;
+    background:#fff;
+    box-sizing:border-box;
+    page-break-after:always;
+}
+
+table{
+    width:100%;
+    border-collapse:collapse;
+}
+
+/* ===========================
+   HEADER
+=========================== */
+
+.header{
+    margin-bottom:5px;
+}
+
+.header td{
+    vertical-align:top;
+}
+
+.logo{
+    width:90px;
+}
+
+.logo img{
+    width:80px;
+}
+
+.company{
+    text-align:center;
+}
+
+.company-kh{
+    font-size:28px;
+    font-weight:bold;
+    color:#3c4699;
+    line-height:1.2;
+}
+
+.company-en{
+    font-size:18px;
+    font-weight:bold;
+    color:#3c4699;
+}
+
+.company-info{
+    font-size:11px;
+    line-height:1.4;
+}
+
+/* ===========================
+   CUSTOMER + INVOICE
+=========================== */
+
+.info-box{
+    border:1px solid #000;
+}
+
+.info-box td{
+    border:1px solid #000;
+    vertical-align:top;
+}
+
+.info-inner{
+    width:100%;
+}
+
+.info-inner td{
+    border:none;
+    padding:2px 5px;
+}
+
+.invoice-title{
+    text-align:center;
+    font-weight:bold;
+    font-size:16px;
+    padding:5px;
+    border-bottom:1px solid #000;
+}
+
+/* ===========================
+   ITEM TABLE
+=========================== */
+
+.items{
+    border:1px solid #000;
+    table-layout:fixed;
+}
+
+.items th{
+    border:1px solid #000;
+    padding:4px;
+    font-size:10px;
+    text-align:center;
+}
+
+.items td{
+    border:1px solid #000;
+    padding:3px;
+    font-size:10px;
+}
+
+.items tbody tr{
+    height:24px;
+}
+
+.text-center{
+    text-align:center;
+}
+
+.text-right{
+    text-align:right;
+}
+
+.desc{
+    text-align:left;
+}
+
+/* ===========================
+   SUMMARY
+=========================== */
+
+.summary{
+    margin-top:5px;
+}
+
+.summary td{
+    vertical-align:top;
+}
+
+.summary-left{
+    width:65%;
+}
+
+.summary-right{
+    width:35%;
+}
+
+.total-table td{
+    padding:3px;
+}
+
+.total-table .label{
+    text-align:left;
+    font-weight:bold;
+}
+
+.total-table .amount{
+    text-align:right;
+    font-weight:bold;
+}
+
+/* ===========================
+   SIGNATURE
+=========================== */
+
+.signature{
+    margin-top:40px;
+}
+
+.signature td{
+    width:33.33%;
+    text-align:center;
+    vertical-align:bottom;
+}
+
+.sign-line{
+    margin-top:55px;
+    border-top:1px solid #000;
+    width:90%;
+    margin-left:auto;
+    margin-right:auto;
+}
+
+.sign-date{
+    margin-top:5px;
+}
+
+/* ===========================
+   FOOTER
+=========================== */
+
+.footer{
+    margin-top:20px;
+    font-size:10px;
+}
+
+.footer-note{
+    margin-top:5px;
+}
+
+/* FIXED HEIGHT BODY */
+
+.blank-row{
+    height:24px;
+}
+</style>
+
+</head>
+<body>
+
+<div class="invoice">
+
+    <!-- ===========================
+         HEADER
+    ============================ -->
+
+    <table class="header">
+
+        <tr>
+
+            <td class="logo">
+                <img src="https://sms.mjqeducation.edu.kh/assets/images/logo/logo-dark.png" alt="Logo">
+            </td>
+
+            <td class="company">
+
+                <div class="company-kh">
+                    អង្គរធំប៊ុកសេនធ័រ
+                </div>
+
+                <div class="company-en">
+                    ANGKOR THOM BOOK CENTER
+                </div>
+
+                <div class="company-info">
+                    មានលក់សម្ភារៈការិយាល័យ និងគ្រឿងបរិក្ខារសិក្សាគ្រប់ប្រភេទ
+                </div>
+
+                <div class="company-info">
+                    #261 EO, Street 128, Phnom Penh, Cambodia
+                </div>
+
+                <div class="company-info">
+                    Tel: (855)23 888 886 |
+                    Email: info@loyloy7.com |
+                    Website: www.loyloy7.com
+                </div>
+
+            </td>
+
+            <td style="width:90px"></td>
+
+        </tr>
+
+    </table>
+
+    <!-- ===========================
+         CUSTOMER + INVOICE
+    ============================ -->
+
+    <table class="info-box">
+
+        <tr>
+
+            <td width="68%">
+
+                <table class="info-inner">
+
+                    <tr>
+                        <td width="110"><b>Cust.Name</b></td>
+                        <td>MENGLY J. QUACH EDUCATION PLC.</td>
+                    </tr>
+
+                    <tr>
+                        <td><b>Contact</b></td>
+                        <td>Mr. Example Customer</td>
+                    </tr>
+
+                    <tr>
+                        <td><b>Address</b></td>
+                        <td>
+                            #11A St.402, Sangkat Tumpun Teuk,
+                            Khan Mean Chey, Phnom Penh
+                        </td>
+                    </tr>
+
+                    <tr>
+                        <td><b>Phone</b></td>
+                        <td>023 223 295</td>
+                    </tr>
+
+                    <tr>
+                        <td><b>V.A.T / VAT</b></td>
+                        <td>K002-107022842</td>
+                    </tr>
+
+                </table>
+
+            </td>
+
+            <td width="32%">
+
+                <div class="invoice-title">
+                    INVOICE
+                </div>
+
+                <table class="info-inner">
+
+                    <tr>
+                        <td width="120"><b>Invoice No</b></td>
+                        <td>INKK-08761</td>
+                    </tr>
+
+                    <tr>
+                        <td><b>Date</b></td>
+                        <td>01/06/2026</td>
+                    </tr>
+
+                    <tr>
+                        <td><b>Customer PO</b></td>
+                        <td>ATBC022024</td>
+                    </tr>
+
+                    <tr>
+                        <td><b>Salesman</b></td>
+                        <td>SALE-2</td>
+                    </tr>
+
+                    <tr>
+                        <td><b>Term</b></td>
+                        <td>30 DAYS</td>
+                    </tr>
+
+                </table>
+
+            </td>
+
+        </tr>
+
+    </table>
+
+    <!-- ===========================
+         ITEMS
+    ============================ -->
+
+    <table class="items">
+
+        <thead>
+
+        <tr>
+
+            <th width="35">N°</th>
+            <th width="65">ITEM CODE</th>
+            <th>DESCRIPTION</th>
+            <th width="50">UNIT</th>
+            <th width="50">QTY</th>
+            <th width="70">PRICE</th>
+            <th width="55">DISC</th>
+            <th width="80">TOTAL</th>
+
+        </tr>
+
+        </thead>
+
+        <tbody>
+
+        <!-- DATA ROWS -->
+
+        <tr>
+            <td class="text-center">1</td>
+            <td>68087</td>
+            <td class="desc">
+                FLIP CHART PAPER WOODFREE PAPER
+            </td>
+            <td class="text-center">PCS</td>
+            <td class="text-right">160</td>
+            <td class="text-right">$0.080</td>
+            <td class="text-right">0%</td>
+            <td class="text-right">$12.80</td>
+        </tr>
+
+        <tr>
+            <td class="text-center">2</td>
+            <td>GW180</td>
+            <td class="desc">
+                WHITE PAPER A4 80G
+            </td>
+            <td class="text-center">PACK</td>
+            <td class="text-right">50</td>
+            <td class="text-right">$2.250</td>
+            <td class="text-right">0%</td>
+            <td class="text-right">$112.50</td>
+        </tr>
+
+        <tr>
+            <td class="text-center">3</td>
+            <td>GW250</td>
+            <td class="desc">
+                WHITE PAPER A3 80G
+            </td>
+            <td class="text-center">PACK</td>
+            <td class="text-right">30</td>
+            <td class="text-right">$2.250</td>
+            <td class="text-right">0%</td>
+            <td class="text-right">$67.50</td>
+        </tr>
+
+        <!-- BLANK ROWS TO FILL PAGE -->
+
+        <tr class="blank-row"><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        <tr class="blank-row"><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        <tr class="blank-row"><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        <tr class="blank-row"><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        <tr class="blank-row"><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        <tr class="blank-row"><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        <tr class="blank-row"><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        <tr class="blank-row"><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        <tr class="blank-row"><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        <tr class="blank-row"><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        <tr class="blank-row"><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+        <tr class="blank-row"><td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td><td></td></tr>
+
+        </tbody>
+
+    </table>
+
+    <!-- ===========================
+         SUMMARY
+    ============================ -->
+
+    <table class="summary">
+
+        <tr>
+
+            <td class="summary-left">
+
+                <table>
+
+                    <tr>
+                        <td width="120"><b>Total Qty :</b></td>
+                        <td>240</td>
+                    </tr>
+
+                    <tr>
+                        <td><b>Quote Number :</b></td>
+                        <td>QU27210</td>
+                    </tr>
+
+                    <tr>
+                        <td valign="top">
+                            <b>Amount Letter :</b>
+                        </td>
+
+                        <td>
+                            TWO HUNDRED TWENTY FOUR DOLLARS
+                            AND SEVENTY TWO CENTS ONLY
+                        </td>
+                    </tr>
+
+                </table>
+
+            </td>
+
+            <td class="summary-right">
+
+                <table class="total-table">
+
+                    <tr>
+                        <td class="label">GRAND TOTAL</td>
+                        <td class="amount">$224.72</td>
+                    </tr>
+
+                    <tr>
+                        <td class="label">PAID AMOUNT</td>
+                        <td class="amount">$0.00</td>
+                    </tr>
+
+                    <tr>
+                        <td class="label">BALANCE</td>
+                        <td class="amount">$224.72</td>
+                    </tr>
+
+                </table>
+
+            </td>
+
+        </tr>
+
+    </table>
+
+    <!-- ===========================
+         SIGNATURE
+    ============================ -->
+
+    <table class="signature">
+
+        <tr>
+
+            <td>
+
+                Customer Signature
+
+                <div class="sign-line"></div>
+
+                <div class="sign-date">
+                    Date: ____ / ____ / ______
+                </div>
+
+            </td>
+
+            <td>
+
+                Authorized By
+
+                <div class="sign-line"></div>
+
+                <div class="sign-date">
+                    Date: ____ / ____ / ______
+                </div>
+
+            </td>
+
+            <td>
+
+                Delivered By
+
+                <div class="sign-line"></div>
+
+                <div class="sign-date">
+                    Date: ____ / ____ / ______
+                </div>
+
+            </td>
+
+        </tr>
+
+    </table>
+
+    <!-- ===========================
+         FOOTER
+    ============================ -->
+
+    <div class="footer">
+
+        <div class="footer-note">
+            Goods sold cannot be refunded and received in good condition.
+        </div>
+
+    </div>
+
+</div>
+
+</body>
+</html>

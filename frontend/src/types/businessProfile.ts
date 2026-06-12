@@ -55,5 +55,6 @@ export interface BusinessProfilePayload {
   phone?: string | null
   country?: string | null
   logo_url?: string | null
+  logo_file?: File | null
   address?: BusinessProfileAddress | null
 }

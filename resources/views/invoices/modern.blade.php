@@ -7,10 +7,13 @@
   $documentLabel = $sale->type === 'pos_sale' ? __('Receipt') : __('Invoice');
 @endphp
 <title>{{ $documentTitle }} {{ $sale->sale_number }}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,100..900;1,100..900&family=Kantumruy+Pro:ital,wght@0,100..700;1,100..700&display=swap" rel="stylesheet">
 <style>
   @page { margin: 0; }
   body {
-    font-family: 'DejaVu Sans', sans-serif;
+    font-family: 'Public Sans', 'Kantumruy Pro', sans-serif;
     font-size: 9.5pt;
     color: #333;
     line-height: 1.6;
@@ -201,7 +204,7 @@
       @if ($sale->creator)
       <div class="item">
         <div class="lbl">{{ __('Sales Person') }}</div>
-        <div class="val">{{ $sale->creator->name ?? '-' }}</div>
+        <div class="val">{{ trim(($sale->creator->first_name ?? '') . ' ' . ($sale->creator->last_name ?? '')) ?: '-' }}</div>
       </div>
       @endif
     </div>

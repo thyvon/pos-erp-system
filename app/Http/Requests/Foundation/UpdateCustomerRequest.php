@@ -19,6 +19,7 @@ class UpdateCustomerRequest extends FormRequest
         return [
             'customer_group_id' => ['nullable', 'uuid', Rule::exists('customer_groups', 'id')->where(fn ($query) => $query->where('business_id', $businessId))],
             'name' => ['sometimes', 'required', 'string', 'max:191'],
+            'contact_person' => ['nullable', 'string', 'max:191'],
             'type' => ['sometimes', 'required', Rule::in(['individual', 'company'])],
             'email' => ['nullable', 'email', 'max:191'],
             'phone' => ['nullable', 'string', 'max:50'],

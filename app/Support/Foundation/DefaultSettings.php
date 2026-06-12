@@ -56,6 +56,9 @@ class DefaultSettings
             ['group' => 'pos', 'key' => 'require_cash_register_session', 'value' => '1', 'type' => 'boolean', 'is_encrypted' => false],
             ['group' => 'pos', 'key' => 'show_customer_display', 'value' => '0', 'type' => 'boolean', 'is_encrypted' => false],
             ['group' => 'pos', 'key' => 'enable_subscriptions', 'value' => '0', 'type' => 'boolean', 'is_encrypted' => false],
+            ['group' => 'pos', 'key' => 'auto_print_receipt', 'value' => '0', 'type' => 'boolean', 'is_encrypted' => false],
+            ['group' => 'pos', 'key' => 'invoice_layout', 'value' => 'receipt', 'type' => 'string', 'is_encrypted' => false],
+            ['group' => 'pos', 'key' => 'receipt_paper_size', 'value' => '80mm', 'type' => 'string', 'is_encrypted' => false],
 
             ['group' => 'stock', 'key' => 'enable_lot_tracking', 'value' => '0', 'type' => 'boolean', 'is_encrypted' => false],
             ['group' => 'stock', 'key' => 'enable_serial_tracking', 'value' => '0', 'type' => 'boolean', 'is_encrypted' => false],

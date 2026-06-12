@@ -57,6 +57,7 @@ export const SETTINGS_GROUPS: SettingsGroupDefinition[] = [
         options: [
           { value: 'classic', label: 'Classic' },
           { value: 'modern', label: 'Modern' },
+          { value: 'receipt', label: 'POS Receipt' },
         ],
       },
     ],
@@ -152,6 +153,24 @@ export const SETTINGS_GROUPS: SettingsGroupDefinition[] = [
       { key: 'require_cash_register_session', type: 'boolean' },
       { key: 'show_customer_display', type: 'boolean' },
       { key: 'enable_subscriptions', type: 'boolean' },
+      { key: 'auto_print_receipt', type: 'boolean' },
+      {
+        key: 'invoice_layout',
+        type: 'select',
+        options: [
+          { value: 'classic', label: 'Classic' },
+          { value: 'modern', label: 'Modern' },
+          { value: 'receipt', label: 'POS Receipt' },
+        ],
+      },
+      {
+        key: 'receipt_paper_size',
+        type: 'select',
+        options: [
+          { value: '80mm', label: '80mm (Standard)' },
+          { value: '58mm', label: '58mm (Portable)' },
+        ],
+      },
     ],
   },
   {

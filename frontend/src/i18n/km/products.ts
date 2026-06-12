@@ -10,6 +10,7 @@ const products = {
     upload: 'ផ្ទុកឡើង',
     view: 'មើល',
     editProduct: 'កែប្រែផលិតផល',
+    printLabels: 'បោះពុម្ពស្លាក',
   },
   filters: {
     search: 'ស្វែងរកផលិតផល',
@@ -136,6 +137,16 @@ const products = {
     fileHelp: 'គាំទ្រឯកសារ CSV, XLSX, និង XLS រហូតដល់ 10MB ។',
     proceed: 'នាំចូល',
     success: 'បាននាំចូល {{imported}} ផលិតផល។ រំលង {{skipped}} ។',
+  },
+  labelPrinting: {
+    title: 'បោះពុម្ពស្លាកទំនិញ',
+    subtitle: 'បង្កើតបារកូដស្លាក និងស្លាកតម្លៃសម្រាប់ផលិតផលនេះ។',
+    source: 'ការជ្រើសរើសបោះពុម្ព',
+    qty: 'ចំនួនបោះពុម្ព',
+    setAll: 'កំណត់ទាំងអស់ត្រឹម',
+    reset: 'កំណត់ឡើងវិញត្រឹម 0',
+    noVariations: 'មិនមានបំលែងត្រូវបានជ្រើសរើសសម្រាប់បោះពុម្ពទេ។',
+    printCount: 'មានស្លាក {{count}} ត្រៀមបោះពុម្ព',
   },
 }
 

@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Traits\HasFileAssets;
 use App\Traits\HasUuid;
 use App\Support\Accounting\DefaultChartOfAccounts;
 use App\Support\Core\DefaultBusinessModules;
@@ -16,6 +17,7 @@ use Illuminate\Support\Facades\Schema;
 class Business extends Model
 {
     use HasFactory;
+    use HasFileAssets;
     use HasUuid;
     use SoftDeletes;
 

@@ -13,6 +13,8 @@ use App\Models\Sale;
 use App\Models\SalePayment;
 use App\Models\Setting;
 use App\Models\StockLevel;
+use App\Models\StockLot;
+use App\Models\SubUnit;
 use App\Models\Unit;
 use App\Models\User;
 use App\Models\Warehouse;
@@ -1100,6 +1102,125 @@ class SaleApiTest extends TestCase
             'amount' => round((float) $sale->total_amount + 5, 2),
             'method' => 'cash',
             'payment_date' => now()->toDateString(),
+        ])->assertStatus(422);
+    }
+
+    public function test_lot_tracked_sale_with_sub_unit_deducts_base_quantity_from_stock(): void
+    {
+        $business = Business::factory()->create();
+        $branch = Branch::factory()->create(['business_id' => $business->id]);
+        $warehouse = Warehouse::factory()->forBranch($branch)->create();
+        $unit = Unit::factory()->create(['business_id' => $business->id]);
+        $subUnit = SubUnit::factory()->for($business)->for($unit, 'parentUnit')->create([
+            'conversion_factor' => 12,
+        ]);
+        $product = Product::factory()->create([
+            'business_id' => $business->id,
+            'unit_id' => $unit->id,
+            'sub_unit_id' => $subUnit->id,
+            'track_inventory' => true,
+            'stock_tracking' => 'lot',
+            'selling_price' => 15,
+            'minimum_selling_price' => 10,
+            'purchase_price' => 4,
+        ]);
+
+        StockLevel::withoutGlobalScopes()->create([
+            'business_id' => $business->id,
+            'product_id' => $product->id,
+            'warehouse_id' => $warehouse->id,
+            'quantity' => 50,
+            'reserved_quantity' => 0,
+        ]);
+
+        $lot = StockLot::withoutGlobalScopes()->create([
+            'business_id' => $business->id,
+            'product_id' => $product->id,
+            'warehouse_id' => $warehouse->id,
+            'lot_number' => 'LOT-SUB-001',
+            'received_at' => now(),
+            'unit_cost' => 4,
+            'qty_received' => 50,
+            'qty_on_hand' => 50,
+            'qty_reserved' => 0,
+            'status' => 'active',
+        ]);
+
+        $user = User::factory()->for($business)->create();
+        $user->assignRole('manager');
+        $user->branches()->attach($branch->id);
+
+        Sanctum::actingAs($user);
+
+        $response = $this->postJson('/api/v1/sales', [
+            'branch_id' => $branch->id,
+            'warehouse_id' => $warehouse->id,
+            'type' => 'invoice',
+            'sale_date' => now()->toDateString(),
+            'items' => [[
+                'product_id' => $product->id,
+                'sub_unit_id' => $subUnit->id,
+                'quantity' => 2,
+                'unit_price' => 180,
+                'unit_cost' => 48,
+                'lot_allocations' => [
+                    ['lot_id' => $lot->id, 'quantity' => 24],
+                ],
+            ]],
+        ]);
+
+        $response->assertCreated();
+
+        $saleId = $response->json('data.id');
+
+        $this->postJson("/api/v1/sales/{$saleId}/confirm")->assertOk();
+        $this->postJson("/api/v1/sales/{$saleId}/complete")->assertOk();
+
+        $this->assertDatabaseHas('stock_levels', [
+            'product_id' => $product->id,
+            'warehouse_id' => $warehouse->id,
+            'quantity' => '26.0000',
+        ]);
+
+        $this->assertSame('26.0000', $lot->refresh()->qty_on_hand);
+    }
+
+    public function test_serial_tracked_sale_rejects_sub_unit(): void
+    {
+        $business = Business::factory()->create();
+        $branch = Branch::factory()->create(['business_id' => $business->id]);
+        $warehouse = Warehouse::factory()->forBranch($branch)->create();
+        $unit = Unit::factory()->create(['business_id' => $business->id]);
+        $subUnit = SubUnit::factory()->for($business)->for($unit, 'parentUnit')->create([
+            'conversion_factor' => 1,
+        ]);
+        $product = Product::factory()->create([
+            'business_id' => $business->id,
+            'unit_id' => $unit->id,
+            'sub_unit_id' => $subUnit->id,
+            'track_inventory' => true,
+            'stock_tracking' => 'serial',
+            'selling_price' => 15,
+        ]);
+
+        $user = User::factory()->for($business)->create();
+        $user->assignRole('manager');
+        $user->branches()->attach($branch->id);
+
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/v1/sales', [
+            'branch_id' => $branch->id,
+            'warehouse_id' => $warehouse->id,
+            'type' => 'invoice',
+            'sale_date' => now()->toDateString(),
+            'items' => [[
+                'product_id' => $product->id,
+                'sub_unit_id' => $subUnit->id,
+                'quantity' => 1,
+                'unit_price' => 15,
+                'unit_cost' => 4,
+            ]],
         ])->assertStatus(422);
     }
 

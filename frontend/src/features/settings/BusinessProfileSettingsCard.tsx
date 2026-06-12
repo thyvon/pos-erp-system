@@ -20,6 +20,7 @@ import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { SaveOutlined } from '@/components/ui/icons'
 import { toAppApiError } from '@/api/errors'
+import { AppImageUpload } from '@/components/ui/AppImageUpload'
 import { CambodiaAddressFields } from '@/components/ui/CambodiaAddressFields'
 import { useBusinessProfileQuery, useUpdateBusinessProfileMutation } from './hooks'
 import {
@@ -42,6 +43,7 @@ const defaultValues: BusinessProfileFormInput = {
   phone: '',
   business_country: '',
   logo_url: '',
+  logo_file: null,
   address_line1: '',
   address_line2: '',
   country: 'Cambodia',
@@ -62,6 +64,7 @@ function businessToFormValues(business: BusinessProfile | undefined): BusinessPr
     phone: business.phone ?? '',
     business_country: business.country ?? '',
     logo_url: business.logo_url ?? '',
+    logo_file: null,
     address_line1: business.address?.line1 ?? '',
     address_line2: business.address?.line2 ?? '',
     country: business.address?.country ?? 'Cambodia',
@@ -93,6 +96,7 @@ function buildPayload(values: BusinessProfileFormValues): BusinessProfilePayload
     phone: values.phone,
     country: values.business_country,
     logo_url: values.logo_url,
+    logo_file: values.logo_file,
     address: hasAddress(values)
       ? {
           line1: values.address_line1,
@@ -291,20 +295,33 @@ export function BusinessProfileSettingsCard({ canView, canEdit }: BusinessProfil
                       />
                     )}
                   />
-                  <Controller
-                    name="logo_url"
-                    control={control}
-                    render={({ field }) => (
-                      <TextField
-                        {...field}
-                        value={field.value ?? ''}
-                        label={t('businessProfile.fields.logoUrl')}
-                        error={!!errors.logo_url}
-                        helperText={errors.logo_url?.message}
-                        disabled={!canEdit || updateBusiness.isPending}
-                      />
-                    )}
-                  />
+                  <Box sx={{ gridColumn: { xs: '1', md: '1 / -1' } }}>
+                    <Controller
+                      name="logo_file"
+                      control={control}
+                      render={({ field: fileField }) => (
+                        <Controller
+                          name="logo_url"
+                          control={control}
+                          render={({ field: urlField }) => (
+                            <AppImageUpload
+                              label={t('businessProfile.fields.logo')}
+                              value={urlField.value ?? ''}
+                              file={fileField.value}
+                              onUrlChange={urlField.onChange}
+                              onFileChange={fileField.onChange}
+                              error={!!errors.logo_url || !!errors.logo_file}
+                              helperText={errors.logo_url?.message || errors.logo_file?.message}
+                              uploadLabel={t('businessProfile.fields.uploadLogo')}
+                              removeLabel={t('businessProfile.fields.removeLogo')}
+                              hideUrlField
+                              disabled={!canEdit || updateBusiness.isPending}
+                            />
+                          )}
+                        />
+                      )}
+                    />
+                  </Box>
                 </Box>
 
                 <Divider />
@@ -339,7 +356,6 @@ export function BusinessProfileSettingsCard({ canView, canEdit }: BusinessProfil
                       errors={errors}
                       setValue={setValue}
                       labels={{
-                        country: t('businessProfile.fields.addressCountry'),
                         province_city: t('businessProfile.fields.provinceCity'),
                         district: t('businessProfile.fields.district'),
                         commune: t('businessProfile.fields.commune'),

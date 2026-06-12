@@ -10,6 +10,7 @@ const products = {
     upload: 'Upload',
     view: 'View',
     editProduct: 'Edit product',
+    printLabels: 'Print Labels',
   },
   filters: {
     search: 'Search products',
@@ -136,6 +137,16 @@ const products = {
     fileHelp: 'Supports CSV, XLSX, and XLS files up to 10MB.',
     proceed: 'Import',
     success: 'Imported {{imported}} product(s). {{skipped}} skipped.',
+  },
+  labelPrinting: {
+    title: 'Print Product Labels',
+    subtitle: 'Generate barcode labels and price tags for this product.',
+    source: 'Print Selection',
+    qty: 'Print Qty',
+    setAll: 'Set all to',
+    reset: 'Reset to 0',
+    noVariations: 'No variations selected for printing.',
+    printCount: '{{count}} label(s) ready to print',
   },
 }
 

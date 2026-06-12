@@ -27,8 +27,9 @@ type AddressFormValues = FieldValues & Partial<Record<AddressFieldName, string |
 interface CambodiaAddressFieldsProps<TValues extends AddressFormValues, TOutput extends FieldValues> {
   control: Control<TValues, unknown, TOutput>
   errors: FieldErrors<TValues>
-  labels: Record<AddressFieldName, string>
+  labels: Omit<Record<AddressFieldName, string>, 'country'> & { country?: string }
   setValue: UseFormSetValue<TValues>
+  hideCountry?: boolean
 }
 
 const COUNTRY_OPTIONS = ['Cambodia']
@@ -84,13 +85,14 @@ export function CambodiaAddressFields<TValues extends AddressFormValues, TOutput
   errors,
   labels,
   setValue,
+  hideCountry = true,
 }: CambodiaAddressFieldsProps<TValues, TOutput>) {
   const { i18n } = useTranslation()
   const country = useAddressValue(control, 'country')
   const province = useAddressValue(control, 'province_city')
   const district = useAddressValue(control, 'district')
   const commune = useAddressValue(control, 'commune')
-  const isCambodia = normalize(country) === 'cambodia' || normalize(country) === ''
+  const isCambodia = normalize(country) === 'cambodia' || normalize(country) === '' || hideCountry
 
   const provincesQuery = useCambodiaProvincesQuery(isCambodia)
   const selectedProvince = findSelectedDivision(provincesQuery.data ?? [], province)
@@ -214,12 +216,12 @@ export function CambodiaAddressFields<TValues extends AddressFormValues, TOutput
         gridTemplateColumns: {
           xs: '1fr',
           sm: 'repeat(2, minmax(0, 1fr))',
-          md: 'repeat(5, minmax(0, 1fr))',
+          md: hideCountry ? 'repeat(4, minmax(0, 1fr))' : 'repeat(5, minmax(0, 1fr))',
         },
         gap: 1.5,
       }}
     >
-      {renderCountryField()}
+      {!hideCountry && renderCountryField()}
       {renderDivisionField('province_city', provincesQuery.data ?? [], provincesQuery.isLoading)}
       {renderDivisionField(
         'district',

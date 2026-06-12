@@ -52,7 +52,7 @@ export default function SettingsPage() {
   const canEdit = can('settings.edit')
   const canViewBusiness = can('businesses.index')
   const canEditBusiness = can('businesses.edit')
-  const [activeGroup, setActiveGroup] = useState<SettingsGroupKey>('general')
+  const [activeGroup, setActiveGroup] = useState<SettingsGroupKey>('business_profile')
   const activeDefinition = useMemo(
     () => SETTINGS_GROUPS.find((group) => group.key === activeGroup) ?? SETTINGS_GROUPS[0],
     [activeGroup]

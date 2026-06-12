@@ -106,9 +106,19 @@ export default function CustomersPage() {
         render: (customer) => (
           <Stack spacing={0.25}>
             <Typography variant="subtitle2" sx={{ fontWeight: 800 }}>{customer.name}</Typography>
-            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-              {customer.code}
-            </Typography>
+            <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                {customer.code}
+              </Typography>
+              {customer.contact_person && (
+                <>
+                  <Typography variant="caption" sx={{ color: 'text.disabled' }}>•</Typography>
+                  <Typography variant="caption" sx={{ color: 'primary.main', fontWeight: 600 }}>
+                    {customer.contact_person}
+                  </Typography>
+                </>
+              )}
+            </Stack>
           </Stack>
         ),
       },

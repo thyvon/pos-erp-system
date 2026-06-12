@@ -18,6 +18,7 @@ const customFieldsSchema = z.preprocess((value) => {
 export const customerSchema = z.object({
   customer_group_id: nullableText(36),
   name: z.string().min(1, 'Name is required').max(191, 'Name is too long'),
+  contact_person: nullableText(191),
   type: z.enum(['individual', 'company']),
   email: z
     .union([z.literal(''), z.null(), z.undefined(), z.string().email('Invalid email address').max(191)])

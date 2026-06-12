@@ -18,7 +18,7 @@ import {
   TableRow,
   Typography,
 } from '@mui/material'
-import { ArrowBack, EditOutlined, ImageOutlined } from '@/components/ui/icons'
+import { ArrowBack, EditOutlined, ImageOutlined, LocalOfferOutlined } from '@/components/ui/icons'
 import { useTranslation } from 'react-i18next'
 import { resolveAssetUrl } from '@/api/assets'
 import { toAppApiError } from '@/api/errors'
@@ -165,6 +165,9 @@ export function ProductDetailPage({ productId }: ProductDetailPageProps) {
         <Stack direction="row" spacing={1.5} sx={{ justifyContent: { xs: 'flex-end', md: 'initial' } }}>
           <Button startIcon={<ArrowBack />} onClick={() => router.push('/products')}>
             {t('actions.backToProducts')}
+          </Button>
+          <Button variant="outlined" startIcon={<LocalOfferOutlined />} onClick={() => router.push(`/products/${product.id}/labels`)}>
+            {t('actions.printLabels')}
           </Button>
           {canEdit && (
             <Button variant="contained" startIcon={<EditOutlined />} onClick={() => router.push(`/products/${product.id}/edit`)}>

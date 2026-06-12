@@ -22,6 +22,7 @@ import { Controller } from 'react-hook-form'
 import type { Control, FieldArrayWithId, FieldErrors, UseFieldArrayRemove, UseFormSetValue } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { DeleteOutlined } from '@/components/ui/icons'
+import { InventoryLookupLineSummary } from '@/features/inventory/components/InventoryLookupLineSummary'
 import { InventoryProductLookupPicker } from '@/features/inventory/components/InventoryProductLookupPicker'
 import { UnitConversionBadge } from '@/features/sales/components/UnitConversionBadge'
 import { useCurrencyFormatter } from '@/features/settings/useAppCurrency'
@@ -131,40 +132,29 @@ export function PurchaseItemsTable({
               return (
                 <TableRow key={field.fieldId}>
                   <TableCell>
-                    <Stack spacing={0.25}>
-                      <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
-                        <Typography variant="body2">{field.product_label || '-'}</Typography>
-                        {field.stock_tracking && field.stock_tracking !== 'none' && (
-                          <Chip label={field.stock_tracking} size="small" variant="outlined" sx={{ height: 20, fontSize: 11 }} />
-                        )}
-                        {isReceivedLine && (
-                          <Chip
-                            label={`${t('detail.receivedQty')}: ${receivedQuantity}`}
-                            size="small"
-                            color="success"
-                            variant="outlined"
-                            sx={{ height: 20, fontSize: 11 }}
-                          />
-                        )}
-                      </Stack>
-                      <Stack direction="row" spacing={0.5} sx={{ alignItems: 'center' }}>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {field.sku || '-'}
-                        </Typography>
-                        {watchedItem?.sub_unit_id && watchedItem?.conversion_factor ? (
-                          <UnitConversionBadge
-                            conversionFactor={watchedItem.conversion_factor}
-                            baseUnitLabel={field.unit_name ?? ''}
-                            subUnitLabel={field.unit_label ?? ''}
-                            quantity={Number(watchedItem?.quantity ?? 0)}
-                          />
-                        ) : field.unit_name ? (
-                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                            · {field.unit_name}
-                          </Typography>
-                        ) : null}
-                      </Stack>
-                    </Stack>
+                    <InventoryLookupLineSummary
+                      productLabel={field.product_label}
+                      sku={field.sku}
+                      unitLabel={field.unit_name}
+                      stockTracking={field.stock_tracking}
+                      conversion={watchedItem?.sub_unit_id && watchedItem?.conversion_factor ? (
+                        <UnitConversionBadge
+                          conversionFactor={watchedItem.conversion_factor}
+                          baseUnitLabel={field.unit_name ?? ''}
+                          subUnitLabel={field.unit_label ?? ''}
+                          quantity={Number(watchedItem?.quantity ?? 0)}
+                        />
+                      ) : undefined}
+                      statusChip={isReceivedLine ? (
+                        <Chip
+                          label={`${t('detail.receivedQty')}: ${receivedQuantity}`}
+                          size="small"
+                          color="success"
+                          variant="outlined"
+                          sx={{ height: 20, fontSize: 11 }}
+                        />
+                      ) : undefined}
+                    />
                   </TableCell>
                   <TableCell align="right">
                     <Controller

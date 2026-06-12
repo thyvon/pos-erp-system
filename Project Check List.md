@@ -78,6 +78,17 @@
 - [x] Sales create/edit form now derives the saved branch from the selected warehouse instead of asking users to choose the branch manually.
 - [x] Sales create/edit backend-backed selects now use searchable autocomplete controls for warehouse, customer, price group, and tax rates.
 - [x] Sales create/edit product selection no longer crashes when the field array row appears before watched item values are hydrated; frontend type-check and lint verified.
+- [x] Classic invoice print template restyled to match the bordered A4 sample layout with dynamic sale, customer, item, total, payment, signature, terms, and footer data.
+- [x] Sales create/edit product lines now show editable lot or serial selectors for tracked products while keeping serial quantity locked to one and tracked items on base units.
+- [x] Sales create/edit product line descriptions now mirror the purchase line lookup summary by showing tracking, selected lot/serial, and available quantity from the shared inventory lookup data.
+- [x] Purchase and sale product lines now share one global inventory lookup line summary component for consistent product, SKU, unit, tracking, lot, serial, and available quantity display.
+- [x] Sales create/edit item table now places lot or serial selection in its own column beside the product description, showing selectors only for tracked products.
+- [x] Sales create/edit form guide text was removed from headers and helper text areas while preserving validation error messages.
+- [x] Sales create/edit unit column now shows the unit selector only for products with configured sub-units.
+- [x] Sales create/edit form sections now constrain wide field and table overflow inside their own sections so the page-level scrollbar matches the purchase form behavior.
+- [x] Sales create/edit select menus now keep page scroll unlocked so the browser right scrollbar stays visible while dropdowns are open.
+- [x] Sales create/edit quantity inputs now warn and block saving when requested quantity exceeds available stock for warehouses that do not allow negative stock.
+- [x] Sales edit rows now receive current available stock from the sale item API resource, and the Unit column hides completely when no sale line has sub-units.
 - [x] Sales create/edit item table inputs now use default-size form controls while preserving the full product detail column; frontend type-check and lint verified.
 - [x] Sales create form now supports optional multi-line direct payments with live remaining and change-back calculation before completing and recording payment after save.
 - [x] Sale detail page now uses one main card with divider-separated header, sale items table, and sale summary, removing the top summary-card row; frontend type-check and lint verified.
@@ -213,6 +224,9 @@
 - [x] Label printing settings added to central default settings and settings reads now lazily create missing known defaults, preventing `label_printing` group-not-found errors for existing tenants.
 - [x] Label printing now supports an optional two-line barcode caption showing SKU plus serial or lot under the barcode, configurable in settings and during print.
 - [x] Label printing barcode layout options now support one barcode, two barcodes for SKU plus lot/serial, and combined `SKU|lot/serial` barcode values.
+- [x] Refactored label printing by extracting the core layout, settings loading/saving, preview grid, and barcode rendering into a reusable `LabelPrintWorkspace` component.
+- [x] Created catalog product label printing route at `/products/[id]/labels` and `ProductLabelPrintPage` page component, allowing cashiers/managers to select variations and enter print quantities.
+- [x] Added "Print Labels" action button next to the edit action button on the Product Detail page, and fully synchronized the required Khmer and English translation strings.
 - [x] Sidebar navigation (`/purchases`), breadcrumbs, and route pages (list, create, detail, edit) are registered.
 - [x] English and Khmer translations are complete with namespace registered in i18n.
 - [x] Frontend type-check, lint (0 new errors), and build verified.

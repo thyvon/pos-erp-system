@@ -469,7 +469,6 @@ export function SupplierFormDialog({
               errors={errors}
               setValue={setValue}
               labels={{
-                country: t('fields.country'),
                 province_city: t('fields.province_city'),
                 district: t('fields.district'),
                 commune: t('fields.commune'),

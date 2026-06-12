@@ -133,6 +133,9 @@ const sales = {
     selectWarehouseFirst: 'ជ្រើសឃ្លាំងមុនពេលបន្ថែមទំនិញ។',
     emptyItems: 'មិនទាន់មានទំនិញលក់។',
     available: 'មានស្រាប់៖ {{quantity}}',
+    overStockAlert: 'មានជួរទំនិញលក់មួយចំនួនលើសស្តុកដែលមាន។ សូមបន្ថយបរិមាណមុនរក្សាទុក។',
+    overStockBlocked: 'ស្តុកដែលមានគឺ {{available}}។ ឃ្លាំងនេះមិនអនុញ្ញាតស្តុកអវិជ្ជមានទេ។',
+    overStockSubmitBlocked: 'មានជួរទំនិញលក់មួយចំនួនលើសស្តុកដែលមាន។',
     noDiscount: 'មិនមានបញ្ចុះតម្លៃ',
     noTax: 'មិនមានពន្ធ',
     noPriceGroup: 'តម្លៃស្តង់ដារ',
@@ -422,6 +425,7 @@ const sales = {
     noItems: 'រកមិនឃើញទំនិញលក់។',
   },
   items: {
+    lotSerial: 'ឡូត៍ / ស៊េរី',
     product: 'ផលិតផល',
     quantity: 'បរិមាណ',
     unit: 'ខ្នាត',

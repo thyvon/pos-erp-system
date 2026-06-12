@@ -2,6 +2,7 @@
 
 namespace App\Http\Resources\Sales;
 
+use App\Models\StockLevel;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
@@ -10,6 +11,7 @@ class SaleItemResource extends JsonResource
     public function toArray(Request $request): array
     {
         $this->loadMissing([
+            'sale',
             'product.unit',
             'product.subUnit',
             'variation.subUnit',
@@ -34,6 +36,7 @@ class SaleItemResource extends JsonResource
             'tax_type' => $this->tax_type,
             'tax_amount' => $this->tax_amount !== null ? (string) $this->tax_amount : null,
             'unit_cost' => $this->unit_cost !== null ? (string) $this->unit_cost : null,
+            'available_quantity' => $this->availableQuantity(),
             'total_amount' => $this->total_amount !== null ? (string) $this->total_amount : null,
             'notes' => $this->notes,
             'product' => $this->product ? [
@@ -90,5 +93,34 @@ class SaleItemResource extends JsonResource
             'created_at' => $this->created_at,
             'updated_at' => $this->updated_at,
         ];
+    }
+
+    protected function availableQuantity(): ?string
+    {
+        $sale = $this->sale;
+
+        if (! $sale?->warehouse_id || ! $this->product_id) {
+            return null;
+        }
+
+        $level = StockLevel::withoutGlobalScopes()
+            ->where('business_id', $sale->business_id)
+            ->where('warehouse_id', $sale->warehouse_id)
+            ->where('product_id', $this->product_id)
+            ->where(function ($query): void {
+                $this->variation_id
+                    ? $query->where('variation_id', $this->variation_id)
+                    : $query->whereNull('variation_id');
+            })
+            ->first();
+
+        $availableQuantity = (float) ($level?->available_qty ?? 0);
+
+        if (in_array($sale->status, ['confirmed', 'completed'], true)) {
+            $conversionFactor = (float) ($this->subUnit?->conversion_factor ?? 1);
+            $availableQuantity += (float) $this->quantity * ($conversionFactor > 0 ? $conversionFactor : 1);
+        }
+
+        return number_format($availableQuantity, 4, '.', '');
     }
 }

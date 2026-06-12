@@ -19,12 +19,17 @@ class InvoicePrintService
         return InvoiceTemplateRegistry::all();
     }
 
-    public function resolveTemplate(?string $template): string
+    public function resolveTemplate(?string $template, ?Sale $sale = null): string
     {
         if ($template && InvoiceTemplateRegistry::exists($template)) {
             return $template;
         }
-        return (string) $this->settings->get('invoice', 'invoice_layout', InvoiceTemplateRegistry::default());
+
+        if ($sale && $sale->type === 'pos_sale') {
+            return (string) $this->settings->get('pos', 'invoice_layout');
+        }
+
+        return (string) $this->settings->get('invoice', 'invoice_layout');
     }
 
     public function renderHtml(Sale $sale, ?string $template = null): string
@@ -34,11 +39,14 @@ class InvoicePrintService
             'branch',
             'customer',
             'creator',
-            'items.product',
-            'items.variation',
+            'parentSale',
+            'items.product.unit',
+            'items.product.subUnit',
+            'items.variation.subUnit',
+            'items.subUnit',
         ]);
 
-        $template = $this->resolveTemplate($template);
+        $template = $this->resolveTemplate($template, $sale);
         $business = $sale->business;
         $settings = $this->getInvoiceSettings($sale);
 

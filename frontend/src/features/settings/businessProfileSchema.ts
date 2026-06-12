@@ -10,8 +10,8 @@ const nullableUrl = z
 const countryCode = z
   .string()
   .trim()
-  .max(2, 'Country must be 2 letters')
-  .transform((value) => (value ? value.toUpperCase() : null))
+  .max(100, 'Country name is too long')
+  .transform((value) => value || null)
 
 export const businessProfileSchema = z.object({
   name: z.string().trim().min(1, 'Business name is required').max(255, 'Business name is too long'),
@@ -21,6 +21,9 @@ export const businessProfileSchema = z.object({
   phone: nullableText(20),
   business_country: countryCode,
   logo_url: nullableUrl,
+  logo_file: z.custom<File | null>(
+    (value) => value === null || (typeof File !== 'undefined' && value instanceof File)
+  ),
   address_line1: nullableText(255),
   address_line2: nullableText(255),
   country: nullableText(100),

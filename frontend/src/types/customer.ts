@@ -13,6 +13,7 @@ export interface Customer {
   customer_group: CustomerGroupSummary | null
   code: string
   name: string
+  contact_person: string | null
   type: CustomerType
   email: string | null
   phone: string | null
@@ -36,6 +37,7 @@ export interface Customer {
 export interface CustomerPayload {
   customer_group_id?: string | null
   name: string
+  contact_person?: string | null
   type: CustomerType
   email?: string | null
   phone?: string | null

@@ -1,212 +1,352 @@
-<!DOCTYPE html>
-<html>
+﻿<!DOCTYPE html>
+<html lang="en">
 <head>
 <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
 @php
-  $documentTitle = $sale->type === 'pos_sale' ? __('RECEIPT') : __('INVOICE');
-  $documentDetailsLabel = $sale->type === 'pos_sale' ? __('Receipt Details') : __('Invoice Details');
+  $documentTitle      = $sale->type === 'pos_sale' ? __('RECEIPT') : __('INVOICE');
   $documentNumberLabel = $sale->type === 'pos_sale' ? __('Receipt No') : __('Invoice No');
+  $currency    = $settings['currency_symbol'] ?? '$';
+  $balance     = max(0, (float) $sale->total_amount - (float) $sale->paid_amount);
+  $totalQty    = $sale->items->sum(fn ($i) => (float) $i->quantity);
+  $blankRows   = max(0, 12 - $sale->items->count());
+  $showTax     = $settings['show_tax'] ?? true;
+
+  $formatMoney  = fn ($v) => $currency . number_format((float) $v, 2);
+  $formatNumber = fn ($v) => rtrim(rtrim(number_format((float) $v, 4), '0'), '.');
+
+  $formatAddress = function ($address) {
+      if (!$address) return null;
+      if (is_string($address)) return $address;
+      return implode(', ', array_filter((array) $address));
+  };
+
+  $businessNameKh = $business->name_kh ?? $business->secondary_name ?? null;
+  $businessNameEn = $business->name;
 @endphp
 <title>{{ $documentTitle }} {{ $sale->sale_number }}</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Public+Sans:ital,wght@0,100..900;1,100..900&family=Kantumruy+Pro:ital,wght@0,100..700;1,100..700&display=swap" rel="stylesheet">
 <style>
-  @page { margin: 20px; }
-  body {
-    font-family: 'DejaVu Sans', sans-serif;
-    font-size: 10pt;
-    color: #333;
-    line-height: 1.5;
-    margin: 0;
-    padding: 0;
-  }
-  .invoice-box { max-width: 800px; margin: auto; padding: 30px; border: 1px solid #ddd; }
+@page { size: A4 portrait; margin: 8mm; }
+* { box-sizing: border-box; }
+body {
+    margin: 0; padding: 0;
+    font-family: 'Public Sans', 'Kantumruy Pro', sans-serif;
+    font-size: 11px; color: #000; background: #fff;
+}
+.invoice { width: 194mm; min-height: 281mm; margin: 0 auto; background: #fff; }
+table { width: 100%; border-collapse: collapse; }
 
-  .header { display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 30px; padding-bottom: 20px; border-bottom: 2px solid #2563eb; }
-  .header-left { }
-  .header-left .business-name { font-size: 18pt; font-weight: 700; color: #2563eb; margin: 0 0 4px 0; }
-  .header-left .business-details { font-size: 8.5pt; color: #666; }
-  .header-right { text-align: right; }
-  .header-right .invoice-title { font-size: 20pt; font-weight: 700; color: #2563eb; margin: 0; }
-  .header-right .invoice-number { font-size: 10pt; color: #555; margin: 4px 0 0 0; }
+/* HEADER */
+.header { margin-bottom: 5px; }
+.header td { vertical-align: top; }
+.logo { width: 90px; }
+.logo img { max-width: 80px; max-height: 70px; }
+.company { text-align: center; }
+.company-kh { font-size: 26px; font-weight: bold; color: #3c4699; line-height: 1.2; }
+.company-en { font-size: 17px; font-weight: bold; color: #3c4699; text-transform: uppercase; line-height: 1.3; }
+.company-info { font-size: 10.5px; line-height: 1.5; }
 
-  .info-grid { display: flex; justify-content: space-between; margin-bottom: 24px; }
-  .info-block { }
-  .info-block .info-label { font-size: 7.5pt; font-weight: 700; text-transform: uppercase; color: #888; letter-spacing: 0.5px; margin-bottom: 2px; }
-  .info-block .info-value { font-size: 10pt; color: #333; margin: 0; }
+/* CUSTOMER + INVOICE BOX */
+.info-box { border: 1px solid #000; margin-top: 4px; }
+.info-box td { border: 1px solid #000; vertical-align: top; }
+.info-inner { width: 100%; }
+.info-inner td { border: none; padding: 2px 5px; line-height: 1.4; }
+.invoice-title { text-align: center; font-weight: bold; font-size: 16px; padding: 5px; border-bottom: 1px solid #000; }
 
-  table.items { width: 100%; border-collapse: collapse; margin-bottom: 20px; }
-  table.items thead th {
-    background: #2563eb; color: #fff; font-size: 8pt; font-weight: 700;
-    text-transform: uppercase; letter-spacing: 0.5px;
-    padding: 8px 10px; text-align: left;
-  }
-  table.items thead th.right { text-align: right; }
-  table.items tbody td {
-    padding: 7px 10px; border-bottom: 1px solid #eee; font-size: 9pt;
-  }
-  table.items tbody td.right { text-align: right; }
-  table.items tbody tr:nth-child(even) { background: #f8fafc; }
+/* ITEM TABLE */
+.items { border: 1px solid #000; table-layout: fixed; margin-top: 6px; }
+.items th { border: 1px solid #000; padding: 4px 3px; font-size: 9.5px; text-align: center; font-weight: bold; background: #f5f5f5; }
+.items td { border: 1px solid #000; padding: 3px; font-size: 9.5px; line-height: 1.25; }
+.items tbody tr { height: 24px; }
+.blank-row { height: 24px; }
+.text-center { text-align: center; }
+.text-right  { text-align: right; }
+.desc        { text-align: left; }
+.muted       { color: #555; }
 
-  .totals { width: 300px; margin-left: auto; }
-  .totals table { width: 100%; border-collapse: collapse; }
-  .totals td { padding: 4px 10px; font-size: 9pt; }
-  .totals td.label { text-align: right; color: #666; }
-  .totals td.value { text-align: right; font-weight: 600; }
-  .totals .grand-total td { font-size: 11pt; font-weight: 700; color: #2563eb; border-top: 2px solid #2563eb; padding-top: 6px; }
+/* SUMMARY */
+.summary { margin-top: 5px; }
+.summary td { vertical-align: top; }
+.summary-left  { width: 65%; }
+.summary-right { width: 35%; }
+.summary-left td { padding: 2px 4px; line-height: 1.4; }
+.total-table td { padding: 3px 4px; }
+.total-table .lbl { text-align: left; font-weight: bold; }
+.total-table .amt { text-align: right; font-weight: bold; }
+.total-table .grand-row td { border-top: 1px solid #000; }
 
-  .payment-info { margin-top: 16px; padding: 12px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 4px; font-size: 9pt; }
-  .payment-info .label { font-weight: 700; color: #16a34a; }
+/* SIGNATURE */
+.signature { margin-top: 40px; }
+.signature td { width: 33.33%; text-align: center; vertical-align: bottom; font-size: 10px; }
+.sign-line { margin-top: 55px; border-top: 1px solid #000; width: 90%; margin-left: auto; margin-right: auto; }
+.sign-date { margin-top: 5px; }
 
-  .terms { margin-top: 24px; padding-top: 16px; border-top: 1px solid #ddd; }
-  .terms .label { font-size: 8pt; font-weight: 700; text-transform: uppercase; color: #888; }
-  .terms .text { font-size: 8.5pt; color: #555; }
-  .footer { margin-top: 24px; text-align: center; font-size: 8pt; color: #999; }
+/* TERMS & FOOTER */
+.terms { margin-top: 14px; font-size: 9.5px; line-height: 1.4; }
+.terms-title { font-weight: bold; margin-bottom: 3px; }
+.footer { margin-top: 18px; font-size: 9.5px; color: #333; }
+.footer-note { margin-top: 4px; }
 
-  @media print {
-    body { background: #fff; }
-    .invoice-box { box-shadow: none; }
-  }
+@media print { .invoice { width: auto; min-height: auto; } }
 </style>
 </head>
 <body>
-<div class="invoice-box">
-  {{-- Header --}}
-  <div class="header">
-    <div class="header-left">
-      @if ($settings['show_logo'] ?? false && $business->logo_url)
-        <img src="{{ $business->logo_url }}" style="max-height:60px; margin-bottom:8px;" alt="Logo"/>
-      @endif
-      <h1 class="business-name">{{ $business->name }}</h1>
-      <div class="business-details">
-        @if ($business->address)
-          {{ is_string($business->address) ? $business->address : ($business->address['village'] ?? '') . ', ' . ($business->address['commune'] ?? '') . ', ' . ($business->address['district'] ?? '') . ', ' . ($business->address['province_city'] ?? '') }}<br/>
-        @endif
-        @if ($business->phone) {{ __('Phone') }}: {{ $business->phone }}<br/> @endif
-        @if ($business->email) {{ $business->email }}<br/> @endif
-        @if ($business->tax_id) {{ __('Tax ID') }}: {{ $business->tax_id }}@endif
-      </div>
-    </div>
-    <div class="header-right">
-      <p class="invoice-title">{{ $documentTitle }}</p>
-      <p class="invoice-number">{{ $sale->sale_number }}</p>
-    </div>
-  </div>
+<div class="invoice">
 
-  {{-- Customer & Info Grid --}}
-  <div class="info-grid">
-    <div class="info-block">
-      <div class="info-label">{{ __('Bill To') }}</div>
-      <p class="info-value">
-        <strong>{{ $sale->customer->name ?? '-' }}</strong><br/>
-        @if ($sale->customer->phone ?? false) {{ $sale->customer->phone }}<br/> @endif
-        @if ($sale->customer->email ?? false) {{ $sale->customer->email }}<br/> @endif
-        @if ($sale->customer->address ?? false) {{ is_string($sale->customer->address) ? $sale->customer->address : implode(', ', array_filter((array)$sale->customer->address)) }}<br/> @endif
-        @if ($sale->customer->tax_id ?? false) {{ __('Tax ID') }}: {{ $sale->customer->tax_id }}@endif
-      </p>
-    </div>
-    <div class="info-block" style="text-align:right">
-      <div class="info-label">{{ $documentDetailsLabel }}</div>
-      <p class="info-value">
-        <strong>{{ $documentNumberLabel }}:</strong> {{ $sale->sale_number }}<br/>
-        <strong>{{ __('Date') }}:</strong> {{ $sale->sale_date }}<br/>
-        @if ($sale->due_date) <strong>{{ __('Due Date') }}:</strong> {{ $sale->due_date }}<br/> @endif
-        <strong>{{ __('Branch') }}:</strong> {{ $sale->branch->name ?? '-' }}<br/>
-        @if ($sale->created_by) <strong>{{ __('Sales Person') }}:</strong> {{ $sale->creator->name ?? '-' }}@endif
-      </p>
-    </div>
-  </div>
-
-  {{-- Items Table --}}
-  <table class="items">
-    <thead>
-      <tr>
-        <th style="width:40px">#</th>
-        <th>{{ __('Product') }}</th>
-        <th class="right" style="width:80px">{{ __('Qty') }}</th>
-        <th class="right" style="width:90px">{{ __('Unit Price') }}</th>
-        <th class="right" style="width:70px">{{ __('Discount') }}</th>
-        @if ($settings['show_tax'] ?? true)
-        <th class="right" style="width:70px">{{ __('Tax') }}</th>
-        @endif
-        <th class="right" style="width:100px">{{ __('Total') }}</th>
-      </tr>
-    </thead>
-    <tbody>
-      @foreach ($sale->items as $index => $item)
-      <tr>
-        <td>{{ $index + 1 }}</td>
-        <td>{{ $item->product->name ?? '-' }}{{ $item->variation ? ' / '.$item->variation->name : '' }}</td>
-        <td class="right">{{ (float)$item->quantity }}</td>
-        <td class="right">{{ number_format((float)$item->unit_price, 2) }}</td>
-        <td class="right">{{ (float)$item->discount_amount > 0 ? number_format((float)$item->discount_amount, 2) : '-' }}</td>
-        @if ($settings['show_tax'] ?? true)
-        <td class="right">{{ (float)$item->tax_amount > 0 ? number_format((float)$item->tax_amount, 2) : '-' }}</td>
-        @endif
-        <td class="right">{{ number_format((float)$item->total_amount, 2) }}</td>
-      </tr>
-      @endforeach
-    </tbody>
-  </table>
-
-  {{-- Totals --}}
-  <div class="totals">
-    <table>
-      <tr>
-        <td class="label">{{ __('Subtotal') }}</td>
-        <td class="value">{{ number_format((float)$sale->subtotal, 2) }}</td>
-      </tr>
-      @if ((float)$sale->discount_amount > 0)
-      <tr>
-        <td class="label">{{ __('Discount') }}</td>
-        <td class="value">-{{ number_format((float)$sale->discount_amount, 2) }}</td>
-      </tr>
-      @endif
-      @if ((float)$sale->shipping_charges > 0)
-      <tr>
-        <td class="label">{{ __('Shipping') }}</td>
-        <td class="value">{{ number_format((float)$sale->shipping_charges, 2) }}</td>
-      </tr>
-      @endif
-      @if ($settings['show_tax'] ?? true)
-      <tr>
-        <td class="label">{{ __('Tax') }}</td>
-        <td class="value">{{ number_format((float)$sale->tax_amount, 2) }}</td>
-      </tr>
-      @endif
-      <tr class="grand-total">
-        <td class="label">{{ __('Total') }}</td>
-        <td class="value">{{ number_format((float)$sale->total_amount, 2) }}</td>
-      </tr>
+    <!-- HEADER -->
+    <table class="header">
+        <tr>
+            <td class="logo">
+                @if (($settings['show_logo'] ?? false) && $business->logo_url)
+                    <img src="{{ $business->logo_url }}" alt="Logo"/>
+                @endif
+            </td>
+            <td class="company">
+                @if ($businessNameKh)
+                    <div class="company-kh">{{ $businessNameKh }}</div>
+                @endif
+                <div class="company-en">{{ $businessNameEn }}</div>
+                @if ($formatAddress($business->address))
+                    <div class="company-info">{{ $formatAddress($business->address) }}</div>
+                @endif
+                <div class="company-info">
+                    @if ($business->phone) {{ __('Tel') }}: {{ $business->phone }} @endif
+                    @if ($business->email) | {{ __('Email') }}: {{ $business->email }} @endif
+                    @if ($business->website ?? false) | {{ $business->website }} @endif
+                </div>
+                @if ($business->tax_id)
+                    <div class="company-info">{{ __('Tax ID') }}: {{ $business->tax_id }}</div>
+                @endif
+            </td>
+            <td style="width: 90px;"></td>
+        </tr>
     </table>
-  </div>
 
-  {{-- Payment Info --}}
-  <div class="payment-info">
-    <span class="label">{{ __('Payment Status') }}:</span> {{ __('Paid') }} {{ number_format((float)$sale->paid_amount, 2) }}
-    @if ((float)$sale->total_amount - (float)$sale->paid_amount > 0)
-      | <span class="label">{{ __('Due') }}:</span> {{ number_format((float)$sale->total_amount - (float)$sale->paid_amount, 2) }}
+    <!-- CUSTOMER + INVOICE BOX -->
+    <table class="info-box">
+        <tr>
+            <td width="68%">
+                <table class="info-inner">
+                    <tr>
+                        <td width="110"><b>{{ __('Cust. Name') }}</b></td>
+                        <td>{{ $sale->customer->name ?? '-' }}</td>
+                    </tr>
+                    <tr>
+                        <td><b>{{ __('Contact') }}</b></td>
+                        <td>{{ $sale->customer->contact_person ?? '-' }}</td>
+                    </tr>
+                    <tr>
+                        <td><b>{{ __('Address') }}</b></td>
+                        <td>{{ $formatAddress($sale->customer->address ?? null) ?? '-' }}</td>
+                    </tr>
+                    <tr>
+                        <td><b>{{ __('Phone') }}</b></td>
+                        <td>{{ $sale->customer->phone ?? $sale->customer->mobile ?? '-' }}</td>
+                    </tr>
+                    <tr>
+                        <td><b>{{ __('V.A.T / VAT') }}</b></td>
+                        <td>{{ $sale->customer->tax_id ?? '-' }}</td>
+                    </tr>
+                </table>
+            </td>
+            <td width="32%">
+                <div class="invoice-title">{{ $documentTitle }}</div>
+                <table class="info-inner">
+                    <tr>
+                        <td width="120"><b>{{ $documentNumberLabel }}</b></td>
+                        <td>{{ $sale->sale_number }}</td>
+                    </tr>
+                    <tr>
+                        <td><b>{{ __('Date') }}</b></td>
+                        <td>{{ optional($sale->sale_date)->format('d/m/Y') }}</td>
+                    </tr>
+                    @if ($sale->due_date)
+                    <tr>
+                        <td><b>{{ __('Due Date') }}</b></td>
+                        <td>{{ optional($sale->due_date)->format('d/m/Y') }}</td>
+                    </tr>
+                    @endif
+                    @if ($sale->parentSale)
+                    <tr>
+                        <td><b>{{ __('Customer PO') }}</b></td>
+                        <td>{{ $sale->parentSale->sale_number }}</td>
+                    </tr>
+                    @endif
+                    <tr>
+                        <td><b>{{ __('Salesman') }}</b></td>
+                        <td>{{ trim(($sale->creator->first_name ?? '') . ' ' . ($sale->creator->last_name ?? '')) ?: '-' }}</td>
+                    </tr>
+                    <tr>
+                        <td><b>{{ __('Branch') }}</b></td>
+                        <td>{{ $sale->branch->name ?? '-' }}</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <!-- ITEM TABLE -->
+    <table class="items">
+        <thead>
+            <tr>
+                <th width="35">N°</th>
+                <th width="65">{{ __('ITEM CODE') }}</th>
+                <th>{{ __('DESCRIPTION') }}</th>
+                <th width="50">{{ __('UNIT') }}</th>
+                <th width="50">{{ __('QTY') }}</th>
+                <th width="70">{{ __('PRICE') }}</th>
+                <th width="55">{{ __('DISC') }}</th>
+                @if ($showTax)
+                    <th width="55">{{ __('TAX') }}</th>
+                @endif
+                <th width="80">{{ __('TOTAL') }}</th>
+            </tr>
+        </thead>
+        <tbody>
+            @foreach ($sale->items as $index => $item)
+            @php
+                $sku = $item->variation->sku ?? $item->product->sku ?? '-';
+                $unit = $item->subUnit->short_name
+                    ?? $item->subUnit->name
+                    ?? $item->product->unit->short_name
+                    ?? $item->product->unit->name
+                    ?? '-';
+                $desc = trim(
+                    ($item->product->name ?? '-') .
+                    ($item->variation ? ' / ' . $item->variation->name : '')
+                );
+            @endphp
+            <tr>
+                <td class="text-center">{{ $index + 1 }}</td>
+                <td>{{ $sku }}</td>
+                <td class="desc">
+                    {{ $desc }}
+                    @if ($item->notes)
+                        <br/><span class="muted">{{ $item->notes }}</span>
+                    @endif
+                </td>
+                <td class="text-center">{{ $unit }}</td>
+                <td class="text-right">{{ $formatNumber($item->quantity) }}</td>
+                <td class="text-right">{{ $formatMoney($item->unit_price) }}</td>
+                <td class="text-right">
+                    {{ (float) $item->discount_amount > 0 ? $formatMoney($item->discount_amount) : '0' }}
+                </td>
+                @if ($showTax)
+                    <td class="text-right">
+                        {{ (float) $item->tax_amount > 0 ? $formatMoney($item->tax_amount) : '0' }}
+                    </td>
+                @endif
+                <td class="text-right">{{ $formatMoney($item->total_amount) }}</td>
+            </tr>
+            @endforeach
+
+            @for ($i = 0; $i < $blankRows; $i++)
+            <tr class="blank-row">
+                <td>&nbsp;</td><td></td><td></td><td></td><td></td><td></td><td></td>
+                @if ($showTax)<td></td>@endif
+                <td></td>
+            </tr>
+            @endfor
+        </tbody>
+    </table>
+
+    <!-- SUMMARY -->
+    <table class="summary">
+        <tr>
+            <td class="summary-left">
+                <table>
+                    <tr>
+                        <td width="120"><b>{{ __('Total Qty') }} :</b></td>
+                        <td>{{ $formatNumber($totalQty) }}</td>
+                    </tr>
+                    @if ($sale->notes)
+                    <tr>
+                        <td valign="top"><b>{{ __('Note') }} :</b></td>
+                        <td>{{ $sale->notes }}</td>
+                    </tr>
+                    @endif
+                </table>
+            </td>
+            <td class="summary-right">
+                <table class="total-table">
+                    @if ((float) $sale->subtotal > 0 && ((float) $sale->discount_amount > 0 || (float) $sale->shipping_charges > 0 || $showTax))
+                    <tr>
+                        <td class="lbl">{{ __('SUBTOTAL') }}</td>
+                        <td class="amt">{{ $formatMoney($sale->subtotal) }}</td>
+                    </tr>
+                    @endif
+                    @if ((float) $sale->discount_amount > 0)
+                    <tr>
+                        <td class="lbl">{{ __('DISCOUNT') }}</td>
+                        <td class="amt">-{{ $formatMoney($sale->discount_amount) }}</td>
+                    </tr>
+                    @endif
+                    @if ((float) $sale->shipping_charges > 0)
+                    <tr>
+                        <td class="lbl">{{ __('SHIPPING') }}</td>
+                        <td class="amt">{{ $formatMoney($sale->shipping_charges) }}</td>
+                    </tr>
+                    @endif
+                    @if ($showTax)
+                    <tr>
+                        <td class="lbl">{{ __('TAX') }}</td>
+                        <td class="amt">{{ $formatMoney($sale->tax_amount) }}</td>
+                    </tr>
+                    @endif
+                    <tr class="grand-row">
+                        <td class="lbl">{{ __('GRAND TOTAL') }}</td>
+                        <td class="amt">{{ $formatMoney($sale->total_amount) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="lbl">{{ __('PAID AMOUNT') }}</td>
+                        <td class="amt">{{ $formatMoney($sale->paid_amount) }}</td>
+                    </tr>
+                    <tr>
+                        <td class="lbl">{{ __('BALANCE') }}</td>
+                        <td class="amt">{{ $formatMoney($balance) }}</td>
+                    </tr>
+                </table>
+            </td>
+        </tr>
+    </table>
+
+    <!-- SIGNATURE -->
+    <table class="signature">
+        <tr>
+            <td>
+                {{ __('Customer Signature') }}
+                <div class="sign-line"></div>
+                <div class="sign-date">{{ __('Date') }}: ____ / ____ / ______</div>
+            </td>
+            <td>
+                {{ __('Authorized By') }}
+                <div class="sign-line"></div>
+                <div class="sign-date">{{ __('Date') }}: ____ / ____ / ______</div>
+            </td>
+            <td>
+                {{ __('Delivered By') }}
+                <div class="sign-line"></div>
+                <div class="sign-date">{{ __('Date') }}: ____ / ____ / ______</div>
+            </td>
+        </tr>
+    </table>
+
+    <!-- TERMS & FOOTER -->
+    @if (!empty($settings['terms_conditions']))
+    <div class="terms">
+        <div class="terms-title">{{ __('Terms & Conditions') }}</div>
+        <div>{{ $settings['terms_conditions'] }}</div>
+    </div>
     @endif
-  </div>
 
-  {{-- Notes --}}
-  @if ($sale->notes)
-  <div class="terms">
-    <div class="label">{{ __('Notes') }}</div>
-    <div class="text">{{ $sale->notes }}</div>
-  </div>
-  @endif
+    <div class="footer">
+        <div class="footer-note">
+            {{ $settings['footer_note'] ?? __('Goods sold cannot be refunded and received in good condition.') }}
+        </div>
+    </div>
 
-  {{-- Terms --}}
-  @if (!empty($settings['terms_conditions']))
-  <div class="terms">
-    <div class="label">{{ __('Terms & Conditions') }}</div>
-    <div class="text">{{ $settings['terms_conditions'] }}</div>
-  </div>
-  @endif
-
-  {{-- Footer --}}
-  @if (!empty($settings['footer_note']))
-  <div class="footer">{{ $settings['footer_note'] }}</div>
-  @endif
 </div>
 </body>
 </html>

@@ -25,6 +25,7 @@ export default {
   fields: {
     customerGroup: 'ក្រុមអតិថិជន',
     name: 'ឈ្មោះ',
+    contactPerson: 'អ្នកទាក់ទង',
     type: 'ប្រភេទ',
     email: 'អ៊ីមែល',
     phone: 'ទូរស័ព្ទ',

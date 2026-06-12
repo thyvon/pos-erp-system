@@ -100,6 +100,7 @@ import { useTaxRatesQuery } from '@/features/tax-rates/hooks'
 import { useWarehousesQuery } from '@/features/warehouses/hooks'
 import { useAuthStore } from '@/stores/authStore'
 import { useUIStore } from '@/stores/uiStore'
+import { useSettingsGroupQuery } from '@/features/settings/hooks'
 import { buildLayoutSurfaceColors, getLayoutMetrics } from '@/theme'
 import { formatAppDate } from '@/utils/dateFormat'
 import { formatMoney } from '@/utils/formatMoney'
@@ -148,6 +149,8 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
   const setSettingsOpen = useUIStore((state) => state.setSettingsOpen)
   const topbarTheme = useUIStore((state) => state.topbarTheme)
   const layoutSize = useUIStore((state) => state.layoutSize)
+  const posSettingsQuery = useSettingsGroupQuery('pos')
+  const posSettings = posSettingsQuery.data
   const [serverError, setServerError] = useState('')
   const [productTab, setProductTab] = useState<PosProductTab>('featured')
   const [categoryId, setCategoryId] = useState('')
@@ -357,6 +360,16 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
       canCapturePayment: !suspended && (!isEdit || currentSaleStatus === 'completed'),
     }
   }, [watchedDirectPayments, defaultExchangeRateValue, totals.total, saleType, isEdit, currentSaleStatus])
+
+  useEffect(() => {
+    if (warehouses.length > 0 && !warehouseId && currentUser?.default_warehouse_id) {
+      const defaultWh = warehouses.find((w) => w.id === currentUser.default_warehouse_id)
+      if (defaultWh) {
+        setValue('warehouse_id', defaultWh.id, { shouldDirty: true, shouldValidate: true })
+        setValue('branch_id', defaultWh.branch_id, { shouldDirty: true, shouldValidate: true })
+      }
+    }
+  }, [warehouses, warehouseId, currentUser?.default_warehouse_id, setValue])
 
   useEffect(() => {
     if (!currentSale) return
@@ -750,6 +763,13 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
       }
 
       if (values.type === 'pos_sale') {
+        if (posSettings?.auto_print_receipt) {
+          const id = isEdit ? saleId : createSale.data?.data.id
+          if (id) {
+            await printInvoice(id, t('pos.receiptTitle'), t('pos.printError'), 'receipt')
+          }
+        }
+        
         if (directPaymentLines.length > 0) {
           enqueueSnackbar(t('pos.messages.completed'), { variant: 'success' })
         } else if (isEdit) {

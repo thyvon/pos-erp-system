@@ -133,6 +133,9 @@ const sales = {
     selectWarehouseFirst: 'Select a warehouse before adding items.',
     emptyItems: 'No sale items added.',
     available: 'Available: {{quantity}}',
+    overStockAlert: 'One or more sale lines exceed available stock. Reduce the quantity before saving.',
+    overStockBlocked: 'Available stock is {{available}}. Negative stock is not allowed for this warehouse.',
+    overStockSubmitBlocked: 'Some sale lines exceed available stock.',
     noDiscount: 'No discount',
     noTax: 'No tax',
     noPriceGroup: 'Standard pricing',
@@ -423,6 +426,7 @@ const sales = {
   },
   items: {
     product: 'Product',
+    lotSerial: 'Lot / Serial',
     quantity: 'Quantity',
     unit: 'Unit',
     unitPrice: 'Unit price',
