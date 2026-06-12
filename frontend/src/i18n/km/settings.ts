@@ -112,7 +112,6 @@ export default {
     show_received_date: 'បង្ហាញថ្ងៃទទួល',
     show_purchase_number: 'បង្ហាញលេខបញ្ជាទិញ',
     show_warehouse: 'បង្ហាញឃ្លាំង',
-    default_warehouse_id: 'លេខសម្គាល់ឃ្លាំងលំនាំដើម',
     allow_discount: 'អនុញ្ញាតបញ្ចុះតម្លៃ',
     max_discount_pct: 'បញ្ចុះតម្លៃអតិបរមា %',
     receipt_printer: 'ម៉ាស៊ីនបោះពុម្ពបង្កាន់ដៃ',

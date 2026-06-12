@@ -48,7 +48,6 @@ class DefaultSettings
             ['group' => 'label_printing', 'key' => 'show_purchase_number', 'value' => '0', 'type' => 'boolean', 'is_encrypted' => false],
             ['group' => 'label_printing', 'key' => 'show_warehouse', 'value' => '0', 'type' => 'boolean', 'is_encrypted' => false],
 
-            ['group' => 'pos', 'key' => 'default_warehouse_id', 'value' => null, 'type' => 'string', 'is_encrypted' => false],
             ['group' => 'pos', 'key' => 'allow_discount', 'value' => '1', 'type' => 'boolean', 'is_encrypted' => false],
             ['group' => 'pos', 'key' => 'max_discount_pct', 'value' => '100', 'type' => 'integer', 'is_encrypted' => false],
             ['group' => 'pos', 'key' => 'receipt_printer', 'value' => 'browser', 'type' => 'string', 'is_encrypted' => false],

@@ -131,7 +131,6 @@ export const SETTINGS_GROUPS: SettingsGroupDefinition[] = [
   {
     key: 'pos',
     fields: [
-      { key: 'default_warehouse_id', type: 'text' },
       { key: 'allow_discount', type: 'boolean' },
       { key: 'max_discount_pct', type: 'number' },
       {

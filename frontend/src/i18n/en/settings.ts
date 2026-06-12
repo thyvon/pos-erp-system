@@ -112,7 +112,6 @@ export default {
     show_received_date: 'Show received date',
     show_purchase_number: 'Show purchase number',
     show_warehouse: 'Show warehouse',
-    default_warehouse_id: 'Default warehouse ID',
     allow_discount: 'Allow discount',
     max_discount_pct: 'Max discount %',
     receipt_printer: 'Receipt printer',

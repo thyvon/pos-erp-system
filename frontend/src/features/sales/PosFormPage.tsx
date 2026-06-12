@@ -365,8 +365,12 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
     if (warehouses.length > 0 && !warehouseId && currentUser?.default_warehouse_id) {
       const defaultWh = warehouses.find((w) => w.id === currentUser.default_warehouse_id)
       if (defaultWh) {
-        setValue('warehouse_id', defaultWh.id, { shouldDirty: true, shouldValidate: true })
-        setValue('branch_id', defaultWh.branch_id, { shouldDirty: true, shouldValidate: true })
+        if (defaultWh.id != null) {
+          setValue('warehouse_id', String(defaultWh.id), { shouldDirty: true, shouldValidate: true })
+        }
+        if (defaultWh.branch_id != null) {
+          setValue('branch_id', String(defaultWh.branch_id), { shouldDirty: true, shouldValidate: true })
+        }
       }
     }
   }, [warehouses, warehouseId, currentUser?.default_warehouse_id, setValue])
