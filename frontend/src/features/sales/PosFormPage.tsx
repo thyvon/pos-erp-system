@@ -88,6 +88,7 @@ import type { PriceGroup } from '@/types/priceGroup'
 import type { Product } from '@/types/product'
 import type { TaxRate } from '@/types/taxRate'
 import { useDebouncedValue } from '@/utils/useDebouncedValue'
+import { printInvoice } from './printInvoice'
 import { PosCartSection } from './components/PosCartSection'
 import { PosHeaderFields } from './components/PosHeaderFields'
 import { PosPaymentSection } from './components/PosPaymentSection'
@@ -768,7 +769,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
 
       if (values.type === 'pos_sale') {
         if (posSettings?.auto_print_receipt) {
-          const id = isEdit ? saleId : createSale.data?.data.id
+          const id = isEdit ? saleId : createSale.data?.id
           if (id) {
             await printInvoice(id, t('pos.receiptTitle'), t('pos.printError'), 'receipt')
           }
