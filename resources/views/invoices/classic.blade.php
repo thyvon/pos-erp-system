@@ -29,7 +29,7 @@
 @page { size: A4 portrait; margin: 8mm; }
 * { box-sizing: border-box; }
 body {
-    margin: 0; padding: 0;
+    margin: 0; padding: 3mm;
     font-family: 'Kantumruy Pro', sans-serif;
     font-size: 11px; color: #000; background: #fff;
 }
