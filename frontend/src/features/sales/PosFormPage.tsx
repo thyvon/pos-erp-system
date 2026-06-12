@@ -44,7 +44,7 @@ import dayjs from 'dayjs'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
-import { AccountBalanceWalletOutlined, ArrowBack, CategoryOutlined, Close, ExpandLess, ExpandMore, PointOfSaleOutlined, Search, SettingsOutlined, TuneOutlined } from '@/components/ui/icons'
+import { AccountBalanceWalletOutlined, ArrowBack, CategoryOutlined, Close, ExpandLess, ExpandMore, PointOfSaleOutlined, ReceiptLongOutlined, Search, SettingsOutlined, TuneOutlined } from '@/components/ui/icons'
 import { RowActions } from '@/components/ui/RowActions'
 import { TableStateRow } from '@/components/ui/TableStateRow'
 import { useDefaultExchangeRateQuery, usePaymentAccountsQuery } from '@/features/accounting/hooks'
@@ -180,6 +180,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
   const [recentTransactionsSearch, setRecentTransactionsSearch] = useState('')
   const [recentTransactionsPage, setRecentTransactionsPage] = useState(0)
   const [recentTransactionsPerPage, setRecentTransactionsPerPage] = useState(10)
+  const [printingSaleId, setPrintingSaleId] = useState<string | null>(null)
   const isEdit = !!saleId
   const currency = useAppCurrency()
   const currencyFormatter = useCurrencyFormatter()
@@ -313,6 +314,20 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
   const canManageExistingPayments = isEdit && can('payments.edit') && currentSaleStatus === 'completed'
   const canDeleteExistingPayments = isEdit && can('payments.delete') && currentSaleStatus === 'completed'
   const canAddPaymentLines = (isEdit ? can('payments.create') && currentSaleStatus === 'completed' : true)
+
+  const handlePrintRecentTransaction = async (id: string) => {
+    if (printingSaleId) return
+
+    setPrintingSaleId(id)
+
+    try {
+      await printInvoice(id, t('pos.receiptTitle'), t('print.frameUnavailable'), 'receipt')
+    } catch (error) {
+      enqueueSnackbar(toAppApiError(error).message, { variant: 'error' })
+    } finally {
+      setPrintingSaleId(null)
+    }
+  }
   const defaultExchangeRateValue = toNumber(defaultExchangeRate?.rate)
   const selectedWarehouse = warehouses.find((warehouse) => warehouse.id === warehouseId) ?? null
   const selectDefaultWarehouse = useCallback((warehouse: (typeof warehouses)[number]) => {
@@ -479,6 +494,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
     const itemSubUnitId = null
     const itemLotId = item.lot_id ?? null
     const itemSerialId = item.serial_id ?? null
+    const isSerialTrackedItem = item.stock_tracking === 'serial' || Boolean(itemSerialId)
     const existingIndex = currentItems.findIndex((line) =>
       line.product_id === item.product_id
       && (line.variation_id ?? null) === itemVariationId
@@ -488,8 +504,11 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
     )
 
     if (existingIndex >= 0) {
-      if (itemSerialId) {
-        enqueueSnackbar(t('pos.messages.serialAlreadyInCart'), { variant: 'warning' })
+      if (isSerialTrackedItem || currentItems[existingIndex]?.stock_tracking === 'serial') {
+        enqueueSnackbar(
+          t(itemSerialId ? 'pos.messages.serialAlreadyInCart' : 'pos.messages.serialRequired'),
+          { variant: 'warning' },
+        )
         return
       }
 
@@ -521,7 +540,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
       serial_number: item.serial_number ?? null,
       unit_label: item.unit?.short_name ?? null,
       available_quantity: item.available_quantity ?? null,
-      quantity: item.serial_id ? 1 : 1,
+      quantity: 1,
       unit_price: toNumber(item.selling_price),
       discount_type: null,
       discount_amount: 0,
@@ -749,6 +768,12 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
   }
 
   const changeItemQuantity = (index: number, quantity: number) => {
+    const item = getValues(`items.${index}`)
+    if (item?.stock_tracking === 'serial' || item?.serial_id) {
+      setValue(`items.${index}.quantity`, 1, { shouldDirty: true, shouldValidate: true })
+      return
+    }
+
     setValue(`items.${index}.quantity`, quantity, { shouldDirty: true })
   }
 
@@ -809,7 +834,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
         if (posSettings?.auto_print_receipt) {
           const id = isEdit ? saleId : createSale.data?.id
           if (id) {
-            await printInvoice(id, t('pos.receiptTitle'), t('pos.printError'), 'receipt')
+            await printInvoice(id, t('pos.receiptTitle'), t('print.frameUnavailable'), 'receipt')
           }
         }
         
@@ -1335,22 +1360,38 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
                     </TableCell>
                     <TableCell align="right">{formatMoney(sale.total_amount, currencyFormatter)}</TableCell>
                     <TableCell align="center">
-                      <RowActions
-                        viewLabel={t('common:buttons.view')}
-                        editLabel={t('common:buttons.edit')}
-                        deleteLabel={t('common:buttons.delete')}
-                        showView
-                        showEdit={can('sales.edit')}
-                        showDelete={false}
-                        onView={() => {
-                          setRecentTransactionsOpen(false)
-                          router.push(`/sales/${sale.id}`)
-                        }}
-                        onEdit={() => {
-                          setRecentTransactionsOpen(false)
-                          router.push(`/pos/${sale.id}/edit`)
-                        }}
-                      />
+                      <Stack direction="row" spacing={0.25} sx={{ justifyContent: 'center' }}>
+                        <Tooltip title={t('print.quickPrint')}>
+                          <span>
+                            <IconButton
+                              size="small"
+                              aria-label={t('print.quickPrint')}
+                              disabled={printingSaleId !== null}
+                              onClick={() => void handlePrintRecentTransaction(sale.id)}
+                            >
+                              {printingSaleId === sale.id
+                                ? <CircularProgress size={18} />
+                                : <ReceiptLongOutlined />}
+                            </IconButton>
+                          </span>
+                        </Tooltip>
+                        <RowActions
+                          viewLabel={t('common:buttons.view')}
+                          editLabel={t('common:buttons.edit')}
+                          deleteLabel={t('common:buttons.delete')}
+                          showView
+                          showEdit={can('sales.edit')}
+                          showDelete={false}
+                          onView={() => {
+                            setRecentTransactionsOpen(false)
+                            router.push(`/sales/${sale.id}`)
+                          }}
+                          onEdit={() => {
+                            setRecentTransactionsOpen(false)
+                            router.push(`/pos/${sale.id}/edit`)
+                          }}
+                        />
+                      </Stack>
                     </TableCell>
                   </TableRow>
                 ))}

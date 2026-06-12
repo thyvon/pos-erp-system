@@ -150,6 +150,7 @@ const sales = {
     noProducts: 'No products found.',
     totalPayable: 'Total payable',
     recentTransactions: 'Recent Transactions',
+    receiptTitle: 'Print Receipt',
     more: 'More',
     showMoreDetails: 'Show more details',
     hideMoreDetails: 'Hide more details',
