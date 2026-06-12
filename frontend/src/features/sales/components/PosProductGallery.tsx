@@ -1,5 +1,6 @@
 'use client'
 
+import { memo } from 'react'
 import {
   Autocomplete,
   Box,
@@ -41,9 +42,10 @@ interface PosProductGalleryProps {
   productsLoading: boolean
   warehouseId: string
   isSaving: boolean
-  isAddingTileProduct: boolean
+  addingProductIds: string[]
   currencyFormatter: Intl.NumberFormat
   onAddProduct: (product: Product) => void | Promise<void>
+  onPrefetchProduct: (product: Product) => void
 }
 
 function categoryLabel(category: Category) {
@@ -59,7 +61,7 @@ function productPrice(product: Product) {
   return toNumber(product.variations?.[0]?.selling_price)
 }
 
-export function PosProductGallery({
+export const PosProductGallery = memo(function PosProductGallery({
   productTab,
   onProductTabChange,
   categoryId,
@@ -76,9 +78,10 @@ export function PosProductGallery({
   productsLoading,
   warehouseId,
   isSaving,
-  isAddingTileProduct,
+  addingProductIds,
   currencyFormatter,
   onAddProduct,
+  onPrefetchProduct,
 }: PosProductGalleryProps) {
   const { t } = useTranslation(['sales'])
 
@@ -163,12 +166,15 @@ export function PosProductGallery({
             {products.map((product) => {
               const price = productPrice(product)
               const imageUrl = resolveAssetUrl(product.image_url)
+              const isAdding = addingProductIds.includes(product.id)
 
               return (
                 <CardActionArea
                   key={product.id}
-                  disabled={!warehouseId || isSaving || isAddingTileProduct || !product.is_for_selling}
+                  disabled={!warehouseId || isSaving || isAdding || !product.is_for_selling}
                   onClick={() => void onAddProduct(product)}
+                  onMouseEnter={() => onPrefetchProduct(product)}
+                  onFocus={() => onPrefetchProduct(product)}
                   sx={{
                     border: 1,
                     borderColor: 'divider',
@@ -223,4 +229,4 @@ export function PosProductGallery({
       </Box>
     </Stack>
   )
-}
+})

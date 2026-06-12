@@ -1,8 +1,9 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
+import { useQueryClient } from '@tanstack/react-query'
 import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form'
 import {
   Alert,
@@ -55,6 +56,7 @@ import { useCreateCustomerMutation, useCustomersQuery } from '@/features/custome
 import { useCustomFieldsQuery } from '@/features/custom-fields/hooks'
 import { inventoryApi } from '@/features/inventory/api'
 import { InventoryProductLookupPicker } from '@/features/inventory/components/InventoryProductLookupPicker'
+import { inventoryKeys } from '@/features/inventory/hooks'
 import {
   buildDirectPaymentLines,
   buildSalePayload,
@@ -143,6 +145,7 @@ interface PosFormPageProps {
 export function PosFormPage({ saleId }: PosFormPageProps) {
   const { t, i18n } = useTranslation(['sales', 'common', 'customers'])
   const router = useRouter()
+  const queryClient = useQueryClient()
   const theme = useTheme()
   const { enqueueSnackbar } = useSnackbar()
   const can = useAuthStore((state) => state.can)
@@ -157,7 +160,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
   const [categoryId, setCategoryId] = useState('')
   const [brandId, setBrandId] = useState('')
   const [productGallerySearch, setProductGallerySearch] = useState('')
-  const [isAddingTileProduct, setIsAddingTileProduct] = useState(false)
+  const [addingTileProductIds, setAddingTileProductIds] = useState<string[]>([])
   const [productGalleryOpen, setProductGalleryOpen] = useState(false)
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null)
   const [editingSummary, setEditingSummary] = useState<'discount' | 'tax' | 'shipping' | null>(null)
@@ -204,11 +207,14 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
   )
 
   const saleQuery = useSaleQuery(saleId ?? null)
-  const recentTransactionsQuery = useSalesQuery(recentTransactionsFilters)
+  const recentTransactionsQuery = useSalesQuery(recentTransactionsFilters, recentTransactionsOpen)
   const warehousesQuery = useWarehousesQuery({ per_page: 100 })
   const customersQuery = useCustomersQuery({ status: 'active', per_page: 100 })
-  const customerGroupsQuery = useCustomerGroupsQuery({ per_page: 100 })
-  const customerCustomFieldsQuery = useCustomFieldsQuery({ module: 'customer', per_page: 100 })
+  const customerGroupsQuery = useCustomerGroupsQuery({ per_page: 100 }, customerDialogOpen && can('customers.create'))
+  const customerCustomFieldsQuery = useCustomFieldsQuery(
+    { module: 'customer', per_page: 100 },
+    customerDialogOpen && can('customers.create'),
+  )
   const categoriesQuery = useCategoriesQuery({ per_page: 100 })
   const brandsQuery = useBrandsQuery({ per_page: 100 })
   const productsQuery = useProductsQuery({
@@ -236,6 +242,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
     reset,
     setError,
     setValue,
+    getValues,
     formState: { errors },
   } = useForm<SaleFormInput, unknown, SaleFormValues>({
     resolver: zodResolver(saleFormSchema),
@@ -260,7 +267,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
     branch_id: branchId || undefined,
     status: 'active',
     per_page: 100,
-  })
+  }, !!branchId)
 
   const warehouses = useMemo(() => warehousesQuery.data?.data ?? [], [warehousesQuery.data?.data])
   const customers = useMemo(() => {
@@ -466,12 +473,13 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
     })
   }, [currentSaleStatus, isEdit, isSuspended, setValue])
 
-  const addLookupItem = (item: InventoryProductLookupItem) => {
+  const addLookupItem = useCallback((item: InventoryProductLookupItem) => {
+    const currentItems = getValues('items') ?? []
     const itemVariationId = item.variation_id ?? null
     const itemSubUnitId = null
     const itemLotId = item.lot_id ?? null
     const itemSerialId = item.serial_id ?? null
-    const existingIndex = watchedItems.findIndex((line) =>
+    const existingIndex = currentItems.findIndex((line) =>
       line.product_id === item.product_id
       && (line.variation_id ?? null) === itemVariationId
       && (line.sub_unit_id ?? null) === itemSubUnitId
@@ -485,7 +493,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
         return
       }
 
-      const currentQuantity = toNumber(watchedItems[existingIndex]?.quantity, 0)
+      const currentQuantity = toNumber(currentItems[existingIndex]?.quantity, 0)
       setValue(`items.${existingIndex}.quantity`, round(currentQuantity + 1), {
         shouldDirty: true,
         shouldValidate: true,
@@ -524,7 +532,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
       unit_cost: toNumber(item.unit_cost),
       notes: '',
     })
-  }
+  }, [append, enqueueSnackbar, getValues, setValue, t])
 
   const openCashRegisterDialog = () => {
     if (!branchId) {
@@ -592,18 +600,48 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
     }
   }
 
-  const addTileProduct = async (product: Product) => {
+  const prefetchTileProduct = useCallback((product: Product) => {
+    if (!warehouseId || !product.is_for_selling) return
+
+    const term = productSearchTerm(product)
+    void queryClient.prefetchQuery({
+      queryKey: inventoryKeys.productLookup(term, warehouseId),
+      queryFn: () => inventoryApi.productLookup({ q: term, warehouse_id: warehouseId }),
+    })
+  }, [queryClient, warehouseId])
+
+  const addTileProduct = useCallback(async (product: Product) => {
     if (!warehouseId) {
       enqueueSnackbar(t('form.selectWarehouseFirst'), { variant: 'warning' })
       return
     }
 
-    setIsAddingTileProduct(true)
+    if (product.type !== 'variable' && product.stock_tracking === 'none') {
+      const currentItems = getValues('items') ?? []
+      const existingIndex = currentItems.findIndex((line) =>
+        line.product_id === product.id
+        && !line.variation_id
+        && !line.lot_id
+        && !line.serial_id
+      )
+
+      if (existingIndex >= 0) {
+        const currentQuantity = toNumber(currentItems[existingIndex]?.quantity, 0)
+        setValue(`items.${existingIndex}.quantity`, round(currentQuantity + 1), {
+          shouldDirty: true,
+          shouldValidate: true,
+        })
+        return
+      }
+    }
+
+    const term = productSearchTerm(product)
+    setAddingTileProductIds((current) => current.includes(product.id) ? current : [...current, product.id])
 
     try {
-      const results = await inventoryApi.productLookup({
-        q: productSearchTerm(product),
-        warehouse_id: warehouseId,
+      const results = await queryClient.fetchQuery({
+        queryKey: inventoryKeys.productLookup(term, warehouseId),
+        queryFn: () => inventoryApi.productLookup({ q: term, warehouse_id: warehouseId }),
       })
       const match = results.find((item) => item.product_id === product.id && item.is_exact_match)
         ?? results.find((item) => item.product_id === product.id)
@@ -618,9 +656,9 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
     } catch (error) {
       enqueueSnackbar(toAppApiError(error).message, { variant: 'error' })
     } finally {
-      setIsAddingTileProduct(false)
+      setAddingTileProductIds((current) => current.filter((id) => id !== product.id))
     }
-  }
+  }, [addLookupItem, enqueueSnackbar, getValues, queryClient, setValue, t, warehouseId])
 
   const applyTaxRate = (index: number, taxRateId: string) => {
     const taxRate = taxRates.find((item) => item.id === taxRateId)
@@ -860,9 +898,10 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
       productsLoading={productsQuery.isLoading}
       warehouseId={warehouseId}
       isSaving={isSaving}
-      isAddingTileProduct={isAddingTileProduct}
+      addingProductIds={addingTileProductIds}
       currencyFormatter={currencyFormatter}
       onAddProduct={addTileProduct}
+      onPrefetchProduct={prefetchTileProduct}
     />
   )
 

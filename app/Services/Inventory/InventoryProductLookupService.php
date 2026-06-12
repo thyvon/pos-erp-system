@@ -15,8 +15,11 @@ use Illuminate\Support\Str;
 
 class InventoryProductLookupService
 {
+    protected array $stockSnapshotCache = [];
+
     public function search(string $businessId, string $term, ?string $warehouseId = null, ?User $actor = null): Collection
     {
+        $this->stockSnapshotCache = [];
         $term = trim($term);
 
         if ($term === '') {
@@ -471,6 +474,12 @@ class InventoryProductLookupService
             ];
         }
 
+        $cacheKey = implode(':', [$businessId, $warehouseId, $productId, $variationId ?? 'base']);
+
+        if (isset($this->stockSnapshotCache[$cacheKey])) {
+            return $this->stockSnapshotCache[$cacheKey];
+        }
+
         $query = StockLevel::withoutGlobalScopes()
             ->where('business_id', $businessId)
             ->where('warehouse_id', $warehouseId)
@@ -486,7 +495,7 @@ class InventoryProductLookupService
         $onHand = (float) ($level?->quantity ?? 0);
         $reserved = (float) ($level?->reserved_quantity ?? 0);
 
-        return [
+        return $this->stockSnapshotCache[$cacheKey] = [
             'ending_quantity' => number_format($onHand, 4, '.', ''),
             'on_hand_quantity' => number_format($onHand, 4, '.', ''),
             'reserved_quantity' => number_format($reserved, 4, '.', ''),

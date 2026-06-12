@@ -405,7 +405,12 @@ class SaleApiTest extends TestCase
         $response
             ->assertOk()
             ->assertJsonFragment(['sale_number' => 'INV-2026-00001'])
-            ->assertJsonMissing(['sale_number' => 'INV-2026-00002']);
+            ->assertJsonMissing(['sale_number' => 'INV-2026-00002'])
+            ->assertJsonPath('data.0.items_count', 0)
+            ->assertJsonPath('data.0.payments_count', 0)
+            ->assertJsonPath('data.0.returns_count', 0)
+            ->assertJsonMissingPath('data.0.items')
+            ->assertJsonMissingPath('data.0.payments');
     }
 
     public function test_completed_sale_can_record_payment_and_update_payment_status(): void

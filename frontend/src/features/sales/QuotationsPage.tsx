@@ -191,7 +191,7 @@ export function QuotationsPage() {
         key: 'items',
         label: t('detail.summary.items'),
         align: 'right',
-        render: (quotation) => (quotation.items?.length ?? 0).toLocaleString(),
+        render: (quotation) => (quotation.items_count ?? quotation.items?.length ?? 0).toLocaleString(),
       },
       {
         key: 'total',

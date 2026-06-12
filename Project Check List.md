@@ -381,6 +381,8 @@
 - [x] Frontend user list page: warehouses column with assigned warehouse names and default warehouse caption.
 - [x] Frontend i18n: English and Khmer translations for `fields.defaultWarehouse`, `columns.warehouses`, `placeholders.noDefaultWarehouse`, `placeholders.noWarehouses`.
 - [x] Full backend test suite (260 passed) and frontend type-check + lint (0 errors) verified.
+- [x] POS product gallery add performance improved: repeated clicks on ordinary products increment the existing cart line without another API request, warehouse lookups are prefetched and reused through React Query, and loading disables only the selected tile instead of the whole gallery; frontend type-check, lint, and build verified.
+- [x] POS performance review reduced frontend and backend query work: Recent Transactions and customer-dialog metadata load only when opened, cash registers wait for a selected branch, sales/quotation lists use a lightweight count-based resource instead of full sale graphs, sale validation reuses locked eager-loaded line relations, and inventory lookup reuses stock snapshots within each request; 30 Sales/lookup tests, frontend type-check, lint, and production build verified.
 
 ## Important Reminders
 

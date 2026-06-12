@@ -19,12 +19,14 @@ class SaleRepository extends BaseRepository
 
         $query = $this->query()
             ->with([
-                'branch',
-                'warehouse',
-                'customer',
-                'cashRegisterSession.cashRegister',
-                'creator',
+                'branch:id,name,code',
+                'warehouse:id,name,code',
+                'customer:id,name,phone',
+                'cashRegisterSession:id,cash_register_id,status,opened_at',
+                'cashRegisterSession.cashRegister:id,name',
+                'creator:id,first_name,last_name',
             ])
+            ->withCount(['items', 'payments', 'returns'])
             ->when(
                 filled($filters['search'] ?? null),
                 function ($query) use ($filters): void {
@@ -60,11 +62,11 @@ class SaleRepository extends BaseRepository
             )
             ->when(
                 filled($filters['date_from'] ?? null),
-                fn ($query) => $query->whereDate('sale_date', '>=', $filters['date_from'])
+                fn ($query) => $query->where('sale_date', '>=', $filters['date_from'])
             )
             ->when(
                 filled($filters['date_to'] ?? null),
-                fn ($query) => $query->whereDate('sale_date', '<=', $filters['date_to'])
+                fn ($query) => $query->where('sale_date', '<=', $filters['date_to'])
             )
             ->orderByDesc('sale_date')
             ->orderByDesc('created_at');

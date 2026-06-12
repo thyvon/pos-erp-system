@@ -9,10 +9,11 @@ export const customFieldKeys = {
   list: (filters: CustomFieldFilters) => [...customFieldKeys.all, 'list', filters] as const,
 }
 
-export function useCustomFieldsQuery(filters: CustomFieldFilters) {
+export function useCustomFieldsQuery(filters: CustomFieldFilters, enabled = true) {
   return useQuery({
     queryKey: customFieldKeys.list(filters),
     queryFn: () => customFieldsApi.list(filters),
+    enabled,
   })
 }
 

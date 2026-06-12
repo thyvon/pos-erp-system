@@ -6,6 +6,7 @@ use App\Http\Controllers\Api\V1\BaseApiController;
 use App\Http\Requests\Sales\CancelSaleRequest;
 use App\Http\Requests\Sales\ConvertQuotationRequest;
 use App\Http\Requests\Sales\StoreQuotationRequest;
+use App\Http\Resources\Sales\SaleListResource;
 use App\Http\Resources\Sales\SaleResource;
 use App\Models\Sale;
 use App\Services\Sales\QuotationService;
@@ -33,7 +34,7 @@ class QuotationController extends BaseApiController
             'per_page',
         ]));
 
-        return $this->paginated($items, SaleResource::class);
+        return $this->paginated($items, SaleListResource::class);
     }
 
     public function store(StoreQuotationRequest $request): JsonResponse

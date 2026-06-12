@@ -51,6 +51,13 @@ class QuotationApiTest extends TestCase
             ->assertJsonPath('data.status', 'quotation')
             ->json('data.id');
 
+        $this->getJson('/api/v1/quotations')
+            ->assertOk()
+            ->assertJsonPath('data.0.id', $quotationId)
+            ->assertJsonPath('data.0.items_count', 1)
+            ->assertJsonMissingPath('data.0.items')
+            ->assertJsonMissingPath('data.0.payments');
+
         $response = $this->postJson("/api/v1/quotations/{$quotationId}/convert", [
             'type' => 'invoice',
             'sale_date' => now()->toDateString(),

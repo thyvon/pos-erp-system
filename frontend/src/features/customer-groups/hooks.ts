@@ -9,10 +9,11 @@ export const customerGroupKeys = {
   list: (filters: CustomerGroupFilters) => [...customerGroupKeys.all, 'list', filters] as const,
 }
 
-export function useCustomerGroupsQuery(filters: CustomerGroupFilters) {
+export function useCustomerGroupsQuery(filters: CustomerGroupFilters, enabled = true) {
   return useQuery({
     queryKey: customerGroupKeys.list(filters),
     queryFn: () => customerGroupsApi.list(filters),
+    enabled,
     staleTime: 10 * 60 * 1000,
   })
 }

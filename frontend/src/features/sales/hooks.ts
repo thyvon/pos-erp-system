@@ -44,10 +44,11 @@ export const quotationKeys = {
   detail: (id: string) => [...quotationKeys.all, 'detail', id] as const,
 }
 
-export function useSalesQuery(filters: SaleFilters) {
+export function useSalesQuery(filters: SaleFilters, enabled = true) {
   return useQuery({
     queryKey: saleKeys.list(filters),
     queryFn: () => salesApi.list(filters),
+    enabled,
   })
 }
 

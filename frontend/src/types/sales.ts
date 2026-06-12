@@ -308,6 +308,7 @@ export interface Sale {
   tax_rate_record?: SaleTaxRateRecord | null
   items?: SaleItem[]
   payments?: SalePayment[]
+  items_count?: number
   payments_count: number
   returns_count: number
   created_at: string

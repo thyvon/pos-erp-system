@@ -281,11 +281,27 @@ class SaleService
             }
 
             if ($status === 'confirmed') {
-                $lockedSale->load(['items.lots', 'items.serials', 'warehouse', 'customer']);
+                $lockedSale->load([
+                    'items.lots',
+                    'items.serials',
+                    'items.product',
+                    'items.variation',
+                    'items.subUnit',
+                    'warehouse',
+                    'customer',
+                ]);
                 $this->validateSaleBusinessRules($lockedSale, $actor);
                 $this->reserveTrackedInventory($businessId, $lockedSale);
             } elseif ($status === 'completed') {
-                $lockedSale->load(['items.lots', 'items.serials', 'warehouse', 'customer']);
+                $lockedSale->load([
+                    'items.lots',
+                    'items.serials',
+                    'items.product',
+                    'items.variation',
+                    'items.subUnit',
+                    'warehouse',
+                    'customer',
+                ]);
                 $this->validateSaleBusinessRules($lockedSale, $actor);
                 $this->reserveTrackedInventory($businessId, $lockedSale);
                 $this->consumeReservedInventory($businessId, $lockedSale, $actor);
@@ -429,7 +445,15 @@ class SaleService
         return DB::transaction(function () use ($businessId, $sale, $actor): Sale {
             /** @var Sale $lockedSale */
             $lockedSale = Sale::withoutGlobalScopes()
-                ->with(['items.lots', 'items.serials', 'warehouse', 'customer'])
+                ->with([
+                    'items.lots',
+                    'items.serials',
+                    'items.product',
+                    'items.variation',
+                    'items.subUnit',
+                    'warehouse',
+                    'customer',
+                ])
                 ->where('business_id', $businessId)
                 ->whereKey($sale->id)
                 ->lockForUpdate()
@@ -458,7 +482,15 @@ class SaleService
         return DB::transaction(function () use ($businessId, $sale, $actor): Sale {
             /** @var Sale $lockedSale */
             $lockedSale = Sale::withoutGlobalScopes()
-                ->with(['items.lots', 'items.serials', 'warehouse', 'customer'])
+                ->with([
+                    'items.lots',
+                    'items.serials',
+                    'items.product',
+                    'items.variation',
+                    'items.subUnit',
+                    'warehouse',
+                    'customer',
+                ])
                 ->where('business_id', $businessId)
                 ->whereKey($sale->id)
                 ->lockForUpdate()
@@ -680,13 +712,19 @@ class SaleService
     {
         foreach ($sale->items as $item) {
             /** @var Product $product */
-            $product = Product::withoutGlobalScopes()->findOrFail($item->product_id);
-            $variation = $item->variation_id
-                ? ProductVariation::withoutGlobalScopes()->find($item->variation_id)
-                : null;
-            $subUnit = $item->sub_unit_id
-                ? SubUnit::query()->find($item->sub_unit_id)
-                : null;
+            $product = $item->relationLoaded('product')
+                ? $item->product
+                : Product::withoutGlobalScopes()->findOrFail($item->product_id);
+            $variation = $item->relationLoaded('variation')
+                ? $item->variation
+                : ($item->variation_id
+                    ? ProductVariation::withoutGlobalScopes()->find($item->variation_id)
+                    : null);
+            $subUnit = $item->relationLoaded('subUnit')
+                ? $item->subUnit
+                : ($item->sub_unit_id
+                    ? SubUnit::query()->find($item->sub_unit_id)
+                    : null);
 
             $minimumSellingPrice = (float) ($variation?->minimum_selling_price ?? $product->minimum_selling_price ?? 0);
             $gross = round((float) $item->quantity * (float) $item->unit_price, 2);

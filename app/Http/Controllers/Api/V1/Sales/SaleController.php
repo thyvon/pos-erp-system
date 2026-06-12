@@ -13,6 +13,7 @@ use App\Http\Requests\Sales\UpdateSalePaymentRequest;
 use App\Http\Requests\Sales\UpdateSaleRequest;
 use App\Http\Requests\Sales\UpdateSaleWithPaymentsRequest;
 use App\Http\Resources\Accounting\JournalResource;
+use App\Http\Resources\Sales\SaleListResource;
 use App\Http\Resources\Sales\SalePaymentResource;
 use App\Http\Resources\Sales\SaleResource;
 use App\Models\Sale;
@@ -44,7 +45,7 @@ class SaleController extends BaseApiController
             'per_page',
         ]));
 
-        return $this->paginated($items, SaleResource::class);
+        return $this->paginated($items, SaleListResource::class);
     }
 
     public function store(StoreSaleRequest $request): JsonResponse
