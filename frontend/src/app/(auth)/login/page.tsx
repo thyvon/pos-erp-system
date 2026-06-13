@@ -16,9 +16,6 @@ import {
   IconButton,
   Stack,
   CircularProgress,
-  Checkbox,
-  FormControlLabel,
-  Divider,
   alpha,
   Link as MuiLink,
 } from '@mui/material'
@@ -67,7 +64,8 @@ export default function LoginPage() {
         email: data.email,
         password: data.password,
       })
-      router.push('/dashboard')
+      router.replace('/dashboard')
+      router.refresh()
     } catch (err) {
       const error = toAppApiError(err)
       setServerError(error.status === 422 ? 'Please check your email and password.' : error.message)
@@ -81,10 +79,10 @@ export default function LoginPage() {
         position: 'relative',
         width: '100%',
         overflow: 'hidden',
-        borderRadius: `${theme.shape.borderRadius}px`,
-        bgcolor: alpha(theme.palette.background.paper, theme.palette.mode === 'light' ? 0.92 : 0.82),
-        border: `1px solid ${alpha(theme.palette.primary.main, theme.palette.mode === 'light' ? 0.12 : 0.24)}`,
-        boxShadow: `0 24px 80px -48px ${alpha(theme.palette.primary.main, 0.72)}`,
+        borderRadius: `${theme.shape.borderRadius * 1.5}px`,
+        bgcolor: alpha(theme.palette.background.paper, theme.palette.mode === 'light' ? 0.96 : 0.86),
+        border: `1px solid ${alpha(theme.palette.divider, theme.palette.mode === 'light' ? 0.72 : 0.24)}`,
+        boxShadow: `0 24px 80px -56px ${alpha(theme.palette.common.black, theme.palette.mode === 'light' ? 0.45 : 0.9)}`,
         color: 'text.primary',
         backdropFilter: 'saturate(180%) blur(18px)',
         '&::before': {
@@ -92,61 +90,47 @@ export default function LoginPage() {
           position: 'absolute',
           inset: 0,
           pointerEvents: 'none',
-          background: `radial-gradient(circle at top right, ${alpha(theme.palette.primary.main, 0.14)}, transparent 34%)`,
+          background: `linear-gradient(135deg, ${alpha(theme.palette.primary.main, 0.1)}, transparent 42%)`,
         },
       })}
     >
       <Stack
-        spacing={4}
+        spacing={3}
         sx={{
           position: 'relative',
           zIndex: 1,
           width: '100%',
-          p: { xs: 3, sm: 4.5, xl: 5.5 },
+          p: { xs: 3, sm: 4 },
         }}
       >
-        <Box>
+        <Stack spacing={2} sx={{ alignItems: 'center', textAlign: 'center' }}>
           <Box
-            sx={{
-              display: { xs: 'flex', lg: 'none' },
+            sx={(theme) => ({
+              width: 44,
+              height: 44,
+              borderRadius: `${theme.shape.borderRadius * 1.25}px`,
+              bgcolor: 'primary.main',
+              color: 'primary.contrastText',
+              display: 'flex',
               alignItems: 'center',
-              gap: 1.25,
-              mb: 4,
-            }}
+              justifyContent: 'center',
+              fontSize: 20,
+              fontWeight: 900,
+              boxShadow: `0 18px 32px -18px ${alpha(theme.palette.primary.main, 0.95)}`,
+            })}
           >
-            <Box
-              sx={(theme) => ({
-                width: 38,
-                height: 38,
-                borderRadius: `${theme.shape.borderRadius}px`,
-                bgcolor: 'primary.main',
-                color: 'primary.contrastText',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                fontWeight: 900,
-                boxShadow: `0 12px 24px -14px ${alpha(theme.palette.primary.main, 0.9)}`,
-              })}
-            >
-              E
-            </Box>
-            <Box>
-              <Typography variant="subtitle1" sx={{ fontWeight: 900, lineHeight: 1.1 }}>
-                ERP System
-              </Typography>
-              <Typography variant="caption" color="text.secondary">
-                Business operating platform
-              </Typography>
-            </Box>
+            E
           </Box>
 
-          <Typography variant="h4" sx={{ mb: 1, fontWeight: 900, letterSpacing: '-0.03em' }}>
-            Welcome back
-          </Typography>
-          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-            Sign in securely to continue managing your business workspace.
-          </Typography>
-        </Box>
+          <Box>
+            <Typography variant="h5" sx={{ fontWeight: 900, letterSpacing: '-0.03em' }}>
+              Sign in
+            </Typography>
+            <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
+              ERP System
+            </Typography>
+          </Box>
+        </Stack>
 
         {serverError && (
           <Alert
@@ -159,10 +143,10 @@ export default function LoginPage() {
         )}
 
         <Box component="form" onSubmit={handleSubmit(onSubmit)}>
-          <Stack spacing={2.5}>
+          <Stack spacing={2.25}>
             <TextField
               fullWidth
-              label="Email address"
+              label="Email"
               placeholder="name@company.com"
               type="email"
               {...register('email')}
@@ -185,7 +169,7 @@ export default function LoginPage() {
             <TextField
               fullWidth
               label="Password"
-              placeholder="Enter your password"
+              placeholder="Enter password"
               type={showPassword ? 'text' : 'password'}
               {...register('password')}
               error={!!errors.password}
@@ -201,7 +185,7 @@ export default function LoginPage() {
                     <InputAdornment position="end">
                       <IconButton
                         aria-label={showPassword ? 'Hide password' : 'Show password'}
-                        onClick={() => setShowPassword(!showPassword)}
+                        onClick={() => setShowPassword((value) => !value)}
                         edge="end"
                       >
                         {showPassword ? <VisibilityOff /> : <Visibility />}
@@ -215,25 +199,7 @@ export default function LoginPage() {
               }}
             />
 
-            <Stack
-              direction="row"
-              sx={{
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                gap: 2,
-              }}
-            >
-              <FormControlLabel
-                control={<Checkbox size="small" />}
-                label="Remember me"
-                slotProps={{
-                  typography: {
-                    variant: 'body2',
-                    color: 'text.secondary',
-                  },
-                }}
-                sx={{ m: 0 }}
-              />
+            <Box sx={{ display: 'flex', justifyContent: 'flex-end' }}>
               <MuiLink
                 component={Link}
                 href="/forgot-password"
@@ -246,7 +212,7 @@ export default function LoginPage() {
               >
                 Forgot password?
               </MuiLink>
-            </Stack>
+            </Box>
 
             <Button
               type="submit"
@@ -255,10 +221,12 @@ export default function LoginPage() {
               variant="contained"
               disabled={isSubmitting || loginMutation.isPending}
               sx={(theme) => ({
+                mt: 0.5,
+                py: 1.25,
                 fontWeight: 800,
-                boxShadow: `0 14px 28px -16px ${alpha(theme.palette.primary.main, 0.9)}`,
+                boxShadow: `0 16px 32px -18px ${alpha(theme.palette.primary.main, 0.95)}`,
                 '&:hover': {
-                  boxShadow: `0 18px 34px -18px ${alpha(theme.palette.primary.main, 1)}`,
+                  boxShadow: `0 20px 38px -20px ${alpha(theme.palette.primary.main, 1)}`,
                 },
               })}
             >
@@ -273,12 +241,6 @@ export default function LoginPage() {
             </Button>
           </Stack>
         </Box>
-
-        <Divider />
-
-        <Typography variant="caption" sx={{ color: 'text.secondary', textAlign: 'center' }}>
-          Access is managed by your system administrator.
-        </Typography>
       </Stack>
     </Paper>
   )
