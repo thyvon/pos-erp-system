@@ -214,9 +214,9 @@ export function PosPaymentSection({
         minWidth: 0,
       }}
     >
-      <Box sx={{ minWidth: 0, p: 1.25 }}>
+      <Box sx={{ minWidth: 0, p: 1 }}>
         {canCapturePayment && (
-          <Stack spacing={1}>
+          <Stack spacing={0.75}>
             <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
               <Typography variant="subtitle2">{t('payment.directTitle')}</Typography>
               <Button
@@ -235,7 +235,7 @@ export function PosPaymentSection({
             {typeof errors.direct_payments?.message === 'string' && <Alert severity="error">{errors.direct_payments.message}</Alert>}
 
             <TableContainer sx={{ display: { xs: 'none', md: 'block' }, border: 1, borderColor: 'divider', borderRadius: 1, maxHeight: 260, overflow: 'auto' }}>
-              <Table stickyHeader size="small" sx={{ minWidth: 756, tableLayout: 'fixed' }}>
+              <Table stickyHeader size="small" sx={{ minWidth: 756, tableLayout: 'fixed', '& .MuiTableCell-root': { py: 0.75 } }}>
                 <TableHead>
                   <TableRow>
                     <TableCell sx={paymentColumnSx.method}>{t('payment.method')}</TableCell>
@@ -263,16 +263,16 @@ export function PosPaymentSection({
               </Table>
             </TableContainer>
 
-            <Stack spacing={1} sx={{ display: { xs: 'flex', md: 'none' } }}>
+            <Stack spacing={0.75} sx={{ display: { xs: 'flex', md: 'none' } }}>
               {directPaymentFields.map((field, index) => {
                 const lineFields = renderPaymentLineFields(field, index)
 
                 return (
-                  <Box key={lineFields.key} sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 1 }}>
-                    <Stack spacing={1}>
+                  <Box key={lineFields.key} sx={{ border: 1, borderColor: 'divider', borderRadius: 1, p: 0.75 }}>
+                    <Stack spacing={0.75}>
                       {lineFields.method}
                       {lineFields.account}
-                      <Box sx={{ display: 'grid', gridTemplateColumns: '0.8fr 1.2fr', gap: 1 }}>
+                      <Box sx={{ display: 'grid', gridTemplateColumns: '0.8fr 1.2fr', gap: 0.75 }}>
                         {lineFields.currency}
                         {lineFields.amount}
                       </Box>

@@ -114,8 +114,8 @@ export function PosCartSection({
         flex: '1 1 auto',
         display: 'flex',
         flexDirection: 'column',
-        gap: 1.25,
-        p: { xs: 1, md: 1.5 },
+        gap: 0.75,
+        p: { xs: 0.75, md: 1 },
         boxSizing: 'border-box',
         bgcolor: 'background.paper',
         borderLeft: 1,
@@ -142,7 +142,7 @@ export function PosCartSection({
             overscrollBehavior: 'contain',
           }}
         >
-          <Table sx={{ minWidth: 840, height: itemFields.length === 0 ? '100%' : 'auto', tableLayout: 'fixed' }}>
+          <Table sx={{ minWidth: 840, height: itemFields.length === 0 ? '100%' : 'auto', tableLayout: 'fixed', '& .MuiTableCell-root': { py: 1 } }}>
             <TableHead
               sx={{
                 position: 'sticky',
