@@ -24,8 +24,6 @@ import EmptyState from '@/components/common/EmptyState'
 import { DeleteOutlined, EditOutlined, PointOfSaleOutlined } from '@/components/ui/icons'
 import { UnitConversionBadge } from '@/features/sales/components/UnitConversionBadge'
 import { UnitToggle } from '@/features/sales/components/UnitToggle'
-import { InventoryProductLookupPicker } from '@/features/inventory/components/InventoryProductLookupPicker'
-import type { InventoryProductLookupItem } from '@/types/inventory'
 import { CurrencyAmountStack } from './CurrencyAmountStack'
 import { formatUsdKhrAmount, lineTotal, round, toNumber } from '../formHelpers'
 import type { SaleFormInput, SaleFormValues } from '../schema'
@@ -51,14 +49,12 @@ interface PosCartSectionProps {
   errors: FieldErrors<SaleFormInput>
   itemFields: Array<FieldArrayWithId<SaleFormInput, 'items', 'fieldId'>>
   watchedItems: Array<Partial<SaleFormInput['items'][number]>>
-  warehouseId: string
   isSaving: boolean
   currency: string
   currencyFormatter: Intl.NumberFormat
   exchangeRate: number
   taxScope: string
   totals: CartTotals
-  onSelectItem: (item: InventoryProductLookupItem) => void
   onQuantityChange: (index: number, quantity: number) => void
   onChangeUnit: (index: number, subUnitId: string | null, unitLabel: string, unitPrice: number) => void
   onEditItem: (index: number) => void
@@ -80,14 +76,12 @@ export function PosCartSection({
   errors,
   itemFields,
   watchedItems,
-  warehouseId,
   isSaving,
   currency,
   currencyFormatter,
   exchangeRate,
   taxScope,
   totals,
-  onSelectItem,
   onQuantityChange,
   onChangeUnit,
   onEditItem,
@@ -122,23 +116,30 @@ export function PosCartSection({
         overflow: 'hidden',
       }}
     >
-      <Box sx={{ flex: '0 0 auto' }}>
-        <Stack spacing={1.5}>
-          <InventoryProductLookupPicker
-            warehouseId={warehouseId || undefined}
-            disabled={!warehouseId || isSaving}
-            autoFocus
-            label={t('pos.scanLabel')}
-            onSelect={onSelectItem}
-          />
-          {typeof errors.items?.message === 'string' && <Alert severity="error">{errors.items.message}</Alert>}
-        </Stack>
-      </Box>
+      {typeof errors.items?.message === 'string' && <Alert severity="error">{errors.items.message}</Alert>}
 
-      <Box sx={{ minHeight: 0, flex: '1 1 auto', overflow: 'auto' }}>
-        <TableContainer sx={{ display: { xs: 'none', md: 'block' }, height: '100%', minHeight: 220, border: 1, borderColor: 'divider', borderRadius: 1, overflow: 'auto' }}>
+      <Box sx={{ minHeight: 0, flex: '1 1 auto', overflow: 'hidden', display: 'flex' }}>
+        <TableContainer
+          sx={{
+            display: { xs: 'none', md: 'block' },
+            flex: '1 1 auto',
+            minHeight: 220,
+            border: 1,
+            borderColor: 'divider',
+            borderRadius: 1,
+            overflow: 'auto',
+            overscrollBehavior: 'contain',
+          }}
+        >
           <Table sx={{ minWidth: 840, height: itemFields.length === 0 ? '100%' : 'auto', tableLayout: 'fixed' }}>
-            <TableHead>
+            <TableHead
+              sx={{
+                position: 'sticky',
+                top: 0,
+                zIndex: 1,
+                bgcolor: 'background.paper',
+              }}
+            >
               <TableRow>
                 <TableCell sx={cartColumnSx.product}>{t('items.product')}</TableCell>
                 <TableCell sx={cartColumnSx.unit}>{t('items.unit')}</TableCell>
@@ -281,8 +282,13 @@ export function PosCartSection({
           spacing={1}
           sx={{
             display: { xs: 'flex', md: 'none' },
+            flex: '1 1 auto',
             minHeight: 220,
             minWidth: 0,
+            overflowY: 'auto',
+            overflowX: 'hidden',
+            overscrollBehavior: 'contain',
+            pr: 0.5,
           }}
         >
           {itemFields.length === 0 && (

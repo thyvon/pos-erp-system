@@ -98,6 +98,8 @@
 - [x] Sales edit save no longer requires entering a new direct-payment line when users only update the sale itself; direct-payment validation now runs only when Take payment now is enabled.
 - [x] Full-screen POS route added outside the dashboard layout with warehouse/customer/date/price group/items/tax/discount/shipping/notes, sample-inspired product category/brand tile browsing, and direct split-payment checkout fields aligned to the Sales form contract; frontend type-check, lint, and build verified.
 - [x] POS layout reshaped closer to Ultimate POS with left cart/right product tiles, checkout totals under item lines, bottom cashier action bar, and item discount/tax/notes moved into an edit-line dialog; frontend type-check, lint, and build verified.
+- [x] POS header now places warehouse, customer, and product scan/search lookup on the same responsive form row; focused POS frontend lint verified.
+- [x] POS cart product-line area now uses one clean table/card scroll region while keeping the summary and payment controls fixed; focused POS frontend lint verified.
 - [x] POS summary discount, order tax, and shipping now edit through summary-row modal actions, and duplicate Recent Transactions action was removed from the top toolbar; frontend type-check, lint, and build verified.
 - [x] POS footer payment shortcuts removed in favor of the payment section, a single Save action added, and available-stock text hidden from sell-line rows; frontend type-check, lint, and build verified.
 - [x] POS duplicate suspend control removed, and the POS route now exposes shared layout settings while remaining outside the dashboard sidebar/topbar shell; frontend type-check, lint, and build verified.

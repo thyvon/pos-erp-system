@@ -4,7 +4,9 @@ import { Autocomplete, Box, IconButton, Stack, TextField, Tooltip } from '@mui/m
 import { Controller, type Control, type FieldErrors } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { Add } from '@/components/ui/icons'
+import { InventoryProductLookupPicker } from '@/features/inventory/components/InventoryProductLookupPicker'
 import type { Customer } from '@/types/customer'
+import type { InventoryProductLookupItem } from '@/types/inventory'
 import type { Warehouse } from '@/types/warehouse'
 import type { SaleFormInput, SaleFormValues } from '../schema'
 
@@ -16,8 +18,11 @@ interface PosHeaderFieldsProps {
   warehousesLoading: boolean
   customersLoading: boolean
   canCreateCustomer: boolean
+  warehouseId: string
+  isSaving: boolean
   onWarehouseChange: (warehouseId: string, branchId: string) => void
   onAddCustomer: () => void
+  onSelectItem: (item: InventoryProductLookupItem) => void
 }
 
 function warehouseLabel(warehouse: Warehouse) {
@@ -36,8 +41,11 @@ export function PosHeaderFields({
   warehousesLoading,
   customersLoading,
   canCreateCustomer,
+  warehouseId,
+  isSaving,
   onWarehouseChange,
   onAddCustomer,
+  onSelectItem,
 }: PosHeaderFieldsProps) {
   const { t } = useTranslation(['sales'])
 
@@ -46,7 +54,7 @@ export function PosHeaderFields({
       sx={{
         flex: '0 0 auto',
         display: 'grid',
-        gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1.2fr) minmax(0, 1fr)' },
+        gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) minmax(0, 1fr)', lg: 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.25fr)' },
         gap: 1.25,
         p: { xs: 1, md: 1.5 },
         mb: -1.5,
@@ -132,6 +140,13 @@ export function PosHeaderFields({
             )}
           </Stack>
         )}
+      />
+      <InventoryProductLookupPicker
+        warehouseId={warehouseId || undefined}
+        disabled={!warehouseId || isSaving}
+        autoFocus
+        label={t('pos.scanLabel')}
+        onSelect={onSelectItem}
       />
     </Box>
   )

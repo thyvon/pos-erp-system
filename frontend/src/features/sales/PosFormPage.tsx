@@ -1054,6 +1054,8 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
                 warehousesLoading={warehousesQuery.isLoading}
                 customersLoading={customersQuery.isLoading}
                 canCreateCustomer={canCreateCustomer}
+                warehouseId={warehouseId}
+                isSaving={isSaving}
                 onWarehouseChange={(_, nextBranchId) => {
                   setValue('branch_id', nextBranchId, {
                     shouldDirty: true,
@@ -1061,6 +1063,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
                   })
                 }}
                 onAddCustomer={() => setCustomerDialogOpen(true)}
+                onSelectItem={addLookupItem}
               />
 
               <PosCartSection
@@ -1068,14 +1071,12 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
                 errors={errors}
                 itemFields={itemFields}
                 watchedItems={watchedItems}
-                warehouseId={warehouseId}
                 isSaving={isSaving}
                 currency={currency}
                 currencyFormatter={currencyFormatter}
                 exchangeRate={defaultExchangeRateValue}
                 taxScope={taxScope}
                 totals={totals}
-                onSelectItem={addLookupItem}
                 onQuantityChange={changeItemQuantity}
                 onChangeUnit={changeItemUnit}
                 onEditItem={setEditingItemIndex}
