@@ -44,6 +44,12 @@ export interface CashRegisterSession {
   user_id: string
   opening_float: string | null
   closing_float: string | null
+  expected_cash_usd: string | null
+  expected_cash_khr: string | null
+  closing_cash_usd: string | null
+  closing_cash_khr: string | null
+  difference_usd: string | null
+  difference_khr: string | null
   denominations_at_close?: unknown
   total_sales: string | null
   status: 'open' | 'closed' | string
@@ -98,9 +104,42 @@ export interface UpdateCashRegisterPayload {
 }
 
 export interface CloseCashRegisterSessionPayload {
-  closing_float: number
+  closing_float?: number | null
+  closing_cash_usd: number
+  closing_cash_khr: number
   denominations_at_close?: Record<string, unknown> | null
   notes?: string | null
+}
+
+export interface CashRegisterPaymentBreakdown {
+  method: SalePaymentMethod
+  count: number
+  amount_usd: string
+  amount_khr: string
+}
+
+export interface CashRegisterSessionReportSummary {
+  opening_cash_usd: string
+  opening_cash_khr: string
+  cash_sales_usd: string
+  cash_sales_khr: string
+  cash_refunds_usd: string
+  cash_refunds_khr: string
+  expected_cash_usd: string
+  expected_cash_khr: string
+  closing_cash_usd: string | null
+  closing_cash_khr: string | null
+  difference_usd: string | null
+  difference_khr: string | null
+  gross_sales_usd: string
+  sales_count: number
+  payment_count: number
+  payment_breakdown: CashRegisterPaymentBreakdown[]
+}
+
+export interface CashRegisterSessionReport {
+  session: CashRegisterSession
+  summary: CashRegisterSessionReportSummary
 }
 
 export interface SaleItemPayload {

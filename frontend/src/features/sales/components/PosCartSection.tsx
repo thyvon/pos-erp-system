@@ -18,14 +18,21 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
-import { Controller, type Control, type FieldArrayWithId, type FieldErrors } from 'react-hook-form'
+import { Controller, useWatch, type Control, type FieldArrayWithId, type FieldErrors } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import EmptyState from '@/components/common/EmptyState'
 import { DeleteOutlined, EditOutlined, PointOfSaleOutlined } from '@/components/ui/icons'
 import { UnitConversionBadge } from '@/features/sales/components/UnitConversionBadge'
 import { UnitToggle } from '@/features/sales/components/UnitToggle'
 import { CurrencyAmountStack } from './CurrencyAmountStack'
-import { formatUsdKhrAmount, lineTotal, round, toNumber } from '../formHelpers'
+import {
+  calculateSaleTotals,
+  directPaymentLineBaseAmount,
+  formatUsdKhrAmount,
+  lineTotal,
+  round,
+  toNumber,
+} from '../formHelpers'
 import type { SaleFormInput, SaleFormValues } from '../schema'
 
 const cartColumnSx = {
@@ -37,38 +44,132 @@ const cartColumnSx = {
   actions: { width: 88, minWidth: 88 },
 } as const
 
-type CartTotals = {
-  subtotal: number
-  discount: number
-  tax: number
-  shipping: number
-}
-
-type AmountDisplay = {
-  usd: string
-  khr: string
-}
-
 interface PosCartSectionProps {
   control: Control<SaleFormInput, unknown, SaleFormValues>
   errors: FieldErrors<SaleFormInput>
   itemFields: Array<FieldArrayWithId<SaleFormInput, 'items', 'fieldId'>>
-  watchedItems: Array<Partial<SaleFormInput['items'][number]>>
   isSaving: boolean
   currency: string
   currencyFormatter: Intl.NumberFormat
   exchangeRate: number
-  taxScope: string
-  totals: CartTotals
-  totalDisplay: AmountDisplay
-  paymentDisplay: AmountDisplay
-  changeDisplay: AmountDisplay
   onQuantityChange: (index: number, quantity: number) => void
   onChangeUnit: (index: number, subUnitId: string | null, unitLabel: string, unitPrice: number) => void
   onEditItem: (index: number) => void
   onRemoveItem: (index: number) => void
   onEditSummary: (summary: 'discount' | 'tax' | 'shipping') => void
   children: ReactNode
+}
+
+interface PosSummaryCardsProps {
+  control: Control<SaleFormInput, unknown, SaleFormValues>
+  exchangeRate: number
+  onEditSummary: (summary: 'discount' | 'tax' | 'shipping') => void
+}
+
+function PosSummaryCards({ control, exchangeRate, onEditSummary }: PosSummaryCardsProps) {
+  const { t } = useTranslation(['sales'])
+  const [items = [], taxScope = 'line', discountType, discountAmount, taxType, taxRateType, taxRate, shippingCharges, directPayments = []] = useWatch({
+    control,
+    name: [
+      'items',
+      'tax_scope',
+      'discount_type',
+      'discount_amount',
+      'tax_type',
+      'tax_rate_type',
+      'tax_rate',
+      'shipping_charges',
+      'direct_payments',
+    ],
+  })
+  const totals = useMemo(
+    () => calculateSaleTotals({
+      items,
+      tax_scope: taxScope,
+      discount_type: discountType,
+      discount_amount: discountAmount,
+      tax_type: taxType,
+      tax_rate_type: taxRateType,
+      tax_rate: taxRate,
+      shipping_charges: shippingCharges,
+    }),
+    [discountAmount, discountType, items, shippingCharges, taxRate, taxRateType, taxScope, taxType],
+  )
+  const enteredAmount = useMemo(
+    () => round(directPayments.reduce(
+      (total, line) => total + directPaymentLineBaseAmount(line, exchangeRate),
+      0,
+    )),
+    [directPayments, exchangeRate],
+  )
+  const changeAmount = Math.max(0, round(enteredAmount - totals.total))
+
+  return (
+    <Box
+      sx={{
+        display: 'grid',
+        gridTemplateColumns: {
+          xs: '1fr',
+          sm: 'repeat(2, minmax(0, 1fr))',
+          lg: 'repeat(4, minmax(0, 1fr))',
+          xl: 'repeat(7, minmax(0, 1fr))',
+        },
+        gap: 0.75,
+      }}
+    >
+      {[
+        { key: 'subtotal', label: t('fields.subtotal'), amount: formatUsdKhrAmount(totals.subtotal, exchangeRate), color: undefined, edit: undefined, emphasis: false },
+        { key: 'discount', label: t('fields.discount'), amount: formatUsdKhrAmount(totals.discount, exchangeRate), color: 'error.main', edit: 'discount' as const, emphasis: false },
+        { key: 'tax', label: t('fields.tax'), amount: formatUsdKhrAmount(totals.tax, exchangeRate), color: undefined, edit: 'tax' as const, emphasis: false },
+        { key: 'shipping', label: t('pos.summary.delivery'), amount: formatUsdKhrAmount(totals.shipping, exchangeRate), color: undefined, edit: 'shipping' as const, emphasis: false },
+        { key: 'payable', label: t('pos.amountToPay'), amount: formatUsdKhrAmount(totals.total, exchangeRate), color: 'success.dark', edit: undefined, emphasis: true },
+        { key: 'entered', label: t('payment.totalEntered'), amount: formatUsdKhrAmount(enteredAmount, exchangeRate), color: 'primary.main', edit: undefined, emphasis: false },
+        { key: 'change', label: t('payment.changeBack'), amount: formatUsdKhrAmount(changeAmount, exchangeRate), color: 'success.dark', edit: undefined, emphasis: false },
+      ].map((item) => (
+        <Box
+          key={item.key}
+          sx={{
+            minWidth: 0,
+            p: 1,
+            border: 1,
+            borderColor: item.emphasis ? 'success.main' : 'divider',
+            borderRadius: 1.25,
+            bgcolor: item.emphasis ? 'success.lighter' : 'background.paper',
+            boxShadow: item.emphasis ? '0 8px 18px rgba(22, 163, 74, 0.12)' : '0 4px 12px rgba(15, 23, 42, 0.06)',
+          }}
+        >
+          <Stack spacing={0.75} sx={{ minWidth: 0 }}>
+            <Stack direction="row" spacing={0.35} sx={{ alignItems: 'center', justifyContent: 'space-between', minWidth: 0 }}>
+              <Typography
+                variant="caption"
+                sx={{
+                  color: item.emphasis ? 'success.dark' : 'text.secondary',
+                  fontWeight: 900,
+                  textTransform: 'uppercase',
+                }}
+                noWrap
+              >
+                {item.label}
+              </Typography>
+              {item.edit && (
+                <Tooltip title={t('pos.summary.edit')}>
+                  <IconButton size="small" onClick={() => onEditSummary(item.edit)} sx={{ p: 0.25, flex: '0 0 auto' }}>
+                    <EditOutlined fontSize="small" />
+                  </IconButton>
+                </Tooltip>
+              )}
+            </Stack>
+            <CurrencyAmountStack
+              amount={item.amount}
+              color={item.color ?? 'text.primary'}
+              primaryVariant="h6"
+              secondaryVariant="body2"
+            />
+          </Stack>
+        </Box>
+      ))}
+    </Box>
+  )
 }
 
 function isSerialTrackedCartLine(
@@ -83,16 +184,10 @@ export function PosCartSection({
   control,
   errors,
   itemFields,
-  watchedItems,
   isSaving,
   currency,
   currencyFormatter,
   exchangeRate,
-  taxScope,
-  totals,
-  totalDisplay,
-  paymentDisplay,
-  changeDisplay,
   onQuantityChange,
   onChangeUnit,
   onEditItem,
@@ -101,6 +196,10 @@ export function PosCartSection({
   children,
 }: PosCartSectionProps) {
   const { t } = useTranslation(['sales'])
+  const [watchedItems = [], taxScope = 'line'] = useWatch({
+    control,
+    name: ['items', 'tax_scope'],
+  })
   const lineTotals = useMemo(
     () => watchedItems.map((item) => lineTotal(item, taxScope)),
     [watchedItems, taxScope],
@@ -443,70 +542,7 @@ export function PosCartSection({
             boxShadow: '0 -8px 20px rgba(15, 23, 42, 0.08)',
           }}
         >
-        <Box
-          sx={{
-            display: 'grid',
-            gridTemplateColumns: {
-              xs: '1fr',
-              sm: 'repeat(2, minmax(0, 1fr))',
-              lg: 'repeat(4, minmax(0, 1fr))',
-              xl: 'repeat(7, minmax(0, 1fr))',
-            },
-            gap: 0.75,
-          }}
-        >
-          {[
-            { key: 'subtotal', label: t('fields.subtotal'), amount: formatUsdKhrAmount(totals.subtotal, exchangeRate), color: undefined, edit: undefined, emphasis: false },
-            { key: 'discount', label: t('fields.discount'), amount: formatUsdKhrAmount(totals.discount, exchangeRate), color: 'error.main', edit: 'discount' as const, emphasis: false },
-            { key: 'tax', label: t('fields.tax'), amount: formatUsdKhrAmount(totals.tax, exchangeRate), color: undefined, edit: 'tax' as const, emphasis: false },
-            { key: 'shipping', label: t('pos.summary.delivery'), amount: formatUsdKhrAmount(totals.shipping, exchangeRate), color: undefined, edit: 'shipping' as const, emphasis: false },
-            { key: 'payable', label: t('pos.amountToPay'), amount: totalDisplay, color: 'success.dark', edit: undefined, emphasis: true },
-            { key: 'entered', label: t('payment.totalEntered'), amount: paymentDisplay, color: 'primary.main', edit: undefined, emphasis: false },
-            { key: 'change', label: t('payment.changeBack'), amount: changeDisplay, color: 'success.dark', edit: undefined, emphasis: false },
-          ].map((item) => (
-            <Box
-              key={item.key}
-              sx={{
-                minWidth: 0,
-                p: 1,
-                border: 1,
-                borderColor: item.emphasis ? 'success.main' : 'divider',
-                borderRadius: 1.25,
-                bgcolor: item.emphasis ? 'success.lighter' : 'background.paper',
-                boxShadow: item.emphasis ? '0 8px 18px rgba(22, 163, 74, 0.12)' : '0 4px 12px rgba(15, 23, 42, 0.06)',
-              }}
-            >
-              <Stack spacing={0.75} sx={{ minWidth: 0 }}>
-                <Stack direction="row" spacing={0.35} sx={{ alignItems: 'center', justifyContent: 'space-between', minWidth: 0 }}>
-                  <Typography
-                    variant="caption"
-                    sx={{
-                      color: item.emphasis ? 'success.dark' : 'text.secondary',
-                      fontWeight: 900,
-                      textTransform: 'uppercase',
-                    }}
-                    noWrap
-                  >
-                    {item.label}
-                  </Typography>
-                  {item.edit && (
-                    <Tooltip title={t('pos.summary.edit')}>
-                      <IconButton size="small" onClick={() => onEditSummary(item.edit)} sx={{ p: 0.25, flex: '0 0 auto' }}>
-                        <EditOutlined fontSize="small" />
-                      </IconButton>
-                    </Tooltip>
-                  )}
-                </Stack>
-                <CurrencyAmountStack
-                  amount={item.amount}
-                  color={item.color ?? 'text.primary'}
-                  primaryVariant="h6"
-                  secondaryVariant="body2"
-                />
-              </Stack>
-            </Box>
-          ))}
-        </Box>
+        <PosSummaryCards control={control} exchangeRate={exchangeRate} onEditSummary={onEditSummary} />
         {children}
       </Box>
       )}

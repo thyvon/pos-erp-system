@@ -117,6 +117,8 @@ Important current behavior:
 - Accounting posting happens during completion
 - Sale edit lifetime is controlled through settings
 - Branch filtering is enforced in policy and data access
+- Cash register sessions expose a session report based on completed cash payment lines, grouped by USD/KHR
+- Register closing stores expected cash, actual counted cash, and over/short differences separately for USD and KHR
 
 ### 4.7 Purchases
 

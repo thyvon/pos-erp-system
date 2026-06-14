@@ -60,16 +60,13 @@ import {
   buildDirectPaymentLines,
   buildSalePayload,
   buildSalePaymentChangePayloads,
+  calculateSaleTotals,
   createClientRequestId,
   directPaymentLineBaseAmount,
-  discountAmount,
   emptySaleFormValues,
-  formatUsdKhrAmount,
-  lineTotal,
   newDirectPaymentLine,
   round,
   saleFormValuesFromSale,
-  taxAmount,
   toNumber,
 } from './formHelpers'
 import { saleFormSchema, type SaleFormInput, type SaleFormValues } from './schema'
@@ -91,6 +88,7 @@ import type { TaxRate } from '@/types/taxRate'
 import { useDebouncedValue } from '@/utils/useDebouncedValue'
 import { printInvoice } from './printInvoice'
 import { PosCartSection } from './components/PosCartSection'
+import { CashRegisterSessionDialog } from './components/CashRegisterSessionDialog'
 import { PosHeaderFields } from './components/PosHeaderFields'
 import { PosPaymentSection } from './components/PosPaymentSection'
 import { PosProductGallery, type PosProductTab } from './components/PosProductGallery'
@@ -203,6 +201,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
   const [editingItemIndex, setEditingItemIndex] = useState<number | null>(null)
   const [editingSummary, setEditingSummary] = useState<'discount' | 'tax' | 'shipping' | null>(null)
   const [cashRegisterDialogOpen, setCashRegisterDialogOpen] = useState(false)
+  const [cashRegisterReportOpen, setCashRegisterReportOpen] = useState(false)
   const [customerDialogOpen, setCustomerDialogOpen] = useState(false)
   const [createdCustomer, setCreatedCustomer] = useState<Customer | null>(null)
   const [cashRegisterMode, setCashRegisterMode] = useState<'existing' | 'new'>('existing')
@@ -294,12 +293,15 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
     remove: removeDirectPayment,
   } = useFieldArray({ control, name: 'direct_payments', keyName: 'fieldId' })
 
-  const [branchId, warehouseId, saleType, taxScope, watchedItemsValue, saleDiscountType, saleDiscountValue, saleTaxType, saleTaxRateType, saleTaxRate, shippingCharges, watchedDirectPaymentsValue, cashRegisterSessionId] = useWatch({
+  const [branchId, warehouseId, saleType, taxScope, cashRegisterSessionId] = useWatch({
     control,
-    name: ['branch_id', 'warehouse_id', 'type', 'tax_scope', 'items', 'discount_type', 'discount_amount', 'tax_type', 'tax_rate_type', 'tax_rate', 'shipping_charges', 'direct_payments', 'cash_register_session_id'],
-  }) as [string, string, string, string, SaleFormInput['items'], string, number, string, string, number, number, SaleFormInput['direct_payments'], string]
-  const watchedItems = useMemo(() => watchedItemsValue ?? [], [watchedItemsValue])
-  const watchedDirectPayments = useMemo(() => watchedDirectPaymentsValue ?? [], [watchedDirectPaymentsValue])
+    name: ['branch_id', 'warehouse_id', 'type', 'tax_scope', 'cash_register_session_id'],
+  }) as [string, string, string, string, string]
+  const editingLine = useWatch({
+    control,
+    name: `items.${editingItemIndex ?? 0}`,
+    disabled: editingItemIndex === null,
+  })
 
   const cashRegistersQuery = useCashRegistersQuery({
     branch_id: branchId || undefined,
@@ -394,39 +396,8 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
   const selectedCashRegister = cashRegisters.find((register) => register.current_open_session?.id === cashRegisterSessionId) ?? null
   const dialogCashRegister = cashRegisters.find((register) => register.id === selectedCashRegisterId) ?? null
 
-  const totals = useMemo(() => {
-    const subtotal = round(watchedItems.reduce((sum, item) => sum + lineTotal(item, taxScope), 0))
-    const saleDiscount = discountAmount(saleDiscountType, saleDiscountValue, subtotal)
-    const discounted = Math.max(0, round(subtotal - saleDiscount))
-    const saleTax = taxScope === 'sale' ? taxAmount(saleTaxType, saleTaxRateType, saleTaxRate, discounted).tax : 0
-
-    return {
-      subtotal,
-      discount: saleDiscount,
-      tax: saleTax,
-      shipping: toNumber(shippingCharges),
-      total: round(discounted + saleTax + toNumber(shippingCharges)),
-    }
-  }, [saleDiscountType, saleDiscountValue, saleTaxRate, saleTaxRateType, saleTaxType, shippingCharges, taxScope, watchedItems])
-
-  const {
-    totalDisplay,
-    paymentDisplay,
-    changeDisplay,
-    isSuspended,
-    canCapturePayment,
-  } = useMemo(() => {
-    const base = round(watchedDirectPayments.reduce((total, line) => total + directPaymentLineBaseAmount(line, defaultExchangeRateValue), 0))
-    const chg = Math.max(0, round(base - totals.total))
-    const suspended = saleType === 'suspended'
-    return {
-      totalDisplay: formatUsdKhrAmount(totals.total, defaultExchangeRateValue),
-      paymentDisplay: formatUsdKhrAmount(base, defaultExchangeRateValue),
-      changeDisplay: formatUsdKhrAmount(chg, defaultExchangeRateValue),
-      isSuspended: suspended,
-      canCapturePayment: !suspended && (!isEdit || currentSaleStatus === 'completed'),
-    }
-  }, [watchedDirectPayments, defaultExchangeRateValue, totals.total, saleType, isEdit, currentSaleStatus])
+  const isSuspended = saleType === 'suspended'
+  const canCapturePayment = !isSuspended && (!isEdit || currentSaleStatus === 'completed')
 
   useEffect(() => {
     if (!currentSale) return
@@ -488,7 +459,8 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
   useEffect(() => {
     if (paymentAccounts.length === 0) return
 
-    watchedDirectPayments.forEach((line, index) => {
+    const directPayments = getValues('direct_payments') ?? []
+    directPayments.forEach((line, index) => {
       if (!line?.payment_account_id) {
         setValue(`direct_payments.${index}.payment_account_id`, paymentAccounts[0].id, {
           shouldDirty: true,
@@ -496,11 +468,12 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
         })
       }
     })
-  }, [paymentAccounts, setValue, watchedDirectPayments])
+  }, [directPaymentFields, getValues, paymentAccounts, setValue])
 
   useEffect(() => {
     if (!defaultExchangeRate) {
-      watchedDirectPayments.forEach((line, index) => {
+      const directPayments = getValues('direct_payments') ?? []
+      directPayments.forEach((line, index) => {
         if (line?.payment_currency === 'KHR') {
           setValue(`direct_payments.${index}.payment_currency`, 'USD', {
             shouldDirty: true,
@@ -509,7 +482,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
         }
       })
     }
-  }, [defaultExchangeRate, setValue, watchedDirectPayments])
+  }, [defaultExchangeRate, directPaymentFields, getValues, setValue])
 
   useEffect(() => {
     setValue('direct_payment_enabled', !isSuspended && (!isEdit || currentSaleStatus === 'completed'), {
@@ -718,7 +691,8 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
   }
 
   const applyTrackedLookupToLine = (index: number, item: InventoryProductLookupItem) => {
-    const currentLine = watchedItems[index]
+    const currentItems = getValues('items') ?? []
+    const currentLine = currentItems[index]
     const tracking = currentLine?.stock_tracking ?? item.stock_tracking
     const nextTracking = tracking ?? item.stock_tracking ?? null
 
@@ -752,7 +726,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
         return
       }
 
-      const duplicateSerialIndex = watchedItems.findIndex((line, lineIndex) =>
+      const duplicateSerialIndex = currentItems.findIndex((line, lineIndex) =>
         lineIndex !== index && line.serial_id === item.serial_id
       )
 
@@ -779,7 +753,10 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
   }
 
   const changeDirectPaymentCurrency = (index: number, nextCurrency: 'USD' | 'KHR') => {
-    const currentBaseAmount = directPaymentLineBaseAmount(watchedDirectPayments[index], defaultExchangeRateValue)
+    const currentBaseAmount = directPaymentLineBaseAmount(
+      getValues(`direct_payments.${index}`),
+      defaultExchangeRateValue,
+    )
     const nextPaymentAmount = nextCurrency === 'KHR' && defaultExchangeRateValue > 0
       ? round(currentBaseAmount * defaultExchangeRateValue)
       : currentBaseAmount
@@ -789,7 +766,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
   }
 
   const removeDirectPaymentLine = (index: number) => {
-    const paymentId = watchedDirectPayments[index]?.sale_payment_id
+    const paymentId = getValues(`direct_payments.${index}`)?.sale_payment_id
 
     if (paymentId) {
       setRemovedPaymentIds((current) => current.includes(paymentId) ? current : [...current, paymentId])
@@ -815,14 +792,15 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
     setServerError('')
 
     try {
+      const saleTotal = calculateSaleTotals(values).total
       const directPaymentLines = !isEdit && values.type === 'pos_sale'
-        ? buildDirectPaymentLines(values, defaultExchangeRateValue, defaultExchangeRate?.id ?? null, totals.total)
+        ? buildDirectPaymentLines(values, defaultExchangeRateValue, defaultExchangeRate?.id ?? null, saleTotal)
         : []
       const paymentChanges = buildSalePaymentChangePayloads({
         values,
         exchangeRate: defaultExchangeRateValue,
         exchangeRateId: defaultExchangeRate?.id ?? null,
-        saleTotal: totals.total,
+        saleTotal,
         existingPaymentById,
         removedPaymentIds,
         canManageExistingPayments: isEdit && !!saleId && values.type === 'pos_sale' && canManageExistingPayments,
@@ -1098,7 +1076,14 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
                 <IconButton
                   size="small"
                   color={selectedCashRegister ? 'success' : 'default'}
-                  onClick={openCashRegisterDialog}
+                  onClick={() => {
+                    if (selectedCashRegister?.current_open_session) {
+                      setCashRegisterReportOpen(true)
+                      return
+                    }
+
+                    openCashRegisterDialog()
+                  }}
                   sx={posTopbarButtonSx}
                 >
                   <AccountBalanceWalletOutlined />
@@ -1142,16 +1127,10 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
                 control={control}
                 errors={errors}
                 itemFields={itemFields}
-                watchedItems={watchedItems}
                 isSaving={isSaving}
                 currency={currency}
                 currencyFormatter={currencyFormatter}
                 exchangeRate={defaultExchangeRateValue}
-                taxScope={taxScope}
-                totals={totals}
-                totalDisplay={totalDisplay}
-                paymentDisplay={paymentDisplay}
-                changeDisplay={changeDisplay}
                 onQuantityChange={changeItemQuantity}
                 onChangeUnit={changeItemUnit}
                 onEditItem={setEditingItemIndex}
@@ -1171,7 +1150,6 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
                   defaultExchangeRateLoading={defaultExchangeRateQuery.isLoading}
                   hasDefaultExchangeRate={!!defaultExchangeRate}
                   directPaymentFields={directPaymentFields}
-                  watchedDirectPayments={watchedDirectPayments}
                   onAddLine={() => appendDirectPayment(newDirectPaymentLine(paymentAccounts))}
                   onCurrencyChange={changeDirectPaymentCurrency}
                   onRemoveLine={removeDirectPaymentLine}
@@ -1516,7 +1494,6 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
                 )} />
               </Box>
               {(() => {
-                const editingLine = watchedItems[editingItemIndex]
                 const tracking = editingLine?.stock_tracking ?? (editingLine?.serial_id ? 'serial' : editingLine?.lot_id ? 'lot' : 'none')
 
                 if (tracking !== 'lot' && tracking !== 'serial') return null
@@ -1555,6 +1532,19 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
           <Button variant="contained" onClick={() => setEditingItemIndex(null)}>{t('common:buttons.save')}</Button>
         </DialogActions>
       </Dialog>
+      <CashRegisterSessionDialog
+        key={selectedCashRegister?.current_open_session?.id ?? 'no-session'}
+        open={cashRegisterReportOpen}
+        register={selectedCashRegister}
+        onClose={() => setCashRegisterReportOpen(false)}
+        onClosed={() => {
+          setValue('cash_register_session_id', '', {
+            shouldDirty: true,
+            shouldValidate: true,
+          })
+          setCashRegisterReportOpen(false)
+        }}
+      />
       <Dialog open={cashRegisterDialogOpen} onClose={() => setCashRegisterDialogOpen(false)} fullWidth maxWidth="sm">
         <DialogTitle>{t('pos.cashRegister.title')}</DialogTitle>
         <DialogContent>

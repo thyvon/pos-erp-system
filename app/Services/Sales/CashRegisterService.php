@@ -7,6 +7,8 @@ use App\Models\Branch;
 use App\Models\CashRegister;
 use App\Models\CashRegisterSession;
 use App\Models\Sale;
+use App\Models\SalePayment;
+use App\Models\SaleReturn;
 use App\Models\User;
 use App\Repositories\Sales\CashRegisterRepository;
 use App\Services\AuditService;
@@ -237,17 +239,21 @@ class CashRegisterService
                 throw new DomainException('You can only close your own open cash register session.', 422);
             }
 
-            $totalSales = (float) Sale::withoutGlobalScopes()
-                ->where('cash_register_session_id', $lockedSession->id)
-                ->where('status', 'completed')
-                ->sum('total_amount');
+            $report = $this->buildSessionReport($lockedSession);
+            $closingCashUsd = round((float) ($data['closing_cash_usd'] ?? $data['closing_float']), 2);
+            $closingCashKhr = round((float) ($data['closing_cash_khr'] ?? 0), 2);
+            $differenceUsd = round($closingCashUsd - (float) $report['expected_cash_usd'], 2);
+            $differenceKhr = round($closingCashKhr - (float) $report['expected_cash_khr'], 2);
 
-            $closingFloat = round((float) $data['closing_float'], 2);
-            $discrepancy = round($closingFloat - (float) $lockedSession->opening_float, 2);
-
-            $lockedSession->closing_float = $closingFloat;
+            $lockedSession->closing_float = $closingCashUsd;
+            $lockedSession->expected_cash_usd = $report['expected_cash_usd'];
+            $lockedSession->expected_cash_khr = $report['expected_cash_khr'];
+            $lockedSession->closing_cash_usd = $closingCashUsd;
+            $lockedSession->closing_cash_khr = $closingCashKhr;
+            $lockedSession->difference_usd = $differenceUsd;
+            $lockedSession->difference_khr = $differenceKhr;
             $lockedSession->denominations_at_close = $data['denominations_at_close'] ?? null;
-            $lockedSession->total_sales = round($totalSales, 2);
+            $lockedSession->total_sales = $report['gross_sales_usd'];
             $lockedSession->status = 'closed';
             $lockedSession->closed_at = now();
             $lockedSession->notes = $data['notes'] ?? $lockedSession->notes;
@@ -267,7 +273,12 @@ class CashRegisterService
                 [
                     'status' => 'closed',
                     'closing_float' => (string) $lockedSession->closing_float,
-                    'discrepancy' => (string) $discrepancy,
+                    'closing_cash_usd' => (string) $lockedSession->closing_cash_usd,
+                    'closing_cash_khr' => (string) $lockedSession->closing_cash_khr,
+                    'expected_cash_usd' => (string) $lockedSession->expected_cash_usd,
+                    'expected_cash_khr' => (string) $lockedSession->expected_cash_khr,
+                    'difference_usd' => (string) $lockedSession->difference_usd,
+                    'difference_khr' => (string) $lockedSession->difference_khr,
                     'denominations' => $lockedSession->denominations_at_close,
                     'register' => $lockedSession->cashRegister?->name,
                     'branch_id' => $lockedSession->cashRegister?->branch_id,
@@ -277,6 +288,105 @@ class CashRegisterService
 
             return $lockedSession;
         });
+    }
+
+    public function sessionReport(string $businessId, CashRegisterSession $session): array
+    {
+        $session->loadMissing(['cashRegister.branch', 'user']);
+
+        if (! $session->cashRegister || (string) $session->cashRegister->business_id !== (string) $businessId) {
+            throw new DomainException('Selected cash register session is invalid for this business.', 422);
+        }
+
+        return $this->buildSessionReport($session);
+    }
+
+    protected function buildSessionReport(CashRegisterSession $session): array
+    {
+        $salesQuery = Sale::withoutGlobalScopes()
+            ->where('cash_register_session_id', $session->id)
+            ->where('status', 'completed');
+
+        $saleIds = (clone $salesQuery)->pluck('id');
+        $grossSalesUsd = round((float) (clone $salesQuery)->sum('total_amount'), 2);
+        $salesCount = $saleIds->count();
+
+        $payments = SalePayment::withoutGlobalScopes()
+            ->whereIn('sale_id', $saleIds)
+            ->where('status', 'completed')
+            ->get([
+                'method',
+                'amount',
+                'payment_currency',
+                'payment_amount',
+            ]);
+
+        $cashPayments = $payments->where('method', 'cash');
+        $cashSalesUsd = round((float) $cashPayments
+            ->where('payment_currency', 'USD')
+            ->sum(fn (SalePayment $payment) => (float) ($payment->payment_amount ?? $payment->amount)), 2);
+        $cashSalesKhr = round((float) $cashPayments
+            ->where('payment_currency', 'KHR')
+            ->sum(fn (SalePayment $payment) => (float) ($payment->payment_amount ?? 0)), 2);
+
+        $refundsQuery = SaleReturn::withoutGlobalScopes()
+            ->whereIn('sale_id', $saleIds)
+            ->where('status', 'completed')
+            ->where('refund_method', 'cash')
+            ->where('created_by', $session->user_id)
+            ->where('created_at', '>=', $session->opened_at);
+
+        if ($session->closed_at) {
+            $refundsQuery->where('created_at', '<=', $session->closed_at);
+        }
+
+        $cashRefundsUsd = round((float) $refundsQuery->sum('total_amount'), 2);
+        $expectedCashUsd = round((float) $session->opening_float + $cashSalesUsd - $cashRefundsUsd, 2);
+        $expectedCashKhr = $cashSalesKhr;
+
+        $paymentBreakdown = $payments
+            ->groupBy('method')
+            ->map(fn ($methodPayments, string $method): array => [
+                'method' => $method,
+                'count' => $methodPayments->count(),
+                'amount_usd' => $this->decimal($methodPayments->sum(fn (SalePayment $payment) => (float) $payment->amount)),
+                'amount_khr' => $this->decimal($methodPayments
+                    ->where('payment_currency', 'KHR')
+                    ->sum(fn (SalePayment $payment) => (float) ($payment->payment_amount ?? 0))),
+            ])
+            ->values()
+            ->all();
+
+        $closingCashUsd = $session->closing_cash_usd !== null ? (float) $session->closing_cash_usd : null;
+        $closingCashKhr = $session->closing_cash_khr !== null ? (float) $session->closing_cash_khr : null;
+
+        return [
+            'opening_cash_usd' => $this->decimal($session->opening_float),
+            'opening_cash_khr' => $this->decimal(0),
+            'cash_sales_usd' => $this->decimal($cashSalesUsd),
+            'cash_sales_khr' => $this->decimal($cashSalesKhr),
+            'cash_refunds_usd' => $this->decimal($cashRefundsUsd),
+            'cash_refunds_khr' => $this->decimal(0),
+            'expected_cash_usd' => $this->decimal($expectedCashUsd),
+            'expected_cash_khr' => $this->decimal($expectedCashKhr),
+            'closing_cash_usd' => $closingCashUsd !== null ? $this->decimal($closingCashUsd) : null,
+            'closing_cash_khr' => $closingCashKhr !== null ? $this->decimal($closingCashKhr) : null,
+            'difference_usd' => $closingCashUsd !== null
+                ? $this->decimal($closingCashUsd - $expectedCashUsd)
+                : null,
+            'difference_khr' => $closingCashKhr !== null
+                ? $this->decimal($closingCashKhr - $expectedCashKhr)
+                : null,
+            'gross_sales_usd' => $this->decimal($grossSalesUsd),
+            'sales_count' => $salesCount,
+            'payment_count' => $payments->count(),
+            'payment_breakdown' => $paymentBreakdown,
+        ];
+    }
+
+    protected function decimal(float|int|string|null $value): string
+    {
+        return number_format((float) ($value ?? 0), 2, '.', '');
     }
 
     protected function resolveBranch(string $businessId, string $branchId): Branch

@@ -12,6 +12,8 @@ The active frontend has been restacked to Next.js/React. Current implemented fro
 
 The backend APIs for foundation, contacts, catalog, inventory, accounting, sales, purchases, expenses, and the first Reports Sales/Sales Return/Purchases/Purchase Return/Sale Payments/Purchase Payments/Stock/Expenses/Cash Register reports are live. Purchase returns are exposed through the purchase detail return dialog plus `/purchase-returns` list/detail routes. Reports navigation is module-aware and only appears when the Reports module is enabled and the user has `reports.index`.
 
+POS and Cash Register Management share the live register-session report/close dialog, including expected USD/KHR drawer cash, actual physical cash counts, and over/short confirmation.
+
 ### 5.2 Frontend Architecture Rules
 
 - `frontend/src/api/*` should contain transport logic only

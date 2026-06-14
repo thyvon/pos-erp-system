@@ -149,6 +149,7 @@
 - [x] POS edit-line dialog now supports tracked product assignment by scanning/searching the matching lot or serial, stores the selected lot/serial IDs for the sale payload, and locks serial lines to one unit; frontend local check verified.
 - [x] Cash Register Management page added with branch/status filters, create/edit/delete actions, open/close session dialogs, recent sessions view, sidebar navigation, breadcrumbs, API hooks, types, and translations; frontend type-check, lint, and build verified.
 - [x] Cash Register Management page header and filters now use shared `PageHeader`/`PageToolbar` with active branch/status filter chips; frontend type-check, lint, and build verified.
+- [x] Cash register session report and close workflow added to POS and Cash Register Management with cash-only USD/KHR expected balances, actual physical cash inputs, over/short differences, shared confirmation flow, persisted close balances, focused backend tests, frontend type-check/lint, and production build verification.
 
 ## Inventory Frontend Rebuild
 
@@ -391,6 +392,7 @@
 - [x] Classic invoices, modern invoices, and POS receipts now use one self-hosted Kantumruy Pro family for mixed Khmer/Latin content, independent of the application language; browser printing waits for invoice fonts before opening the print dialog, DomPDF registers and embeds the same local TrueType family, and mixed-language HTML/PDF coverage was added.
 - [x] POS duplicate handling now keeps serial-tracked products as one serial per cart line with quantity fixed at one; repeated gallery clicks cannot merge or increase an unresolved/selected serial line, while ordinary and same-lot products retain quantity merging.
 - [x] POS recent transactions provide a one-click receipt print action with per-row progress feedback and localized print errors.
+- [x] POS form input performance improved by removing page-wide item/payment subscriptions, localizing cart, payment, and summary updates, avoiding payment normalization effects on every amount keystroke, and calculating authoritative totals from submitted values; frontend type-check, lint, and production build verified.
 
 ## Important Reminders
 

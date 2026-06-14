@@ -661,8 +661,12 @@ class ReportService
             'opening_float' => $this->decimal((clone $query)->sum('opening_float')),
             'closing_float' => $this->decimal((clone $closedQuery)->sum('closing_float')),
             'total_sales' => $this->decimal((clone $query)->sum('total_sales')),
-            'expected_cash' => $this->decimal((clone $query)->selectRaw('COALESCE(SUM(opening_float + total_sales), 0) as aggregate')->value('aggregate')),
-            'difference' => $this->decimal((clone $closedQuery)->selectRaw('COALESCE(SUM(closing_float - opening_float - total_sales), 0) as aggregate')->value('aggregate')),
+            'expected_cash' => $this->decimal((clone $query)
+                ->selectRaw('COALESCE(SUM(COALESCE(expected_cash_usd, opening_float + total_sales)), 0) as aggregate')
+                ->value('aggregate')),
+            'difference' => $this->decimal((clone $closedQuery)
+                ->selectRaw('COALESCE(SUM(COALESCE(difference_usd, closing_float - opening_float - total_sales)), 0) as aggregate')
+                ->value('aggregate')),
         ];
     }
 
@@ -977,10 +981,14 @@ class ReportService
     {
         return $paginator->getCollection()
             ->map(function (CashRegisterSession $session): array {
-                $expectedCash = (float) $session->opening_float + (float) $session->total_sales;
-                $difference = $session->closing_float !== null
-                    ? (float) $session->closing_float - $expectedCash
-                    : null;
+                $expectedCash = $session->expected_cash_usd !== null
+                    ? (float) $session->expected_cash_usd
+                    : (float) $session->opening_float + (float) $session->total_sales;
+                $difference = $session->difference_usd !== null
+                    ? (float) $session->difference_usd
+                    : ($session->closing_float !== null
+                        ? (float) $session->closing_float - $expectedCash
+                        : null);
 
                 return [
                     'id' => $session->id,

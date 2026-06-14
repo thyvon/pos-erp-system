@@ -30,6 +30,7 @@ export const cashRegisterKeys = {
   all: ['cash-registers'] as const,
   list: (filters: CashRegisterFilters) => [...cashRegisterKeys.all, 'list', filters] as const,
   detail: (id: string) => [...cashRegisterKeys.all, 'detail', id] as const,
+  sessionReport: (sessionId: string) => [...cashRegisterKeys.all, 'session-report', sessionId] as const,
 }
 
 export const saleReturnKeys = {
@@ -104,6 +105,16 @@ export function useCashRegisterQuery(id: string | null) {
     queryKey: id ? cashRegisterKeys.detail(id) : [...cashRegisterKeys.all, 'detail', 'none'],
     queryFn: () => cashRegistersApi.show(id ?? ''),
     enabled: !!id,
+  })
+}
+
+export function useCashRegisterSessionReportQuery(sessionId: string | null, enabled = true) {
+  return useQuery({
+    queryKey: sessionId
+      ? cashRegisterKeys.sessionReport(sessionId)
+      : [...cashRegisterKeys.all, 'session-report', 'none'],
+    queryFn: () => cashRegistersApi.sessionReport(sessionId ?? ''),
+    enabled: enabled && !!sessionId,
   })
 }
 
@@ -218,6 +229,7 @@ export function useCloseCashRegisterSessionMutation() {
     onSuccess: (session) => {
       queryClient.invalidateQueries({ queryKey: cashRegisterKeys.all })
       queryClient.invalidateQueries({ queryKey: cashRegisterKeys.detail(session.cash_register_id) })
+      queryClient.invalidateQueries({ queryKey: cashRegisterKeys.sessionReport(session.id) })
       queryClient.invalidateQueries({ queryKey: saleKeys.all })
     },
   })

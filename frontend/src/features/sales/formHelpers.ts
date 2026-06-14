@@ -33,6 +33,27 @@ interface SalePaymentChangePayloads {
   payments: SalePaymentLinePayload[]
 }
 
+interface SaleTotalLine {
+  quantity?: unknown
+  unit_price?: unknown
+  discount_type?: string | null
+  discount_amount?: unknown
+  tax_type?: string | null
+  tax_rate_type?: string | null
+  tax_rate?: unknown
+}
+
+interface SaleTotalsInput {
+  items?: SaleTotalLine[] | null
+  tax_scope?: string | null
+  discount_type?: string | null
+  discount_amount?: unknown
+  tax_type?: string | null
+  tax_rate_type?: string | null
+  tax_rate?: unknown
+  shipping_charges?: unknown
+}
+
 interface EmptySaleFormValuesOptions {
   type?: SaleFormInput['type']
   directPaymentEnabled?: boolean
@@ -212,7 +233,7 @@ export function taxAmount(type: string | null | undefined, rateType: string | nu
   return { base, tax, total: round(base + tax) }
 }
 
-export function lineTotal(item: Partial<SaleFormInput['items'][number]> | null | undefined, taxScope: string) {
+export function lineTotal(item: SaleTotalLine | null | undefined, taxScope: string) {
   if (!item) return 0
 
   const gross = round(toNumber(item.quantity) * toNumber(item.unit_price))
@@ -220,6 +241,25 @@ export function lineTotal(item: Partial<SaleFormInput['items'][number]> | null |
   return taxScope === 'line'
     ? taxAmount(item.tax_type, item.tax_rate_type, item.tax_rate, afterDiscount).total
     : afterDiscount
+}
+
+export function calculateSaleTotals(values: SaleTotalsInput) {
+  const taxScope = values.tax_scope ?? 'line'
+  const subtotal = round((values.items ?? []).reduce((sum, item) => sum + lineTotal(item, taxScope), 0))
+  const saleDiscount = discountAmount(values.discount_type, values.discount_amount, subtotal)
+  const discounted = Math.max(0, round(subtotal - saleDiscount))
+  const saleTax = taxScope === 'sale'
+    ? taxAmount(values.tax_type, values.tax_rate_type, values.tax_rate, discounted).tax
+    : 0
+  const shipping = toNumber(values.shipping_charges)
+
+  return {
+    subtotal,
+    discount: saleDiscount,
+    tax: saleTax,
+    shipping,
+    total: round(discounted + saleTax + shipping),
+  }
 }
 
 export function directPaymentLineBaseAmount(

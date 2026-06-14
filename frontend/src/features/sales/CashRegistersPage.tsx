@@ -46,12 +46,11 @@ import { useCurrencyFormatter } from '@/features/settings/useAppCurrency'
 import { formatMoney } from '@/utils/formatMoney'
 import { formatAppDateTime } from '@/utils/dateFormat'
 import { toNumber } from '@/features/sales/formHelpers'
+import { CashRegisterSessionDialog } from '@/features/sales/components/CashRegisterSessionDialog'
 import type { BranchFilters } from '@/types/branch'
 import type {
   CashRegister,
   CashRegisterFilters,
-  CashRegisterSession,
-  CloseCashRegisterSessionPayload,
   CreateCashRegisterPayload,
   OpenCashRegisterSessionPayload,
   UpdateCashRegisterPayload,
@@ -62,7 +61,6 @@ import {
   useUpdateCashRegisterMutation,
   useDeleteCashRegisterMutation,
   useOpenCashRegisterSessionMutation,
-  useCloseCashRegisterSessionMutation,
 } from '@/features/sales/hooks'
 
 const rowsPerPageOptions = [10, 25, 50]
@@ -237,87 +235,6 @@ function OpenSessionDialog({
   )
 }
 
-function CloseSessionDialog({
-  open,
-  register,
-  session,
-  isSaving,
-  onClose,
-  onSubmit,
-}: {
-  open: boolean
-  register: CashRegister | null
-  session: CashRegisterSession | null
-  isSaving: boolean
-  onClose: () => void
-  onSubmit: (payload: CloseCashRegisterSessionPayload) => Promise<void>
-}) {
-  const { t } = useTranslation(['sales', 'common'])
-  const formatter = useCurrencyFormatter()
-  const [closingFloat, setClosingFloat] = useState(toNumber(session?.opening_float))
-  const [notes, setNotes] = useState(session?.notes ?? '')
-  const [formError, setFormError] = useState('')
-
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault()
-    setFormError('')
-
-    try {
-      await onSubmit({
-        closing_float: closingFloat,
-        denominations_at_close: null,
-        notes: notes.trim() || null,
-      })
-      onClose()
-    } catch (error) {
-      setFormError(toAppApiError(error).message)
-    }
-  }
-
-  return (
-    <Dialog open={open} onClose={isSaving ? undefined : onClose} fullWidth maxWidth="sm">
-      <Box component="form" onSubmit={handleSubmit} noValidate>
-        <DialogTitle>{t('cashRegisters.closeDialog.title', { name: register?.name ?? '' })}</DialogTitle>
-        <DialogContent sx={{ pt: 1 }}>
-          <Stack spacing={2} sx={{ mt: 1 }}>
-            {formError && <Alert severity="error">{formError}</Alert>}
-            <Alert severity="info">
-              {t('cashRegisters.closeDialog.openingFloat', {
-                amount: formatMoney(session?.opening_float, formatter),
-              })}
-            </Alert>
-            <TextField
-              type="number"
-              label={t('cashRegisters.fields.closingFloat')}
-              value={closingFloat}
-              onChange={(event) => setClosingFloat(toNumber(event.target.value))}
-              disabled={isSaving}
-              required
-              slotProps={{ htmlInput: { min: 0, step: 0.01 } }}
-            />
-            <TextField
-              label={t('cashRegisters.fields.notes')}
-              value={notes}
-              onChange={(event) => setNotes(event.target.value)}
-              multiline
-              minRows={2}
-              disabled={isSaving}
-            />
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button variant="outlined" onClick={onClose} disabled={isSaving}>
-            {t('common:buttons.cancel')}
-          </Button>
-          <Button variant="contained" type="submit" color="warning" disabled={isSaving}>
-            {t('cashRegisters.actions.closeSession')}
-          </Button>
-        </DialogActions>
-      </Box>
-    </Dialog>
-  )
-}
-
 function SessionsDialog({
   open,
   register,
@@ -428,7 +345,6 @@ export function CashRegistersPage() {
   const updateRegister = useUpdateCashRegisterMutation()
   const deleteRegister = useDeleteCashRegisterMutation()
   const openSession = useOpenCashRegisterSessionMutation()
-  const closeSession = useCloseCashRegisterSessionMutation()
 
   const registers = useMemo(() => registersQuery.data?.data ?? [], [registersQuery.data?.data])
   const branches = useMemo(() => branchesQuery.data?.data ?? [], [branchesQuery.data?.data])
@@ -492,15 +408,6 @@ export function CashRegistersPage() {
     await openSession.mutateAsync({ id: openingRegister.id, payload })
     enqueueSnackbar(t('cashRegisters.messages.opened'), { variant: 'success' })
     setOpeningRegister(null)
-  }
-
-  const handleCloseSession = async (payload: CloseCashRegisterSessionPayload) => {
-    const session = closingRegister?.current_open_session
-    if (!session) return
-
-    await closeSession.mutateAsync({ sessionId: session.id, payload })
-    enqueueSnackbar(t('cashRegisters.messages.closed'), { variant: 'success' })
-    setClosingRegister(null)
   }
 
   const handleDelete = async () => {
@@ -758,14 +665,12 @@ export function CashRegistersPage() {
         onSubmit={handleOpenSession}
       />
 
-      <CloseSessionDialog
-        key={`close-${closingRegister?.current_open_session?.id ?? 'none'}`}
+      <CashRegisterSessionDialog
+        key={closingRegister?.current_open_session?.id ?? 'no-session'}
         open={!!closingRegister}
         register={closingRegister}
-        session={closingRegister?.current_open_session ?? null}
-        isSaving={closeSession.isPending}
         onClose={() => setClosingRegister(null)}
-        onSubmit={handleCloseSession}
+        onClosed={() => setClosingRegister(null)}
       />
 
       <SessionsDialog

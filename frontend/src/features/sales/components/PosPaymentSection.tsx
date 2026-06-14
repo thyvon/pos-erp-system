@@ -19,11 +19,10 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
-import { Controller, type Control, type FieldArrayWithId, type FieldErrors } from 'react-hook-form'
+import { Controller, useWatch, type Control, type FieldArrayWithId, type FieldErrors } from 'react-hook-form'
 import { useTranslation } from 'react-i18next'
 import { Add, DeleteOutlined } from '@/components/ui/icons'
 import type { PaymentAccount } from '@/types/accounting'
-import type { DirectPaymentLineInput } from '../formHelpers'
 import type { SaleFormInput, SaleFormValues } from '../schema'
 
 const paymentMethods = ['cash', 'card', 'bank_transfer', 'cheque', 'reward_points', 'gift_card', 'other'] as const
@@ -49,7 +48,6 @@ interface PosPaymentSectionProps {
   defaultExchangeRateLoading: boolean
   hasDefaultExchangeRate: boolean
   directPaymentFields: Array<FieldArrayWithId<SaleFormInput, 'direct_payments', 'fieldId'>>
-  watchedDirectPayments: DirectPaymentLineInput[]
   onAddLine: () => void
   onCurrencyChange: (index: number, value: 'USD' | 'KHR') => void
   onRemoveLine: (index: number) => void
@@ -72,12 +70,15 @@ export function PosPaymentSection({
   defaultExchangeRateLoading,
   hasDefaultExchangeRate,
   directPaymentFields,
-  watchedDirectPayments,
   onAddLine,
   onCurrencyChange,
   onRemoveLine,
 }: PosPaymentSectionProps) {
   const { t } = useTranslation(['sales'])
+  const watchedDirectPayments = useWatch({
+    control,
+    name: 'direct_payments',
+  }) ?? []
 
   const renderPaymentLineFields = (field: FieldArrayWithId<SaleFormInput, 'direct_payments', 'fieldId'>, index: number, compact = false) => {
     const line = watchedDirectPayments[index]

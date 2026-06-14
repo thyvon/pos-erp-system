@@ -4,6 +4,7 @@ import type {
   CashRegister,
   CashRegisterFilters,
   CashRegisterSession,
+  CashRegisterSessionReport,
   CloseCashRegisterSessionPayload,
   CreateCashRegisterPayload,
   QuotationConvertPayload,
@@ -111,6 +112,8 @@ export const cashRegistersApi = {
   delete: (id: string) => apiClient.delete<void>(`/v1/cash-registers/${id}`),
   openSession: (id: string, payload: OpenCashRegisterSessionPayload) =>
     apiClient.post<CashRegisterSession, OpenCashRegisterSessionPayload>(`/v1/cash-registers/${id}/open-session`, payload),
+  sessionReport: (sessionId: string) =>
+    apiClient.get<CashRegisterSessionReport>(`/v1/cash-register-sessions/${sessionId}/report`),
   closeSession: (sessionId: string, payload: CloseCashRegisterSessionPayload) =>
     apiClient.post<CashRegisterSession, CloseCashRegisterSessionPayload>(`/v1/cash-register-sessions/${sessionId}/close`, payload),
 }
