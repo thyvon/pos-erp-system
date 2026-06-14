@@ -57,6 +57,7 @@ import {
 import type { ModuleKey } from '@/core/modules/moduleRegistry'
 import { useAuthStore } from '@/stores/authStore'
 import { useUIStore } from '@/stores/uiStore'
+import { startNavigationProgress } from '@/components/navigation/NavigationProgress'
 import { buildLayoutSurfaceColors, getLayoutMetrics } from '@/theme'
 
 interface NavChildItem {
@@ -266,6 +267,9 @@ export default function AppSidebar() {
   }
 
   const navigateTo = (path: string) => {
+    if (!isRouteActive(pathname, path)) {
+      startNavigationProgress()
+    }
     router.push(path)
     if (!isDesktop) setMobileSidebarOpen(false)
   }
@@ -437,11 +441,13 @@ export default function AppSidebar() {
             duration: theme.transitions.duration.enteringScreen,
           }),
           overflow: 'visible',
-          background: `linear-gradient(180deg, ${sidebarColors.paper} 0%, ${alpha(sidebarColors.paper, sidebarColors.isDark ? 0.96 : 0.9)} 100%)`,
-          borderRight: `1px solid ${sidebarColors.border}`,
+          backgroundColor: alpha(sidebarColors.paper, sidebarColors.isDark ? 0.9 : 0.86),
+          backgroundImage: 'none',
+          borderRight: `1px solid ${alpha(theme.palette.grey[500], sidebarColors.isDark ? 0.2 : 0.12)}`,
           px: isDenseLayout ? 1 : 1.25,
-          boxShadow: `12px 0 40px -34px ${alpha(theme.palette.common.black, 0.55)}`,
-          backdropFilter: 'saturate(180%) blur(18px)',
+          boxShadow: `12px 0 32px -28px ${alpha(theme.palette.common.black, 0.32)}`,
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
         },
       }}
     >

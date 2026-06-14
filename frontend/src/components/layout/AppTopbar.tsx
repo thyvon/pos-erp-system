@@ -9,6 +9,7 @@ import {
   Stack,
   Tooltip,
 } from '@mui/material'
+import { alpha } from '@mui/material/styles'
 import {
   Menu,
   Brightness4,
@@ -51,8 +52,12 @@ export default function AppTopbar() {
         transition: theme.transitions.create(['width', 'margin'], {
           duration: theme.transitions.duration.shorter,
         }),
-        background: topbarColors.bg,
-        borderBottom: `1px solid ${topbarColors.border}`,
+        backgroundColor: alpha(topbarColors.bg, topbarColors.isDark ? 0.84 : 0.8),
+        backgroundImage: 'none',
+        borderBottom: `1px solid ${alpha(theme.palette.grey[500], topbarColors.isDark ? 0.2 : 0.12)}`,
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        boxShadow: `0 8px 24px -20px ${alpha(theme.palette.common.black, 0.32)}`,
         overflow: 'visible',
       }}
     >
@@ -69,13 +74,15 @@ export default function AppTopbar() {
             height: collapseButtonSize,
             borderRadius: `${theme.shape.borderRadius}px`,
             color: topbarColors.icon,
-            bgcolor: topbarColors.floatingBg,
-            border: `1px solid ${topbarColors.floatingBorder}`,
-            boxShadow: (theme) => theme.shadows[2],
+            bgcolor: alpha(topbarColors.floatingBg, topbarColors.isDark ? 0.88 : 0.82),
+            border: `1px solid ${alpha(theme.palette.grey[500], topbarColors.isDark ? 0.24 : 0.16)}`,
+            boxShadow: `0 4px 12px ${alpha(theme.palette.common.black, 0.12)}`,
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
             display: { xs: 'none', lg: 'inline-flex' },
             '&:hover': {
               color: topbarColors.icon,
-              bgcolor: topbarColors.floatingBg,
+              bgcolor: alpha(topbarColors.floatingBg, topbarColors.isDark ? 0.94 : 0.9),
             },
           }}
           aria-label={sidebarOpen ? 'Collapse sidebar' : 'Expand sidebar'}

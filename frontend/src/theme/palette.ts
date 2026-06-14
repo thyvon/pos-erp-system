@@ -2,12 +2,13 @@ import { PaletteOptions } from '@mui/material'
 
 export type ThemeColorPreset =
   | 'default'
+  | 'cyan'
+  | 'purple'
   | 'blue'
-  | 'darkGreen'
   | 'orange'
   | 'red'
 
-export type NavigationColorPreset = Extract<ThemeColorPreset, 'default' | 'blue' | 'darkGreen'>
+export type NavigationColorPreset = ThemeColorPreset
 
 export type LayoutSurfaceTheme = 'inherit' | 'light' | 'dark' | NavigationColorPreset
 
@@ -19,11 +20,12 @@ export const THEME_COLOR_PRESETS: Array<{
   light: string
   dark: string
 }> = [
-  { value: 'default', label: 'Graphite', labelKey: 'layoutSettings.colorGraphite', main: '#334155', light: '#94A3B8', dark: '#0F172A' },
-  { value: 'blue', label: 'Sapphire', labelKey: 'layoutSettings.colorSapphire', main: '#1D4ED8', light: '#93C5FD', dark: '#1E3A8A' },
-  { value: 'darkGreen', label: 'System Solution Green', labelKey: 'layoutSettings.colorEmerald', main: '#1FC600', light: '#B8FF9F', dark: '#102A12' },
-  { value: 'orange', label: 'Bronze', labelKey: 'layoutSettings.colorBronze', main: '#B45309', light: '#FCD34D', dark: '#78350F' },
-  { value: 'red', label: 'Garnet', labelKey: 'layoutSettings.colorGarnet', main: '#9F1239', light: '#FDA4AF', dark: '#4C0519' },
+  { value: 'default', label: 'Green', labelKey: 'layoutSettings.colorGreen', main: '#00A76F', light: '#5BE49B', dark: '#007867' },
+  { value: 'cyan', label: 'Cyan', labelKey: 'layoutSettings.colorCyan', main: '#078DEE', light: '#68CDF9', dark: '#0351AB' },
+  { value: 'purple', label: 'Purple', labelKey: 'layoutSettings.colorPurple', main: '#7635DC', light: '#B985F4', dark: '#431A9E' },
+  { value: 'blue', label: 'Blue', labelKey: 'layoutSettings.colorBlue', main: '#0C68E9', light: '#6BB1F8', dark: '#063BA7' },
+  { value: 'orange', label: 'Orange', labelKey: 'layoutSettings.colorOrange', main: '#FDA92D', light: '#FED680', dark: '#B66816' },
+  { value: 'red', label: 'Red', labelKey: 'layoutSettings.colorRed', main: '#FF3030', light: '#FFC1AC', dark: '#B71833' },
 ]
 
 const SURFACE_PRESETS: Record<ThemeColorPreset, {
@@ -36,49 +38,58 @@ const SURFACE_PRESETS: Record<ThemeColorPreset, {
   successDark: string
 }> = {
   default: {
-    lightDefault: '#F8FAFC',
+    lightDefault: '#F4F6F8',
     lightPaper: '#FFFFFF',
-    darkDefault: '#0F172A',
-    darkPaper: '#111827',
+    darkDefault: '#141A21',
+    darkPaper: '#1C252E',
     success: '#22C55E',
-    successLight: '#86EFAC',
-    successDark: '#15803D',
+    successLight: '#77ED8B',
+    successDark: '#118D57',
+  },
+  cyan: {
+    lightDefault: '#F4F6F8',
+    lightPaper: '#FFFFFF',
+    darkDefault: '#141A21',
+    darkPaper: '#1C252E',
+    success: '#22C55E',
+    successLight: '#77ED8B',
+    successDark: '#118D57',
+  },
+  purple: {
+    lightDefault: '#F4F6F8',
+    lightPaper: '#FFFFFF',
+    darkDefault: '#141A21',
+    darkPaper: '#1C252E',
+    success: '#22C55E',
+    successLight: '#77ED8B',
+    successDark: '#118D57',
   },
   blue: {
-    lightDefault: '#F6F9FF',
+    lightDefault: '#F4F6F8',
     lightPaper: '#FFFFFF',
-    darkDefault: '#0B1220',
-    darkPaper: '#111C31',
-    success: '#16A34A',
-    successLight: '#86EFAC',
-    successDark: '#166534',
-  },
-  darkGreen: {
-    lightDefault: '#F6FDF4',
-    lightPaper: '#FFFFFF',
-    darkDefault: '#0B1410',
-    darkPaper: '#102A12',
-    success: '#1FC600',
-    successLight: '#B8FF9F',
-    successDark: '#18A000',
+    darkDefault: '#141A21',
+    darkPaper: '#1C252E',
+    success: '#22C55E',
+    successLight: '#77ED8B',
+    successDark: '#118D57',
   },
   orange: {
-    lightDefault: '#FFFBF3',
+    lightDefault: '#F4F6F8',
     lightPaper: '#FFFFFF',
-    darkDefault: '#1C1207',
-    darkPaper: '#2A1A0B',
-    success: '#16A34A',
-    successLight: '#86EFAC',
-    successDark: '#166534',
+    darkDefault: '#141A21',
+    darkPaper: '#1C252E',
+    success: '#22C55E',
+    successLight: '#77ED8B',
+    successDark: '#118D57',
   },
   red: {
-    lightDefault: '#FFF7F8',
+    lightDefault: '#F4F6F8',
     lightPaper: '#FFFFFF',
-    darkDefault: '#1A0710',
-    darkPaper: '#260B16',
-    success: '#16A34A',
-    successLight: '#86EFAC',
-    successDark: '#166534',
+    darkDefault: '#141A21',
+    darkPaper: '#1C252E',
+    success: '#22C55E',
+    successLight: '#77ED8B',
+    successDark: '#118D57',
   },
 }
 
@@ -115,9 +126,9 @@ export function buildPalette(mode: 'light' | 'dark', preset: ThemeColorPreset): 
 export const lightPalette: PaletteOptions = {
   mode: 'light',
   primary: {
-    main: '#334155',
-    light: '#94A3B8',
-    dark: '#0F172A',
+    main: '#00A76F',
+    light: '#5BE49B',
+    dark: '#007867',
     contrastText: '#FFFFFF',
   },
   secondary: {
@@ -127,7 +138,7 @@ export const lightPalette: PaletteOptions = {
     contrastText: '#FFFFFF',
   },
   background: {
-    default: '#F8FAFC',
+    default: '#F4F6F8',
     paper: '#FFFFFF',
   },
   text: {
@@ -150,9 +161,9 @@ export const lightPalette: PaletteOptions = {
 export const darkPalette: PaletteOptions = {
   mode: 'dark',
   primary: {
-    main: '#94A3B8',
-    light: '#CBD5E1',
-    dark: '#334155',
+    main: '#00A76F',
+    light: '#5BE49B',
+    dark: '#007867',
     contrastText: '#FFFFFF',
   },
   secondary: {
@@ -162,8 +173,8 @@ export const darkPalette: PaletteOptions = {
     contrastText: '#FFFFFF',
   },
   background: {
-    default: '#0F172A',
-    paper: '#111827',
+    default: '#141A21',
+    paper: '#1C252E',
   },
   text: {
     primary: '#FFFFFF',

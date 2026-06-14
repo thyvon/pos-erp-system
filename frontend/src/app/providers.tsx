@@ -11,6 +11,7 @@ import { createAppTheme } from '@/theme'
 import { useUIStore } from '@/stores/uiStore'
 import i18n, { I18nProvider } from '@/i18n'
 import { createQueryClient } from '@/api/queryClient'
+import { NavigationProgress } from '@/components/navigation/NavigationProgress'
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const hasHydrated = useUIStore((s) => s.hasHydrated)
@@ -94,6 +95,7 @@ export function Providers({ children }: { children: React.ReactNode }) {
             anchorOrigin={{ vertical: 'top', horizontal: 'right' }}
           >
             <LocalizationProvider dateAdapter={AdapterDayjs}>
+              <NavigationProgress />
               {children}
             </LocalizationProvider>
           </SnackbarProvider>

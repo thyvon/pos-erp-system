@@ -395,6 +395,9 @@
 - [x] POS form input performance improved by removing page-wide item/payment subscriptions, localizing cart, payment, and summary updates, avoiding payment normalization effects on every amount keystroke, and calculating authoritative totals from submitted values; frontend type-check, lint, and production build verified.
 - [x] Cash-register report handling now refreshes register data whenever the screen mounts and recovers from stale/deleted session IDs by invalidating cached register queries and closing the obsolete report dialog; the dual-currency closing migration was applied.
 - [x] Cash-register reports now load through a register-based endpoint that resolves the current open session server-side, avoiding stale or incorrectly supplied session IDs and returning a clear validation error when no session is open.
+- [x] Global App Router navigation now shows a Minimal-style thin top progress bar using the active theme color for internal links, sidebar navigation, and browser back/forward transitions.
+- [x] Theme color presets now match Minimal's green, cyan, purple, blue, orange, and red primary scales while keeping light/dark application surfaces neutral; legacy saved `darkGreen` settings migrate to the default green preset.
+- [x] Dashboard chrome now matches Minimal's translucent treatment with neutral 80-90% surfaces, 20px backdrop blur, restrained grey borders, and soft shadows on the topbar, sidebar, floating sidebar control, and popovers.
 
 ## Important Reminders
 

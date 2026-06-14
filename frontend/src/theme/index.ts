@@ -48,7 +48,7 @@ export const LAYOUT_SIZE_OPTIONS: Array<{ value: LayoutSize; labelKey: string }>
   { value: 'large', labelKey: 'layoutSettings.large' },
 ]
 
-const NAVIGATION_COLOR_PRESET_VALUES = ['default', 'blue', 'darkGreen'] as const satisfies readonly NavigationColorPreset[]
+const NAVIGATION_COLOR_PRESET_VALUES = ['default', 'cyan', 'purple', 'blue', 'orange', 'red'] as const satisfies readonly NavigationColorPreset[]
 
 function isNavigationColorPreset(value: ThemeColorPreset): value is NavigationColorPreset {
   return NAVIGATION_COLOR_PRESET_VALUES.includes(value as NavigationColorPreset)
@@ -184,13 +184,7 @@ export function buildLayoutSurfaceColors(theme: Theme, surfaceTheme: LayoutSurfa
 }
 
 export function buildAppBackground(theme: Theme) {
-  const primary = theme.palette.primary.main
-
-  if (theme.palette.mode === 'dark') {
-    return `linear-gradient(135deg, ${theme.palette.background.default} 0%, ${alpha(primary, 0.18)} 46%, ${alpha('#000000', 0.32)} 100%)`
-  }
-
-  return `linear-gradient(135deg, ${theme.palette.background.default} 0%, ${alpha(primary, 0.1)} 48%, ${alpha('#FFFFFF', 0.86)} 100%)`
+  return theme.palette.background.default
 }
 
 const LAYOUT_SIZE_PRESETS: Record<LayoutSize, {
@@ -392,10 +386,6 @@ export function createAppTheme(
             width: '100%',
             height: '100%',
             backgroundColor: palette.background?.default,
-            backgroundImage: buildAppBackground(theme),
-            backgroundAttachment: 'fixed',
-            backgroundRepeat: 'no-repeat',
-            backgroundSize: 'cover',
             color: palette.text?.primary,
             fontFamily,
             '--app-control-height': `${sizePreset.controlHeight}px`,
@@ -836,9 +826,15 @@ export function createAppTheme(
       },
       MuiPopover: {
         styleOverrides: {
-          paper: {
+          paper: ({ theme }) => ({
             borderRadius: controlRadius,
-          },
+            border: `1px solid ${alpha(theme.palette.grey[500], 0.16)}`,
+            backgroundColor: alpha(theme.palette.background.paper, 0.9),
+            backgroundImage: 'none',
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
+            boxShadow: `0 0 2px 0 ${alpha(theme.palette.grey[500], 0.24)}, -20px 20px 40px -4px ${alpha(theme.palette.grey[500], 0.24)}`,
+          }),
         },
       },
       MuiDrawer: {

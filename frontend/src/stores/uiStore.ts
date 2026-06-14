@@ -65,7 +65,16 @@ const initialState: UIState = {
   hasHydrated: false,
 }
 
-const COLOR_SURFACE_THEMES: LayoutSurfaceTheme[] = ['default', 'blue', 'darkGreen']
+const COLOR_SURFACE_THEMES: LayoutSurfaceTheme[] = ['default', 'cyan', 'purple', 'blue', 'orange', 'red']
+
+function normalizeColorPreset(value: unknown): ThemeColorPreset {
+  if (value === 'darkGreen') return 'default'
+  if (value === 'default' || value === 'cyan' || value === 'purple' || value === 'blue' || value === 'orange' || value === 'red') {
+    return value
+  }
+
+  return initialState.colorPreset
+}
 
 function normalizeSurfaceTheme(value: unknown): LayoutSurfaceTheme {
   if (!isLayoutSurfaceTheme(value)) return 'inherit'
@@ -108,7 +117,7 @@ export const useUIStore = create<UIStore>()(
     {
       name: 'erp-ui',
       storage: createJSONStorage(() => localStorage),
-      version: 8,
+      version: 9,
       partialize: (state) => {
         const { hasHydrated: _, ...rest } = state
         return rest
@@ -129,7 +138,7 @@ export const useUIStore = create<UIStore>()(
           contentStretch: true,
           language: previousState.language ?? initialState.language,
           fontPreset: previousState.fontPreset ?? initialState.fontPreset,
-          colorPreset: previousState.colorPreset ?? initialState.colorPreset,
+          colorPreset: normalizeColorPreset(previousState.colorPreset),
           layoutSize: previousState.layoutSize ?? initialState.layoutSize,
           borderRadiusLevel: normalizeBorderRadiusLevel(
             previousState.borderRadiusLevel ?? previousState.borderRadiusPreset
