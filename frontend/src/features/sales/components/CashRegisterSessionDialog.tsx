@@ -1,6 +1,7 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useQueryClient } from '@tanstack/react-query'
 import {
   Alert,
   Box,
@@ -29,6 +30,7 @@ import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import {
+  cashRegisterKeys,
   useCashRegisterSessionReportQuery,
   useCloseCashRegisterSessionMutation,
 } from '../hooks'
@@ -62,6 +64,7 @@ export function CashRegisterSessionDialog({
 }: CashRegisterSessionDialogProps) {
   const { t } = useTranslation(['sales', 'common'])
   const { enqueueSnackbar } = useSnackbar()
+  const queryClient = useQueryClient()
   const sessionId = register?.current_open_session?.id ?? null
   const reportQuery = useCashRegisterSessionReportQuery(sessionId, open)
   const closeSession = useCloseCashRegisterSessionMutation()
@@ -71,6 +74,7 @@ export function CashRegisterSessionDialog({
   const [notes, setNotes] = useState('')
   const [formError, setFormError] = useState('')
   const [confirmOpen, setConfirmOpen] = useState(false)
+  const handledMissingSessionRef = useRef<string | null>(null)
 
   const summary = reportQuery.data?.summary
   const expectedUsd = Number(summary?.expected_cash_usd ?? 0)
@@ -82,6 +86,19 @@ export function CashRegisterSessionDialog({
   const differenceUsd = actualUsdValue - expectedUsd
   const differenceKhr = actualKhrValue - expectedKhr
   const hasDifference = Math.abs(differenceUsd) >= 0.005 || Math.abs(differenceKhr) >= 0.5
+
+  useEffect(() => {
+    if (!reportQuery.isError) return
+
+    const error = toAppApiError(reportQuery.error)
+    if (error.status !== 404) return
+    if (!sessionId || handledMissingSessionRef.current === sessionId) return
+
+    handledMissingSessionRef.current = sessionId
+    enqueueSnackbar(error.message, { variant: 'error' })
+    void queryClient.invalidateQueries({ queryKey: cashRegisterKeys.all })
+    onClose()
+  }, [enqueueSnackbar, onClose, queryClient, reportQuery.error, reportQuery.isError, sessionId])
 
   const closeDialog = () => {
     setTab('report')

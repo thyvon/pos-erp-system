@@ -393,6 +393,7 @@
 - [x] POS duplicate handling now keeps serial-tracked products as one serial per cart line with quantity fixed at one; repeated gallery clicks cannot merge or increase an unresolved/selected serial line, while ordinary and same-lot products retain quantity merging.
 - [x] POS recent transactions provide a one-click receipt print action with per-row progress feedback and localized print errors.
 - [x] POS form input performance improved by removing page-wide item/payment subscriptions, localizing cart, payment, and summary updates, avoiding payment normalization effects on every amount keystroke, and calculating authoritative totals from submitted values; frontend type-check, lint, and production build verified.
+- [x] Cash-register report handling now refreshes register data whenever the screen mounts and recovers from stale/deleted session IDs by invalidating cached register queries and closing the obsolete report dialog; the dual-currency closing migration was applied.
 
 ## Important Reminders
 

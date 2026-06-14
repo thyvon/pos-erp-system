@@ -97,6 +97,7 @@ export function useCashRegistersQuery(filters: CashRegisterFilters, enabled = tr
     queryFn: () => cashRegistersApi.list(filters),
     enabled,
     staleTime: 2 * 60 * 1000,
+    refetchOnMount: 'always',
   })
 }
 
