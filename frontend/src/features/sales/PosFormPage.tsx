@@ -108,26 +108,41 @@ import { buildLayoutSurfaceColors, getLayoutMetrics } from '@/theme'
 import { formatAppDate } from '@/utils/dateFormat'
 import { formatMoney } from '@/utils/formatMoney'
 
-const playAddProductSound = () => {
+let audioContext: AudioContext | null = null
+
+const getAudioContext = (): AudioContext | null => {
   try {
-    const AudioCtx = window.AudioContext || (window as unknown as Record<string, typeof AudioContext>).webkitAudioContext
-    const audioContext = new AudioCtx()
-    const oscillator = audioContext.createOscillator()
-    const gainNode = audioContext.createGain()
+    if (!audioContext) {
+      const AudioCtx = window.AudioContext || (window as unknown as Record<string, typeof AudioContext>).webkitAudioContext
+      audioContext = new AudioCtx()
+    }
+    return audioContext
+  } catch {
+    return null
+  }
+}
+
+const playAddProductSound = () => {
+  const ctx = getAudioContext()
+  if (!ctx) return
+
+  try {
+    const oscillator = ctx.createOscillator()
+    const gainNode = ctx.createGain()
 
     oscillator.connect(gainNode)
-    gainNode.connect(audioContext.destination)
+    gainNode.connect(ctx.destination)
 
     oscillator.frequency.value = 800
     oscillator.type = 'sine'
 
-    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime)
-    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1)
+    gainNode.gain.setValueAtTime(0.3, ctx.currentTime)
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1)
 
-    oscillator.start(audioContext.currentTime)
-    oscillator.stop(audioContext.currentTime + 0.1)
+    oscillator.start(ctx.currentTime)
+    oscillator.stop(ctx.currentTime + 0.1)
   } catch {
-    // Fallback if audio context is not available
+    // Fallback if oscillator creation fails
   }
 }
 
