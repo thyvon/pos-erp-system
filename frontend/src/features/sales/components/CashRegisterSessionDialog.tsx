@@ -65,8 +65,9 @@ export function CashRegisterSessionDialog({
   const { t } = useTranslation(['sales', 'common'])
   const { enqueueSnackbar } = useSnackbar()
   const queryClient = useQueryClient()
+  const registerId = register?.id ?? null
   const sessionId = register?.current_open_session?.id ?? null
-  const reportQuery = useCashRegisterSessionReportQuery(sessionId, open)
+  const reportQuery = useCashRegisterSessionReportQuery(registerId, open)
   const closeSession = useCloseCashRegisterSessionMutation()
   const [tab, setTab] = useState<'report' | 'close'>('report')
   const [actualUsd, setActualUsd] = useState('')
@@ -92,13 +93,13 @@ export function CashRegisterSessionDialog({
 
     const error = toAppApiError(reportQuery.error)
     if (error.status !== 404) return
-    if (!sessionId || handledMissingSessionRef.current === sessionId) return
+    if (!registerId || handledMissingSessionRef.current === registerId) return
 
-    handledMissingSessionRef.current = sessionId
+    handledMissingSessionRef.current = registerId
     enqueueSnackbar(error.message, { variant: 'error' })
     void queryClient.invalidateQueries({ queryKey: cashRegisterKeys.all })
     onClose()
-  }, [enqueueSnackbar, onClose, queryClient, reportQuery.error, reportQuery.isError, sessionId])
+  }, [enqueueSnackbar, onClose, queryClient, registerId, reportQuery.error, reportQuery.isError])
 
   const closeDialog = () => {
     setTab('report')

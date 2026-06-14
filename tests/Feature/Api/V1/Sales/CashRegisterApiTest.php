@@ -210,6 +210,12 @@ class CashRegisterApiTest extends TestCase
             ->assertJsonPath('data.summary.sales_count', 1)
             ->assertJsonPath('data.summary.payment_count', 3);
 
+        $this->getJson("/api/v1/cash-registers/{$register->id}/session-report")
+            ->assertOk()
+            ->assertJsonPath('data.session.id', $sessionId)
+            ->assertJsonPath('data.summary.expected_cash_usd', '180.00')
+            ->assertJsonPath('data.summary.expected_cash_khr', '410000.00');
+
         $this->postJson("/api/v1/cash-register-sessions/{$sessionId}/close", [
             'closing_cash_usd' => 181,
             'closing_cash_khr' => 409000,
@@ -233,5 +239,26 @@ class CashRegisterApiTest extends TestCase
             'difference_usd' => '1.00',
             'difference_khr' => '-1000.00',
         ]);
+    }
+
+    public function test_current_session_report_returns_clear_error_when_register_is_not_open(): void
+    {
+        $business = Business::factory()->create();
+        $branch = Branch::factory()->create(['business_id' => $business->id]);
+        $register = CashRegister::withoutGlobalScopes()->create([
+            'business_id' => $business->id,
+            'branch_id' => $branch->id,
+            'name' => 'Closed Counter',
+            'is_active' => true,
+        ]);
+        $cashier = User::factory()->for($business)->create();
+        $cashier->assignRole('cashier');
+        $cashier->branches()->attach($branch->id);
+
+        Sanctum::actingAs($cashier);
+
+        $this->getJson("/api/v1/cash-registers/{$register->id}/session-report")
+            ->assertStatus(422)
+            ->assertJsonPath('message', 'This cash register does not have an open session.');
     }
 }

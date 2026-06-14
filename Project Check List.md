@@ -394,6 +394,7 @@
 - [x] POS recent transactions provide a one-click receipt print action with per-row progress feedback and localized print errors.
 - [x] POS form input performance improved by removing page-wide item/payment subscriptions, localizing cart, payment, and summary updates, avoiding payment normalization effects on every amount keystroke, and calculating authoritative totals from submitted values; frontend type-check, lint, and production build verified.
 - [x] Cash-register report handling now refreshes register data whenever the screen mounts and recovers from stale/deleted session IDs by invalidating cached register queries and closing the obsolete report dialog; the dual-currency closing migration was applied.
+- [x] Cash-register reports now load through a register-based endpoint that resolves the current open session server-side, avoiding stale or incorrectly supplied session IDs and returning a clear validation error when no session is open.
 
 ## Important Reminders
 

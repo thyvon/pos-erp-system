@@ -301,6 +301,30 @@ class CashRegisterService
         return $this->buildSessionReport($session);
     }
 
+    public function currentSessionReport(string $businessId, CashRegister $cashRegister): array
+    {
+        if ((string) $cashRegister->business_id !== (string) $businessId) {
+            throw new DomainException('Selected cash register is invalid for this business.', 422);
+        }
+
+        $session = CashRegisterSession::query()
+            ->where('cash_register_id', $cashRegister->id)
+            ->where('status', 'open')
+            ->latest('opened_at')
+            ->first();
+
+        if (! $session) {
+            throw new DomainException('This cash register does not have an open session.', 422);
+        }
+
+        $session = $this->loadSession($session);
+
+        return [
+            'session' => $session,
+            'summary' => $this->buildSessionReport($session),
+        ];
+    }
+
     protected function buildSessionReport(CashRegisterSession $session): array
     {
         $salesQuery = Sale::withoutGlobalScopes()

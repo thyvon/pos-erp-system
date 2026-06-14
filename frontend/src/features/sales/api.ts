@@ -112,8 +112,8 @@ export const cashRegistersApi = {
   delete: (id: string) => apiClient.delete<void>(`/v1/cash-registers/${id}`),
   openSession: (id: string, payload: OpenCashRegisterSessionPayload) =>
     apiClient.post<CashRegisterSession, OpenCashRegisterSessionPayload>(`/v1/cash-registers/${id}/open-session`, payload),
-  sessionReport: (sessionId: string) =>
-    apiClient.get<CashRegisterSessionReport>(`/v1/cash-register-sessions/${sessionId}/report`),
+  sessionReport: (registerId: string) =>
+    apiClient.get<CashRegisterSessionReport>(`/v1/cash-registers/${registerId}/session-report`),
   closeSession: (sessionId: string, payload: CloseCashRegisterSessionPayload) =>
     apiClient.post<CashRegisterSession, CloseCashRegisterSessionPayload>(`/v1/cash-register-sessions/${sessionId}/close`, payload),
 }

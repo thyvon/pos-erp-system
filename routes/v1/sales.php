@@ -41,6 +41,7 @@ return static function (): void {
     Route::put('cash-registers/{cashRegister}', [CashRegisterController::class, 'update'])->middleware('can:update,cashRegister');
     Route::delete('cash-registers/{cashRegister}', [CashRegisterController::class, 'destroy'])->middleware('can:delete,cashRegister');
     Route::post('cash-registers/{cashRegister}/open-session', [CashRegisterController::class, 'openSession'])->middleware('can:openSession,cashRegister');
+    Route::get('cash-registers/{cashRegister}/session-report', [CashRegisterController::class, 'currentSessionReport'])->middleware('can:closeSession,cashRegister');
     Route::get('cash-register-sessions/{session}/report', [CashRegisterController::class, 'sessionReport']);
     Route::post('cash-register-sessions/{session}/close', [CashRegisterController::class, 'closeSession']);
 

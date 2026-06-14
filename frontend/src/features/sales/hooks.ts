@@ -30,7 +30,7 @@ export const cashRegisterKeys = {
   all: ['cash-registers'] as const,
   list: (filters: CashRegisterFilters) => [...cashRegisterKeys.all, 'list', filters] as const,
   detail: (id: string) => [...cashRegisterKeys.all, 'detail', id] as const,
-  sessionReport: (sessionId: string) => [...cashRegisterKeys.all, 'session-report', sessionId] as const,
+  sessionReport: (registerId: string) => [...cashRegisterKeys.all, 'session-report', registerId] as const,
 }
 
 export const saleReturnKeys = {
@@ -109,13 +109,13 @@ export function useCashRegisterQuery(id: string | null) {
   })
 }
 
-export function useCashRegisterSessionReportQuery(sessionId: string | null, enabled = true) {
+export function useCashRegisterSessionReportQuery(registerId: string | null, enabled = true) {
   return useQuery({
-    queryKey: sessionId
-      ? cashRegisterKeys.sessionReport(sessionId)
+    queryKey: registerId
+      ? cashRegisterKeys.sessionReport(registerId)
       : [...cashRegisterKeys.all, 'session-report', 'none'],
-    queryFn: () => cashRegistersApi.sessionReport(sessionId ?? ''),
-    enabled: enabled && !!sessionId,
+    queryFn: () => cashRegistersApi.sessionReport(registerId ?? ''),
+    enabled: enabled && !!registerId,
   })
 }
 
@@ -230,7 +230,7 @@ export function useCloseCashRegisterSessionMutation() {
     onSuccess: (session) => {
       queryClient.invalidateQueries({ queryKey: cashRegisterKeys.all })
       queryClient.invalidateQueries({ queryKey: cashRegisterKeys.detail(session.cash_register_id) })
-      queryClient.invalidateQueries({ queryKey: cashRegisterKeys.sessionReport(session.id) })
+      queryClient.invalidateQueries({ queryKey: cashRegisterKeys.sessionReport(session.cash_register_id) })
       queryClient.invalidateQueries({ queryKey: saleKeys.all })
     },
   })

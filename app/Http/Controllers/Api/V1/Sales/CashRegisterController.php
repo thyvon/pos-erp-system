@@ -110,6 +110,21 @@ class CashRegisterController extends BaseApiController
         return $this->success(new CashRegisterSessionResource($session), 'Cash register session closed successfully.');
     }
 
+    public function currentSessionReport(Request $request, CashRegister $cashRegister): JsonResponse
+    {
+        $this->authorize('closeSession', $cashRegister);
+
+        $result = $this->cashRegisters->currentSessionReport(
+            $request->user()->business_id,
+            $cashRegister
+        );
+
+        return $this->success([
+            'session' => new CashRegisterSessionResource($result['session']),
+            'summary' => $result['summary'],
+        ]);
+    }
+
     public function sessionReport(Request $request, CashRegisterSession $session): JsonResponse
     {
         $session->loadMissing('cashRegister');
