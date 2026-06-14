@@ -398,6 +398,7 @@
 - [x] Global App Router navigation now shows a Minimal-style thin top progress bar using the active theme color for internal links, sidebar navigation, and browser back/forward transitions.
 - [x] Theme color presets now match Minimal's green, cyan, purple, blue, orange, and red primary scales while keeping light/dark application surfaces neutral; legacy saved `darkGreen` settings migrate to the default green preset.
 - [x] Dashboard chrome now matches Minimal's translucent treatment with neutral 80-90% surfaces, 20px backdrop blur, restrained grey borders, and soft shadows on the topbar, sidebar, floating sidebar control, and popovers.
+- [x] Layout Settings now uses the same Minimal-style glass treatment with a translucent 20px-blurred drawer, soft edge shadow, and lightly blurred page backdrop.
 
 ## Important Reminders
 

@@ -157,12 +157,24 @@ export default function LayoutSettings() {
         zIndex: (theme) => theme.zIndex.modal + 1,
       }}
       slotProps={{
+        backdrop: {
+          sx: {
+            bgcolor: alpha(theme.palette.common.black, theme.palette.mode === 'dark' ? 0.4 : 0.2),
+            backdropFilter: 'blur(4px)',
+            WebkitBackdropFilter: 'blur(4px)',
+          },
+        },
         paper: {
           sx: {
             width: { xs: '100%', sm: 360 },
             maxWidth: '100vw',
             height: '100dvh',
-            bgcolor: 'background.paper',
+            backgroundColor: alpha(theme.palette.background.paper, theme.palette.mode === 'dark' ? 0.9 : 0.88),
+            backgroundImage: 'none',
+            borderLeft: `1px solid ${alpha(theme.palette.grey[500], theme.palette.mode === 'dark' ? 0.24 : 0.16)}`,
+            boxShadow: `-24px 0 48px -20px ${alpha(theme.palette.common.black, theme.palette.mode === 'dark' ? 0.48 : 0.24)}`,
+            backdropFilter: 'blur(20px)',
+            WebkitBackdropFilter: 'blur(20px)',
             zIndex: (theme) => theme.zIndex.modal + 1,
           },
         },
@@ -177,6 +189,9 @@ export default function LayoutSettings() {
             px: 2,
             py: 1.5,
             flexShrink: 0,
+            backgroundColor: alpha(theme.palette.background.paper, theme.palette.mode === 'dark' ? 0.48 : 0.42),
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
           }}
         >
           <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', minWidth: 0 }}>
@@ -216,7 +231,7 @@ export default function LayoutSettings() {
           </Button>
         </Stack>
 
-        <Divider sx={{ flexShrink: 0 }} />
+        <Divider sx={{ flexShrink: 0, borderColor: alpha(theme.palette.grey[500], 0.16) }} />
 
         <Stack spacing={2.5} sx={{ p: 2, overflowY: 'auto', overflowX: 'hidden' }}>
           <Box>
