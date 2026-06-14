@@ -23,7 +23,6 @@ import { Controller, type Control, type FieldArrayWithId, type FieldErrors } fro
 import { useTranslation } from 'react-i18next'
 import { Add, DeleteOutlined } from '@/components/ui/icons'
 import type { PaymentAccount } from '@/types/accounting'
-import { CurrencyAmountStack } from './CurrencyAmountStack'
 import type { DirectPaymentLineInput } from '../formHelpers'
 import type { SaleFormInput, SaleFormValues } from '../schema'
 
@@ -36,11 +35,6 @@ const paymentColumnSx = {
   amount: { width: 160, minWidth: 160 },
   actions: { width: 64, minWidth: 64 },
 } as const
-
-type AmountDisplay = {
-  usd: string
-  khr: string
-}
 
 interface PosPaymentSectionProps {
   control: Control<SaleFormInput, unknown, SaleFormValues>
@@ -56,11 +50,6 @@ interface PosPaymentSectionProps {
   hasDefaultExchangeRate: boolean
   directPaymentFields: Array<FieldArrayWithId<SaleFormInput, 'direct_payments', 'fieldId'>>
   watchedDirectPayments: DirectPaymentLineInput[]
-  totalDisplay: AmountDisplay
-  paymentDisplay: AmountDisplay
-  remainingDisplay: AmountDisplay
-  changeDisplay: AmountDisplay
-  change: number
   onAddLine: () => void
   onCurrencyChange: (index: number, value: 'USD' | 'KHR') => void
   onRemoveLine: (index: number) => void
@@ -84,11 +73,6 @@ export function PosPaymentSection({
   hasDefaultExchangeRate,
   directPaymentFields,
   watchedDirectPayments,
-  totalDisplay,
-  paymentDisplay,
-  remainingDisplay,
-  changeDisplay,
-  change,
   onAddLine,
   onCurrencyChange,
   onRemoveLine,
@@ -230,67 +214,6 @@ export function PosPaymentSection({
         minWidth: 0,
       }}
     >
-      <Box
-        sx={{
-          display: 'grid',
-          gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', lg: '1.15fr 1fr 1fr' },
-          borderBottom: 1,
-          borderColor: 'divider',
-          bgcolor: 'success.lighter',
-        }}
-      >
-        {[
-          {
-            key: 'total',
-            label: t('pos.totalPayable'),
-            amount: totalDisplay,
-            valueColor: 'success.dark',
-            isPrimary: true,
-          },
-          {
-            key: 'entered',
-            label: t('payment.totalEntered'),
-            amount: paymentDisplay,
-            valueColor: 'success.dark',
-          },
-          {
-            key: change > 0 ? 'change' : 'remaining',
-            label: change > 0 ? t('payment.changeBack') : t('payment.remaining'),
-            amount: change > 0 ? changeDisplay : remainingDisplay,
-            valueColor: change > 0 ? 'success.dark' : 'warning.dark',
-          },
-        ].map((item) => (
-          <Box
-            key={item.key}
-            sx={{
-              px: 1,
-              py: 0.5,
-              minWidth: 0,
-              borderRightWidth: { sm: 1, lg: 1 },
-              borderRightStyle: { sm: 'solid' },
-              borderRightColor: 'divider',
-              borderBottomWidth: { xs: 1, lg: 0 },
-              borderBottomStyle: { xs: 'solid', lg: 'none' },
-              borderBottomColor: 'divider',
-              '&:nth-of-type(2n)': { borderRightWidth: { sm: 0, lg: 1 } },
-              '&:nth-of-type(3)': { borderRightWidth: 0, borderBottomWidth: 0 },
-            }}
-          >
-            <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center', justifyContent: 'space-between', minWidth: 0 }}>
-              <Typography variant="body2" sx={{ color: 'success.dark', fontWeight: 900, textTransform: 'uppercase', flex: '0 0 auto' }}>
-                {item.label}
-              </Typography>
-              <CurrencyAmountStack
-                amount={item.amount}
-                color={item.valueColor}
-                primaryVariant={item.isPrimary ? 'h5' : 'h6'}
-                secondaryVariant={item.isPrimary ? 'body1' : 'body2'}
-              />
-            </Stack>
-          </Box>
-        ))}
-      </Box>
-
       <Box sx={{ minWidth: 0, p: 1.25 }}>
         {canCapturePayment && (
           <Stack spacing={1}>

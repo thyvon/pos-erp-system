@@ -149,6 +149,7 @@ const sales = {
     emptyCart: 'ស្កេន ឬស្វែងរកទំនិញដើម្បីចាប់ផ្តើមកន្ត្រក។',
     noProducts: 'រកមិនឃើញផលិតផល។',
     totalPayable: 'ចំនួនត្រូវទូទាត់',
+    amountToPay: 'ចំនួនត្រូវបង់',
     recentTransactions: 'ប្រតិបត្តិការថ្មីៗ',
     receiptTitle: 'បោះពុម្ពបង្កាន់ដៃ',
     more: 'បន្ថែម',
@@ -156,6 +157,7 @@ const sales = {
     hideMoreDetails: 'លាក់ព័ត៌មានបន្ថែម',
     summary: {
       items: 'ទំនិញ',
+      delivery: 'ដឹកជញ្ជូន',
       edit: 'កែ',
     },
     toolbar: {

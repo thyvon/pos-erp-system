@@ -377,22 +377,17 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
   const {
     totalDisplay,
     paymentDisplay,
-    remainingDisplay,
     changeDisplay,
-    change: paymentChange,
     isSuspended,
     canCapturePayment,
   } = useMemo(() => {
     const base = round(watchedDirectPayments.reduce((total, line) => total + directPaymentLineBaseAmount(line, defaultExchangeRateValue), 0))
-    const rem = Math.max(0, round(totals.total - base))
     const chg = Math.max(0, round(base - totals.total))
     const suspended = saleType === 'suspended'
     return {
       totalDisplay: formatUsdKhrAmount(totals.total, defaultExchangeRateValue),
       paymentDisplay: formatUsdKhrAmount(base, defaultExchangeRateValue),
-      remainingDisplay: formatUsdKhrAmount(rem, defaultExchangeRateValue),
       changeDisplay: formatUsdKhrAmount(chg, defaultExchangeRateValue),
-      change: chg,
       isSuspended: suspended,
       canCapturePayment: !suspended && (!isEdit || currentSaleStatus === 'completed'),
     }
@@ -1077,6 +1072,9 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
                 exchangeRate={defaultExchangeRateValue}
                 taxScope={taxScope}
                 totals={totals}
+                totalDisplay={totalDisplay}
+                paymentDisplay={paymentDisplay}
+                changeDisplay={changeDisplay}
                 onQuantityChange={changeItemQuantity}
                 onChangeUnit={changeItemUnit}
                 onEditItem={setEditingItemIndex}
@@ -1097,11 +1095,6 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
                   hasDefaultExchangeRate={!!defaultExchangeRate}
                   directPaymentFields={directPaymentFields}
                   watchedDirectPayments={watchedDirectPayments}
-                  totalDisplay={totalDisplay}
-                  paymentDisplay={paymentDisplay}
-                  remainingDisplay={remainingDisplay}
-                  changeDisplay={changeDisplay}
-                  change={paymentChange}
                   onAddLine={() => appendDirectPayment(newDirectPaymentLine(paymentAccounts))}
                   onCurrencyChange={changeDirectPaymentCurrency}
                   onRemoveLine={removeDirectPaymentLine}

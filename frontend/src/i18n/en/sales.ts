@@ -149,6 +149,7 @@ const sales = {
     emptyCart: 'Scan or search an item to start the cart.',
     noProducts: 'No products found.',
     totalPayable: 'Total payable',
+    amountToPay: 'Amount to pay',
     recentTransactions: 'Recent Transactions',
     receiptTitle: 'Print Receipt',
     more: 'More',
@@ -156,6 +157,7 @@ const sales = {
     hideMoreDetails: 'Hide more details',
     summary: {
       items: 'Items',
+      delivery: 'Delivery',
       edit: 'Edit',
     },
     toolbar: {

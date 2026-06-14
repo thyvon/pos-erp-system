@@ -101,6 +101,7 @@
 - [x] POS header now places warehouse, customer, and product scan/search lookup on the same responsive form row; focused POS frontend lint verified.
 - [x] POS cart product-line area now uses one clean table/card scroll region while keeping the summary and payment controls fixed; focused POS frontend lint verified.
 - [x] Frontend production build re-verified after POS layout cleanup, including a login page border-radius TypeScript compatibility fix.
+- [x] POS checkout summary rebuilt as separate subtotal, discount, tax, delivery, amount-to-pay, entered, and change-back cards with item-count summary removed; frontend type-check and focused lint verified.
 - [x] POS summary discount, order tax, and shipping now edit through summary-row modal actions, and duplicate Recent Transactions action was removed from the top toolbar; frontend type-check, lint, and build verified.
 - [x] POS footer payment shortcuts removed in favor of the payment section, a single Save action added, and available-stock text hidden from sell-line rows; frontend type-check, lint, and build verified.
 - [x] POS duplicate suspend control removed, and the POS route now exposes shared layout settings while remaining outside the dashboard sidebar/topbar shell; frontend type-check, lint, and build verified.
