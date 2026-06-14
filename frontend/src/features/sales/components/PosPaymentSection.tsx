@@ -212,9 +212,10 @@ export function PosPaymentSection({
         borderColor: 'divider',
         bgcolor: 'background.paper',
         minWidth: 0,
+        contain: 'layout style',
       }}
     >
-      <Box sx={{ minWidth: 0, p: 1 }}>
+      <Box sx={{ minWidth: 0, p: 1, minHeight: canCapturePayment ? 'auto' : 0, contain: 'layout' }}>
         {canCapturePayment && (
           <Stack spacing={0.75}>
             <Stack direction="row" sx={{ justifyContent: 'space-between', alignItems: 'center' }}>

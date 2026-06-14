@@ -7,26 +7,18 @@ import { Add } from '@/components/ui/icons'
 import { InventoryProductLookupPicker } from '@/features/inventory/components/InventoryProductLookupPicker'
 import type { Customer } from '@/types/customer'
 import type { InventoryProductLookupItem } from '@/types/inventory'
-import type { Warehouse } from '@/types/warehouse'
 import type { SaleFormInput, SaleFormValues } from '../schema'
 
 interface PosHeaderFieldsProps {
   control: Control<SaleFormInput, unknown, SaleFormValues>
   errors: FieldErrors<SaleFormInput>
-  warehouses: Warehouse[]
   customers: Customer[]
-  warehousesLoading: boolean
   customersLoading: boolean
   canCreateCustomer: boolean
   warehouseId: string
   isSaving: boolean
-  onWarehouseChange: (warehouseId: string, branchId: string) => void
   onAddCustomer: () => void
   onSelectItem: (item: InventoryProductLookupItem) => void
-}
-
-function warehouseLabel(warehouse: Warehouse) {
-  return [warehouse.name, warehouse.code, warehouse.branch?.name].filter(Boolean).join(' / ')
 }
 
 function customerLabel(customer: Customer) {
@@ -36,14 +28,11 @@ function customerLabel(customer: Customer) {
 export function PosHeaderFields({
   control,
   errors,
-  warehouses,
   customers,
-  warehousesLoading,
   customersLoading,
   canCreateCustomer,
   warehouseId,
   isSaving,
-  onWarehouseChange,
   onAddCustomer,
   onSelectItem,
 }: PosHeaderFieldsProps) {
@@ -54,7 +43,7 @@ export function PosHeaderFields({
       sx={{
         flex: '0 0 auto',
         display: 'grid',
-        gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) minmax(0, 1fr)', lg: 'minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.25fr)' },
+        gridTemplateColumns: { xs: '1fr', md: 'minmax(0, 1fr) minmax(0, 1.5fr)' },
         gap: 0.75,
         p: { xs: 0.75, md: 1 },
         mb: -0.75,
@@ -66,33 +55,6 @@ export function PosHeaderFields({
         zIndex: 1,
       }}
     >
-      <Controller
-        name="warehouse_id"
-        control={control}
-        render={({ field }) => (
-          <Autocomplete
-            options={warehouses}
-            value={warehouses.find((warehouse) => warehouse.id === field.value) ?? null}
-            loading={warehousesLoading}
-            getOptionLabel={warehouseLabel}
-            isOptionEqualToValue={(option, value) => option.id === value.id}
-            onBlur={field.onBlur}
-            onChange={(_, selectedWarehouse) => {
-              field.onChange(selectedWarehouse?.id ?? '')
-              onWarehouseChange(selectedWarehouse?.id ?? '', selectedWarehouse?.branch_id ?? '')
-            }}
-            renderInput={(params) => (
-              <TextField
-                {...params}
-                label={t('fields.warehouse')}
-                error={!!errors.warehouse_id || !!errors.branch_id}
-                helperText={errors.warehouse_id?.message || errors.branch_id?.message}
-                required
-              />
-            )}
-          />
-        )}
-      />
       <Controller
         name="customer_id"
         control={control}

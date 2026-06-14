@@ -108,6 +108,29 @@ import { buildLayoutSurfaceColors, getLayoutMetrics } from '@/theme'
 import { formatAppDate } from '@/utils/dateFormat'
 import { formatMoney } from '@/utils/formatMoney'
 
+const playAddProductSound = () => {
+  try {
+    const AudioCtx = window.AudioContext || (window as unknown as Record<string, typeof AudioContext>).webkitAudioContext
+    const audioContext = new AudioCtx()
+    const oscillator = audioContext.createOscillator()
+    const gainNode = audioContext.createGain()
+
+    oscillator.connect(gainNode)
+    gainNode.connect(audioContext.destination)
+
+    oscillator.frequency.value = 800
+    oscillator.type = 'sine'
+
+    gainNode.gain.setValueAtTime(0.3, audioContext.currentTime)
+    gainNode.gain.exponentialRampToValueAtTime(0.01, audioContext.currentTime + 0.1)
+
+    oscillator.start(audioContext.currentTime)
+    oscillator.stop(audioContext.currentTime + 0.1)
+  } catch {
+    // Fallback if audio context is not available
+  }
+}
+
 const discountTypes = ['fixed', 'percentage'] as const
 const taxScopes = ['line', 'sale'] as const
 const taxTypes = ['exclusive', 'inclusive'] as const
@@ -327,7 +350,6 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
     }
   }
   const defaultExchangeRateValue = toNumber(defaultExchangeRate?.rate)
-  const selectedWarehouse = warehouses.find((warehouse) => warehouse.id === warehouseId) ?? null
   const selectDefaultWarehouse = useCallback((warehouse: (typeof warehouses)[number]) => {
     setValue('warehouse_id', warehouse.id, { shouldDirty: false, shouldValidate: true })
     if (warehouse.branch_id) {
@@ -544,6 +566,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
       unit_cost: toNumber(item.unit_cost),
       notes: '',
     })
+    playAddProductSound()
   }, [append, enqueueSnackbar, getValues, setValue, t])
 
   const openCashRegisterDialog = () => {
@@ -966,12 +989,61 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
               alignItems: { xs: 'stretch', md: 'center' },
             }}
           >
-            <Stack direction="row" spacing={1.25} sx={{ alignItems: 'center', minWidth: 0 }}>
-              <Typography variant="body2" sx={{ fontWeight: 800 }}>{t('pos.location')}</Typography>
-              <Typography variant="body2" noWrap sx={{ color: posTopbarColors.muted, minWidth: 0 }}>
-                {selectedWarehouse?.branch?.name || selectedWarehouse?.name || '-'}
-              </Typography>
-              <Box sx={{ px: 1.5, py: 0.75, borderRadius: 1, bgcolor: 'primary.main', color: 'primary.contrastText' }}>
+            <Stack direction="row" spacing={1} sx={{ alignItems: 'center', minWidth: 0, flex: { xs: '1 1 auto', md: '0 0 auto' } }}>
+              <Typography variant="body2" sx={{ fontWeight: 800, flex: '0 0 auto' }}>{t('pos.location')}</Typography>
+              <Box sx={{ width: { xs: '100%', md: 200 }, minWidth: 0 }}>
+                <Controller
+                  name="warehouse_id"
+                  control={control}
+                  render={({ field }) => (
+                    <Autocomplete
+                      options={warehouses}
+                      value={warehouses.find((warehouse) => warehouse.id === field.value) ?? null}
+                      loading={warehousesQuery.isLoading}
+                      getOptionLabel={(warehouse) => [warehouse.name, warehouse.branch?.name].filter(Boolean).join(' / ')}
+                      isOptionEqualToValue={(option, value) => option.id === value.id}
+                      onBlur={field.onBlur}
+                      onChange={(_, selectedWarehouse) => {
+                        field.onChange(selectedWarehouse?.id ?? '')
+                        setValue('branch_id', selectedWarehouse?.branch_id ?? '', {
+                          shouldDirty: true,
+                          shouldValidate: true,
+                        })
+                      }}
+                      size="small"
+                      slotProps={{
+                        paper: { sx: { fontSize: '0.875rem' } },
+                      }}
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          placeholder={t('fields.warehouse')}
+                          error={!!errors.warehouse_id || !!errors.branch_id}
+                          sx={{
+                            '& .MuiOutlinedInput-root': {
+                              color: posTopbarColors.text,
+                              '& fieldset': {
+                                borderColor: posTopbarColors.border,
+                              },
+                              '&:hover fieldset': {
+                                borderColor: posTopbarColors.border,
+                              },
+                              '&.Mui-focused fieldset': {
+                                borderColor: 'primary.main',
+                              },
+                            },
+                            '& .MuiOutlinedInput-input::placeholder': {
+                              color: posTopbarColors.muted,
+                              opacity: 1,
+                            },
+                          }}
+                        />
+                      )}
+                    />
+                  )}
+                />
+              </Box>
+              <Box sx={{ px: 1.5, py: 0.75, borderRadius: 1, bgcolor: 'primary.main', color: 'primary.contrastText', flex: '0 0 auto' }}>
                 <Typography variant="caption" sx={{ fontWeight: 800 }}>
                   {dayjs().format('MM/DD/YYYY HH:mm')}
                 </Typography>
@@ -1036,25 +1108,17 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
           }}
         >
           <Box sx={{ minWidth: 0, minHeight: 0, overflow: 'hidden', display: 'flex' }}>
-            <Stack spacing={0.75} sx={{ minWidth: 0, minHeight: 0, flex: '1 1 auto' }}>
+            <Stack spacing={0.75} sx={{ minWidth: 0, minHeight: 0, flex: '1 1 auto', contain: 'layout' }}>
               {serverError && <Alert severity="error">{serverError}</Alert>}
 
               <PosHeaderFields
                 control={control}
                 errors={errors}
-                warehouses={warehouses}
                 customers={customers}
-                warehousesLoading={warehousesQuery.isLoading}
                 customersLoading={customersQuery.isLoading}
                 canCreateCustomer={canCreateCustomer}
                 warehouseId={warehouseId}
                 isSaving={isSaving}
-                onWarehouseChange={(_, nextBranchId) => {
-                  setValue('branch_id', nextBranchId, {
-                    shouldDirty: true,
-                    shouldValidate: true,
-                  })
-                }}
                 onAddCustomer={() => setCustomerDialogOpen(true)}
                 onSelectItem={addLookupItem}
               />
@@ -1107,6 +1171,8 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
                     borderTop: 1,
                     borderColor: 'divider',
                     bgcolor: 'background.paper',
+                    contain: 'layout style',
+                    minHeight: 70,
                   }}
                 >
                   <Controller name="price_group_id" control={control} render={({ field }) => (

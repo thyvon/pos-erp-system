@@ -125,6 +125,7 @@ export function PosCartSection({
         borderBottomLeftRadius: 1.5,
         borderBottomRightRadius: 1.5,
         overflow: 'hidden',
+        contain: 'layout style',
       }}
     >
       {typeof errors.items?.message === 'string' && <Alert severity="error">{errors.items.message}</Alert>}
@@ -135,11 +136,13 @@ export function PosCartSection({
             display: { xs: 'none', md: 'block' },
             flex: '1 1 auto',
             minHeight: 220,
+            maxHeight: '100%',
             border: 1,
             borderColor: 'divider',
             borderRadius: 1,
             overflow: 'auto',
             overscrollBehavior: 'contain',
+            contain: 'strict',
           }}
         >
           <Table sx={{ minWidth: 840, height: itemFields.length === 0 ? '100%' : 'auto', tableLayout: 'fixed', '& .MuiTableCell-root': { py: 1 } }}>
@@ -424,21 +427,22 @@ export function PosCartSection({
         </Stack>
       </Box>
 
-      <Box
-        sx={{
-          flex: '0 0 auto',
-          position: 'sticky',
-          bottom: 0,
-          zIndex: 2,
-          display: 'grid',
-          gap: 1,
-          p: 0.75,
-          bgcolor: 'background.default',
-          borderTop: 1,
-          borderColor: 'divider',
-          boxShadow: '0 -8px 20px rgba(15, 23, 42, 0.08)',
-        }}
-      >
+      {itemFields.length > 0 && (
+        <Box
+          sx={{
+            flex: '0 0 auto',
+            position: 'sticky',
+            bottom: 0,
+            zIndex: 2,
+            display: 'grid',
+            gap: 1,
+            p: 0.75,
+            bgcolor: 'background.default',
+            borderTop: 1,
+            borderColor: 'divider',
+            boxShadow: '0 -8px 20px rgba(15, 23, 42, 0.08)',
+          }}
+        >
         <Box
           sx={{
             display: 'grid',
@@ -505,6 +509,7 @@ export function PosCartSection({
         </Box>
         {children}
       </Box>
+      )}
     </Box>
   )
 }
