@@ -79,7 +79,7 @@ export default function LoginPage() {
         position: 'relative',
         width: '100%',
         overflow: 'hidden',
-        borderRadius: `${theme.shape.borderRadius * 1.5}px`,
+        borderRadius: `${Number(theme.shape.borderRadius) * 1.5}px`,
         bgcolor: alpha(theme.palette.background.paper, theme.palette.mode === 'light' ? 0.96 : 0.86),
         border: `1px solid ${alpha(theme.palette.divider, theme.palette.mode === 'light' ? 0.72 : 0.24)}`,
         boxShadow: `0 24px 80px -56px ${alpha(theme.palette.common.black, theme.palette.mode === 'light' ? 0.45 : 0.9)}`,
@@ -108,7 +108,7 @@ export default function LoginPage() {
             sx={(theme) => ({
               width: 44,
               height: 44,
-              borderRadius: `${theme.shape.borderRadius * 1.25}px`,
+              borderRadius: `${Number(theme.shape.borderRadius) * 1.25}px`,
               bgcolor: 'primary.main',
               color: 'primary.contrastText',
               display: 'flex',
