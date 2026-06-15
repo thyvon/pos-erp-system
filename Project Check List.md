@@ -323,6 +323,7 @@
 - [x] Brand uploaded image previews now resolve Laravel `/storage` asset URLs through the configured API host so images show correctly in the Next frontend.
 - [x] Product detail, variation thumbnails, and POS product tiles now resolve Laravel `/storage` asset URLs through the configured API host.
 - [x] Product import now mirrors the create product form for non-file fields, including sub-units, tax/price/rack lookups, stock flags, variable variations, combo items, custom fields, expanded template samples, and focused importer tests.
+- [x] Product import templates are split by workflow: the standard template covers single, service, and combo products, while variable products use a dedicated parent-and-variation-row template; both continue through the shared importer, with focused Product Import/Product API tests plus frontend type-check, lint, and build verified.
 - [x] POS checkout now hides sale/due date fields, moves price group and notes behind a More toggle, and keeps payment anchored at the bottom of the sell-line panel.
 - [x] POS checkout layout reviewed and cleaned for desktop and iPad: product gallery now uses a drawer until wide desktop, cart table is narrower for landscape iPad/desktop, and portrait tablet/mobile uses compact cart cards; frontend type-check, lint, and build verified.
 - [x] POS tracked item edit flow reviewed and cleaned: serial quantity locking is shared between cart layouts, tracking state is preserved when applying lot/serial lookup, and fast frontend check passes.

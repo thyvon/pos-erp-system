@@ -89,8 +89,11 @@ export const productsApi = {
       })
     )
   },
-  downloadTemplate: async () => {
-    const response = await api.get<Blob>('/v1/products/import/template', {
+  downloadTemplate: async (type: 'standard' | 'variable') => {
+    const path = type === 'variable'
+      ? '/v1/products/import/template/variable'
+      : '/v1/products/import/template'
+    const response = await api.get<Blob>(path, {
       responseType: 'blob',
     })
     return response.data

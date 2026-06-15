@@ -2,6 +2,8 @@
 
 namespace Tests\Feature\Api\V1;
 
+use App\Exports\ProductTemplateExport;
+use App\Exports\VariableProductTemplateExport;
 use App\Imports\ProductImport;
 use App\Models\Brand;
 use App\Models\Business;
@@ -21,6 +23,38 @@ use Tests\TestCase;
 class ProductImportTest extends TestCase
 {
     use RefreshDatabase;
+
+    public function test_standard_template_excludes_variable_columns_and_includes_supported_product_types(): void
+    {
+        $export = new ProductTemplateExport;
+        $headings = $export->headings();
+        $rows = $export->array();
+        $typeIndex = array_search('type', $headings, true);
+
+        $this->assertNotContains('parent_sku', $headings);
+        $this->assertNotContains('variation_templates', $headings);
+        $this->assertNotContains('variation_values', $headings);
+        $this->assertContains('combo_items', $headings);
+        $this->assertSame(['single', 'service', 'combo'], array_column($rows, $typeIndex));
+    }
+
+    public function test_variable_template_contains_parent_and_variation_rows(): void
+    {
+        $export = new VariableProductTemplateExport;
+        $headings = $export->headings();
+        $rows = $export->array();
+        $typeIndex = array_search('type', $headings, true);
+        $skuIndex = array_search('sku', $headings, true);
+        $parentSkuIndex = array_search('parent_sku', $headings, true);
+        $variationValuesIndex = array_search('variation_values', $headings, true);
+
+        $this->assertContains('variation_templates', $headings);
+        $this->assertNotContains('combo_items', $headings);
+        $this->assertSame('variable', $rows[0][$typeIndex]);
+        $this->assertSame('VAR-001', $rows[0][$skuIndex]);
+        $this->assertSame('VAR-001', $rows[1][$parentSkuIndex]);
+        $this->assertSame('Small,Red', $rows[1][$variationValuesIndex]);
+    }
 
     public function test_import_creates_single_product_with_create_form_fields(): void
     {

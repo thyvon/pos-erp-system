@@ -64,6 +64,7 @@ return static function (): void {
 
     Route::get('products/form-options', [ProductController::class, 'formOptions'])->middleware('can:products.index');
     Route::get('products/import/template', [ProductController::class, 'downloadTemplate'])->middleware('can:products.create');
+    Route::get('products/import/template/variable', [ProductController::class, 'downloadVariableTemplate'])->middleware('can:products.create');
     Route::post('products/import', [ProductController::class, 'import'])->middleware('can:products.import');
     Route::get('products', [ProductController::class, 'index'])->middleware('can:products.index');
     Route::post('products', [ProductController::class, 'store'])->middleware('can:products.create');

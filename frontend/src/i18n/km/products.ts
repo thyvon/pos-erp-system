@@ -131,8 +131,9 @@ const products = {
   },
   import: {
     title: 'នាំចូលផលិតផល',
-    downloadTemplate: 'ទាញយកពុម្ព',
-    templateHelp: 'បំពេញពុម្ពជាមួយទិន្នន័យផលិតផលរបស់អ្នក បន្ទាប់មកផ្ទុកឡើង។',
+    downloadStandardTemplate: 'ពុម្ពផលិតផលទោល សេវាកម្ម និងកញ្ចប់',
+    downloadVariableTemplate: 'ពុម្ពផលិតផលមានបំលែង',
+    templateHelp: 'ជ្រើសពុម្ពតាមប្រភេទផលិតផល បំពេញទិន្នន័យ រួចផ្ទុកឯកសារដែលបានបំពេញនៅខាងក្រោម។',
     selectFile: 'ជ្រើសឯកសារ',
     fileHelp: 'គាំទ្រឯកសារ CSV, XLSX, និង XLS រហូតដល់ 10MB ។',
     proceed: 'នាំចូល',

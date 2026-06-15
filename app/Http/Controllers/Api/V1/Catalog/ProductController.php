@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api\V1\Catalog;
 
 use App\Exports\ProductTemplateExport;
+use App\Exports\VariableProductTemplateExport;
 use App\Http\Requests\Catalog\ImportProductRequest;
 use App\Http\Requests\Catalog\StoreProductRequest;
 use App\Http\Requests\Catalog\UpdateProductRequest;
@@ -120,6 +121,13 @@ class ProductController extends BaseCatalogController
         $this->authorize('create', Product::class);
 
         return Excel::download(new ProductTemplateExport, 'product-import-template.xlsx');
+    }
+
+    public function downloadVariableTemplate(): BinaryFileResponse
+    {
+        $this->authorize('create', Product::class);
+
+        return Excel::download(new VariableProductTemplateExport, 'variable-product-import-template.xlsx');
     }
 
     public function import(ImportProductRequest $request): JsonResponse

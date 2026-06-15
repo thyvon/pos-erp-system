@@ -31,6 +31,7 @@ export function ProductImportDialog({ open, onClose, onSuccess }: ProductImportD
   const fileInputRef = useRef<HTMLInputElement>(null)
   const [file, setFile] = useState<File | null>(null)
   const [isProcessing, setIsProcessing] = useState(false)
+  const [downloadingTemplate, setDownloadingTemplate] = useState<'standard' | 'variable' | null>(null)
   const [errorMessage, setErrorMessage] = useState('')
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -39,19 +40,26 @@ export function ProductImportDialog({ open, onClose, onSuccess }: ProductImportD
     setErrorMessage('')
   }
 
-  const handleDownloadTemplate = async () => {
+  const handleDownloadTemplate = async (type: 'standard' | 'variable') => {
+    setErrorMessage('')
+    setDownloadingTemplate(type)
+
     try {
-      const blob = await productsApi.downloadTemplate()
+      const blob = await productsApi.downloadTemplate(type)
       const url = window.URL.createObjectURL(blob)
       const a = document.createElement('a')
       a.href = url
-      a.download = 'product-import-template.xlsx'
+      a.download = type === 'variable'
+        ? 'variable-product-import-template.xlsx'
+        : 'product-import-template.xlsx'
       document.body.appendChild(a)
       a.click()
       document.body.removeChild(a)
       window.URL.revokeObjectURL(url)
     } catch (error) {
       setErrorMessage(toAppApiError(error).message)
+    } finally {
+      setDownloadingTemplate(null)
     }
   }
 
@@ -93,13 +101,24 @@ export function ProductImportDialog({ open, onClose, onSuccess }: ProductImportD
           )}
 
           <Box>
-            <Button
-              variant="outlined"
-              startIcon={<FileDownloadOutlined />}
-              onClick={handleDownloadTemplate}
-            >
-              {t('import.downloadTemplate')}
-            </Button>
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
+              <Button
+                variant="outlined"
+                startIcon={downloadingTemplate === 'standard' ? <CircularProgress size={18} /> : <FileDownloadOutlined />}
+                onClick={() => handleDownloadTemplate('standard')}
+                disabled={downloadingTemplate !== null}
+              >
+                {t('import.downloadStandardTemplate')}
+              </Button>
+              <Button
+                variant="outlined"
+                startIcon={downloadingTemplate === 'variable' ? <CircularProgress size={18} /> : <FileDownloadOutlined />}
+                onClick={() => handleDownloadTemplate('variable')}
+                disabled={downloadingTemplate !== null}
+              >
+                {t('import.downloadVariableTemplate')}
+              </Button>
+            </Stack>
             <Typography variant="caption" sx={{ display: 'block', mt: 0.5, color: 'text.secondary' }}>
               {t('import.templateHelp')}
             </Typography>

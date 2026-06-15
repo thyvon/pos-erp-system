@@ -131,8 +131,9 @@ const products = {
   },
   import: {
     title: 'Import products',
-    downloadTemplate: 'Download template',
-    templateHelp: 'Fill in the template with your product data, then upload it.',
+    downloadStandardTemplate: 'Single, service & combo template',
+    downloadVariableTemplate: 'Variable product template',
+    templateHelp: 'Choose the template for your product type, fill it in, then upload the completed file below.',
     selectFile: 'Select file',
     fileHelp: 'Supports CSV, XLSX, and XLS files up to 10MB.',
     proceed: 'Import',
