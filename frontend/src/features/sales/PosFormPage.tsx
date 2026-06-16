@@ -537,6 +537,11 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
       && (line.serial_id ?? null) === itemSerialId
     )
 
+    if (shouldBlockOverStock && (item.available_quantity ?? 0) <= 0) {
+      enqueueSnackbar(t('form.outOfStock', { product: item.label }), { variant: 'error' })
+      return
+    }
+
     if (existingIndex >= 0) {
       if (isSerialTrackedItem || currentItems[existingIndex]?.stock_tracking === 'serial') {
         enqueueSnackbar(
