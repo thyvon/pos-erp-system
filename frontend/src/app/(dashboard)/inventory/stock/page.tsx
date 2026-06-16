@@ -1,34 +1,25 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import {
   Alert,
   Box,
-  Card,
-  CardContent,
   CircularProgress,
   Dialog,
   DialogContent,
   DialogTitle,
   Divider,
-  InputAdornment,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TablePagination,
-  TableRow,
-  TextField,
   Typography,
 } from '@mui/material'
-import { Inventory2Outlined, Search } from '@/components/ui/icons'
+import { Inventory2Outlined } from '@/components/ui/icons'
+import PageHeader from '@/components/common/PageHeader'
+import PageToolbar from '@/components/common/PageToolbar'
+import EntityTable, { type EntityTableColumn } from '@/components/common/EntityTable'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { RowActions } from '@/components/ui/RowActions'
 import { SearchableFilterSelect } from '@/components/ui/SearchableFilterSelect'
-import { TableStateRow } from '@/components/ui/TableStateRow'
 import {
   useInventoryOptionsQuery,
   useStockLevelQuery,
@@ -37,8 +28,6 @@ import {
 import { useAppDateFormat } from '@/features/settings/useAppDateFormat'
 import { formatAppDateTime } from '@/utils/dateFormat'
 import type { StockLevel, StockLevelFilters } from '@/types/inventory'
-
-const rowsPerPageOptions = [10, 25, 50]
 
 function formatQuantity(value: string | number | null | undefined) {
   if (value === null || value === undefined || value === '') return '-'
@@ -80,145 +69,156 @@ export default function StockLevelsPage() {
   const meta = stockLevelsQuery.data?.meta
   const selectedLevel = detailQuery.data ?? viewingLevel
 
-  return (
-    <Stack spacing={3}>
-      <Box>
-        <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-          <Inventory2Outlined color="primary" />
-          <Typography variant="h4">{t('stockLevels.title')}</Typography>
+  const handleSearchChange = useCallback((value: string) => {
+    setSearch(value)
+    setPage(0)
+  }, [])
+
+  const handleWarehouseChange = useCallback((value: string) => {
+    setWarehouseFilter(value)
+    setPage(0)
+  }, [])
+
+  const clearFilters = useCallback(() => {
+    setWarehouseFilter('')
+    setPage(0)
+  }, [])
+
+  const selectedWarehouse = warehouses.find((w) => w.id === warehouseFilter)
+
+  const activeFilters = useMemo(() => {
+    const chips: Array<{ key: string; label: string; onDelete: () => void }> = []
+    if (warehouseFilter && selectedWarehouse) {
+      chips.push({
+        key: 'warehouse',
+        label: selectedWarehouse.name,
+        onDelete: () => { setWarehouseFilter(''); setPage(0) },
+      })
+    }
+    return chips
+  }, [warehouseFilter, selectedWarehouse])
+
+  const columns: EntityTableColumn<StockLevel>[] = useMemo(() => [
+    {
+      key: 'product',
+      label: t('stockLevels.columns.product'),
+      render: (level) => (
+        <Stack spacing={0.25}>
+          <Typography variant="body2">{productLabel(level)}</Typography>
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+            {level.variation?.sku ?? level.product?.sku ?? '-'}
+          </Typography>
         </Stack>
-        <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
-          {t('stockLevels.subtitle')}
-        </Typography>
-      </Box>
+      ),
+    },
+    {
+      key: 'warehouse',
+      label: t('stockLevels.columns.warehouse'),
+      render: (level) => (
+        <Stack spacing={0.25}>
+          <Typography variant="body2">{level.warehouse?.name ?? '-'}</Typography>
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+            {level.warehouse?.branch_name ?? '-'}
+          </Typography>
+        </Stack>
+      ),
+    },
+    {
+      key: 'onHand',
+      label: t('stockLevels.columns.onHand'),
+      align: 'right',
+      render: (level) => <>{formatQuantity(level.quantity)}</>,
+    },
+    {
+      key: 'reserved',
+      label: t('stockLevels.columns.reserved'),
+      align: 'right',
+      render: (level) => <>{formatQuantity(level.reserved_quantity)}</>,
+    },
+    {
+      key: 'available',
+      label: t('stockLevels.columns.available'),
+      align: 'right',
+      render: (level) => <>{formatQuantity(level.available_qty)}</>,
+    },
+    {
+      key: 'updatedAt',
+      label: t('stockLevels.columns.updatedAt'),
+      render: (level) => <>{formatAppDateTime(level.updated_at, dateFormat, i18n.language)}</>,
+    },
+  ], [t, dateFormat, i18n.language])
 
-      <Card>
-        <CardContent>
-          <Stack
-            direction={{ xs: 'column', lg: 'row' }}
-            spacing={2}
-            sx={{ alignItems: { xs: 'stretch', lg: 'center' }, mb: 2.5 }}
-          >
-            <TextField
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value)
-                setPage(0)
-              }}
-              placeholder={t('stockLevels.filters.search')}
-              sx={{ flexGrow: 1 }}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Search fontSize="small" />
-                    </InputAdornment>
-                  ),
-                },
-              }}
-            />
-            <SearchableFilterSelect
-              value={warehouseFilter}
-              options={warehouses}
-              loading={optionsQuery.isLoading}
-              label={t('stockLevels.filters.warehouse')}
-              placeholder={t('stockLevels.filters.allWarehouses')}
-              getOptionValue={(warehouse) => warehouse.id}
-              getOptionLabel={(warehouse) => warehouse.name}
-              getOptionDescription={(warehouse) => [warehouse.code, warehouse.branch_name].filter(Boolean).join(' / ')}
-              onChange={(value) => {
-                setWarehouseFilter(value)
-                setPage(0)
-              }}
-              sx={{ minWidth: { xs: '100%', lg: 240 } }}
-            />
-          </Stack>
+  return (
+    <Stack spacing={2.5}>
+      <PageHeader
+        icon={<Inventory2Outlined color="primary" />}
+        title={t('stockLevels.title')}
+        description={t('stockLevels.subtitle')}
+      />
 
+      {(stockLevelsQuery.isError || optionsQuery.isError) && (
+        <Stack spacing={1}>
           {stockLevelsQuery.isError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {toAppApiError(stockLevelsQuery.error).message}
-            </Alert>
+            <Alert severity="error">{toAppApiError(stockLevelsQuery.error).message}</Alert>
           )}
-
           {optionsQuery.isError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {toAppApiError(optionsQuery.error).message}
-            </Alert>
+            <Alert severity="error">{toAppApiError(optionsQuery.error).message}</Alert>
           )}
+        </Stack>
+      )}
 
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('stockLevels.columns.product')}</TableCell>
-                  <TableCell>{t('stockLevels.columns.warehouse')}</TableCell>
-                  <TableCell align="right">{t('stockLevels.columns.onHand')}</TableCell>
-                  <TableCell align="right">{t('stockLevels.columns.reserved')}</TableCell>
-                  <TableCell align="right">{t('stockLevels.columns.available')}</TableCell>
-                  <TableCell>{t('stockLevels.columns.updatedAt')}</TableCell>
-                  <TableCell align="center">{t('stockLevels.columns.actions')}</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {stockLevelsQuery.isLoading && <TableStateRow colSpan={7} loading />}
-
-                {!stockLevelsQuery.isLoading && stockLevels.length === 0 && (
-                  <TableStateRow colSpan={7} message={t('stockLevels.empty')} />
-                )}
-
-                {stockLevels.map((level) => (
-                  <TableRow key={level.id} hover>
-                    <TableCell>
-                      <Stack spacing={0.25}>
-                        <Typography variant="body2">{productLabel(level)}</Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {level.variation?.sku ?? level.product?.sku ?? '-'}
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-                    <TableCell>
-                      <Stack spacing={0.25}>
-                        <Typography variant="body2">{level.warehouse?.name ?? '-'}</Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {level.warehouse?.branch_name ?? '-'}
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-                    <TableCell align="right">{formatQuantity(level.quantity)}</TableCell>
-                    <TableCell align="right">{formatQuantity(level.reserved_quantity)}</TableCell>
-                    <TableCell align="right">{formatQuantity(level.available_qty)}</TableCell>
-                    <TableCell>{formatAppDateTime(level.updated_at, dateFormat, i18n.language)}</TableCell>
-                    <TableCell align="center">
-                      <RowActions
-                        viewLabel={t('stockLevels.actions.view')}
-                        editLabel=""
-                        deleteLabel=""
-                        showView
-                        showEdit={false}
-                        showDelete={false}
-                        onView={() => setViewingLevel(level)}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          <TablePagination
-            component="div"
-            count={meta?.total ?? 0}
-            page={page}
-            rowsPerPage={perPage}
-            rowsPerPageOptions={rowsPerPageOptions}
-            onPageChange={(_, nextPage) => setPage(nextPage)}
-            onRowsPerPageChange={(event) => {
-              setPerPage(Number(event.target.value))
-              setPage(0)
-            }}
+      <PageToolbar
+        searchValue={search}
+        searchPlaceholder={t('stockLevels.filters.search')}
+        onSearchChange={handleSearchChange}
+        activeFilters={activeFilters}
+        onClearFilters={clearFilters}
+        filterButtonLabel={t('stockLevels.filters.warehouse')}
+        filters={
+          <SearchableFilterSelect
+            value={warehouseFilter}
+            options={warehouses}
+            loading={optionsQuery.isLoading}
+            label={t('stockLevels.filters.warehouse')}
+            placeholder={t('stockLevels.filters.allWarehouses')}
+            getOptionValue={(warehouse) => warehouse.id}
+            getOptionLabel={(warehouse) => warehouse.name}
+            getOptionDescription={(warehouse) => [warehouse.code, warehouse.branch_name].filter(Boolean).join(' / ')}
+            onChange={handleWarehouseChange}
           />
-        </CardContent>
-      </Card>
+        }
+      />
+
+      <EntityTable
+        rows={stockLevels}
+        columns={columns}
+        getRowKey={(level) => level.id}
+        loading={stockLevelsQuery.isLoading}
+        emptyIcon={<Inventory2Outlined />}
+        emptyTitle={t('stockLevels.empty')}
+        emptyDescription=""
+        pagination={{
+          page,
+          rowsPerPage: perPage,
+          count: meta?.total ?? 0,
+          onPageChange: (newPage) => setPage(newPage),
+          onRowsPerPageChange: (newRowsPerPage) => {
+            setPerPage(newRowsPerPage)
+            setPage(0)
+          },
+        }}
+        rowActions={(level) => (
+          <RowActions
+            viewLabel={t('stockLevels.actions.view')}
+            editLabel=""
+            deleteLabel=""
+            showView
+            showEdit={false}
+            showDelete={false}
+            onView={() => setViewingLevel(level)}
+          />
+        )}
+      />
 
       <Dialog open={!!viewingLevel} onClose={() => setViewingLevel(null)} fullWidth maxWidth="md">
         <DialogTitle>{selectedLevel ? productLabel(selectedLevel) : t('stockLevels.detail.title')}</DialogTitle>

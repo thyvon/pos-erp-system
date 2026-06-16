@@ -27,6 +27,7 @@ import {
   Typography,
 } from '@mui/material'
 import { ArrowBack, DeleteOutlined, SaveOutlined } from '@/components/ui/icons'
+import PageHeader from '@/components/common/PageHeader'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
@@ -239,25 +240,21 @@ export function StockTransferFormPage({ transferId }: StockTransferFormPageProps
 
   return (
     <Stack spacing={3}>
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ justifyContent: 'space-between' }}>
-        <Box>
-          <Typography variant="h4">
-            {t(isEdit ? 'transfers.form.editTitle' : 'transfers.form.createTitle')}
-          </Typography>
-          <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
-            {t('transfers.form.pageSubtitle')}
-          </Typography>
-        </Box>
-        <Tooltip title={t('transfers.actions.backToList')}>
-          <IconButton
-            size="small"
-            aria-label={t('transfers.actions.backToList')}
-            onClick={() => router.push('/inventory/transfers')}
-          >
-            <ArrowBack />
-          </IconButton>
-        </Tooltip>
-      </Stack>
+      <PageHeader
+        title={t(isEdit ? 'transfers.form.editTitle' : 'transfers.form.createTitle')}
+        description={t('transfers.form.pageSubtitle')}
+        actions={
+          <Tooltip title={t('transfers.actions.backToList')}>
+            <IconButton
+              size="small"
+              aria-label={t('transfers.actions.backToList')}
+              onClick={() => router.push('/inventory/transfers')}
+            >
+              <ArrowBack />
+            </IconButton>
+          </Tooltip>
+        }
+      />
 
       {transferQuery.isError && <Alert severity="error">{toAppApiError(transferQuery.error).message}</Alert>}
       {optionsQuery.isError && <Alert severity="error">{toAppApiError(optionsQuery.error).message}</Alert>}

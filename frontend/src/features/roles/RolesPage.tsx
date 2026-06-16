@@ -3,30 +3,20 @@
 import { useMemo, useState } from 'react'
 import {
   Alert,
-  Box,
   Button,
-  Card,
-  CardContent,
   Chip,
-  InputAdornment,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TablePagination,
-  TableRow,
-  TextField,
   Typography,
 } from '@mui/material'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
-import { Add, PeopleAltOutlined, Search } from '@/components/ui/icons'
+import { Add, PeopleAltOutlined } from '@/components/ui/icons'
+import EntityTable, { type EntityTableColumn } from '@/components/common/EntityTable'
+import PageHeader from '@/components/common/PageHeader'
+import PageToolbar from '@/components/common/PageToolbar'
 import { toAppApiError } from '@/api/errors'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { RowActions } from '@/components/ui/RowActions'
-import { TableStateRow } from '@/components/ui/TableStateRow'
 import { useAuthStore } from '@/stores/authStore'
 import { RoleFormDialog } from './RoleFormDialog'
 import {
@@ -37,8 +27,6 @@ import {
   useUpdateRoleMutation,
 } from './hooks'
 import type { RoleFilters, RoleListItem, RolePayload } from '@/types/role'
-
-const rowsPerPageOptions = [10, 25, 50]
 
 export function RolesPage() {
   const { t } = useTranslation(['roles', 'common'])
@@ -70,6 +58,58 @@ export function RolesPage() {
   const canCreate = can('roles.create')
   const canEdit = can('roles.edit')
   const canDelete = can('roles.delete')
+
+  const columns = useMemo<EntityTableColumn<RoleListItem>[]>(
+    () => [
+      {
+        key: 'role',
+        label: t('columns.role'),
+        render: (role) => (
+          <Stack spacing={0.25}>
+            <Typography variant="subtitle2">{role.name}</Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              {t('summary.updatedAt', {
+                date: role.updated_at ? new Date(role.updated_at).toLocaleDateString() : '-',
+              })}
+            </Typography>
+          </Stack>
+        ),
+      },
+      {
+        key: 'permissions',
+        label: t('columns.permissions'),
+        render: (role) => (
+          <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center', flexWrap: 'wrap', rowGap: 0.75 }}>
+            <Chip size="small" color="primary" variant="outlined" label={role.permissions_count} />
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+              {t('summary.permissionsCount', { count: role.permissions_count })}
+            </Typography>
+          </Stack>
+        ),
+      },
+      {
+        key: 'users',
+        label: t('columns.users'),
+        render: (role) => (
+          <Typography variant="body2">
+            {t('summary.usersCount', { count: role.users_count })}
+          </Typography>
+        ),
+      },
+      {
+        key: 'type',
+        label: t('columns.type'),
+        render: (role) => (
+          <Chip
+            size="small"
+            color={role.is_protected ? 'warning' : 'default'}
+            label={role.is_protected ? t('type.protected') : t('type.custom')}
+          />
+        ),
+      },
+    ],
+    [t]
+  )
 
   const openCreateForm = () => {
     setEditingRole(null)
@@ -106,148 +146,67 @@ export function RolesPage() {
   }
 
   return (
-    <Stack spacing={3}>
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={2}
-        sx={{ alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between' }}
-      >
-        <Box>
-          <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-            <PeopleAltOutlined color="primary" />
-            <Typography variant="h4">{t('title')}</Typography>
-          </Stack>
-          <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
-            {t('subtitle')}
-          </Typography>
-        </Box>
-        {canCreate && (
+    <Stack spacing={2.5}>
+      <PageHeader
+        icon={<PeopleAltOutlined color="primary" />}
+        title={t('title')}
+        description={t('subtitle')}
+        actions={canCreate && (
           <Button startIcon={<Add />} variant="contained" onClick={openCreateForm}>
             {t('actions.new')}
           </Button>
         )}
-      </Stack>
+      />
 
-      <Card>
-        <CardContent>
-          <Stack
-            direction={{ xs: 'column', md: 'row' }}
-            spacing={2}
-            sx={{ alignItems: { xs: 'stretch', md: 'center' }, mb: 2.5 }}
-          >
-            <TextField
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value)
-                setPage(0)
-              }}
-              placeholder={t('filters.search')}
-              sx={{ flexGrow: 1 }}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Search fontSize="small" />
-                    </InputAdornment>
-                  ),
-                },
-              }}
-            />
-          </Stack>
+      <PageToolbar
+        searchValue={search}
+        searchPlaceholder={t('filters.search')}
+        onSearchChange={(value) => {
+          setSearch(value)
+          setPage(0)
+        }}
+      />
 
-          {rolesQuery.isError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {toAppApiError(rolesQuery.error).message}
-            </Alert>
-          )}
+      {rolesQuery.isError && (
+        <Alert severity="error">
+          {toAppApiError(rolesQuery.error).message}
+        </Alert>
+      )}
 
-          {optionsQuery.isError && (
-            <Alert severity="warning" sx={{ mb: 2 }}>
-              {toAppApiError(optionsQuery.error).message}
-            </Alert>
-          )}
+      {optionsQuery.isError && (
+        <Alert severity="warning">
+          {toAppApiError(optionsQuery.error).message}
+        </Alert>
+      )}
 
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('columns.role')}</TableCell>
-                  <TableCell>{t('columns.permissions')}</TableCell>
-                  <TableCell>{t('columns.users')}</TableCell>
-                  <TableCell>{t('columns.type')}</TableCell>
-                  <TableCell align="center">{t('columns.actions')}</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {rolesQuery.isLoading && <TableStateRow colSpan={5} loading />}
-
-                {!rolesQuery.isLoading && roles.length === 0 && (
-                  <TableStateRow colSpan={5} message={t('empty')} />
-                )}
-
-                {roles.map((role) => (
-                  <TableRow key={role.id} hover>
-                    <TableCell>
-                      <Stack spacing={0.25}>
-                        <Typography variant="subtitle2">{role.name}</Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {t('summary.updatedAt', {
-                            date: role.updated_at ? new Date(role.updated_at).toLocaleDateString() : '-',
-                          })}
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-                    <TableCell>
-                      <Stack direction="row" spacing={0.75} sx={{ alignItems: 'center', flexWrap: 'wrap', rowGap: 0.75 }}>
-                        <Chip size="small" color="primary" variant="outlined" label={role.permissions_count} />
-                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                          {t('summary.permissionsCount', { count: role.permissions_count })}
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {t('summary.usersCount', { count: role.users_count })}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        size="small"
-                        color={role.is_protected ? 'warning' : 'default'}
-                        label={role.is_protected ? t('type.protected') : t('type.custom')}
-                      />
-                    </TableCell>
-                    <TableCell align="center">
-                      <RowActions
-                        editLabel={t('common:buttons.edit')}
-                        deleteLabel={t('common:buttons.delete')}
-                        showEdit={canEdit}
-                        showDelete={canDelete && !role.is_protected}
-                        deleteDisabled={deleteRole.isPending || role.users_count > 0}
-                        onEdit={() => openEditForm(role)}
-                        onDelete={() => setDeletingRole(role)}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          <TablePagination
-            component="div"
-            count={meta?.total ?? 0}
-            page={page}
-            rowsPerPage={perPage}
-            rowsPerPageOptions={rowsPerPageOptions}
-            onPageChange={(_, nextPage) => setPage(nextPage)}
-            onRowsPerPageChange={(event) => {
-              setPerPage(Number(event.target.value))
-              setPage(0)
-            }}
+      <EntityTable
+        rows={roles}
+        columns={columns}
+        getRowKey={(role) => role.id}
+        loading={rolesQuery.isLoading}
+        emptyTitle={t('empty')}
+        pagination={{
+          page,
+          rowsPerPage: perPage,
+          count: meta?.total ?? 0,
+          onPageChange: setPage,
+          onRowsPerPageChange: (nextPerPage) => {
+            setPerPage(nextPerPage)
+            setPage(0)
+          },
+        }}
+        rowActions={(role) => (
+          <RowActions
+            editLabel={t('common:buttons.edit')}
+            deleteLabel={t('common:buttons.delete')}
+            showEdit={canEdit}
+            showDelete={canDelete && !role.is_protected}
+            deleteDisabled={deleteRole.isPending || role.users_count > 0}
+            onEdit={() => openEditForm(role)}
+            onDelete={() => setDeletingRole(role)}
           />
-        </CardContent>
-      </Card>
+        )}
+      />
 
       <RoleFormDialog
         key={`${formOpen ? 'open' : 'closed'}-${editingRole?.id ?? 'new'}`}

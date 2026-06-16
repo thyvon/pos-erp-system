@@ -8,26 +8,20 @@ import {
   Card,
   CardContent,
   Chip,
-  InputAdornment,
   MenuItem,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TablePagination,
-  TableRow,
   TextField,
   Typography,
 } from '@mui/material'
-import { AccountTreeOutlined, Add, Search } from '@/components/ui/icons'
+import { AccountTreeOutlined, Add } from '@/components/ui/icons'
+import PageHeader from '@/components/common/PageHeader'
+import PageToolbar from '@/components/common/PageToolbar'
+import EntityTable, { type EntityTableColumn } from '@/components/common/EntityTable'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { RowActions } from '@/components/ui/RowActions'
-import { TableStateRow } from '@/components/ui/TableStateRow'
 import { ChartOfAccountFormDialog } from '@/features/accounting/ChartOfAccountFormDialog'
 import {
   useChartOfAccountsQuery,
@@ -38,7 +32,6 @@ import {
 import { useAuthStore } from '@/stores/authStore'
 import type { AccountStatus, AccountType, ChartOfAccount, ChartOfAccountFilters, ChartOfAccountPayload } from '@/types/accounting'
 
-const rowsPerPageOptions = [10, 25, 50]
 const accountTypes: AccountType[] = ['asset', 'liability', 'equity', 'revenue', 'expense']
 const statuses: AccountStatus[] = ['active', 'inactive']
 
@@ -82,6 +75,68 @@ export default function ChartOfAccountsPage() {
   const meta = accountsQuery.data?.meta
   const canManage = can('accounting.coa')
 
+  const columns: EntityTableColumn<ChartOfAccount>[] = useMemo(
+    () => [
+      {
+        key: 'account',
+        label: t('coa.columns.account'),
+        render: (account) => (
+          <Stack spacing={0.25}>
+            <Typography variant="subtitle2">{account.code} - {account.name}</Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              {account.detail_type || t('coa.labels.noDetailType')}
+            </Typography>
+          </Stack>
+        ),
+      },
+      {
+        key: 'type',
+        label: t('coa.columns.type'),
+        render: (account) => t(`coa.types.${account.type}`),
+      },
+      {
+        key: 'balance',
+        label: t('coa.columns.balance'),
+        render: (account) => t(`coa.normalBalances.${account.normal_balance}`),
+      },
+      {
+        key: 'parent',
+        label: t('coa.columns.parent'),
+        render: (account) => account.parent ? `${account.parent.code} - ${account.parent.name}` : '-',
+      },
+      {
+        key: 'status',
+        label: t('coa.columns.status'),
+        render: (account) => (
+          <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
+            <Chip
+              size="small"
+              label={t(`coa.statuses.${account.status}`)}
+              color={account.is_active ? 'success' : 'default'}
+              variant="outlined"
+            />
+            {account.is_system && (
+              <Chip size="small" label={t('coa.labels.system')} color="info" variant="outlined" />
+            )}
+            {account.is_postable && (
+              <Chip size="small" label={t('coa.labels.postable')} variant="outlined" />
+            )}
+          </Stack>
+        ),
+      },
+      {
+        key: 'activity',
+        label: t('coa.columns.activity'),
+        align: 'right',
+        render: (account) => t('coa.labels.activityCounts', {
+          journals: countValue(account.journal_entries_count),
+          payments: countValue(account.payment_accounts_count),
+        }),
+      },
+    ],
+    [t]
+  )
+
   const openCreateForm = () => {
     setEditingAccount(null)
     setFormOpen(true)
@@ -117,27 +172,17 @@ export default function ChartOfAccountsPage() {
   }
 
   return (
-    <Stack spacing={3}>
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={2}
-        sx={{ alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between' }}
-      >
-        <Box>
-          <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-            <AccountTreeOutlined color="primary" />
-            <Typography variant="h4">{t('coa.title')}</Typography>
-          </Stack>
-          <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
-            {t('coa.subtitle')}
-          </Typography>
-        </Box>
-        {canManage && (
+    <Stack spacing={2.5}>
+      <PageHeader
+        icon={<AccountTreeOutlined color="primary" />}
+        title={t('coa.title')}
+        description={t('coa.subtitle')}
+        actions={canManage && (
           <Button startIcon={<Add />} variant="contained" onClick={openCreateForm}>
             {t('coa.actions.new')}
           </Button>
         )}
-      </Stack>
+      />
 
       <Box
         sx={{
@@ -165,31 +210,16 @@ export default function ChartOfAccountsPage() {
         ))}
       </Box>
 
-      <Card>
-        <CardContent>
-          <Stack
-            direction={{ xs: 'column', lg: 'row' }}
-            spacing={2}
-            sx={{ alignItems: { xs: 'stretch', lg: 'center' }, mb: 2.5 }}
-          >
-            <TextField
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value)
-                setPage(0)
-              }}
-              placeholder={t('coa.filters.search')}
-              sx={{ flexGrow: 1 }}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Search fontSize="small" />
-                    </InputAdornment>
-                  ),
-                },
-              }}
-            />
+      <PageToolbar
+        searchValue={search}
+        searchPlaceholder={t('coa.filters.search')}
+        onSearchChange={(value) => {
+          setSearch(value)
+          setPage(0)
+        }}
+        defaultFiltersOpen
+        filters={(
+          <>
             <TextField
               select
               value={typeFilter}
@@ -198,7 +228,6 @@ export default function ChartOfAccountsPage() {
                 setPage(0)
               }}
               label={t('coa.filters.type')}
-              sx={{ minWidth: { xs: '100%', lg: 180 } }}
             >
               <MenuItem value="">{t('coa.filters.allTypes')}</MenuItem>
               {accountTypes.map((type) => (
@@ -213,105 +242,51 @@ export default function ChartOfAccountsPage() {
                 setPage(0)
               }}
               label={t('coa.filters.status')}
-              sx={{ minWidth: { xs: '100%', lg: 180 } }}
             >
               <MenuItem value="">{t('coa.filters.allStatuses')}</MenuItem>
               {statuses.map((status) => (
                 <MenuItem key={status} value={status}>{t(`coa.statuses.${status}`)}</MenuItem>
               ))}
             </TextField>
-          </Stack>
+          </>
+        )}
+      />
 
-          {accountsQuery.isError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {toAppApiError(accountsQuery.error).message}
-            </Alert>
-          )}
+      {accountsQuery.isError && (
+        <Alert severity="error">
+          {toAppApiError(accountsQuery.error).message}
+        </Alert>
+      )}
 
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('coa.columns.account')}</TableCell>
-                  <TableCell>{t('coa.columns.type')}</TableCell>
-                  <TableCell>{t('coa.columns.balance')}</TableCell>
-                  <TableCell>{t('coa.columns.parent')}</TableCell>
-                  <TableCell>{t('coa.columns.status')}</TableCell>
-                  <TableCell align="right">{t('coa.columns.activity')}</TableCell>
-                  <TableCell align="center">{t('coa.columns.actions')}</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {accountsQuery.isLoading && <TableStateRow colSpan={7} loading />}
-                {!accountsQuery.isLoading && accounts.length === 0 && (
-                  <TableStateRow colSpan={7} message={t('coa.empty')} />
-                )}
-                {accounts.map((account) => (
-                  <TableRow key={account.id} hover>
-                    <TableCell>
-                      <Stack spacing={0.25}>
-                        <Typography variant="subtitle2">{account.code} - {account.name}</Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {account.detail_type || t('coa.labels.noDetailType')}
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-                    <TableCell>{t(`coa.types.${account.type}`)}</TableCell>
-                    <TableCell>{t(`coa.normalBalances.${account.normal_balance}`)}</TableCell>
-                    <TableCell>{account.parent ? `${account.parent.code} - ${account.parent.name}` : '-'}</TableCell>
-                    <TableCell>
-                      <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap' }}>
-                        <Chip
-                          size="small"
-                          label={t(`coa.statuses.${account.status}`)}
-                          color={account.is_active ? 'success' : 'default'}
-                          variant="outlined"
-                        />
-                        {account.is_system && (
-                          <Chip size="small" label={t('coa.labels.system')} color="info" variant="outlined" />
-                        )}
-                        {account.is_postable && (
-                          <Chip size="small" label={t('coa.labels.postable')} variant="outlined" />
-                        )}
-                      </Stack>
-                    </TableCell>
-                    <TableCell align="right">
-                      {t('coa.labels.activityCounts', {
-                        journals: countValue(account.journal_entries_count),
-                        payments: countValue(account.payment_accounts_count),
-                      })}
-                    </TableCell>
-                    <TableCell align="center">
-                      <RowActions
-                        editLabel={t('common:buttons.edit')}
-                        deleteLabel={t('common:buttons.delete')}
-                        showEdit={canManage && !account.is_system}
-                        showDelete={canManage && !account.is_system}
-                        deleteDisabled={deleteAccount.isPending}
-                        onEdit={() => openEditForm(account)}
-                        onDelete={() => setDeletingAccount(account)}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          <TablePagination
-            component="div"
-            count={meta?.total ?? 0}
-            page={page}
-            rowsPerPage={perPage}
-            rowsPerPageOptions={rowsPerPageOptions}
-            onPageChange={(_, nextPage) => setPage(nextPage)}
-            onRowsPerPageChange={(event) => {
-              setPerPage(Number(event.target.value))
-              setPage(0)
-            }}
+      <EntityTable
+        rows={accounts}
+        columns={columns}
+        getRowKey={(account) => account.id}
+        loading={accountsQuery.isLoading}
+        emptyIcon={<AccountTreeOutlined />}
+        emptyTitle={t('coa.empty')}
+        pagination={{
+          page,
+          rowsPerPage: perPage,
+          count: meta?.total ?? 0,
+          onPageChange: setPage,
+          onRowsPerPageChange: (nextPerPage) => {
+            setPerPage(nextPerPage)
+            setPage(0)
+          },
+        }}
+        rowActions={(account) => (
+          <RowActions
+            editLabel={t('common:buttons.edit')}
+            deleteLabel={t('common:buttons.delete')}
+            showEdit={canManage && !account.is_system}
+            showDelete={canManage && !account.is_system}
+            deleteDisabled={deleteAccount.isPending}
+            onEdit={() => openEditForm(account)}
+            onDelete={() => setDeletingAccount(account)}
           />
-        </CardContent>
-      </Card>
+        )}
+      />
 
       <ChartOfAccountFormDialog
         key={`${formOpen ? 'open' : 'closed'}-${editingAccount?.id ?? 'new'}`}

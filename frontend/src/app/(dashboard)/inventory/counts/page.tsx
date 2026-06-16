@@ -1,30 +1,22 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import {
   Alert,
-  Box,
   Button,
-  Card,
-  CardContent,
   Chip,
   IconButton,
-  InputAdornment,
   MenuItem,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TablePagination,
-  TableRow,
   TextField,
   Tooltip,
   Typography,
 } from '@mui/material'
-import { Add, FactCheckOutlined, Search } from '@/components/ui/icons'
+import { Add, FactCheckOutlined } from '@/components/ui/icons'
+import PageHeader from '@/components/common/PageHeader'
+import PageToolbar from '@/components/common/PageToolbar'
+import EntityTable, { type EntityTableColumn } from '@/components/common/EntityTable'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
@@ -32,14 +24,11 @@ import { AppDatePicker } from '@/components/ui/AppDatePicker'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { RowActions } from '@/components/ui/RowActions'
 import { SearchableFilterSelect } from '@/components/ui/SearchableFilterSelect'
-import { TableStateRow } from '@/components/ui/TableStateRow'
 import { useDeleteStockCountMutation, useInventoryOptionsQuery, useStockCountsQuery } from '@/features/inventory/hooks'
 import { useAppDateFormat } from '@/features/settings/useAppDateFormat'
 import { useAuthStore } from '@/stores/authStore'
 import { formatAppDate } from '@/utils/dateFormat'
 import type { StockCount, StockCountFilters, StockCountStatus } from '@/types/inventory'
-
-const rowsPerPageOptions = [10, 25, 50]
 
 function statusColor(status: StockCountStatus) {
   return status === 'completed' ? 'success' : 'warning'
@@ -89,54 +78,162 @@ export default function StockCountsPage() {
     setDeletingCount(null)
   }
 
-  return (
-    <Stack spacing={3}>
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={2}
-        sx={{ alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between' }}
-      >
-        <Box>
-          <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-            <FactCheckOutlined color="primary" />
-            <Typography variant="h4">{t('counts.title')}</Typography>
-          </Stack>
-          <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
-            {t('counts.subtitle')}
+  const handleSearchChange = useCallback((value: string) => {
+    setSearch(value)
+    setPage(0)
+  }, [])
+
+  const handleWarehouseChange = useCallback((value: string) => {
+    setWarehouseFilter(value)
+    setPage(0)
+  }, [])
+
+  const handleStatusChange = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+    setStatusFilter(event.target.value)
+    setPage(0)
+  }, [])
+
+  const handleDateFromChange = useCallback((value: string | null) => {
+    setDateFrom(value ?? '')
+    setPage(0)
+  }, [])
+
+  const handleDateToChange = useCallback((value: string | null) => {
+    setDateTo(value ?? '')
+    setPage(0)
+  }, [])
+
+  const clearFilters = useCallback(() => {
+    setWarehouseFilter('')
+    setStatusFilter('')
+    setDateFrom('')
+    setDateTo('')
+    setPage(0)
+  }, [])
+
+  const selectedWarehouse = warehouses.find((w) => w.id === warehouseFilter)
+
+  const activeFilters = useMemo(() => {
+    const chips: Array<{ key: string; label: string; onDelete: () => void }> = []
+    if (warehouseFilter && selectedWarehouse) {
+      chips.push({
+        key: 'warehouse',
+        label: selectedWarehouse.name,
+        onDelete: () => { setWarehouseFilter(''); setPage(0) },
+      })
+    }
+    if (statusFilter) {
+      chips.push({
+        key: 'status',
+        label: t(`counts.status.${statusFilter}`),
+        onDelete: () => { setStatusFilter(''); setPage(0) },
+      })
+    }
+    if (dateFrom) {
+      chips.push({
+        key: 'dateFrom',
+        label: `${t('counts.filters.dateFrom')}: ${dateFrom}`,
+        onDelete: () => { setDateFrom(''); setPage(0) },
+      })
+    }
+    if (dateTo) {
+      chips.push({
+        key: 'dateTo',
+        label: `${t('counts.filters.dateTo')}: ${dateTo}`,
+        onDelete: () => { setDateTo(''); setPage(0) },
+      })
+    }
+    return chips
+  }, [warehouseFilter, statusFilter, dateFrom, dateTo, selectedWarehouse, t])
+
+  const columns: EntityTableColumn<StockCount>[] = useMemo(() => [
+    {
+      key: 'reference',
+      label: t('counts.columns.reference'),
+      render: (count) => (
+        <Typography variant="subtitle2">{count.reference_no}</Typography>
+      ),
+    },
+    {
+      key: 'date',
+      label: t('counts.columns.date'),
+      render: (count) => <>{formatAppDate(count.date, dateFormat, i18n.language)}</>,
+    },
+    {
+      key: 'warehouse',
+      label: t('counts.columns.warehouse'),
+      render: (count) => (
+        <Stack spacing={0.25}>
+          <Typography variant="body2">{count.warehouse?.name ?? '-'}</Typography>
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+            {count.warehouse?.branch_name ?? '-'}
           </Typography>
-        </Box>
-        {canCount && (
+        </Stack>
+      ),
+    },
+    {
+      key: 'status',
+      label: t('counts.columns.status'),
+      render: (count) => (
+        <Chip
+          size="small"
+          label={t(`counts.status.${count.status}`)}
+          color={statusColor(count.status)}
+          variant="outlined"
+        />
+      ),
+    },
+    {
+      key: 'discrepancies',
+      label: t('counts.columns.discrepancies'),
+      align: 'right',
+      render: (count) => <>{count.discrepancy_count}</>,
+    },
+    {
+      key: 'createdBy',
+      label: t('counts.columns.createdBy'),
+      render: (count) => <>{count.creator?.name || '-'}</>,
+    },
+    {
+      key: 'completedBy',
+      label: t('counts.columns.completedBy'),
+      render: (count) => <>{count.completer?.name || '-'}</>,
+    },
+  ], [t, dateFormat, i18n.language])
+
+  return (
+    <Stack spacing={2.5}>
+      <PageHeader
+        icon={<FactCheckOutlined color="primary" />}
+        title={t('counts.title')}
+        description={t('counts.subtitle')}
+        actions={canCount && (
           <Button startIcon={<Add />} variant="contained" onClick={() => router.push('/inventory/counts/create')}>
             {t('counts.actions.new')}
           </Button>
         )}
-      </Stack>
+      />
 
-      <Card>
-        <CardContent>
-          <Stack
-            direction={{ xs: 'column', lg: 'row' }}
-            spacing={2}
-            sx={{ alignItems: { xs: 'stretch', lg: 'center' }, mb: 2.5 }}
-          >
-            <TextField
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value)
-                setPage(0)
-              }}
-              placeholder={t('counts.filters.search')}
-              sx={{ flexGrow: 1 }}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Search fontSize="small" />
-                    </InputAdornment>
-                  ),
-                },
-              }}
-            />
+      {(countsQuery.isError || optionsQuery.isError) && (
+        <Stack spacing={1}>
+          {countsQuery.isError && (
+            <Alert severity="error">{toAppApiError(countsQuery.error).message}</Alert>
+          )}
+          {optionsQuery.isError && (
+            <Alert severity="error">{toAppApiError(optionsQuery.error).message}</Alert>
+          )}
+        </Stack>
+      )}
+
+      <PageToolbar
+        searchValue={search}
+        searchPlaceholder={t('counts.filters.search')}
+        onSearchChange={handleSearchChange}
+        activeFilters={activeFilters}
+        onClearFilters={clearFilters}
+        filterButtonLabel={t('counts.filters.status')}
+        filters={
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
             <SearchableFilterSelect
               value={warehouseFilter}
               options={warehouses}
@@ -146,150 +243,78 @@ export default function StockCountsPage() {
               getOptionValue={(warehouse) => warehouse.id}
               getOptionLabel={(warehouse) => warehouse.name}
               getOptionDescription={(warehouse) => [warehouse.code, warehouse.branch_name].filter(Boolean).join(' / ')}
-              onChange={(value) => {
-                setWarehouseFilter(value)
-                setPage(0)
-              }}
-              sx={{ minWidth: { xs: '100%', lg: 220 } }}
+              onChange={handleWarehouseChange}
             />
             <TextField
               select
               value={statusFilter}
-              onChange={(event) => {
-                setStatusFilter(event.target.value)
-                setPage(0)
-              }}
+              onChange={handleStatusChange}
               label={t('counts.filters.status')}
-              sx={{ minWidth: { xs: '100%', lg: 170 } }}
+              sx={{ minWidth: 170 }}
             >
               <MenuItem value="">{t('counts.filters.allStatuses')}</MenuItem>
               <MenuItem value="in_progress">{t('counts.status.in_progress')}</MenuItem>
               <MenuItem value="completed">{t('counts.status.completed')}</MenuItem>
             </TextField>
-            <Box sx={{ minWidth: { xs: '100%', lg: 165 } }}>
-              <AppDatePicker
-                value={dateFrom}
-                onChange={(value) => {
-                  setDateFrom(value ?? '')
-                  setPage(0)
-                }}
-                label={t('counts.filters.dateFrom')}
-              />
-            </Box>
-            <Box sx={{ minWidth: { xs: '100%', lg: 165 } }}>
-              <AppDatePicker
-                value={dateTo}
-                onChange={(value) => {
-                  setDateTo(value ?? '')
-                  setPage(0)
-                }}
-                label={t('counts.filters.dateTo')}
-              />
-            </Box>
+            <AppDatePicker
+              value={dateFrom}
+              onChange={handleDateFromChange}
+              label={t('counts.filters.dateFrom')}
+            />
+            <AppDatePicker
+              value={dateTo}
+              onChange={handleDateToChange}
+              label={t('counts.filters.dateTo')}
+            />
           </Stack>
+        }
+      />
 
-          {countsQuery.isError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {toAppApiError(countsQuery.error).message}
-            </Alert>
-          )}
-
-          {optionsQuery.isError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {toAppApiError(optionsQuery.error).message}
-            </Alert>
-          )}
-
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('counts.columns.reference')}</TableCell>
-                  <TableCell>{t('counts.columns.date')}</TableCell>
-                  <TableCell>{t('counts.columns.warehouse')}</TableCell>
-                  <TableCell>{t('counts.columns.status')}</TableCell>
-                  <TableCell align="right">{t('counts.columns.discrepancies')}</TableCell>
-                  <TableCell>{t('counts.columns.createdBy')}</TableCell>
-                  <TableCell>{t('counts.columns.completedBy')}</TableCell>
-                  <TableCell align="center">{t('counts.columns.actions')}</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {countsQuery.isLoading && <TableStateRow colSpan={8} loading />}
-
-                {!countsQuery.isLoading && counts.length === 0 && (
-                  <TableStateRow colSpan={8} message={t('counts.empty')} />
-                )}
-
-                {counts.map((count) => (
-                  <TableRow key={count.id} hover>
-                    <TableCell>
-                      <Typography variant="subtitle2">{count.reference_no}</Typography>
-                    </TableCell>
-                    <TableCell>{formatAppDate(count.date, dateFormat, i18n.language)}</TableCell>
-                    <TableCell>
-                      <Stack spacing={0.25}>
-                        <Typography variant="body2">{count.warehouse?.name ?? '-'}</Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {count.warehouse?.branch_name ?? '-'}
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        size="small"
-                        label={t(`counts.status.${count.status}`)}
-                        color={statusColor(count.status)}
-                        variant="outlined"
-                      />
-                    </TableCell>
-                    <TableCell align="right">{count.discrepancy_count}</TableCell>
-                    <TableCell>{count.creator?.name || '-'}</TableCell>
-                    <TableCell>{count.completer?.name || '-'}</TableCell>
-                    <TableCell align="center">
-                      <RowActions
-                        viewLabel={t('counts.actions.view')}
-                        editLabel={t('common:buttons.edit')}
-                        deleteLabel={t('common:buttons.delete')}
-                        showView
-                        showEdit={false}
-                        showDelete={canCount && count.status === 'in_progress'}
-                        onView={() => router.push(`/inventory/counts/${count.id}`)}
-                        onDelete={() => setDeletingCount(count)}
-                      />
-                      {canCount && count.status === 'in_progress' && (
-                        <Tooltip title={t('counts.actions.openEntryForm')}>
-                          <IconButton
-                            size="small"
-                            color="primary"
-                            aria-label={t('counts.actions.openEntryForm')}
-                            onClick={() => router.push(`/inventory/counts/${count.id}/entries`)}
-                          >
-                            <Add fontSize="small" />
-                          </IconButton>
-                        </Tooltip>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          <TablePagination
-            component="div"
-            count={meta?.total ?? 0}
-            page={page}
-            rowsPerPage={perPage}
-            rowsPerPageOptions={rowsPerPageOptions}
-            onPageChange={(_, nextPage) => setPage(nextPage)}
-            onRowsPerPageChange={(event) => {
-              setPerPage(Number(event.target.value))
-              setPage(0)
-            }}
-          />
-        </CardContent>
-      </Card>
+      <EntityTable
+        rows={counts}
+        columns={columns}
+        getRowKey={(count) => count.id}
+        loading={countsQuery.isLoading}
+        emptyIcon={<FactCheckOutlined />}
+        emptyTitle={t('counts.empty')}
+        emptyDescription=""
+        pagination={{
+          page,
+          rowsPerPage: perPage,
+          count: meta?.total ?? 0,
+          onPageChange: (newPage) => setPage(newPage),
+          onRowsPerPageChange: (newRowsPerPage) => {
+            setPerPage(newRowsPerPage)
+            setPage(0)
+          },
+        }}
+        rowActions={(count) => (
+          <Stack direction="row" spacing={0.5} sx={{ justifyContent: 'flex-end' }}>
+            <RowActions
+              viewLabel={t('counts.actions.view')}
+              editLabel={t('common:buttons.edit')}
+              deleteLabel={t('common:buttons.delete')}
+              showView
+              showEdit={false}
+              showDelete={canCount && count.status === 'in_progress'}
+              onView={() => router.push(`/inventory/counts/${count.id}`)}
+              onDelete={() => setDeletingCount(count)}
+            />
+            {canCount && count.status === 'in_progress' && (
+              <Tooltip title={t('counts.actions.openEntryForm')}>
+                <IconButton
+                  size="small"
+                  color="primary"
+                  aria-label={t('counts.actions.openEntryForm')}
+                  onClick={() => router.push(`/inventory/counts/${count.id}/entries`)}
+                >
+                  <Add fontSize="small" />
+                </IconButton>
+              </Tooltip>
+            )}
+          </Stack>
+        )}
+      />
 
       <ConfirmDialog
         open={!!deletingCount}

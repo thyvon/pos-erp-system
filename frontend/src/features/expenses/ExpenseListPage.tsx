@@ -6,29 +6,19 @@ import {
   Alert,
   Box,
   Button,
-  Card,
-  CardContent,
-  Collapse,
-  InputAdornment,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TablePagination,
-  TableRow,
-  TextField,
   Typography,
 } from '@mui/material'
-import { Add, ExpandLess, ExpandMore, PaymentsOutlined, Search, TuneOutlined } from '@/components/ui/icons'
+import { Add, PaymentsOutlined } from '@/components/ui/icons'
+import EntityTable, { type EntityTableColumn } from '@/components/common/EntityTable'
+import PageHeader from '@/components/common/PageHeader'
+import PageToolbar from '@/components/common/PageToolbar'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { RowActions } from '@/components/ui/RowActions'
-import { TableStateRow } from '@/components/ui/TableStateRow'
 import { SearchableFilterSelect } from '@/components/ui/SearchableFilterSelect'
 import { useBranchesQuery } from '@/features/branches/hooks'
 import { useAppDateFormat } from '@/features/settings/useAppDateFormat'
@@ -41,8 +31,6 @@ import { ExpenseFormDialog } from './ExpenseFormDialog'
 import type { Expense, ExpenseFilters, ExpensePayload } from '@/types/expense'
 import type { Branch } from '@/types/branch'
 
-const rowsPerPageOptions = [10, 25, 50]
-
 export default function ExpensesPage() {
   const { t, i18n } = useTranslation(['expenses', 'common'])
   const router = useRouter()
@@ -53,7 +41,6 @@ export default function ExpensesPage() {
   const [branchFilter, setBranchFilter] = useState('')
   const [dateFrom, setDateFrom] = useState<string | null>(null)
   const [dateTo, setDateTo] = useState<string | null>(null)
-  const [filtersOpen, setFiltersOpen] = useState(false)
   const [page, setPage] = useState(0)
   const [perPage, setPerPage] = useState(10)
   const [dialogOpen, setDialogOpen] = useState(false)
@@ -83,10 +70,58 @@ export default function ExpensesPage() {
   const canCreate = can('expenses.create')
   const canEdit = can('expenses.edit')
   const canDelete = can('expenses.delete')
-  const activeAdvancedFilterCount = [branchFilter, dateFrom, dateTo].filter(Boolean).length
-  const filterToggleLabel = `${t(filtersOpen ? 'filters.hideAdvanced' : 'filters.showAdvanced')}${
-    activeAdvancedFilterCount > 0 ? ` (${activeAdvancedFilterCount})` : ''
-  }`
+
+  const columns = useMemo<EntityTableColumn<Expense>[]>(
+    () => [
+      {
+        key: 'date',
+        label: t('columns.date'),
+        render: (expense) => formatAppDate(expense.expense_date, dateFormat, i18n.language),
+      },
+      {
+        key: 'reference',
+        label: t('columns.reference'),
+        render: (expense) => (
+          <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
+            {expense.reference_no || '-'}
+          </Typography>
+        ),
+      },
+      {
+        key: 'description',
+        label: t('columns.description'),
+        render: (expense) => (
+          <Typography variant="body2" sx={{ maxWidth: 250 }} noWrap>
+            {expense.description}
+          </Typography>
+        ),
+      },
+      {
+        key: 'branch',
+        label: t('columns.branch'),
+        render: (expense) => expense.branch?.name ?? '-',
+      },
+      {
+        key: 'account',
+        label: t('columns.account'),
+        render: (expense) =>
+          expense.expense_account
+            ? `${expense.expense_account.code} - ${expense.expense_account.name}`
+            : '-',
+      },
+      {
+        key: 'amount',
+        label: t('columns.amount'),
+        align: 'right',
+        render: (expense) => (
+          <Typography variant="body2" sx={{ fontWeight: 600 }}>
+            {formatMoney(parseFloat(expense.amount), currencyFormatter)}
+          </Typography>
+        ),
+      },
+    ],
+    [currencyFormatter, dateFormat, i18n.language, t]
+  )
 
   const handleDelete = async () => {
     if (!deleteTarget) return
@@ -114,196 +149,104 @@ export default function ExpensesPage() {
   }
 
   return (
-    <Stack spacing={3}>
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={2}
-        sx={{ alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between' }}
-      >
-        <Box>
-          <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-            <PaymentsOutlined color="primary" />
-            <Typography variant="h4">{t('title')}</Typography>
-          </Stack>
-          <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
-            {t('subtitle')}
-          </Typography>
-        </Box>
-        {canCreate && (
+    <Stack spacing={2.5}>
+      <PageHeader
+        icon={<PaymentsOutlined color="primary" />}
+        title={t('title')}
+        description={t('subtitle')}
+        actions={canCreate && (
           <Button variant="contained" startIcon={<Add />} onClick={() => setDialogOpen(true)}>
             {t('actions.create')}
           </Button>
         )}
-      </Stack>
+      />
 
-      <Card>
-        <CardContent>
-          <Stack spacing={2} sx={{ mb: 2.5 }}>
-            <Stack
-              direction={{ xs: 'column', lg: 'row' }}
-              spacing={2}
-              sx={{ alignItems: { xs: 'stretch', lg: 'center' } }}
-            >
-              <TextField
-                value={search}
-                onChange={(event) => {
-                  setSearch(event.target.value)
+      <PageToolbar
+        searchValue={search}
+        searchPlaceholder={t('filters.search')}
+        onSearchChange={(value) => {
+          setSearch(value)
+          setPage(0)
+        }}
+        filterButtonLabel={t('filters.showAdvanced')}
+        filters={
+          <>
+            <SearchableFilterSelect
+              value={branchFilter}
+              options={branches}
+              loading={branchesQuery.isLoading}
+              label={t('filters.branch')}
+              placeholder={t('filters.allBranches')}
+              getOptionValue={(branch: Branch) => branch.id}
+              getOptionLabel={(branch: Branch) => branch.name}
+              onChange={(value) => {
+                setBranchFilter(value)
+                setPage(0)
+              }}
+              sx={{ minWidth: { xs: '100%', lg: 190 } }}
+            />
+            <Box sx={{ minWidth: { xs: '100%', lg: 165 } }}>
+              <AppDatePicker
+                label={t('filters.dateFrom')}
+                value={dateFrom}
+                onChange={(value) => {
+                  setDateFrom(value)
                   setPage(0)
                 }}
-                placeholder={t('filters.search')}
-                sx={{ flexGrow: 1 }}
-                slotProps={{
-                  input: {
-                    startAdornment: (
-                      <InputAdornment position="start">
-                        <Search fontSize="small" />
-                      </InputAdornment>
-                    ),
-                  },
-                }}
+                maxDate={dateTo}
               />
-              <Button
-                variant="outlined"
-                startIcon={<TuneOutlined />}
-                endIcon={filtersOpen ? <ExpandLess /> : <ExpandMore />}
-                onClick={() => setFiltersOpen((open) => !open)}
-                sx={{ minWidth: { xs: '100%', lg: 190 }, justifyContent: 'space-between' }}
-              >
-                {filterToggleLabel}
-              </Button>
-            </Stack>
-            <Collapse in={filtersOpen} timeout="auto">
-              <Stack
-                direction={{ xs: 'column', lg: 'row' }}
-                spacing={2}
-                sx={{
-                  alignItems: { xs: 'stretch', lg: 'center' },
-                  overflowX: { lg: 'auto' },
-                  pt: 0.5,
-                  pb: { lg: 0.5 },
+            </Box>
+            <Box sx={{ minWidth: { xs: '100%', lg: 165 } }}>
+              <AppDatePicker
+                label={t('filters.dateTo')}
+                value={dateTo}
+                onChange={(value) => {
+                  setDateTo(value)
+                  setPage(0)
                 }}
-              >
-                <SearchableFilterSelect
-                  value={branchFilter}
-                  options={branches}
-                  loading={branchesQuery.isLoading}
-                  label={t('filters.branch')}
-                  placeholder={t('filters.allBranches')}
-                  getOptionValue={(branch: Branch) => branch.id}
-                  getOptionLabel={(branch: Branch) => branch.name}
-                  onChange={(value) => {
-                    setBranchFilter(value)
-                    setPage(0)
-                  }}
-                  sx={{ minWidth: { xs: '100%', lg: 190 } }}
-                />
-                <Box sx={{ minWidth: { xs: '100%', lg: 165 } }}>
-                  <AppDatePicker
-                    label={t('filters.dateFrom')}
-                    value={dateFrom}
-                    onChange={(value) => {
-                      setDateFrom(value)
-                      setPage(0)
-                    }}
-                    maxDate={dateTo}
-                  />
-                </Box>
-                <Box sx={{ minWidth: { xs: '100%', lg: 165 } }}>
-                  <AppDatePicker
-                    label={t('filters.dateTo')}
-                    value={dateTo}
-                    onChange={(value) => {
-                      setDateTo(value)
-                      setPage(0)
-                    }}
-                    minDate={dateFrom}
-                  />
-                </Box>
-              </Stack>
-            </Collapse>
-          </Stack>
+                minDate={dateFrom}
+              />
+            </Box>
+          </>
+        }
+      />
 
-          {expensesQuery.isError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {toAppApiError(expensesQuery.error).message}
-            </Alert>
-          )}
+      {expensesQuery.isError && (
+        <Alert severity="error">
+          {toAppApiError(expensesQuery.error).message}
+        </Alert>
+      )}
 
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('columns.date')}</TableCell>
-                  <TableCell>{t('columns.reference')}</TableCell>
-                  <TableCell>{t('columns.description')}</TableCell>
-                  <TableCell>{t('columns.branch')}</TableCell>
-                  <TableCell>{t('columns.account')}</TableCell>
-                  <TableCell align="right">{t('columns.amount')}</TableCell>
-                  <TableCell align="center">{t('common:buttons.actions')}</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {expensesQuery.isLoading && <TableStateRow colSpan={7} loading />}
-                {!expensesQuery.isLoading && !expensesQuery.data?.data?.length && (
-                  <TableStateRow colSpan={7} message={t('empty')} />
-                )}
-                {(expensesQuery.data?.data ?? []).map((expense: Expense) => (
-                  <TableRow key={expense.id} hover>
-                    <TableCell>{formatAppDate(expense.expense_date, dateFormat, i18n.language)}</TableCell>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ fontFamily: 'monospace' }}>
-                        {expense.reference_no || '-'}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2" sx={{ maxWidth: 250 }} noWrap>
-                        {expense.description}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>{expense.branch?.name ?? '-'}</TableCell>
-                    <TableCell>
-                      {expense.expense_account
-                        ? `${expense.expense_account.code} - ${expense.expense_account.name}`
-                        : '-'}
-                    </TableCell>
-                    <TableCell align="right">
-                      <Typography variant="body2" sx={{ fontWeight: 600 }}>
-                        {formatMoney(parseFloat(expense.amount), currencyFormatter)}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="center">
-                      <RowActions
-                        viewLabel={t('common:buttons.view')}
-                        editLabel={t('common:buttons.edit')}
-                        deleteLabel={t('common:buttons.delete')}
-                        showView
-                        showEdit={canEdit}
-                        showDelete={canDelete}
-                        onView={() => router.push(`/expenses/${expense.id}`)}
-                        onEdit={() => setEditTarget(expense)}
-                        onDelete={() => setDeleteTarget(expense)}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          <TablePagination
-            component="div"
-            count={expensesQuery.data?.meta?.total ?? 0}
-            page={page}
-            rowsPerPage={perPage}
-            rowsPerPageOptions={rowsPerPageOptions}
-            onPageChange={(_, nextPage) => setPage(nextPage)}
-            onRowsPerPageChange={(event) => {
-              setPerPage(Number(event.target.value))
-              setPage(0)
-            }}
+      <EntityTable
+        rows={expensesQuery.data?.data ?? []}
+        columns={columns}
+        getRowKey={(expense) => expense.id}
+        loading={expensesQuery.isLoading}
+        emptyTitle={t('empty')}
+        pagination={{
+          page,
+          rowsPerPage: perPage,
+          count: expensesQuery.data?.meta?.total ?? 0,
+          onPageChange: setPage,
+          onRowsPerPageChange: (nextPerPage) => {
+            setPerPage(nextPerPage)
+            setPage(0)
+          },
+        }}
+        rowActions={(expense) => (
+          <RowActions
+            viewLabel={t('common:buttons.view')}
+            editLabel={t('common:buttons.edit')}
+            deleteLabel={t('common:buttons.delete')}
+            showView
+            showEdit={canEdit}
+            showDelete={canDelete}
+            onView={() => router.push(`/expenses/${expense.id}`)}
+            onEdit={() => setEditTarget(expense)}
+            onDelete={() => setDeleteTarget(expense)}
           />
-        </CardContent>
-      </Card>
+        )}
+      />
 
       <ConfirmDialog
         open={!!deleteTarget}

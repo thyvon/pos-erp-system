@@ -30,6 +30,7 @@ import {
   EditOutlined,
   Search,
 } from '@/components/ui/icons'
+import PageHeader from '@/components/common/PageHeader'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
@@ -136,49 +137,42 @@ export function StockTransferDetailPage({ transferId }: StockTransferDetailPageP
 
   return (
     <Stack spacing={3}>
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={2}
-        sx={{ justifyContent: 'space-between' }}
-      >
-        <Box>
-          <Typography variant="h4">{transfer?.reference_no ?? t('transfers.detail.title')}</Typography>
-          <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
-            {t('transfers.detail.subtitle')}
-          </Typography>
-        </Box>
-
-        <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-          {canEdit && (
-            <Button
-              variant="outlined"
-              startIcon={<EditOutlined />}
-              onClick={() => router.push(`/inventory/transfers/${transfer.id}/edit`)}
-            >
-              {t('common:buttons.edit')}
-            </Button>
-          )}
-          {canReceive && (
-            <Button
-              variant="contained"
-              color="success"
-              startIcon={<CheckCircleOutlined />}
-              onClick={() => setConfirmReceiveOpen(true)}
-            >
-              {t('transfers.actions.receive')}
-            </Button>
-          )}
-          <Tooltip title={t('transfers.actions.backToList')}>
-            <IconButton
-              size="small"
-              aria-label={t('transfers.actions.backToList')}
-              onClick={() => router.push('/inventory/transfers')}
-            >
-              <ArrowBack />
-            </IconButton>
-          </Tooltip>
-        </Stack>
-      </Stack>
+      <PageHeader
+        title={transfer?.reference_no ?? t('transfers.detail.title')}
+        description={t('transfers.detail.subtitle')}
+        actions={
+          <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+            {canEdit && (
+              <Button
+                variant="outlined"
+                startIcon={<EditOutlined />}
+                onClick={() => router.push(`/inventory/transfers/${transfer.id}/edit`)}
+              >
+                {t('common:buttons.edit')}
+              </Button>
+            )}
+            {canReceive && (
+              <Button
+                variant="contained"
+                color="success"
+                startIcon={<CheckCircleOutlined />}
+                onClick={() => setConfirmReceiveOpen(true)}
+              >
+                {t('transfers.actions.receive')}
+              </Button>
+            )}
+            <Tooltip title={t('transfers.actions.backToList')}>
+              <IconButton
+                size="small"
+                aria-label={t('transfers.actions.backToList')}
+                onClick={() => router.push('/inventory/transfers')}
+              >
+                <ArrowBack />
+              </IconButton>
+            </Tooltip>
+          </Stack>
+        }
+      />
 
       {transferQuery.isLoading && (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>

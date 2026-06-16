@@ -18,6 +18,7 @@ import {
   ReceiptLongOutlined,
   TrendingUpOutlined,
 } from '@/components/ui/icons'
+import PageHeader from '@/components/common/PageHeader'
 
 const stats = [
   {
@@ -48,22 +49,16 @@ export default function DashboardPage() {
 
   return (
     <Stack spacing={3}>
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={2}
-        sx={{ alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between' }}
-      >
-        <Box>
-          <Typography variant="h4">Dashboard</Typography>
-          <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
-            Monitor daily operations across sales, inventory, and finance.
-          </Typography>
-        </Box>
-        <Stack direction="row" spacing={1}>
-          <Button variant="outlined">Export</Button>
-          <Button variant="contained">New sale</Button>
-        </Stack>
-      </Stack>
+      <PageHeader
+        title="Dashboard"
+        description="Monitor daily operations across sales, inventory, and finance."
+        actions={
+          <Stack direction="row" spacing={1}>
+            <Button variant="outlined">Export</Button>
+            <Button variant="contained">New sale</Button>
+          </Stack>
+        }
+      />
 
       <Box
         sx={{

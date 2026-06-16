@@ -3,31 +3,22 @@
 import { useMemo, useState } from 'react'
 import {
   Alert,
-  Box,
   Button,
-  Card,
-  CardContent,
   Chip,
-  InputAdornment,
   MenuItem,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TablePagination,
-  TableRow,
   TextField,
   Typography,
 } from '@mui/material'
-import { Add, AccountTreeOutlined, Search } from '@/components/ui/icons'
+import { Add, AccountTreeOutlined } from '@/components/ui/icons'
+import PageHeader from '@/components/common/PageHeader'
+import PageToolbar from '@/components/common/PageToolbar'
+import EntityTable, { type EntityTableColumn } from '@/components/common/EntityTable'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { RowActions } from '@/components/ui/RowActions'
-import { TableStateRow } from '@/components/ui/TableStateRow'
 import { BranchFormDialog } from '@/features/branches/BranchFormDialog'
 import {
   useBranchesQuery,
@@ -37,8 +28,6 @@ import {
 } from '@/features/branches/hooks'
 import { useAuthStore } from '@/stores/authStore'
 import type { Branch, BranchFilters, BranchPayload } from '@/types/branch'
-
-const rowsPerPageOptions = [10, 25, 50]
 
 export default function BranchesPage() {
   const { t } = useTranslation(['branches', 'common'])
@@ -108,169 +97,165 @@ export default function BranchesPage() {
     }
   }
 
-  const handleSearchChange = (nextSearch: string) => {
-    setSearch(nextSearch)
+  const activeFilters = useMemo(() => {
+    const items: Array<{ key: string; label: string; onDelete: () => void }> = []
+    if (activeFilter !== '') {
+      items.push({
+        key: 'status',
+        label: `${t('filters.status')}: ${activeFilter ? t('common:status.active') : t('common:status.inactive')}`,
+        onDelete: () => {
+          setActiveFilter('')
+          setPage(0)
+        },
+      })
+    }
+    return items
+  }, [activeFilter, t])
+
+  const clearFilters = () => {
+    setActiveFilter('')
     setPage(0)
   }
 
-  const handleActiveFilterChange = (nextValue: string) => {
-    setActiveFilter(nextValue === '' ? '' : nextValue === 'true')
-    setPage(0)
-  }
+  const columns: EntityTableColumn<Branch>[] = useMemo(
+    () => [
+      {
+        key: 'branch',
+        label: t('columns.branch'),
+        render: (branch) => (
+          <Stack spacing={0.25}>
+            <Typography variant="subtitle2">{branch.name}</Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              {branch.code}
+            </Typography>
+          </Stack>
+        ),
+      },
+      {
+        key: 'type',
+        label: t('columns.type'),
+        render: (branch) => t(`type.${branch.type}`),
+      },
+      {
+        key: 'manager',
+        label: t('columns.manager'),
+        render: (branch) =>
+          branch.manager
+            ? `${branch.manager.first_name} ${branch.manager.last_name}`.trim()
+            : t('placeholders.noManager'),
+      },
+      {
+        key: 'contact',
+        label: t('columns.contact'),
+        render: (branch) => (
+          <Stack spacing={0.25}>
+            <Typography variant="body2">{branch.email || '-'}</Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              {branch.phone || '-'}
+            </Typography>
+          </Stack>
+        ),
+      },
+      {
+        key: 'default',
+        label: t('columns.default'),
+        render: (branch) =>
+          branch.is_default ? (
+            <Chip size="small" color="primary" label={t('badges.default')} />
+          ) : (
+            '-'
+          ),
+      },
+      {
+        key: 'status',
+        label: t('columns.status'),
+        render: (branch) => (
+          <Chip
+            size="small"
+            label={branch.is_active ? t('common:status.active') : t('common:status.inactive')}
+            color={branch.is_active ? 'success' : 'default'}
+          />
+        ),
+      },
+    ],
+    [t]
+  )
 
   return (
-    <Stack spacing={3}>
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={2}
-        sx={{ alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between' }}
-      >
-        <Box>
-          <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-            <AccountTreeOutlined color="primary" />
-            <Typography variant="h4">{t('title')}</Typography>
-          </Stack>
-          <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
-            {t('subtitle')}
-          </Typography>
-        </Box>
-        {canCreate && (
+    <Stack spacing={2.5}>
+      <PageHeader
+        icon={<AccountTreeOutlined color="primary" />}
+        title={t('title')}
+        description={t('subtitle')}
+        actions={canCreate && (
           <Button startIcon={<Add />} variant="contained" onClick={openCreateForm}>
             {t('actions.new')}
           </Button>
         )}
-      </Stack>
+      />
 
-      <Card>
-        <CardContent>
-          <Stack
-            direction={{ xs: 'column', md: 'row' }}
-            spacing={2}
-            sx={{ alignItems: { xs: 'stretch', md: 'center' }, mb: 2.5 }}
-          >
-            <TextField
-              value={search}
-              onChange={(event) => handleSearchChange(event.target.value)}
-              placeholder={t('filters.search')}
-              sx={{ flexGrow: 1 }}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Search fontSize="small" />
-                    </InputAdornment>
-                  ),
-                },
-              }}
-            />
+      <PageToolbar
+        searchValue={search}
+        searchPlaceholder={t('filters.search')}
+        onSearchChange={(value) => {
+          setSearch(value)
+          setPage(0)
+        }}
+        filters={
+          <>
             <TextField
               select
               value={activeFilter === '' ? '' : String(activeFilter)}
-              onChange={(event) => handleActiveFilterChange(event.target.value)}
               label={t('filters.status')}
-              sx={{ minWidth: { xs: '100%', md: 220 } }}
+              onChange={(event) => {
+                setActiveFilter(event.target.value === '' ? '' : event.target.value === 'true')
+                setPage(0)
+              }}
+              sx={{ minWidth: 180 }}
             >
               <MenuItem value="">{t('filters.allStatuses')}</MenuItem>
               <MenuItem value="true">{t('common:status.active')}</MenuItem>
               <MenuItem value="false">{t('common:status.inactive')}</MenuItem>
             </TextField>
-          </Stack>
+          </>
+        }
+        activeFilters={activeFilters}
+        onClearFilters={activeFilters.length > 0 ? clearFilters : undefined}
+      />
 
-          {branchesQuery.isError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {toAppApiError(branchesQuery.error).message}
-            </Alert>
-          )}
+      {branchesQuery.isError && (
+        <Alert severity="error">{toAppApiError(branchesQuery.error).message}</Alert>
+      )}
 
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('columns.branch')}</TableCell>
-                  <TableCell>{t('columns.type')}</TableCell>
-                  <TableCell>{t('columns.manager')}</TableCell>
-                  <TableCell>{t('columns.contact')}</TableCell>
-                  <TableCell>{t('columns.default')}</TableCell>
-                  <TableCell>{t('columns.status')}</TableCell>
-                  <TableCell align="center">{t('columns.actions')}</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {branchesQuery.isLoading && <TableStateRow colSpan={7} loading />}
-
-                {!branchesQuery.isLoading && branches.length === 0 && (
-                  <TableStateRow colSpan={7} message={t('empty')} />
-                )}
-
-                {branches.map((branch) => (
-                  <TableRow key={branch.id} hover>
-                    <TableCell>
-                      <Stack spacing={0.25}>
-                        <Typography variant="subtitle2">{branch.name}</Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {branch.code}
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-                    <TableCell>{t(`type.${branch.type}`)}</TableCell>
-                    <TableCell>
-                      {branch.manager
-                        ? `${branch.manager.first_name} ${branch.manager.last_name}`.trim()
-                        : t('placeholders.noManager')}
-                    </TableCell>
-                    <TableCell>
-                      <Stack spacing={0.25}>
-                        <Typography variant="body2">{branch.email || '-'}</Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {branch.phone || '-'}
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-                    <TableCell>
-                      {branch.is_default ? (
-                        <Chip size="small" color="primary" label={t('badges.default')} />
-                      ) : (
-                        '-'
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        size="small"
-                        label={branch.is_active ? t('common:status.active') : t('common:status.inactive')}
-                        color={branch.is_active ? 'success' : 'default'}
-                      />
-                    </TableCell>
-                    <TableCell align="center">
-                      <RowActions
-                        editLabel={t('common:buttons.edit')}
-                        deleteLabel={t('common:buttons.delete')}
-                        showEdit={canEdit}
-                        showDelete={canDelete}
-                        deleteDisabled={deleteBranch.isPending}
-                        onEdit={() => openEditForm(branch)}
-                        onDelete={() => setDeletingBranch(branch)}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          <TablePagination
-            component="div"
-            count={meta?.total ?? 0}
-            page={page}
-            rowsPerPage={perPage}
-            rowsPerPageOptions={rowsPerPageOptions}
-            onPageChange={(_, nextPage) => setPage(nextPage)}
-            onRowsPerPageChange={(event) => {
-              setPerPage(Number(event.target.value))
-              setPage(0)
-            }}
+      <EntityTable
+        rows={branches}
+        columns={columns}
+        getRowKey={(branch) => branch.id}
+        loading={branchesQuery.isLoading}
+        emptyIcon={<AccountTreeOutlined />}
+        emptyTitle={t('empty')}
+        pagination={{
+          page,
+          rowsPerPage: perPage,
+          count: meta?.total ?? 0,
+          onPageChange: setPage,
+          onRowsPerPageChange: (nextPerPage) => {
+            setPerPage(nextPerPage)
+            setPage(0)
+          },
+        }}
+        rowActions={(branch) => (
+          <RowActions
+            editLabel={t('common:buttons.edit')}
+            deleteLabel={t('common:buttons.delete')}
+            showEdit={canEdit}
+            showDelete={canDelete}
+            deleteDisabled={deleteBranch.isPending}
+            onEdit={() => openEditForm(branch)}
+            onDelete={() => setDeletingBranch(branch)}
           />
-        </CardContent>
-      </Card>
+        )}
+      />
 
       <BranchFormDialog
         key={`${formOpen ? 'open' : 'closed'}-${editingBranch?.id ?? 'new'}`}

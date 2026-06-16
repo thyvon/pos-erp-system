@@ -26,6 +26,7 @@ import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import PageLoader from '@/components/ui/PageLoader'
 import { ArrowBack, LocalOfferOutlined, SaveOutlined } from '@/components/ui/icons'
+import PageHeader from '@/components/common/PageHeader'
 import { useSettingsGroupQuery, useUpdateSettingsGroupMutation } from '@/features/settings/hooks'
 import { useAppDateFormat } from '@/features/settings/useAppDateFormat'
 import { useCurrencyFormatter } from '@/features/settings/useAppCurrency'
@@ -258,13 +259,11 @@ export function LabelPrintWorkspace({
               <ArrowBack />
             </IconButton>
           </Tooltip>
-          <LocalOfferOutlined color="primary" />
-          <Box>
-            <Typography variant="h4">{title}</Typography>
-            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-              {subtitle}
-            </Typography>
-          </Box>
+          <PageHeader
+            icon={<LocalOfferOutlined color="primary" />}
+            title={title}
+            description={subtitle}
+          />
         </Stack>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
           {canEditSettings && (

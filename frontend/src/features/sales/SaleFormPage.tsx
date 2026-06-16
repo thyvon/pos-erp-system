@@ -33,6 +33,7 @@ import {
   Typography,
 } from '@mui/material'
 import { Add, ArrowBack, DeleteOutlined, SaveOutlined } from '@/components/ui/icons'
+import PageHeader from '@/components/common/PageHeader'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
@@ -857,22 +858,20 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
   return (
     <>
     <Stack spacing={3}>
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ justifyContent: 'space-between' }}>
-        <Box>
-          <Typography variant="h4">
-            {isQuotationMode ? t('quotations.form.createTitle') : t(isEdit ? 'form.editTitle' : 'form.createTitle')}
-          </Typography>
-        </Box>
-        <Tooltip title={isQuotationMode ? t('quotations.actions.backToQuotations') : t('actions.backToSales')}>
-          <IconButton
-            size="small"
-            aria-label={isQuotationMode ? t('quotations.actions.backToQuotations') : t('actions.backToSales')}
-            onClick={() => router.push(isQuotationMode ? '/quotations' : isEdit && saleId ? `/sales/${saleId}` : '/sales')}
-          >
-            <ArrowBack />
-          </IconButton>
-        </Tooltip>
-      </Stack>
+      <PageHeader
+        title={isQuotationMode ? t('quotations.form.createTitle') : t(isEdit ? 'form.editTitle' : 'form.createTitle')}
+        actions={
+          <Tooltip title={isQuotationMode ? t('quotations.actions.backToQuotations') : t('actions.backToSales')}>
+            <IconButton
+              size="small"
+              aria-label={isQuotationMode ? t('quotations.actions.backToQuotations') : t('actions.backToSales')}
+              onClick={() => router.push(isQuotationMode ? '/quotations' : isEdit && saleId ? `/sales/${saleId}` : '/sales')}
+            >
+              <ArrowBack />
+            </IconButton>
+          </Tooltip>
+        }
+      />
 
       {saleQuery.isError && <Alert severity="error">{toAppApiError(saleQuery.error).message}</Alert>}
 

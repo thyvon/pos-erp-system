@@ -5,11 +5,12 @@ interface PageHeaderProps {
   title: string
   description?: string
   eyebrow?: string
+  icon?: ReactNode
   actions?: ReactNode
   meta?: ReactNode
 }
 
-export default function PageHeader({ title, description, eyebrow, actions, meta }: PageHeaderProps) {
+export default function PageHeader({ title, description, eyebrow, icon, actions, meta }: PageHeaderProps) {
   return (
     <Stack
       direction={{ xs: 'column', md: 'row' }}
@@ -35,16 +36,19 @@ export default function PageHeader({ title, description, eyebrow, actions, meta 
             {eyebrow}
           </Typography>
         )}
-        <Typography
-          variant="h4"
-          sx={{
-            fontWeight: 900,
-            letterSpacing: '-0.03em',
-            lineHeight: 1.15,
-          }}
-        >
-          {title}
-        </Typography>
+        <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+          {icon && icon}
+          <Typography
+            variant="h4"
+            sx={{
+              fontWeight: 900,
+              letterSpacing: '-0.03em',
+              lineHeight: 1.15,
+            }}
+          >
+            {title}
+          </Typography>
+        </Stack>
         {description && (
           <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.75, maxWidth: 680 }}>
             {description}

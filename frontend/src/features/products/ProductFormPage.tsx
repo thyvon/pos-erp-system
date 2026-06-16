@@ -17,6 +17,7 @@ import {
   Typography,
 } from '@mui/material'
 import { ArrowBack, SaveOutlined } from '@/components/ui/icons'
+import PageHeader from '@/components/common/PageHeader'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
@@ -415,13 +416,15 @@ export function ProductFormPage({ productId }: ProductFormPageProps) {
 
   return (
     <Stack spacing={3}>
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between' }}>
-        <Box>
-          <Typography variant="h4">{isEdit ? t('form.editTitle') : t('form.createTitle')}</Typography>
-          <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>{t('form.pageSubtitle')}</Typography>
-        </Box>
-        <Button startIcon={<ArrowBack />} onClick={() => router.push('/products')}>{t('actions.backToProducts')}</Button>
-      </Stack>
+      <PageHeader
+        title={isEdit ? t('form.editTitle') : t('form.createTitle')}
+        description={t('form.pageSubtitle')}
+        actions={
+          <Button startIcon={<ArrowBack />} onClick={() => router.push('/products')}>
+            {t('actions.backToProducts')}
+          </Button>
+        }
+      />
 
       {(clientError || serverError || optionsQuery.isError || productQuery.isError) && (
         <Alert severity="error">

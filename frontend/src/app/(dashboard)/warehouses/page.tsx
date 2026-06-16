@@ -3,32 +3,23 @@
 import { useMemo, useState } from 'react'
 import {
   Alert,
-  Box,
   Button,
-  Card,
-  CardContent,
   Chip,
-  InputAdornment,
   MenuItem,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TablePagination,
-  TableRow,
   TextField,
   Typography,
 } from '@mui/material'
-import { Add, Search, WarehouseOutlined } from '@/components/ui/icons'
+import { Add, WarehouseOutlined } from '@/components/ui/icons'
+import PageHeader from '@/components/common/PageHeader'
+import PageToolbar from '@/components/common/PageToolbar'
+import EntityTable, { type EntityTableColumn } from '@/components/common/EntityTable'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { RowActions } from '@/components/ui/RowActions'
 import { SearchableFilterSelect } from '@/components/ui/SearchableFilterSelect'
-import { TableStateRow } from '@/components/ui/TableStateRow'
 import { useBranchesQuery } from '@/features/branches/hooks'
 import { WarehouseFormDialog } from '@/features/warehouses/WarehouseFormDialog'
 import {
@@ -41,7 +32,6 @@ import { useAuthStore } from '@/stores/authStore'
 import type { BranchFilters } from '@/types/branch'
 import type { Warehouse, WarehouseFilters, WarehousePayload, WarehouseType } from '@/types/warehouse'
 
-const rowsPerPageOptions = [10, 25, 50]
 const warehouseTypes: WarehouseType[] = ['main', 'transit', 'returns', 'damaged']
 
 export default function WarehousesPage() {
@@ -88,6 +78,56 @@ export default function WarehousesPage() {
   const canCreate = can('warehouses.create')
   const canEdit = can('warehouses.edit')
   const canDelete = can('warehouses.delete')
+
+  const columns: EntityTableColumn<Warehouse>[] = useMemo(
+    () => [
+      {
+        key: 'warehouse',
+        label: t('columns.warehouse'),
+        render: (warehouse) => (
+          <Stack spacing={0.25}>
+            <Typography variant="subtitle2">{warehouse.name}</Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              {warehouse.code}
+            </Typography>
+          </Stack>
+        ),
+      },
+      { key: 'type', label: t('columns.type'), render: (warehouse) => t(`type.${warehouse.type}`) },
+      { key: 'branch', label: t('columns.branch'),
+        render: (warehouse) => warehouse.branch?.name ?? t('placeholders.noBranch') },
+      {
+        key: 'stockPolicy',
+        label: t('columns.stockPolicy'),
+        render: (warehouse) => (
+          warehouse.allow_negative_stock ? (
+            <Chip size="small" color="warning" label={t('badges.negativeStock')} />
+          ) : '-'
+        ),
+      },
+      {
+        key: 'default',
+        label: t('columns.default'),
+        render: (warehouse) => (
+          warehouse.is_default ? (
+            <Chip size="small" color="primary" label={t('badges.default')} />
+          ) : '-'
+        ),
+      },
+      {
+        key: 'status',
+        label: t('columns.status'),
+        render: (warehouse) => (
+          <Chip
+            size="small"
+            label={warehouse.is_active ? t('common:status.active') : t('common:status.inactive')}
+            color={warehouse.is_active ? 'success' : 'default'}
+          />
+        ),
+      },
+    ],
+    [t]
+  )
 
   const openCreateForm = () => {
     setEditingWarehouse(null)
@@ -140,56 +180,30 @@ export default function WarehousesPage() {
   }
 
   return (
-    <Stack spacing={3}>
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={2}
-        sx={{ alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between' }}
-      >
-        <Box>
-          <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-            <WarehouseOutlined color="primary" />
-            <Typography variant="h4">{t('title')}</Typography>
-          </Stack>
-          <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
-            {t('subtitle')}
-          </Typography>
-        </Box>
-        {canCreate && (
+    <Stack spacing={2.5}>
+      <PageHeader
+        icon={<WarehouseOutlined color="primary" />}
+        title={t('title')}
+        description={t('subtitle')}
+        actions={canCreate && (
           <Button startIcon={<Add />} variant="contained" onClick={openCreateForm}>
             {t('actions.new')}
           </Button>
         )}
-      </Stack>
+      />
 
-      <Card>
-        <CardContent>
-          <Stack
-            direction={{ xs: 'column', md: 'row' }}
-            spacing={2}
-            sx={{ alignItems: { xs: 'stretch', md: 'center' }, mb: 2.5 }}
-          >
-            <TextField
-              value={search}
-              onChange={(event) => handleSearchChange(event.target.value)}
-              placeholder={t('filters.search')}
-              sx={{ flexGrow: 1 }}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Search fontSize="small" />
-                    </InputAdornment>
-                  ),
-                },
-              }}
-            />
+      <PageToolbar
+        searchValue={search}
+        searchPlaceholder={t('filters.search')}
+        onSearchChange={(value) => { setSearch(value); setPage(0) }}
+        filters={
+          <>
             <TextField
               select
               value={typeFilter}
               onChange={(event) => handleTypeFilterChange(event.target.value)}
               label={t('filters.type')}
-              sx={{ minWidth: { xs: '100%', md: 180 } }}
+              sx={{ minWidth: { xs: '100%', sm: 180 } }}
             >
               <MenuItem value="">{t('filters.allTypes')}</MenuItem>
               {warehouseTypes.map((type) => (
@@ -208,106 +222,47 @@ export default function WarehousesPage() {
               getOptionLabel={(branch) => branch.name}
               getOptionDescription={(branch) => branch.code}
               onChange={handleBranchFilterChange}
-              sx={{ minWidth: { xs: '100%', md: 220 } }}
+              sx={{ minWidth: { xs: '100%', sm: 220 } }}
             />
-          </Stack>
+          </>
+        }
+      />
 
-          {warehousesQuery.isError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {toAppApiError(warehousesQuery.error).message}
-            </Alert>
-          )}
+      {warehousesQuery.isError && (
+        <Alert severity="error">{toAppApiError(warehousesQuery.error).message}</Alert>
+      )}
 
-          {branchesQuery.isError && (
-            <Alert severity="warning" sx={{ mb: 2 }}>
-              {toAppApiError(branchesQuery.error).message}
-            </Alert>
-          )}
+      {branchesQuery.isError && (
+        <Alert severity="warning">{toAppApiError(branchesQuery.error).message}</Alert>
+      )}
 
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('columns.warehouse')}</TableCell>
-                  <TableCell>{t('columns.type')}</TableCell>
-                  <TableCell>{t('columns.branch')}</TableCell>
-                  <TableCell>{t('columns.stockPolicy')}</TableCell>
-                  <TableCell>{t('columns.default')}</TableCell>
-                  <TableCell>{t('columns.status')}</TableCell>
-                  <TableCell align="center">{t('columns.actions')}</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {warehousesQuery.isLoading && <TableStateRow colSpan={7} loading />}
-
-                {!warehousesQuery.isLoading && warehouses.length === 0 && (
-                  <TableStateRow colSpan={7} message={t('empty')} />
-                )}
-
-                {warehouses.map((warehouse) => (
-                  <TableRow key={warehouse.id} hover>
-                    <TableCell>
-                      <Stack spacing={0.25}>
-                        <Typography variant="subtitle2">{warehouse.name}</Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {warehouse.code}
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-                    <TableCell>{t(`type.${warehouse.type}`)}</TableCell>
-                    <TableCell>{warehouse.branch?.name ?? t('placeholders.noBranch')}</TableCell>
-                    <TableCell>
-                      {warehouse.allow_negative_stock ? (
-                        <Chip size="small" color="warning" label={t('badges.negativeStock')} />
-                      ) : (
-                        '-'
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      {warehouse.is_default ? (
-                        <Chip size="small" color="primary" label={t('badges.default')} />
-                      ) : (
-                        '-'
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        size="small"
-                        label={warehouse.is_active ? t('common:status.active') : t('common:status.inactive')}
-                        color={warehouse.is_active ? 'success' : 'default'}
-                      />
-                    </TableCell>
-                    <TableCell align="center">
-                      <RowActions
-                        editLabel={t('common:buttons.edit')}
-                        deleteLabel={t('common:buttons.delete')}
-                        showEdit={canEdit}
-                        showDelete={canDelete}
-                        deleteDisabled={deleteWarehouse.isPending}
-                        onEdit={() => openEditForm(warehouse)}
-                        onDelete={() => setDeletingWarehouse(warehouse)}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          <TablePagination
-            component="div"
-            count={meta?.total ?? 0}
-            page={page}
-            rowsPerPage={perPage}
-            rowsPerPageOptions={rowsPerPageOptions}
-            onPageChange={(_, nextPage) => setPage(nextPage)}
-            onRowsPerPageChange={(event) => {
-              setPerPage(Number(event.target.value))
-              setPage(0)
-            }}
+      <EntityTable
+        rows={warehouses}
+        columns={columns}
+        getRowKey={(warehouse) => warehouse.id}
+        loading={warehousesQuery.isLoading}
+        emptyIcon={<WarehouseOutlined />}
+        emptyTitle={t('empty')}
+        emptyDescription="Try changing your filters or create a new warehouse."
+        pagination={{
+          page,
+          rowsPerPage: perPage,
+          count: meta?.total ?? 0,
+          onPageChange: setPage,
+          onRowsPerPageChange: (nextPerPage) => { setPerPage(nextPerPage); setPage(0) },
+        }}
+        rowActions={(warehouse) => (
+          <RowActions
+            editLabel={t('common:buttons.edit')}
+            deleteLabel={t('common:buttons.delete')}
+            showEdit={canEdit}
+            showDelete={canDelete}
+            deleteDisabled={deleteWarehouse.isPending}
+            onEdit={() => openEditForm(warehouse)}
+            onDelete={() => setDeletingWarehouse(warehouse)}
           />
-        </CardContent>
-      </Card>
+        )}
+      />
 
       <WarehouseFormDialog
         key={`${formOpen ? 'open' : 'closed'}-${editingWarehouse?.id ?? 'new'}`}

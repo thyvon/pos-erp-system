@@ -19,6 +19,7 @@ import {
   Typography,
 } from '@mui/material'
 import { ArrowBack, SaveOutlined } from '@/components/ui/icons'
+import PageHeader from '@/components/common/PageHeader'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
@@ -103,23 +104,21 @@ export function StockCountFormPage() {
 
   return (
     <Stack spacing={3}>
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ justifyContent: 'space-between' }}>
-        <Box>
-          <Typography variant="h4">{t('counts.form.createTitle')}</Typography>
-          <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
-            {t('counts.form.pageSubtitle')}
-          </Typography>
-        </Box>
-        <Tooltip title={t('counts.actions.backToList')}>
-          <IconButton
-            size="small"
-            aria-label={t('counts.actions.backToList')}
-            onClick={() => router.push('/inventory/counts')}
-          >
-            <ArrowBack />
-          </IconButton>
-        </Tooltip>
-      </Stack>
+      <PageHeader
+        title={t('counts.form.createTitle')}
+        description={t('counts.form.pageSubtitle')}
+        actions={
+          <Tooltip title={t('counts.actions.backToList')}>
+            <IconButton
+              size="small"
+              aria-label={t('counts.actions.backToList')}
+              onClick={() => router.push('/inventory/counts')}
+            >
+              <ArrowBack />
+            </IconButton>
+          </Tooltip>
+        }
+      />
 
       {optionsQuery.isError && <Alert severity="error">{toAppApiError(optionsQuery.error).message}</Alert>}
 

@@ -19,6 +19,7 @@ import {
   Typography,
 } from '@mui/material'
 import { ArrowBack, EditOutlined, ImageOutlined, LocalOfferOutlined } from '@/components/ui/icons'
+import PageHeader from '@/components/common/PageHeader'
 import { useTranslation } from 'react-i18next'
 import { resolveAssetUrl } from '@/api/assets'
 import { toAppApiError } from '@/api/errors'
@@ -143,23 +144,17 @@ export function ProductDetailPage({ productId }: ProductDetailPageProps) {
           >
             <ImageOutlined />
           </Avatar>
-          <Box sx={{ minWidth: 0 }}>
-            <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', alignItems: 'center' }}>
-              <Typography variant="h4" sx={{ overflowWrap: 'anywhere' }}>
-                {product.name}
-              </Typography>
-              <Chip size="small" variant="outlined" label={t(`types.${product.type}`)} />
-              <Chip
-                size="small"
-                color={product.is_active ? 'success' : 'default'}
-                variant="outlined"
-                label={product.is_active ? t('common:status.active') : t('common:status.inactive')}
-              />
-            </Stack>
-            <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
-              {product.sku || t('labels.noSku')}
-            </Typography>
-          </Box>
+          <PageHeader
+            title={product.name}
+            description={product.sku || t('labels.noSku')}
+            meta={
+              <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', alignItems: 'center' }}>
+                <Chip size="small" variant="outlined" label={t(`types.${product.type}`)} />
+                <Chip size="small" color={product.is_active ? 'success' : 'default'} variant="outlined"
+                  label={product.is_active ? t('common:status.active') : t('common:status.inactive')} />
+              </Stack>
+            }
+          />
         </Stack>
 
         <Stack direction="row" spacing={1.5} sx={{ justifyContent: { xs: 'flex-end', md: 'initial' } }}>

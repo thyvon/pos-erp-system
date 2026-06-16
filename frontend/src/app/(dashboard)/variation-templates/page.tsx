@@ -3,30 +3,20 @@
 import { useMemo, useState } from 'react'
 import {
   Alert,
-  Box,
   Button,
-  Card,
-  CardContent,
   Chip,
-  InputAdornment,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TablePagination,
-  TableRow,
-  TextField,
   Typography,
 } from '@mui/material'
-import { Add, PaletteOutlined, Search } from '@/components/ui/icons'
+import { Add, PaletteOutlined } from '@/components/ui/icons'
+import PageHeader from '@/components/common/PageHeader'
+import PageToolbar from '@/components/common/PageToolbar'
+import EntityTable, { type EntityTableColumn } from '@/components/common/EntityTable'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { RowActions } from '@/components/ui/RowActions'
-import { TableStateRow } from '@/components/ui/TableStateRow'
 import { VariationTemplateFormDialog } from '@/features/variation-templates/VariationTemplateFormDialog'
 import {
   useCreateVariationTemplateMutation,
@@ -40,8 +30,6 @@ import type {
   VariationTemplateFilters,
   VariationTemplatePayload,
 } from '@/types/variationTemplate'
-
-const rowsPerPageOptions = [10, 25, 50]
 
 export default function VariationTemplatesPage() {
   const { t } = useTranslation(['variationTemplates', 'common'])
@@ -109,123 +97,96 @@ export default function VariationTemplatesPage() {
     }
   }
 
-  return (
-    <Stack spacing={3}>
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={2}
-        sx={{ alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between' }}
-      >
-        <Box>
-          <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-            <PaletteOutlined color="primary" />
-            <Typography variant="h4">{t('title')}</Typography>
+  const columns: EntityTableColumn<VariationTemplate>[] = useMemo(
+    () => [
+      {
+        key: 'name',
+        label: t('columns.name'),
+        render: (template) => (
+          <Typography variant="subtitle2">{template.name}</Typography>
+        ),
+      },
+      {
+        key: 'values',
+        label: t('columns.values'),
+        render: (template) => (
+          <Stack direction="row" spacing={0.75} useFlexGap sx={{ flexWrap: 'wrap' }}>
+            {template.values.length > 0 ? (
+              template.values.map((value) => (
+                <Chip key={value.id} size="small" label={value.name} variant="outlined" />
+              ))
+            ) : (
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                {t('labels.noValues')}
+              </Typography>
+            )}
           </Stack>
-          <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
-            {t('subtitle')}
-          </Typography>
-        </Box>
-        {canCreate && (
+        ),
+      },
+      {
+        key: 'valueCount',
+        label: t('columns.valueCount'),
+        render: (template) => template.values_count,
+      },
+    ],
+    [t]
+  )
+
+  return (
+    <Stack spacing={2.5}>
+      <PageHeader
+        icon={<PaletteOutlined color="primary" />}
+        title={t('title')}
+        description={t('subtitle')}
+        actions={canCreate && (
           <Button startIcon={<Add />} variant="contained" onClick={openCreateForm}>
             {t('actions.new')}
           </Button>
         )}
-      </Stack>
+      />
 
-      <Card>
-        <CardContent>
-          <TextField
-            value={search}
-            onChange={(event) => {
-              setSearch(event.target.value)
-              setPage(0)
-            }}
-            placeholder={t('filters.search')}
-            sx={{ mb: 2.5, width: '100%' }}
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search fontSize="small" />
-                  </InputAdornment>
-                ),
-              },
-            }}
+      <PageToolbar
+        searchValue={search}
+        searchPlaceholder={t('filters.search')}
+        onSearchChange={(value) => {
+          setSearch(value)
+          setPage(0)
+        }}
+      />
+
+      {templatesQuery.isError && (
+        <Alert severity="error">{toAppApiError(templatesQuery.error).message}</Alert>
+      )}
+
+      <EntityTable
+        rows={templates}
+        columns={columns}
+        getRowKey={(template) => template.id}
+        loading={templatesQuery.isLoading}
+        emptyIcon={<PaletteOutlined />}
+        emptyTitle={t('empty')}
+        pagination={{
+          page,
+          rowsPerPage: perPage,
+          count: meta?.total ?? 0,
+          onPageChange: setPage,
+          onRowsPerPageChange: (nextPerPage) => {
+            setPerPage(nextPerPage)
+            setPage(0)
+          },
+        }}
+        rowActions={(template) => (
+          <RowActions
+            editLabel={t('common:buttons.edit')}
+            deleteLabel={t('common:buttons.delete')}
+            showEdit={canEdit}
+            showDelete={canDelete}
+            deleteDisabled={deleteTemplate.isPending}
+            onEdit={() => openEditForm(template)}
+            onDelete={() => setDeletingTemplate(template)}
           />
-
-          {templatesQuery.isError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {toAppApiError(templatesQuery.error).message}
-            </Alert>
-          )}
-
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('columns.name')}</TableCell>
-                  <TableCell>{t('columns.values')}</TableCell>
-                  <TableCell>{t('columns.valueCount')}</TableCell>
-                  <TableCell align="center">{t('columns.actions')}</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {templatesQuery.isLoading && <TableStateRow colSpan={4} loading />}
-
-                {!templatesQuery.isLoading && templates.length === 0 && (
-                  <TableStateRow colSpan={4} message={t('empty')} />
-                )}
-
-                {templates.map((template) => (
-                  <TableRow key={template.id} hover>
-                    <TableCell>
-                      <Typography variant="subtitle2">{template.name}</Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Stack direction="row" spacing={0.75} useFlexGap sx={{ flexWrap: 'wrap' }}>
-                        {template.values.length > 0 ? (
-                          template.values.map((value) => (
-                            <Chip key={value.id} size="small" label={value.name} variant="outlined" />
-                          ))
-                        ) : (
-                          <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                            {t('labels.noValues')}
-                          </Typography>
-                        )}
-                      </Stack>
-                    </TableCell>
-                    <TableCell>{template.values_count}</TableCell>
-                    <TableCell align="center">
-                      <RowActions
-                        editLabel={t('common:buttons.edit')}
-                        deleteLabel={t('common:buttons.delete')}
-                        showEdit={canEdit}
-                        showDelete={canDelete}
-                        deleteDisabled={deleteTemplate.isPending}
-                        onEdit={() => openEditForm(template)}
-                        onDelete={() => setDeletingTemplate(template)}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          <TablePagination
-            component="div"
-            count={meta?.total ?? 0}
-            page={page}
-            rowsPerPage={perPage}
-            rowsPerPageOptions={rowsPerPageOptions}
-            onPageChange={(_, nextPage) => setPage(nextPage)}
-            onRowsPerPageChange={(event) => {
-              setPerPage(Number(event.target.value))
-              setPage(0)
-            }}
-          />
-        </CardContent>
-      </Card>
+        )}
+      />
 
       <VariationTemplateFormDialog
         key={`${formOpen ? 'open' : 'closed'}-${editingTemplate?.id ?? 'new'}`}

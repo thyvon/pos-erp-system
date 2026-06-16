@@ -19,6 +19,7 @@ import {
   Typography,
 } from '@mui/material'
 import { ArrowBack } from '@/components/ui/icons'
+import PageHeader from '@/components/common/PageHeader'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { usePurchaseReturnQuery } from './hooks'
@@ -84,20 +85,22 @@ export function PurchaseReturnDetailPage({ purchaseReturnId }: PurchaseReturnDet
 
   return (
     <Stack spacing={3}>
-      <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+      <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
         <NextLink href="/purchase-returns" passHref legacyBehavior>
           <IconButton component="a" size="small">
             <ArrowBack />
           </IconButton>
         </NextLink>
-        <Typography variant="h4" sx={{ flex: 1 }}>
-          {purchaseReturn.return_number}
-        </Typography>
-        <Chip
-          size="small"
-          label={t('returns.status.completed')}
-          color={purchaseReturn.status === 'completed' ? 'success' : 'default'}
-          variant="outlined"
+        <PageHeader
+          title={purchaseReturn.return_number}
+          meta={
+            <Chip
+              size="small"
+              label={t('returns.status.completed')}
+              color={purchaseReturn.status === 'completed' ? 'success' : 'default'}
+              variant="outlined"
+            />
+          }
         />
       </Stack>
 

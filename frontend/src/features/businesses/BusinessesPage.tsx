@@ -3,30 +3,21 @@
 import { useMemo, useState } from 'react'
 import {
   Alert,
-  Box,
   Button,
-  Card,
-  CardContent,
   Chip,
-  InputAdornment,
   MenuItem,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TablePagination,
-  TableRow,
   TextField,
   Typography,
 } from '@mui/material'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
-import { Add, BusinessOutlined, Search } from '@/components/ui/icons'
+import { Add, BusinessOutlined } from '@/components/ui/icons'
+import EntityTable, { type EntityTableColumn } from '@/components/common/EntityTable'
+import PageHeader from '@/components/common/PageHeader'
+import PageToolbar from '@/components/common/PageToolbar'
 import { toAppApiError } from '@/api/errors'
 import { RowActions } from '@/components/ui/RowActions'
-import { TableStateRow } from '@/components/ui/TableStateRow'
 import { useAuthStore } from '@/stores/authStore'
 import { BusinessFormDialog } from './BusinessFormDialog'
 import { BusinessModulesDialog } from './BusinessModulesDialog'
@@ -44,8 +35,6 @@ import type {
   ManagedBusinessStatus,
   ManagedBusinessTier,
 } from '@/types/businessManagement'
-
-const rowsPerPageOptions = [10, 25, 50]
 
 function statusColor(status: ManagedBusinessStatus) {
   if (status === 'active') return 'success'
@@ -95,6 +84,84 @@ export function BusinessesPage() {
   const canCreate = can('businesses.create')
   const canEdit = can('businesses.edit')
 
+  const columns = useMemo<EntityTableColumn<ManagedBusiness>[]>(
+    () => [
+      {
+        key: 'business',
+        label: t('columns.business'),
+        render: (business) => (
+          <Stack spacing={0.25}>
+            <Typography variant="subtitle2">{business.name}</Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              {business.legal_name || business.email}
+            </Typography>
+            {business.tax_id && (
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                {t('summary.taxId', { taxId: business.tax_id })}
+              </Typography>
+            )}
+          </Stack>
+        ),
+      },
+      {
+        key: 'owner',
+        label: t('columns.owner'),
+        render: (business) => (
+          <Stack spacing={0.25}>
+            <Typography variant="body2">
+              {business.owner?.full_name || t('summary.noOwner')}
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              {business.owner?.email || '-'}
+            </Typography>
+          </Stack>
+        ),
+      },
+      {
+        key: 'plan',
+        label: t('columns.plan'),
+        render: (business) => (
+          <Stack spacing={0.75} sx={{ alignItems: 'flex-start' }}>
+            <Chip
+              size="small"
+              color={tierColor(business.tier)}
+              label={t(`tiers.${business.tier}`)}
+            />
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              {t('summary.limits', {
+                users: business.max_users,
+                branches: business.max_branches,
+              })}
+            </Typography>
+          </Stack>
+        ),
+      },
+      {
+        key: 'usage',
+        label: t('columns.usage'),
+        render: (business) => (
+          <Stack direction="row" spacing={0.75} sx={{ flexWrap: 'wrap', rowGap: 0.75 }}>
+            <Chip size="small" variant="outlined" label={t('summary.usersCount', { count: business.usage.users_count })} />
+            <Chip size="small" variant="outlined" label={t('summary.branchesCount', { count: business.usage.branches_count })} />
+            <Chip size="small" variant="outlined" label={t('summary.warehousesCount', { count: business.usage.warehouses_count })} />
+          </Stack>
+        ),
+      },
+      {
+        key: 'status',
+        label: t('columns.status'),
+        render: (business) => (
+          <Chip
+            size="small"
+            color={statusColor(business.status)}
+            label={t(`statuses.${business.status}`)}
+          />
+        ),
+      },
+    ],
+    [t]
+  )
+
   const openCreateForm = () => {
     setEditingBusiness(null)
     setFormOpen(true)
@@ -138,53 +205,27 @@ export function BusinessesPage() {
   }
 
   return (
-    <Stack spacing={3}>
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={2}
-        sx={{ alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between' }}
-      >
-        <Box>
-          <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-            <BusinessOutlined color="primary" />
-            <Typography variant="h4">{t('title')}</Typography>
-          </Stack>
-          <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
-            {t('subtitle')}
-          </Typography>
-        </Box>
-        {canCreate && (
+    <Stack spacing={2.5}>
+      <PageHeader
+        icon={<BusinessOutlined color="primary" />}
+        title={t('title')}
+        description={t('subtitle')}
+        actions={canCreate && (
           <Button startIcon={<Add />} variant="contained" onClick={openCreateForm}>
             {t('actions.new')}
           </Button>
         )}
-      </Stack>
+      />
 
-      <Card>
-        <CardContent>
-          <Stack
-            direction={{ xs: 'column', md: 'row' }}
-            spacing={2}
-            sx={{ alignItems: { xs: 'stretch', md: 'center' }, mb: 2.5 }}
-          >
-            <TextField
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value)
-                setPage(0)
-              }}
-              placeholder={t('filters.search')}
-              sx={{ flexGrow: 1 }}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Search fontSize="small" />
-                    </InputAdornment>
-                  ),
-                },
-              }}
-            />
+      <PageToolbar
+        searchValue={search}
+        searchPlaceholder={t('filters.search')}
+        onSearchChange={(value) => {
+          setSearch(value)
+          setPage(0)
+        }}
+        filters={
+          <>
             <TextField
               select
               value={status}
@@ -215,119 +256,45 @@ export function BusinessesPage() {
               <MenuItem value="standard">{t('tiers.standard')}</MenuItem>
               <MenuItem value="enterprise">{t('tiers.enterprise')}</MenuItem>
             </TextField>
-          </Stack>
+          </>
+        }
+      />
 
-          {businessesQuery.isError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {toAppApiError(businessesQuery.error).message}
-            </Alert>
-          )}
+      {businessesQuery.isError && (
+        <Alert severity="error">
+          {toAppApiError(businessesQuery.error).message}
+        </Alert>
+      )}
 
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('columns.business')}</TableCell>
-                  <TableCell>{t('columns.owner')}</TableCell>
-                  <TableCell>{t('columns.plan')}</TableCell>
-                  <TableCell>{t('columns.usage')}</TableCell>
-                  <TableCell>{t('columns.status')}</TableCell>
-                  <TableCell align="center">{t('columns.actions')}</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {businessesQuery.isLoading && <TableStateRow colSpan={6} loading />}
-
-                {!businessesQuery.isLoading && businesses.length === 0 && (
-                  <TableStateRow colSpan={6} message={t('empty')} />
-                )}
-
-                {businesses.map((business) => (
-                  <TableRow key={business.id} hover>
-                    <TableCell>
-                      <Stack spacing={0.25}>
-                        <Typography variant="subtitle2">{business.name}</Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {business.legal_name || business.email}
-                        </Typography>
-                        {business.tax_id && (
-                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                            {t('summary.taxId', { taxId: business.tax_id })}
-                          </Typography>
-                        )}
-                      </Stack>
-                    </TableCell>
-                    <TableCell>
-                      <Stack spacing={0.25}>
-                        <Typography variant="body2">
-                          {business.owner?.full_name || t('summary.noOwner')}
-                        </Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {business.owner?.email || '-'}
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-                    <TableCell>
-                      <Stack spacing={0.75} sx={{ alignItems: 'flex-start' }}>
-                        <Chip
-                          size="small"
-                          color={tierColor(business.tier)}
-                          label={t(`tiers.${business.tier}`)}
-                        />
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {t('summary.limits', {
-                            users: business.max_users,
-                            branches: business.max_branches,
-                          })}
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-                    <TableCell>
-                      <Stack direction="row" spacing={0.75} sx={{ flexWrap: 'wrap', rowGap: 0.75 }}>
-                        <Chip size="small" variant="outlined" label={t('summary.usersCount', { count: business.usage.users_count })} />
-                        <Chip size="small" variant="outlined" label={t('summary.branchesCount', { count: business.usage.branches_count })} />
-                        <Chip size="small" variant="outlined" label={t('summary.warehousesCount', { count: business.usage.warehouses_count })} />
-                      </Stack>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        size="small"
-                        color={statusColor(business.status)}
-                        label={t(`statuses.${business.status}`)}
-                      />
-                    </TableCell>
-                    <TableCell align="center">
-                      <RowActions
-                        viewLabel={t('modules.actions.manage')}
-                        editLabel={t('common:buttons.edit')}
-                        deleteLabel={t('common:buttons.delete')}
-                        showView={canEdit}
-                        showEdit={canEdit}
-                        showDelete={false}
-                        onView={() => openModulesDialog(business)}
-                        onEdit={() => openEditForm(business)}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          <TablePagination
-            component="div"
-            count={meta?.total ?? 0}
-            page={page}
-            rowsPerPage={perPage}
-            rowsPerPageOptions={rowsPerPageOptions}
-            onPageChange={(_, nextPage) => setPage(nextPage)}
-            onRowsPerPageChange={(event) => {
-              setPerPage(Number(event.target.value))
-              setPage(0)
-            }}
+      <EntityTable
+        rows={businesses}
+        columns={columns}
+        getRowKey={(business) => business.id}
+        loading={businessesQuery.isLoading}
+        emptyTitle={t('empty')}
+        pagination={{
+          page,
+          rowsPerPage: perPage,
+          count: meta?.total ?? 0,
+          onPageChange: setPage,
+          onRowsPerPageChange: (nextPerPage) => {
+            setPerPage(nextPerPage)
+            setPage(0)
+          },
+        }}
+        rowActions={(business) => (
+          <RowActions
+            viewLabel={t('modules.actions.manage')}
+            editLabel={t('common:buttons.edit')}
+            deleteLabel={t('common:buttons.delete')}
+            showView={canEdit}
+            showEdit={canEdit}
+            showDelete={false}
+            onView={() => openModulesDialog(business)}
+            onEdit={() => openEditForm(business)}
           />
-        </CardContent>
-      </Card>
+        )}
+      />
 
       <BusinessFormDialog
         key={`${formOpen ? 'open' : 'closed'}-${editingBusiness?.id ?? 'new'}`}

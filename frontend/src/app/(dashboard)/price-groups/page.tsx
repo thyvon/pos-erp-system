@@ -3,30 +3,20 @@
 import { useMemo, useState } from 'react'
 import {
   Alert,
-  Box,
   Button,
-  Card,
-  CardContent,
   Chip,
-  InputAdornment,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TablePagination,
-  TableRow,
-  TextField,
   Typography,
 } from '@mui/material'
-import { Add, LocalAtmOutlined, Search } from '@/components/ui/icons'
+import { Add, LocalAtmOutlined } from '@/components/ui/icons'
+import PageHeader from '@/components/common/PageHeader'
+import PageToolbar from '@/components/common/PageToolbar'
+import EntityTable, { type EntityTableColumn } from '@/components/common/EntityTable'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { RowActions } from '@/components/ui/RowActions'
-import { TableStateRow } from '@/components/ui/TableStateRow'
 import { PriceGroupFormDialog } from '@/features/price-groups/PriceGroupFormDialog'
 import {
   useCreatePriceGroupMutation,
@@ -36,8 +26,6 @@ import {
 } from '@/features/price-groups/hooks'
 import { useAuthStore } from '@/stores/authStore'
 import type { PriceGroup, PriceGroupFilters, PriceGroupPayload } from '@/types/priceGroup'
-
-const rowsPerPageOptions = [10, 25, 50]
 
 export default function PriceGroupsPage() {
   const { t } = useTranslation(['priceGroups', 'common'])
@@ -105,132 +93,108 @@ export default function PriceGroupsPage() {
     }
   }
 
-  return (
-    <Stack spacing={3}>
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={2}
-        sx={{ alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between' }}
-      >
-        <Box>
-          <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-            <LocalAtmOutlined color="primary" />
-            <Typography variant="h4">{t('title')}</Typography>
-          </Stack>
-          <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
-            {t('subtitle')}
+  const columns: EntityTableColumn<PriceGroup>[] = useMemo(
+    () => [
+      {
+        key: 'name',
+        label: t('columns.name'),
+        render: (priceGroup) => (
+          <Typography variant="subtitle2">{priceGroup.name}</Typography>
+        ),
+      },
+      {
+        key: 'description',
+        label: t('columns.description'),
+        render: (priceGroup) => (
+          <Typography
+            variant="body2"
+            sx={{
+              maxWidth: 520,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {priceGroup.description || '-'}
           </Typography>
-        </Box>
-        {canCreate && (
+        ),
+      },
+      {
+        key: 'default',
+        label: t('columns.default'),
+        render: (priceGroup) => (
+          <Chip
+            size="small"
+            label={priceGroup.is_default ? t('labels.default') : t('labels.standard')}
+            color={priceGroup.is_default ? 'primary' : 'default'}
+            variant="outlined"
+          />
+        ),
+      },
+      {
+        key: 'customerGroups',
+        label: t('columns.customerGroups'),
+        render: (priceGroup) => priceGroup.customer_groups_count,
+      },
+    ],
+    [t]
+  )
+
+  return (
+    <Stack spacing={2.5}>
+      <PageHeader
+        icon={<LocalAtmOutlined color="primary" />}
+        title={t('title')}
+        description={t('subtitle')}
+        actions={canCreate && (
           <Button startIcon={<Add />} variant="contained" onClick={openCreateForm}>
             {t('actions.new')}
           </Button>
         )}
-      </Stack>
+      />
 
-      <Card>
-        <CardContent>
-          <TextField
-            value={search}
-            onChange={(event) => {
-              setSearch(event.target.value)
-              setPage(0)
-            }}
-            placeholder={t('filters.search')}
-            sx={{ mb: 2.5, width: '100%' }}
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search fontSize="small" />
-                  </InputAdornment>
-                ),
-              },
-            }}
+      <PageToolbar
+        searchValue={search}
+        searchPlaceholder={t('filters.search')}
+        onSearchChange={(value) => {
+          setSearch(value)
+          setPage(0)
+        }}
+      />
+
+      {priceGroupsQuery.isError && (
+        <Alert severity="error">{toAppApiError(priceGroupsQuery.error).message}</Alert>
+      )}
+
+      <EntityTable
+        rows={priceGroups}
+        columns={columns}
+        getRowKey={(priceGroup) => priceGroup.id}
+        loading={priceGroupsQuery.isLoading}
+        emptyIcon={<LocalAtmOutlined />}
+        emptyTitle={t('empty')}
+        pagination={{
+          page,
+          rowsPerPage: perPage,
+          count: meta?.total ?? 0,
+          onPageChange: setPage,
+          onRowsPerPageChange: (nextPerPage) => {
+            setPerPage(nextPerPage)
+            setPage(0)
+          },
+        }}
+        rowActions={(priceGroup) => (
+          <RowActions
+            editLabel={t('common:buttons.edit')}
+            deleteLabel={t('common:buttons.delete')}
+            showEdit={canEdit}
+            showDelete={canDelete}
+            deleteDisabled={deletePriceGroup.isPending}
+            onEdit={() => openEditForm(priceGroup)}
+            onDelete={() => setDeletingPriceGroup(priceGroup)}
           />
-
-          {priceGroupsQuery.isError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {toAppApiError(priceGroupsQuery.error).message}
-            </Alert>
-          )}
-
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('columns.name')}</TableCell>
-                  <TableCell>{t('columns.description')}</TableCell>
-                  <TableCell>{t('columns.default')}</TableCell>
-                  <TableCell>{t('columns.customerGroups')}</TableCell>
-                  <TableCell align="center">{t('columns.actions')}</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {priceGroupsQuery.isLoading && <TableStateRow colSpan={5} loading />}
-
-                {!priceGroupsQuery.isLoading && priceGroups.length === 0 && (
-                  <TableStateRow colSpan={5} message={t('empty')} />
-                )}
-
-                {priceGroups.map((priceGroup) => (
-                  <TableRow key={priceGroup.id} hover>
-                    <TableCell>
-                      <Typography variant="subtitle2">{priceGroup.name}</Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          maxWidth: 520,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {priceGroup.description || '-'}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        size="small"
-                        label={priceGroup.is_default ? t('labels.default') : t('labels.standard')}
-                        color={priceGroup.is_default ? 'primary' : 'default'}
-                        variant="outlined"
-                      />
-                    </TableCell>
-                    <TableCell>{priceGroup.customer_groups_count}</TableCell>
-                    <TableCell align="center">
-                      <RowActions
-                        editLabel={t('common:buttons.edit')}
-                        deleteLabel={t('common:buttons.delete')}
-                        showEdit={canEdit}
-                        showDelete={canDelete}
-                        deleteDisabled={deletePriceGroup.isPending}
-                        onEdit={() => openEditForm(priceGroup)}
-                        onDelete={() => setDeletingPriceGroup(priceGroup)}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          <TablePagination
-            component="div"
-            count={meta?.total ?? 0}
-            page={page}
-            rowsPerPage={perPage}
-            rowsPerPageOptions={rowsPerPageOptions}
-            onPageChange={(_, nextPage) => setPage(nextPage)}
-            onRowsPerPageChange={(event) => {
-              setPerPage(Number(event.target.value))
-              setPage(0)
-            }}
-          />
-        </CardContent>
-      </Card>
+        )}
+      />
 
       <PriceGroupFormDialog
         key={`${formOpen ? 'open' : 'closed'}-${editingPriceGroup?.id ?? 'new'}`}

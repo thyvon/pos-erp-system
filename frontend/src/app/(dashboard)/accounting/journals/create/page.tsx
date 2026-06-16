@@ -27,6 +27,7 @@ import {
   Typography,
 } from '@mui/material'
 import { ArrowBack, DeleteOutlined, ReceiptLongOutlined } from '@/components/ui/icons'
+import PageHeader from '@/components/common/PageHeader'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
@@ -120,15 +121,11 @@ export default function CreateJournalPage() {
             <ArrowBack />
           </IconButton>
         </Tooltip>
-        <Box>
-          <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-            <ReceiptLongOutlined color="primary" />
-            <Typography variant="h4">{t('journals.create.title')}</Typography>
-          </Stack>
-          <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
-            {t('journals.create.subtitle')}
-          </Typography>
-        </Box>
+        <PageHeader
+          icon={<ReceiptLongOutlined color="primary" />}
+          title={t('journals.create.title')}
+          description={t('journals.create.subtitle')}
+        />
       </Stack>
 
       <Box component="form" noValidate onSubmit={handleSubmit(submitForm)}>

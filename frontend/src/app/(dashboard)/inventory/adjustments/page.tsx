@@ -1,38 +1,35 @@
 'use client'
 
-import { useMemo, useState } from 'react'
+import { useCallback, useMemo, useState } from 'react'
 import {
   Alert,
   Box,
   Button,
-  Card,
-  CardContent,
   Chip,
   CircularProgress,
   Dialog,
   DialogContent,
   DialogTitle,
   Divider,
-  InputAdornment,
   Stack,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
-  TablePagination,
   TableRow,
-  TextField,
   Typography,
 } from '@mui/material'
-import { Add, Inventory2Outlined, Search } from '@/components/ui/icons'
+import { Add, Inventory2Outlined } from '@/components/ui/icons'
+import PageHeader from '@/components/common/PageHeader'
+import PageToolbar from '@/components/common/PageToolbar'
+import EntityTable, { type EntityTableColumn } from '@/components/common/EntityTable'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
 import { RowActions } from '@/components/ui/RowActions'
 import { SearchableFilterSelect } from '@/components/ui/SearchableFilterSelect'
-import { TableStateRow } from '@/components/ui/TableStateRow'
 import { StockAdjustmentFormDialog } from '@/features/inventory/StockAdjustmentFormDialog'
 import {
   useCreateStockAdjustmentMutation,
@@ -45,8 +42,6 @@ import { useAppDateFormat } from '@/features/settings/useAppDateFormat'
 import { useAuthStore } from '@/stores/authStore'
 import { formatAppDate } from '@/utils/dateFormat'
 import type { StockAdjustment, StockAdjustmentFilters, StockAdjustmentPayload } from '@/types/inventory'
-
-const rowsPerPageOptions = [10, 25, 50]
 
 function formatQuantity(value: string | number | null | undefined) {
   if (value === null || value === undefined || value === '') return '-'
@@ -124,54 +119,136 @@ export default function StockAdjustmentsPage() {
     setEditingAdjustment(null)
   }
 
-  return (
-    <Stack spacing={3}>
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={2}
-        sx={{ alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between' }}
-      >
-        <Box>
-          <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-            <Inventory2Outlined color="primary" />
-            <Typography variant="h4">{t('adjustments.title')}</Typography>
-          </Stack>
-          <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
-            {t('adjustments.subtitle')}
+  const handleSearchChange = useCallback((value: string) => {
+    setSearch(value)
+    setPage(0)
+  }, [])
+
+  const handleWarehouseChange = useCallback((value: string) => {
+    setWarehouseFilter(value)
+    setPage(0)
+  }, [])
+
+  const handleDateFromChange = useCallback((value: string | null) => {
+    setDateFrom(value ?? '')
+    setPage(0)
+  }, [])
+
+  const handleDateToChange = useCallback((value: string | null) => {
+    setDateTo(value ?? '')
+    setPage(0)
+  }, [])
+
+  const clearFilters = useCallback(() => {
+    setWarehouseFilter('')
+    setDateFrom('')
+    setDateTo('')
+    setPage(0)
+  }, [])
+
+  const selectedWarehouse = warehouses.find((w) => w.id === warehouseFilter)
+
+  const activeFilters = useMemo(() => {
+    const chips: Array<{ key: string; label: string; onDelete: () => void }> = []
+    if (warehouseFilter && selectedWarehouse) {
+      chips.push({
+        key: 'warehouse',
+        label: selectedWarehouse.name,
+        onDelete: () => { setWarehouseFilter(''); setPage(0) },
+      })
+    }
+    if (dateFrom) {
+      chips.push({
+        key: 'dateFrom',
+        label: `${t('adjustments.filters.dateFrom')}: ${dateFrom}`,
+        onDelete: () => { setDateFrom(''); setPage(0) },
+      })
+    }
+    if (dateTo) {
+      chips.push({
+        key: 'dateTo',
+        label: `${t('adjustments.filters.dateTo')}: ${dateTo}`,
+        onDelete: () => { setDateTo(''); setPage(0) },
+      })
+    }
+    return chips
+  }, [warehouseFilter, dateFrom, dateTo, selectedWarehouse, t])
+
+  const columns: EntityTableColumn<StockAdjustment>[] = useMemo(() => [
+    {
+      key: 'reference',
+      label: t('adjustments.columns.reference'),
+      render: (adjustment) => (
+        <Typography variant="subtitle2">{adjustment.reference_no}</Typography>
+      ),
+    },
+    {
+      key: 'date',
+      label: t('adjustments.columns.date'),
+      render: (adjustment) => <>{formatAppDate(adjustment.date, dateFormat, i18n.language)}</>,
+    },
+    {
+      key: 'warehouse',
+      label: t('adjustments.columns.warehouse'),
+      render: (adjustment) => (
+        <Stack spacing={0.25}>
+          <Typography variant="body2">{adjustment.warehouse?.name ?? '-'}</Typography>
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+            {adjustment.warehouse?.branch_name ?? '-'}
           </Typography>
-        </Box>
-        {canCreate && (
+        </Stack>
+      ),
+    },
+    {
+      key: 'reason',
+      label: t('adjustments.columns.reason'),
+      render: (adjustment) => <>{adjustment.reason || '-'}</>,
+    },
+    {
+      key: 'items',
+      label: t('adjustments.columns.items'),
+      render: (adjustment) => <>{adjustment.items?.length ?? 0}</>,
+    },
+    {
+      key: 'createdBy',
+      label: t('adjustments.columns.createdBy'),
+      render: (adjustment) => <>{adjustment.creator?.name || '-'}</>,
+    },
+  ], [t, dateFormat, i18n.language])
+
+  return (
+    <Stack spacing={2.5}>
+      <PageHeader
+        icon={<Inventory2Outlined color="primary" />}
+        title={t('adjustments.title')}
+        description={t('adjustments.subtitle')}
+        actions={canCreate && (
           <Button startIcon={<Add />} variant="contained" onClick={openCreateForm}>
             {t('adjustments.actions.new')}
           </Button>
         )}
-      </Stack>
+      />
 
-      <Card>
-        <CardContent>
-          <Stack
-            direction={{ xs: 'column', lg: 'row' }}
-            spacing={2}
-            sx={{ alignItems: { xs: 'stretch', lg: 'center' }, mb: 2.5 }}
-          >
-            <TextField
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value)
-                setPage(0)
-              }}
-              placeholder={t('adjustments.filters.search')}
-              sx={{ flexGrow: 1 }}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Search fontSize="small" />
-                    </InputAdornment>
-                  ),
-                },
-              }}
-            />
+      {(adjustmentsQuery.isError || optionsQuery.isError) && (
+        <Stack spacing={1}>
+          {adjustmentsQuery.isError && (
+            <Alert severity="error">{toAppApiError(adjustmentsQuery.error).message}</Alert>
+          )}
+          {optionsQuery.isError && (
+            <Alert severity="error">{toAppApiError(optionsQuery.error).message}</Alert>
+          )}
+        </Stack>
+      )}
+
+      <PageToolbar
+        searchValue={search}
+        searchPlaceholder={t('adjustments.filters.search')}
+        onSearchChange={handleSearchChange}
+        activeFilters={activeFilters}
+        onClearFilters={clearFilters}
+        filterButtonLabel={t('adjustments.filters.warehouse')}
+        filters={
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
             <SearchableFilterSelect
               value={warehouseFilter}
               options={warehouses}
@@ -181,115 +258,53 @@ export default function StockAdjustmentsPage() {
               getOptionValue={(warehouse) => warehouse.id}
               getOptionLabel={(warehouse) => warehouse.name}
               getOptionDescription={(warehouse) => [warehouse.code, warehouse.branch_name].filter(Boolean).join(' / ')}
-              onChange={(value) => {
-                setWarehouseFilter(value)
-                setPage(0)
-              }}
-              sx={{ minWidth: { xs: '100%', lg: 240 } }}
+              onChange={handleWarehouseChange}
             />
-            <Box sx={{ minWidth: { xs: '100%', lg: 170 } }}>
-              <AppDatePicker
+            <AppDatePicker
               value={dateFrom}
-              onChange={(value) => {
-                setDateFrom(value ?? '')
-                setPage(0)
-              }}
+              onChange={handleDateFromChange}
               label={t('adjustments.filters.dateFrom')}
-              />
-            </Box>
-            <Box sx={{ minWidth: { xs: '100%', lg: 170 } }}>
-              <AppDatePicker
+            />
+            <AppDatePicker
               value={dateTo}
-              onChange={(value) => {
-                setDateTo(value ?? '')
-                setPage(0)
-              }}
+              onChange={handleDateToChange}
               label={t('adjustments.filters.dateTo')}
-              />
-            </Box>
+            />
           </Stack>
+        }
+      />
 
-          {adjustmentsQuery.isError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {toAppApiError(adjustmentsQuery.error).message}
-            </Alert>
-          )}
-
-          {optionsQuery.isError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {toAppApiError(optionsQuery.error).message}
-            </Alert>
-          )}
-
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('adjustments.columns.reference')}</TableCell>
-                  <TableCell>{t('adjustments.columns.date')}</TableCell>
-                  <TableCell>{t('adjustments.columns.warehouse')}</TableCell>
-                  <TableCell>{t('adjustments.columns.reason')}</TableCell>
-                  <TableCell>{t('adjustments.columns.items')}</TableCell>
-                  <TableCell>{t('adjustments.columns.createdBy')}</TableCell>
-                  <TableCell align="center">{t('adjustments.columns.actions')}</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {adjustmentsQuery.isLoading && <TableStateRow colSpan={7} loading />}
-
-                {!adjustmentsQuery.isLoading && adjustments.length === 0 && (
-                  <TableStateRow colSpan={7} message={t('adjustments.empty')} />
-                )}
-
-                {adjustments.map((adjustment) => (
-                  <TableRow key={adjustment.id} hover>
-                    <TableCell>
-                      <Typography variant="subtitle2">{adjustment.reference_no}</Typography>
-                    </TableCell>
-                    <TableCell>{formatAppDate(adjustment.date, dateFormat, i18n.language)}</TableCell>
-                    <TableCell>
-                      <Stack spacing={0.25}>
-                        <Typography variant="body2">{adjustment.warehouse?.name ?? '-'}</Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {adjustment.warehouse?.branch_name ?? '-'}
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-                    <TableCell>{adjustment.reason || '-'}</TableCell>
-                    <TableCell>{adjustment.items?.length ?? 0}</TableCell>
-                    <TableCell>{adjustment.creator?.name || '-'}</TableCell>
-                    <TableCell align="center">
-                      <RowActions
-                        viewLabel={t('adjustments.actions.view')}
-                        editLabel={t('common:buttons.edit')}
-                        deleteLabel={t('common:buttons.delete')}
-                        showView
-                        showEdit={canCreate}
-                        showDelete={false}
-                        onView={() => setViewingAdjustment(adjustment)}
-                        onEdit={() => openEditForm(adjustment)}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          <TablePagination
-            component="div"
-            count={meta?.total ?? 0}
-            page={page}
-            rowsPerPage={perPage}
-            rowsPerPageOptions={rowsPerPageOptions}
-            onPageChange={(_, nextPage) => setPage(nextPage)}
-            onRowsPerPageChange={(event) => {
-              setPerPage(Number(event.target.value))
-              setPage(0)
-            }}
+      <EntityTable
+        rows={adjustments}
+        columns={columns}
+        getRowKey={(adjustment) => adjustment.id}
+        loading={adjustmentsQuery.isLoading}
+        emptyIcon={<Inventory2Outlined />}
+        emptyTitle={t('adjustments.empty')}
+        emptyDescription=""
+        pagination={{
+          page,
+          rowsPerPage: perPage,
+          count: meta?.total ?? 0,
+          onPageChange: (newPage) => setPage(newPage),
+          onRowsPerPageChange: (newRowsPerPage) => {
+            setPerPage(newRowsPerPage)
+            setPage(0)
+          },
+        }}
+        rowActions={(adjustment) => (
+          <RowActions
+            viewLabel={t('adjustments.actions.view')}
+            editLabel={t('common:buttons.edit')}
+            deleteLabel={t('common:buttons.delete')}
+            showView
+            showEdit={canCreate}
+            showDelete={false}
+            onView={() => setViewingAdjustment(adjustment)}
+            onEdit={() => openEditForm(adjustment)}
           />
-        </CardContent>
-      </Card>
+        )}
+      />
 
       <StockAdjustmentFormDialog
         key={editingAdjustment?.id ?? (formOpen ? 'create' : 'closed')}

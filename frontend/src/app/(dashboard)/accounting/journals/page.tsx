@@ -15,7 +15,6 @@ import {
   DialogContent,
   DialogTitle,
   Divider,
-  InputAdornment,
   MenuItem,
   Stack,
   Table,
@@ -23,17 +22,18 @@ import {
   TableCell,
   TableContainer,
   TableHead,
-  TablePagination,
   TableRow,
   TextField,
   Typography,
 } from '@mui/material'
-import { Add, ReceiptLongOutlined, Search } from '@/components/ui/icons'
+import { Add, ReceiptLongOutlined } from '@/components/ui/icons'
+import PageHeader from '@/components/common/PageHeader'
+import PageToolbar from '@/components/common/PageToolbar'
+import EntityTable, { type EntityTableColumn } from '@/components/common/EntityTable'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { RowActions } from '@/components/ui/RowActions'
-import { TableStateRow } from '@/components/ui/TableStateRow'
 import { ReverseJournalDialog } from '@/features/accounting/ReverseJournalDialog'
 import {
   useJournalQuery,
@@ -46,8 +46,6 @@ import { useAuthStore } from '@/stores/authStore'
 import { formatMoney } from '@/utils/formatMoney'
 import { formatAppDateTime } from '@/utils/dateFormat'
 import type { Journal, JournalFilters, JournalReversePayload, JournalStatus } from '@/types/accounting'
-
-const rowsPerPageOptions = [10, 25, 50]
 
 const statuses: JournalStatus[] = ['posted', 'reversed']
 const journalTypes: string[] = ['manual', 'reversal']
@@ -86,6 +84,69 @@ export default function JournalsPage() {
   const selectedJournal = detailQuery.data ?? viewingJournal
   const canManage = can('accounting.journals') || can('accounting.index')
 
+  const columns: EntityTableColumn<Journal>[] = useMemo(
+    () => [
+      {
+        key: 'number',
+        label: t('journals.columns.number'),
+        render: (journal) => (
+          <Stack spacing={0.25}>
+            <Typography variant="subtitle2">{journal.journal_number}</Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              {t('journals.labels.lines', { count: journal.entry_count })}
+            </Typography>
+          </Stack>
+        ),
+      },
+      {
+        key: 'date',
+        label: t('journals.columns.date'),
+        render: (journal) => formatAppDateTime(journal.date, dateFormat, i18n.language),
+      },
+      {
+        key: 'type',
+        label: t('journals.columns.type'),
+        render: (journal) => t(`journals.types.${journal.journal_type}`, { defaultValue: journal.journal_type }),
+      },
+      {
+        key: 'description',
+        label: t('journals.columns.description'),
+        render: (journal) => (
+          <Typography
+            variant="body2"
+            sx={{
+              maxWidth: 420,
+              overflow: 'hidden',
+              textOverflow: 'ellipsis',
+              whiteSpace: 'nowrap',
+            }}
+          >
+            {journal.description}
+          </Typography>
+        ),
+      },
+      {
+        key: 'total',
+        label: t('journals.columns.total'),
+        align: 'right',
+        render: (journal) => formatMoney(journal.total, currencyFormatter),
+      },
+      {
+        key: 'status',
+        label: t('journals.columns.status'),
+        render: (journal) => (
+          <Chip
+            size="small"
+            label={t(`journals.statuses.${journal.status}`)}
+            color={journal.status === 'posted' ? 'success' : 'warning'}
+            variant="outlined"
+          />
+        ),
+      },
+    ],
+    [t, currencyFormatter, dateFormat, i18n.language]
+  )
+
   const handleReverse = async (payload: JournalReversePayload) => {
     if (!reversingJournal) return
 
@@ -98,27 +159,17 @@ export default function JournalsPage() {
   }
 
   return (
-    <Stack spacing={3}>
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={2}
-        sx={{ alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between' }}
-      >
-        <Box>
-          <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-            <ReceiptLongOutlined color="primary" />
-            <Typography variant="h4">{t('journals.title')}</Typography>
-          </Stack>
-          <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
-            {t('journals.subtitle')}
-          </Typography>
-        </Box>
-        {canManage && (
+    <Stack spacing={2.5}>
+      <PageHeader
+        icon={<ReceiptLongOutlined color="primary" />}
+        title={t('journals.title')}
+        description={t('journals.subtitle')}
+        actions={canManage && (
           <Button component={NextLink} href="/accounting/journals/create" startIcon={<Add />} variant="contained">
             {t('journals.actions.new')}
           </Button>
         )}
-      </Stack>
+      />
 
       <Box
         sx={{
@@ -146,31 +197,15 @@ export default function JournalsPage() {
         ))}
       </Box>
 
-      <Card>
-        <CardContent>
-          <Stack
-            direction={{ xs: 'column', lg: 'row' }}
-            spacing={2}
-            sx={{ alignItems: { xs: 'stretch', lg: 'center' }, mb: 2.5 }}
-          >
-            <TextField
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value)
-                setPage(0)
-              }}
-              placeholder={t('journals.filters.search')}
-              sx={{ flexGrow: 1 }}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Search fontSize="small" />
-                    </InputAdornment>
-                  ),
-                },
-              }}
-            />
+      <PageToolbar
+        searchValue={search}
+        searchPlaceholder={t('journals.filters.search')}
+        onSearchChange={(value) => {
+          setSearch(value)
+          setPage(0)
+        }}
+        filters={(
+          <>
             <TextField
               select
               value={statusFilter}
@@ -179,7 +214,6 @@ export default function JournalsPage() {
                 setPage(0)
               }}
               label={t('journals.filters.status')}
-              sx={{ minWidth: { xs: '100%', lg: 180 } }}
             >
               <MenuItem value="">{t('journals.filters.allStatuses')}</MenuItem>
               {statuses.map((status) => (
@@ -194,105 +228,52 @@ export default function JournalsPage() {
                 setPage(0)
               }}
               label={t('journals.filters.type')}
-              sx={{ minWidth: { xs: '100%', lg: 180 } }}
             >
               <MenuItem value="">{t('journals.filters.allTypes')}</MenuItem>
               {journalTypes.map((type) => (
                 <MenuItem key={type} value={type}>{t(`journals.types.${type}`)}</MenuItem>
               ))}
             </TextField>
-          </Stack>
+          </>
+        )}
+      />
 
-          {journalsQuery.isError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {toAppApiError(journalsQuery.error).message}
-            </Alert>
-          )}
+      {journalsQuery.isError && (
+        <Alert severity="error">
+          {toAppApiError(journalsQuery.error).message}
+        </Alert>
+      )}
 
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('journals.columns.number')}</TableCell>
-                  <TableCell>{t('journals.columns.date')}</TableCell>
-                  <TableCell>{t('journals.columns.type')}</TableCell>
-                  <TableCell>{t('journals.columns.description')}</TableCell>
-                  <TableCell align="right">{t('journals.columns.total')}</TableCell>
-                  <TableCell>{t('journals.columns.status')}</TableCell>
-                  <TableCell align="center">{t('journals.columns.actions')}</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {journalsQuery.isLoading && <TableStateRow colSpan={7} loading />}
-                {!journalsQuery.isLoading && journals.length === 0 && (
-                  <TableStateRow colSpan={7} message={t('journals.empty')} />
-                )}
-                {journals.map((journal) => (
-                  <TableRow key={journal.id} hover>
-                    <TableCell>
-                      <Stack spacing={0.25}>
-                        <Typography variant="subtitle2">{journal.journal_number}</Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {t('journals.labels.lines', { count: journal.entry_count })}
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-                    <TableCell>{formatAppDateTime(journal.date, dateFormat, i18n.language)}</TableCell>
-                    <TableCell>{t(`journals.types.${journal.journal_type}`, { defaultValue: journal.journal_type })}</TableCell>
-                    <TableCell>
-                      <Typography
-                        variant="body2"
-                        sx={{
-                          maxWidth: 420,
-                          overflow: 'hidden',
-                          textOverflow: 'ellipsis',
-                          whiteSpace: 'nowrap',
-                        }}
-                      >
-                        {journal.description}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="right">{formatMoney(journal.total, currencyFormatter)}</TableCell>
-                    <TableCell>
-                      <Chip
-                        size="small"
-                        label={t(`journals.statuses.${journal.status}`)}
-                        color={journal.status === 'posted' ? 'success' : 'warning'}
-                        variant="outlined"
-                      />
-                    </TableCell>
-                    <TableCell align="center">
-                      <RowActions
-                        viewLabel={t('common:buttons.view')}
-                        editLabel={t('journals.actions.reverse')}
-                        deleteLabel=""
-                        showView
-                        showEdit={canManage && journal.status === 'posted'}
-                        showDelete={false}
-                        onView={() => setViewingJournal(journal)}
-                        onEdit={() => setReversingJournal(journal)}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          <TablePagination
-            component="div"
-            count={meta?.total ?? 0}
-            page={page}
-            rowsPerPage={perPage}
-            rowsPerPageOptions={rowsPerPageOptions}
-            onPageChange={(_, nextPage) => setPage(nextPage)}
-            onRowsPerPageChange={(event) => {
-              setPerPage(Number(event.target.value))
-              setPage(0)
-            }}
+      <EntityTable
+        rows={journals}
+        columns={columns}
+        getRowKey={(journal) => journal.id}
+        loading={journalsQuery.isLoading}
+        emptyIcon={<ReceiptLongOutlined />}
+        emptyTitle={t('journals.empty')}
+        pagination={{
+          page,
+          rowsPerPage: perPage,
+          count: meta?.total ?? 0,
+          onPageChange: setPage,
+          onRowsPerPageChange: (nextPerPage) => {
+            setPerPage(nextPerPage)
+            setPage(0)
+          },
+        }}
+        rowActions={(journal) => (
+          <RowActions
+            viewLabel={t('common:buttons.view')}
+            editLabel={t('journals.actions.reverse')}
+            deleteLabel=""
+            showView
+            showEdit={canManage && journal.status === 'posted'}
+            showDelete={false}
+            onView={() => setViewingJournal(journal)}
+            onEdit={() => setReversingJournal(journal)}
           />
-        </CardContent>
-      </Card>
+        )}
+      />
 
       <Dialog open={!!viewingJournal} onClose={() => setViewingJournal(null)} fullWidth maxWidth="md">
         <DialogTitle>{selectedJournal?.journal_number ?? t('journals.detail.title')}</DialogTitle>

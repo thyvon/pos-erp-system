@@ -23,6 +23,7 @@ import {
   Typography,
 } from '@mui/material'
 import { ArrowBack, CompareArrowsOutlined, DeleteOutlined, EditOutlined, Inventory2Outlined, LocalOfferOutlined, LocalShippingOutlined, PaymentsOutlined } from '@/components/ui/icons'
+import PageHeader from '@/components/common/PageHeader'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
@@ -232,19 +233,17 @@ export function PurchaseDetailPage({ purchaseId }: PurchaseDetailPageProps) {
               <ArrowBack />
             </IconButton>
           </Tooltip>
-          <LocalShippingOutlined color="primary" />
-          <Box>
-            <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-              <Typography variant="h4">{purchase.purchase_number}</Typography>
-              <Chip size="small" label={t(`statuses.${purchase.status}`)} variant="outlined" />
-              <Chip size="small" label={t(`paymentStatuses.${purchase.payment_status}`)} variant="outlined" />
-            </Stack>
-            <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.25 }}>
-              {purchase.supplier?.name ?? '-'}
-              {' · '}
-              {formatAppDate(purchase.purchase_date, dateFormat, i18n.language)}
-            </Typography>
-          </Box>
+          <PageHeader
+            icon={<LocalShippingOutlined color="primary" />}
+            title={purchase.purchase_number}
+            description={`${purchase.supplier?.name ?? '-'} · ${formatAppDate(purchase.purchase_date, dateFormat, i18n.language)}`}
+            meta={
+              <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+                <Chip size="small" label={t(`statuses.${purchase.status}`)} variant="outlined" />
+                <Chip size="small" label={t(`paymentStatuses.${purchase.payment_status}`)} variant="outlined" />
+              </Stack>
+            }
+          />
         </Stack>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1} sx={{ alignItems: { xs: 'stretch', sm: 'center' } }}>
           {canRecordPayment && (

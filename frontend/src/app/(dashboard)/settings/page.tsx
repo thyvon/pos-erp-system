@@ -19,6 +19,7 @@ import {
   Typography,
 } from '@mui/material'
 import { SaveOutlined, SettingsOutlined, UploadOutlined } from '@/components/ui/icons'
+import PageHeader from '@/components/common/PageHeader'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
@@ -171,26 +172,18 @@ export default function SettingsPage() {
 
   return (
     <Stack spacing={3}>
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={2}
-        sx={{ alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between' }}
-      >
-        <Box>
-          <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-            <SettingsOutlined color="primary" />
-            <Typography variant="h4">{t('title')}</Typography>
-          </Stack>
-          <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
-            {t('subtitle')}
-          </Typography>
-        </Box>
-        <Chip
-          label={activeCanEdit ? t('editable') : t('readOnly')}
-          color={activeCanEdit ? 'success' : 'default'}
-          size="small"
-        />
-      </Stack>
+      <PageHeader
+        icon={<SettingsOutlined color="primary" />}
+        title={t('title')}
+        description={t('subtitle')}
+        meta={
+          <Chip
+            label={activeCanEdit ? t('editable') : t('readOnly')}
+            color={activeCanEdit ? 'success' : 'default'}
+            size="small"
+          />
+        }
+      />
 
       <Card>
         <CardContent sx={{ p: 0, '&:last-child': { pb: 0 } }}>

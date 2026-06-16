@@ -23,6 +23,7 @@ import {
   Typography,
 } from '@mui/material'
 import { ArrowBack, CheckCircleOutlined, Close, ReceiptLongOutlined } from '@/components/ui/icons'
+import PageHeader from '@/components/common/PageHeader'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
@@ -129,15 +130,13 @@ export function QuotationDetailPage({ quotationId }: QuotationDetailPageProps) {
               <ArrowBack />
             </IconButton>
           </Tooltip>
-          <Box>
-            <Typography variant="h4">{quotation.sale_number}</Typography>
-            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-              {t('quotations.detail.subtitle', {
-                customer: quotation.customer?.name ?? t('labels.walkInCustomer'),
-                date: formatAppDate(quotation.sale_date, dateFormat, i18n.language),
-              })}
-            </Typography>
-          </Box>
+          <PageHeader
+            title={quotation.sale_number}
+            description={t('quotations.detail.subtitle', {
+              customer: quotation.customer?.name ?? t('labels.walkInCustomer'),
+              date: formatAppDate(quotation.sale_date, dateFormat, i18n.language),
+            })}
+          />
         </Stack>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
           {canConvert && (

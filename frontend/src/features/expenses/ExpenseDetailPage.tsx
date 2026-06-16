@@ -21,6 +21,7 @@ import {
   Typography,
 } from '@mui/material'
 import { ArrowBack, DeleteOutlined, EditOutlined } from '@/components/ui/icons'
+import PageHeader from '@/components/common/PageHeader'
 import { useTranslation } from 'react-i18next'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { useSnackbar } from 'notistack'
@@ -86,13 +87,13 @@ export function ExpenseDetailPage({ expenseId }: ExpenseDetailPageProps) {
 
   return (
     <>
-      <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', mb: 2 }}>
+      <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
         <Tooltip title={t('detail.back')}>
           <IconButton size="small" onClick={() => router.push('/expenses')} aria-label={t('detail.back')}>
             <ArrowBack />
           </IconButton>
         </Tooltip>
-        <Typography variant="h4">{t('detail.title')}</Typography>
+        <PageHeader title={t('detail.title')} />
       </Stack>
 
       <Card>

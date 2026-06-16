@@ -6,20 +6,9 @@ import {
   Alert,
   Box,
   Button,
-  Card,
-  CardContent,
   Chip,
-  ListItemIcon,
-  ListItemText,
   MenuItem,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TablePagination,
-  TableRow,
   TextField,
   Typography,
 } from '@mui/material'
@@ -27,13 +16,13 @@ import { Add, Inventory2Outlined } from '@/components/ui/icons'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
+import EntityTable, { type EntityTableColumn } from '@/components/common/EntityTable'
 import PageHeader from '@/components/common/PageHeader'
 import PageToolbar from '@/components/common/PageToolbar'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { RowActions } from '@/components/ui/RowActions'
 import { SearchableFilterSelect } from '@/components/ui/SearchableFilterSelect'
-import { TableStateRow } from '@/components/ui/TableStateRow'
 import { useBranchesQuery } from '@/features/branches/hooks'
 import { useSuppliersQuery } from '@/features/suppliers/hooks'
 import { useDeletePurchaseMutation, usePurchasesQuery } from './hooks'
@@ -45,7 +34,6 @@ import { formatAppDate } from '@/utils/dateFormat'
 import { formatMoney } from '@/utils/formatMoney'
 import type { Purchase, PurchaseFilters, PurchaseStatus, PurchasePaymentStatus } from '@/types/purchase'
 
-const rowsPerPageOptions = [10, 25, 50]
 const statuses: PurchaseStatus[] = ['draft', 'confirmed', 'partially_received', 'received', 'cancelled']
 const paymentStatuses: PurchasePaymentStatus[] = ['unpaid', 'partial', 'paid']
 const deletableStatuses: PurchaseStatus[] = ['draft', 'confirmed', 'cancelled']
@@ -101,6 +89,63 @@ export default function PurchasesPage() {
   const canEdit = can('purchases.edit')
   const canDelete = can('purchases.delete')
   const canReceive = can('purchases.receive')
+
+  const columns = useMemo<EntityTableColumn<Purchase>[]>(
+    () => [
+      {
+        key: 'po',
+        label: t('columns.po'),
+        render: (purchase) => (
+          <Typography variant="subtitle2">{purchase.purchase_number}</Typography>
+        ),
+      },
+      {
+        key: 'supplier',
+        label: t('columns.supplier'),
+        render: (purchase) => (
+          <Stack spacing={0.25}>
+            <Typography variant="body2">{purchase.supplier?.name ?? '-'}</Typography>
+            {purchase.supplier?.company && (
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                {purchase.supplier.company}
+              </Typography>
+            )}
+          </Stack>
+        ),
+      },
+      {
+        key: 'branch',
+        label: t('columns.branch'),
+        render: (purchase) => purchase.branch?.name ?? '-',
+      },
+      {
+        key: 'date',
+        label: t('columns.date'),
+        render: (purchase) => formatAppDate(purchase.purchase_date, dateFormat, i18n.language),
+      },
+      {
+        key: 'status',
+        label: t('columns.status'),
+        render: (purchase) => (
+          <Chip size="small" label={t(`statuses.${purchase.status}`, { defaultValue: purchase.status })} variant="outlined" />
+        ),
+      },
+      {
+        key: 'payment',
+        label: t('columns.payment'),
+        render: (purchase) => (
+          <Chip size="small" label={t(`paymentStatuses.${purchase.payment_status}`, { defaultValue: purchase.payment_status })} variant="outlined" />
+        ),
+      },
+      {
+        key: 'total',
+        label: t('columns.total'),
+        align: 'right',
+        render: (purchase) => formatMoney(purchase.total_amount, currencyFormatter),
+      },
+    ],
+    [currencyFormatter, dateFormat, i18n.language, t]
+  )
 
   const clearFilters = () => {
     setStatusFilter('')
@@ -327,99 +372,51 @@ export default function PurchasesPage() {
         }
       />
 
-      <Card>
-        <CardContent>
-          {purchasesQuery.isError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {toAppApiError(purchasesQuery.error).message}
-            </Alert>
-          )}
+      {purchasesQuery.isError && (
+        <Alert severity="error">
+          {toAppApiError(purchasesQuery.error).message}
+        </Alert>
+      )}
 
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('columns.po')}</TableCell>
-                  <TableCell>{t('columns.supplier')}</TableCell>
-                  <TableCell>{t('columns.branch')}</TableCell>
-                  <TableCell>{t('columns.date')}</TableCell>
-                  <TableCell>{t('columns.status')}</TableCell>
-                  <TableCell>{t('columns.payment')}</TableCell>
-                  <TableCell align="right">{t('columns.total')}</TableCell>
-                  <TableCell align="center">{t('common:buttons.actions')}</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {purchasesQuery.isLoading && <TableStateRow colSpan={8} loading />}
-                {!purchasesQuery.isLoading && purchases.length === 0 && (
-                  <TableStateRow colSpan={8} message={t('empty')} />
-                )}
-                {purchases.map((purchase) => (
-                  <TableRow key={purchase.id} hover>
-                    <TableCell>
-                      <Typography variant="subtitle2">{purchase.purchase_number}</Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Stack spacing={0.25}>
-                        <Typography variant="body2">{purchase.supplier?.name ?? '-'}</Typography>
-                        {purchase.supplier?.company && (
-                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                            {purchase.supplier.company}
-                          </Typography>
-                        )}
-                      </Stack>
-                    </TableCell>
-                    <TableCell>{purchase.branch?.name ?? '-'}</TableCell>
-                    <TableCell>{formatAppDate(purchase.purchase_date, dateFormat, i18n.language)}</TableCell>
-                    <TableCell>
-                      <Chip size="small" label={t(`statuses.${purchase.status}`, { defaultValue: purchase.status })} variant="outlined" />
-                    </TableCell>
-                    <TableCell>
-                      <Chip size="small" label={t(`paymentStatuses.${purchase.payment_status}`, { defaultValue: purchase.payment_status })} variant="outlined" />
-                    </TableCell>
-                    <TableCell align="right">{formatMoney(purchase.total_amount, currencyFormatter)}</TableCell>
-                    <TableCell align="center">
-                      <RowActions
-                        viewLabel={t('common:buttons.view')}
-                        editLabel={t('common:buttons.edit')}
-                        deleteLabel={t('common:buttons.delete')}
-                        showView
-                        showEdit={canEdit}
-                        showDelete={canDelete && deletableStatuses.includes(purchase.status)}
-                        onView={() => router.push(`/purchases/${purchase.id}`)}
-                        onEdit={() => router.push(`/purchases/${purchase.id}/edit`)}
-                        onDelete={() => setDeleteTarget(purchase)}
-                      >
-                        {canReceive && receiveableStatuses.includes(purchase.status) && (
-                          <MenuItem onClick={() => router.push(`/purchases/${purchase.id}/receive`)}>
-                            <ListItemIcon>
-                              <Inventory2Outlined />
-                            </ListItemIcon>
-                            <ListItemText>{t('actions.receive')}</ListItemText>
-                          </MenuItem>
-                        )}
-                      </RowActions>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          <TablePagination
-            component="div"
-            count={meta?.total ?? 0}
-            page={page}
-            rowsPerPage={perPage}
-            rowsPerPageOptions={rowsPerPageOptions}
-            onPageChange={(_, nextPage) => setPage(nextPage)}
-            onRowsPerPageChange={(event) => {
-              setPerPage(Number(event.target.value))
-              setPage(0)
-            }}
-          />
-        </CardContent>
-      </Card>
+      <EntityTable
+        rows={purchases}
+        columns={columns}
+        getRowKey={(purchase) => purchase.id}
+        loading={purchasesQuery.isLoading}
+        emptyTitle={t('empty')}
+        pagination={{
+          page,
+          rowsPerPage: perPage,
+          count: meta?.total ?? 0,
+          onPageChange: setPage,
+          onRowsPerPageChange: (nextPerPage) => {
+            setPerPage(nextPerPage)
+            setPage(0)
+          },
+        }}
+        rowActions={(purchase) => (
+          <RowActions
+            viewLabel={t('common:buttons.view')}
+            editLabel={t('common:buttons.edit')}
+            deleteLabel={t('common:buttons.delete')}
+            showView
+            showEdit={canEdit}
+            showDelete={canDelete && deletableStatuses.includes(purchase.status)}
+            onView={() => router.push(`/purchases/${purchase.id}`)}
+            onEdit={() => router.push(`/purchases/${purchase.id}/edit`)}
+            onDelete={() => setDeleteTarget(purchase)}
+          >
+            {canReceive && receiveableStatuses.includes(purchase.status) && (
+              <MenuItem onClick={() => router.push(`/purchases/${purchase.id}/receive`)}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Inventory2Outlined fontSize="small" />
+                  {t('actions.receive')}
+                </Box>
+              </MenuItem>
+            )}
+          </RowActions>
+        )}
+      />
 
       <ConfirmDialog
         open={!!deleteTarget}

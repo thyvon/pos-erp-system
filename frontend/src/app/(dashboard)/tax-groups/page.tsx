@@ -3,31 +3,22 @@
 import { useMemo, useState } from 'react'
 import {
   Alert,
-  Box,
   Button,
-  Card,
-  CardContent,
   Chip,
-  InputAdornment,
   MenuItem,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TablePagination,
-  TableRow,
   TextField,
   Typography,
 } from '@mui/material'
-import { Add, CalculateOutlined, Search } from '@/components/ui/icons'
+import { Add, CalculateOutlined } from '@/components/ui/icons'
+import PageHeader from '@/components/common/PageHeader'
+import PageToolbar from '@/components/common/PageToolbar'
+import EntityTable, { type EntityTableColumn } from '@/components/common/EntityTable'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { RowActions } from '@/components/ui/RowActions'
-import { TableStateRow } from '@/components/ui/TableStateRow'
 import { TaxGroupFormDialog } from '@/features/tax-groups/TaxGroupFormDialog'
 import {
   useCreateTaxGroupMutation,
@@ -38,8 +29,6 @@ import {
 import { useTaxRatesQuery } from '@/features/tax-rates/hooks'
 import { useAuthStore } from '@/stores/authStore'
 import type { TaxGroup, TaxGroupFilters, TaxGroupPayload } from '@/types/taxGroup'
-
-const rowsPerPageOptions = [10, 25, 50]
 
 function formatTaxRate(rate: number, type: string) {
   return type === 'percentage' ? `${rate}%` : rate.toFixed(2)
@@ -115,161 +104,154 @@ export default function TaxGroupsPage() {
     }
   }
 
-  return (
-    <Stack spacing={3}>
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={2}
-        sx={{ alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between' }}
-      >
-        <Box>
-          <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-            <CalculateOutlined color="primary" />
-            <Typography variant="h4">{t('title')}</Typography>
+  const activeFilters = useMemo(() => {
+    const items: Array<{ key: string; label: string; onDelete: () => void }> = []
+
+    if (statusFilter !== '') {
+      items.push({
+        key: 'status',
+        label: `${t('filters.status')}: ${statusFilter ? t('common:status.active') : t('common:status.inactive')}`,
+        onDelete: () => {
+          setStatusFilter('')
+          setPage(0)
+        },
+      })
+    }
+
+    return items
+  }, [statusFilter, t])
+
+  const clearFilters = () => {
+    setStatusFilter('')
+    setPage(0)
+  }
+
+  const columns: EntityTableColumn<TaxGroup>[] = useMemo(
+    () => [
+      {
+        key: 'name',
+        label: t('columns.name'),
+        render: (taxGroup) => (
+          <Stack spacing={0.25}>
+            <Typography variant="subtitle2">{taxGroup.name}</Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              {t('badges.rateCount', { count: taxGroup.tax_rate_count })}
+            </Typography>
           </Stack>
-          <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
-            {t('subtitle')}
-          </Typography>
-        </Box>
-        {canCreate && (
+        ),
+      },
+      {
+        key: 'taxRates',
+        label: t('columns.taxRates'),
+        render: (taxGroup) => (
+          <Stack direction="row" spacing={0.75} sx={{ flexWrap: 'wrap', gap: 0.75 }}>
+            {taxGroup.tax_rates.map((taxRate) => (
+              <Chip
+                key={taxRate.id}
+                size="small"
+                label={`${taxRate.name} (${formatTaxRate(taxRate.rate, taxRate.type)})`}
+              />
+            ))}
+          </Stack>
+        ),
+      },
+      {
+        key: 'description',
+        label: t('columns.description'),
+        render: (taxGroup) => taxGroup.description || '-',
+      },
+      {
+        key: 'status',
+        label: t('columns.status'),
+        render: (taxGroup) => (
+          <Chip
+            size="small"
+            label={taxGroup.is_active ? t('common:status.active') : t('common:status.inactive')}
+            color={taxGroup.is_active ? 'success' : 'default'}
+          />
+        ),
+      },
+    ],
+    [t]
+  )
+
+  return (
+    <Stack spacing={2.5}>
+      <PageHeader
+        icon={<CalculateOutlined color="primary" />}
+        title={t('title')}
+        description={t('subtitle')}
+        actions={canCreate && (
           <Button startIcon={<Add />} variant="contained" onClick={openCreateForm}>
             {t('actions.new')}
           </Button>
         )}
-      </Stack>
+      />
 
-      <Card>
-        <CardContent>
-          <Stack
-            direction={{ xs: 'column', md: 'row' }}
-            spacing={2}
-            sx={{ alignItems: { xs: 'stretch', md: 'center' }, mb: 2.5 }}
-          >
-            <TextField
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value)
-                setPage(0)
-              }}
-              placeholder={t('filters.search')}
-              sx={{ flexGrow: 1 }}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Search fontSize="small" />
-                    </InputAdornment>
-                  ),
-                },
-              }}
-            />
-            <TextField
-              select
-              value={statusFilter === '' ? '' : String(statusFilter)}
-              onChange={(event) => {
-                const value = event.target.value
-                setStatusFilter(value === '' ? '' : value === 'true')
-                setPage(0)
-              }}
-              label={t('filters.status')}
-              sx={{ minWidth: { xs: '100%', md: 180 } }}
-            >
-              <MenuItem value="">{t('filters.allStatuses')}</MenuItem>
-              <MenuItem value="true">{t('common:status.active')}</MenuItem>
-              <MenuItem value="false">{t('common:status.inactive')}</MenuItem>
-            </TextField>
-          </Stack>
-
-          {taxGroupsQuery.isError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {toAppApiError(taxGroupsQuery.error).message}
-            </Alert>
-          )}
-
-          {taxRatesQuery.isError && (
-            <Alert severity="warning" sx={{ mb: 2 }}>
-              {toAppApiError(taxRatesQuery.error).message}
-            </Alert>
-          )}
-
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('columns.name')}</TableCell>
-                  <TableCell>{t('columns.taxRates')}</TableCell>
-                  <TableCell>{t('columns.description')}</TableCell>
-                  <TableCell>{t('columns.status')}</TableCell>
-                  <TableCell align="center">{t('columns.actions')}</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {taxGroupsQuery.isLoading && <TableStateRow colSpan={5} loading />}
-
-                {!taxGroupsQuery.isLoading && taxGroups.length === 0 && (
-                  <TableStateRow colSpan={5} message={t('empty')} />
-                )}
-
-                {taxGroups.map((taxGroup) => (
-                  <TableRow key={taxGroup.id} hover>
-                    <TableCell>
-                      <Stack spacing={0.25}>
-                        <Typography variant="subtitle2">{taxGroup.name}</Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {t('badges.rateCount', { count: taxGroup.tax_rate_count })}
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-                    <TableCell>
-                      <Stack direction="row" spacing={0.75} sx={{ flexWrap: 'wrap', gap: 0.75 }}>
-                        {taxGroup.tax_rates.map((taxRate) => (
-                          <Chip
-                            key={taxRate.id}
-                            size="small"
-                            label={`${taxRate.name} (${formatTaxRate(taxRate.rate, taxRate.type)})`}
-                          />
-                        ))}
-                      </Stack>
-                    </TableCell>
-                    <TableCell>{taxGroup.description || '-'}</TableCell>
-                    <TableCell>
-                      <Chip
-                        size="small"
-                        label={taxGroup.is_active ? t('common:status.active') : t('common:status.inactive')}
-                        color={taxGroup.is_active ? 'success' : 'default'}
-                      />
-                    </TableCell>
-                    <TableCell align="center">
-                      <RowActions
-                        editLabel={t('common:buttons.edit')}
-                        deleteLabel={t('common:buttons.delete')}
-                        showEdit={canEdit}
-                        showDelete={canDelete}
-                        deleteDisabled={deleteTaxGroup.isPending}
-                        onEdit={() => openEditForm(taxGroup)}
-                        onDelete={() => setDeletingTaxGroup(taxGroup)}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          <TablePagination
-            component="div"
-            count={meta?.total ?? 0}
-            page={page}
-            rowsPerPage={perPage}
-            rowsPerPageOptions={rowsPerPageOptions}
-            onPageChange={(_, nextPage) => setPage(nextPage)}
-            onRowsPerPageChange={(event) => {
-              setPerPage(Number(event.target.value))
+      <PageToolbar
+        searchValue={search}
+        searchPlaceholder={t('filters.search')}
+        onSearchChange={(value) => {
+          setSearch(value)
+          setPage(0)
+        }}
+        filters={
+          <TextField
+            select
+            value={statusFilter === '' ? '' : String(statusFilter)}
+            onChange={(event) => {
+              const value = event.target.value
+              setStatusFilter(value === '' ? '' : value === 'true')
               setPage(0)
             }}
+            label={t('filters.status')}
+          >
+            <MenuItem value="">{t('filters.allStatuses')}</MenuItem>
+            <MenuItem value="true">{t('common:status.active')}</MenuItem>
+            <MenuItem value="false">{t('common:status.inactive')}</MenuItem>
+          </TextField>
+        }
+        activeFilters={activeFilters}
+        onClearFilters={activeFilters.length > 0 ? clearFilters : undefined}
+      />
+
+      {taxGroupsQuery.isError && (
+        <Alert severity="error">{toAppApiError(taxGroupsQuery.error).message}</Alert>
+      )}
+
+      {taxRatesQuery.isError && (
+        <Alert severity="warning">{toAppApiError(taxRatesQuery.error).message}</Alert>
+      )}
+
+      <EntityTable
+        rows={taxGroups}
+        columns={columns}
+        getRowKey={(taxGroup) => taxGroup.id}
+        loading={taxGroupsQuery.isLoading}
+        emptyIcon={<CalculateOutlined />}
+        emptyTitle={t('empty')}
+        pagination={{
+          page,
+          rowsPerPage: perPage,
+          count: meta?.total ?? 0,
+          onPageChange: setPage,
+          onRowsPerPageChange: (nextPerPage) => {
+            setPerPage(nextPerPage)
+            setPage(0)
+          },
+        }}
+        rowActions={(taxGroup) => (
+          <RowActions
+            editLabel={t('common:buttons.edit')}
+            deleteLabel={t('common:buttons.delete')}
+            showEdit={canEdit}
+            showDelete={canDelete}
+            deleteDisabled={deleteTaxGroup.isPending}
+            onEdit={() => openEditForm(taxGroup)}
+            onDelete={() => setDeletingTaxGroup(taxGroup)}
           />
-        </CardContent>
-      </Card>
+        )}
+      />
 
       <TaxGroupFormDialog
         key={`${formOpen ? 'open' : 'closed'}-${editingTaxGroup?.id ?? 'new'}`}

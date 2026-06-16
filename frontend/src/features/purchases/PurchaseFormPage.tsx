@@ -21,6 +21,7 @@ import {
   Typography,
 } from '@mui/material'
 import { Add, ArrowBack } from '@/components/ui/icons'
+import PageHeader from '@/components/common/PageHeader'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
@@ -307,19 +308,19 @@ export function PurchaseFormPage({ purchaseId }: PurchaseFormPageProps) {
 
   return (
     <Stack spacing={3}>
-      <Stack direction="row" spacing={2} sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
-        <Typography variant="h4">
-          {t(isEdit ? 'form.edit' : 'form.create')}
-        </Typography>
-        <Tooltip title={t('detail.back')}>
-          <IconButton
-            size="small"
-            onClick={() => router.push(purchaseId ? `/purchases/${purchaseId}` : '/purchases')}
-          >
-            <ArrowBack />
-          </IconButton>
-        </Tooltip>
-      </Stack>
+      <PageHeader
+        title={t(isEdit ? 'form.edit' : 'form.create')}
+        actions={
+          <Tooltip title={t('detail.back')}>
+            <IconButton
+              size="small"
+              onClick={() => router.push(purchaseId ? `/purchases/${purchaseId}` : '/purchases')}
+            >
+              <ArrowBack />
+            </IconButton>
+          </Tooltip>
+        }
+      />
 
       {purchaseQuery.isError && <Alert severity="error">{toAppApiError(purchaseQuery.error).message}</Alert>}
 

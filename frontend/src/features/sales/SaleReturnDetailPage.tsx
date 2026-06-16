@@ -21,6 +21,7 @@ import {
   Button,
 } from '@mui/material'
 import { ArrowBack, PointOfSaleOutlined } from '@/components/ui/icons'
+import PageHeader from '@/components/common/PageHeader'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { useSaleReturnQuery } from './hooks'
@@ -93,15 +94,13 @@ export function SaleReturnDetailPage({ saleReturnId }: SaleReturnDetailPageProps
               <ArrowBack />
             </IconButton>
           </Tooltip>
-          <Box>
-            <Typography variant="h4">{saleReturn.return_number}</Typography>
-            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-              {t('returns.detail.subtitle', {
-                sale: saleReturn.sale?.sale_number ?? '-',
-                date: formatAppDate(saleReturn.return_date, dateFormat, i18n.language),
-              })}
-            </Typography>
-          </Box>
+          <PageHeader
+            title={saleReturn.return_number}
+            description={t('returns.detail.subtitle', {
+              sale: saleReturn.sale?.sale_number ?? '-',
+              date: formatAppDate(saleReturn.return_date, dateFormat, i18n.language),
+            })}
+          />
         </Stack>
         {saleReturn.sale?.id && (
           <Button component={NextLink} href={`/sales/${saleReturn.sale.id}`} variant="outlined" startIcon={<PointOfSaleOutlined />}>

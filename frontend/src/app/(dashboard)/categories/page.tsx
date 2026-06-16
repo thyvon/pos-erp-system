@@ -3,31 +3,21 @@
 import { useMemo, useState } from 'react'
 import {
   Alert,
-  Box,
   Button,
-  Card,
-  CardContent,
   Chip,
-  InputAdornment,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TablePagination,
-  TableRow,
-  TextField,
   Typography,
 } from '@mui/material'
-import { Add, CategoryOutlined, Search } from '@/components/ui/icons'
+import { Add, CategoryOutlined } from '@/components/ui/icons'
+import PageHeader from '@/components/common/PageHeader'
+import PageToolbar from '@/components/common/PageToolbar'
+import EntityTable, { type EntityTableColumn } from '@/components/common/EntityTable'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { RowActions } from '@/components/ui/RowActions'
 import { SearchableFilterSelect } from '@/components/ui/SearchableFilterSelect'
-import { TableStateRow } from '@/components/ui/TableStateRow'
 import { CategoryFormDialog } from '@/features/categories/CategoryFormDialog'
 import {
   useCategoriesQuery,
@@ -38,8 +28,6 @@ import {
 } from '@/features/categories/hooks'
 import { useAuthStore } from '@/stores/authStore'
 import type { Category, CategoryFilters, CategoryPayload } from '@/types/category'
-
-const rowsPerPageOptions = [10, 25, 50]
 
 export default function CategoriesPage() {
   const { t } = useTranslation(['categories', 'common'])
@@ -75,6 +63,38 @@ export default function CategoriesPage() {
   const canCreate = can('categories.create')
   const canEdit = can('categories.edit')
   const canDelete = can('categories.delete')
+
+  const columns: EntityTableColumn<Category>[] = useMemo(
+    () => [
+      {
+        key: 'category',
+        label: t('columns.category'),
+        render: (category) => (
+          <Stack spacing={0.25}>
+            <Typography variant="subtitle2">{category.name}</Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              {category.code || '-'}
+            </Typography>
+          </Stack>
+        ),
+      },
+      {
+        key: 'parent',
+        label: t('columns.parent'),
+        render: (category) => (
+          category.parent ? (
+            <Chip size="small" label={category.parent.name} variant="outlined" />
+          ) : (
+            <Chip size="small" label={t('labels.root')} color="primary" variant="outlined" />
+          )
+        ),
+      },
+      { key: 'shortCode', label: t('columns.shortCode'), render: (category) => category.short_code || '-' },
+      { key: 'sortOrder', label: t('columns.sortOrder'), render: (category) => category.sort_order },
+      { key: 'children', label: t('columns.children'), render: (category) => category.children_count },
+    ],
+    [t]
+  )
 
   const openCreateForm = () => {
     setEditingCategory(null)
@@ -112,152 +132,73 @@ export default function CategoriesPage() {
   }
 
   return (
-    <Stack spacing={3}>
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={2}
-        sx={{ alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between' }}
-      >
-        <Box>
-          <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-            <CategoryOutlined color="primary" />
-            <Typography variant="h4">{t('title')}</Typography>
-          </Stack>
-          <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
-            {t('subtitle')}
-          </Typography>
-        </Box>
-        {canCreate && (
+    <Stack spacing={2.5}>
+      <PageHeader
+        icon={<CategoryOutlined color="primary" />}
+        title={t('title')}
+        description={t('subtitle')}
+        actions={canCreate && (
           <Button startIcon={<Add />} variant="contained" onClick={openCreateForm}>
             {t('actions.new')}
           </Button>
         )}
-      </Stack>
+      />
 
-      <Card>
-        <CardContent>
-          <Stack
-            direction={{ xs: 'column', md: 'row' }}
-            spacing={2}
-            sx={{ alignItems: { xs: 'stretch', md: 'center' }, mb: 2.5 }}
-          >
-            <TextField
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value)
-                setPage(0)
-              }}
-              placeholder={t('filters.search')}
-              sx={{ flexGrow: 1 }}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Search fontSize="small" />
-                    </InputAdornment>
-                  ),
-                },
-              }}
-            />
-            <SearchableFilterSelect
-              value={parentId}
-              options={parentOptions}
-              loading={parentOptionsQuery.isLoading}
-              label={t('filters.parent')}
-              placeholder={t('filters.allParents')}
-              getOptionValue={(category) => category.id}
-              getOptionLabel={(category) => category.name}
-              getOptionDescription={(category) => category.short_code}
-              onChange={(value) => {
-                setParentId(value)
-                setPage(0)
-              }}
-              sx={{ minWidth: { xs: '100%', md: 240 } }}
-            />
-          </Stack>
-
-          {categoriesQuery.isError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {toAppApiError(categoriesQuery.error).message}
-            </Alert>
-          )}
-
-          {parentOptionsQuery.isError && (
-            <Alert severity="warning" sx={{ mb: 2 }}>
-              {toAppApiError(parentOptionsQuery.error).message}
-            </Alert>
-          )}
-
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('columns.category')}</TableCell>
-                  <TableCell>{t('columns.parent')}</TableCell>
-                  <TableCell>{t('columns.shortCode')}</TableCell>
-                  <TableCell>{t('columns.sortOrder')}</TableCell>
-                  <TableCell>{t('columns.children')}</TableCell>
-                  <TableCell align="center">{t('columns.actions')}</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {categoriesQuery.isLoading && <TableStateRow colSpan={6} loading />}
-
-                {!categoriesQuery.isLoading && categories.length === 0 && (
-                  <TableStateRow colSpan={6} message={t('empty')} />
-                )}
-
-                {categories.map((category) => (
-                  <TableRow key={category.id} hover>
-                    <TableCell>
-                      <Stack spacing={0.25}>
-                        <Typography variant="subtitle2">{category.name}</Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {category.code || '-'}
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-                    <TableCell>
-                      {category.parent ? (
-                        <Chip size="small" label={category.parent.name} variant="outlined" />
-                      ) : (
-                        <Chip size="small" label={t('labels.root')} color="primary" variant="outlined" />
-                      )}
-                    </TableCell>
-                    <TableCell>{category.short_code || '-'}</TableCell>
-                    <TableCell>{category.sort_order}</TableCell>
-                    <TableCell>{category.children_count}</TableCell>
-                    <TableCell align="center">
-                      <RowActions
-                        editLabel={t('common:buttons.edit')}
-                        deleteLabel={t('common:buttons.delete')}
-                        showEdit={canEdit}
-                        showDelete={canDelete}
-                        deleteDisabled={deleteCategory.isPending}
-                        onEdit={() => openEditForm(category)}
-                        onDelete={() => setDeletingCategory(category)}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          <TablePagination
-            component="div"
-            count={meta?.total ?? 0}
-            page={page}
-            rowsPerPage={perPage}
-            rowsPerPageOptions={rowsPerPageOptions}
-            onPageChange={(_, nextPage) => setPage(nextPage)}
-            onRowsPerPageChange={(event) => {
-              setPerPage(Number(event.target.value))
-              setPage(0)
-            }}
+      <PageToolbar
+        searchValue={search}
+        searchPlaceholder={t('filters.search')}
+        onSearchChange={(value) => { setSearch(value); setPage(0) }}
+        filters={
+          <SearchableFilterSelect
+            value={parentId}
+            options={parentOptions}
+            loading={parentOptionsQuery.isLoading}
+            label={t('filters.parent')}
+            placeholder={t('filters.allParents')}
+            getOptionValue={(category) => category.id}
+            getOptionLabel={(category) => category.name}
+            getOptionDescription={(category) => category.short_code}
+            onChange={(value) => { setParentId(value); setPage(0) }}
+            sx={{ minWidth: { xs: '100%', sm: 240 } }}
           />
-        </CardContent>
-      </Card>
+        }
+      />
+
+      {categoriesQuery.isError && (
+        <Alert severity="error">{toAppApiError(categoriesQuery.error).message}</Alert>
+      )}
+
+      {parentOptionsQuery.isError && (
+        <Alert severity="warning">{toAppApiError(parentOptionsQuery.error).message}</Alert>
+      )}
+
+      <EntityTable
+        rows={categories}
+        columns={columns}
+        getRowKey={(category) => category.id}
+        loading={categoriesQuery.isLoading}
+        emptyIcon={<CategoryOutlined />}
+        emptyTitle={t('empty')}
+        emptyDescription="Try changing your filters or create a new category."
+        pagination={{
+          page,
+          rowsPerPage: perPage,
+          count: meta?.total ?? 0,
+          onPageChange: setPage,
+          onRowsPerPageChange: (nextPerPage) => { setPerPage(nextPerPage); setPage(0) },
+        }}
+        rowActions={(category) => (
+          <RowActions
+            editLabel={t('common:buttons.edit')}
+            deleteLabel={t('common:buttons.delete')}
+            showEdit={canEdit}
+            showDelete={canDelete}
+            deleteDisabled={deleteCategory.isPending}
+            onEdit={() => openEditForm(category)}
+            onDelete={() => setDeletingCategory(category)}
+          />
+        )}
+      />
 
       <CategoryFormDialog
         key={`${formOpen ? 'open' : 'closed'}-${editingCategory?.id ?? 'new'}`}

@@ -25,6 +25,7 @@ import {
   Typography,
 } from '@mui/material'
 import { ArrowBack, CheckCircleOutlined, Search } from '@/components/ui/icons'
+import PageHeader from '@/components/common/PageHeader'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
@@ -125,43 +126,41 @@ export function StockCountDetailPage({ countId }: StockCountDetailPageProps) {
 
   return (
     <Stack spacing={3}>
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ justifyContent: 'space-between' }}>
-        <Box>
-          <Typography variant="h4">{count?.reference_no ?? t('counts.detail.title')}</Typography>
-          <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
-            {t('counts.detail.viewSubtitle')}
-          </Typography>
-        </Box>
-        <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-          {canCount && isInProgress && (
-            <>
-              <Button
-                variant="outlined"
-                onClick={() => router.push(`/inventory/counts/${countId}/entries`)}
+      <PageHeader
+        title={count?.reference_no ?? t('counts.detail.title')}
+        description={t('counts.detail.viewSubtitle')}
+        actions={
+          <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
+            {canCount && isInProgress && (
+              <>
+                <Button
+                  variant="outlined"
+                  onClick={() => router.push(`/inventory/counts/${countId}/entries`)}
+                >
+                  {t('counts.actions.openEntryForm')}
+                </Button>
+                <Button
+                  variant="contained"
+                  color="success"
+                  startIcon={<CheckCircleOutlined />}
+                  onClick={() => setConfirmCompleteOpen(true)}
+                >
+                  {t('counts.actions.complete')}
+                </Button>
+              </>
+            )}
+            <Tooltip title={t('counts.actions.backToList')}>
+              <IconButton
+                size="small"
+                aria-label={t('counts.actions.backToList')}
+                onClick={() => router.push('/inventory/counts')}
               >
-                {t('counts.actions.openEntryForm')}
-              </Button>
-              <Button
-                variant="contained"
-                color="success"
-                startIcon={<CheckCircleOutlined />}
-                onClick={() => setConfirmCompleteOpen(true)}
-              >
-                {t('counts.actions.complete')}
-              </Button>
-            </>
-          )}
-          <Tooltip title={t('counts.actions.backToList')}>
-            <IconButton
-              size="small"
-              aria-label={t('counts.actions.backToList')}
-              onClick={() => router.push('/inventory/counts')}
-            >
-              <ArrowBack />
-            </IconButton>
-          </Tooltip>
-        </Stack>
-      </Stack>
+                <ArrowBack />
+              </IconButton>
+            </Tooltip>
+          </Stack>
+        }
+      />
 
       {countQuery.isLoading && (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>

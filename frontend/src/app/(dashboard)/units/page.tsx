@@ -3,30 +3,20 @@
 import { useMemo, useState } from 'react'
 import {
   Alert,
-  Box,
   Button,
-  Card,
-  CardContent,
   Chip,
-  InputAdornment,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TablePagination,
-  TableRow,
-  TextField,
   Typography,
 } from '@mui/material'
-import { Add, Search, StraightenOutlined } from '@/components/ui/icons'
+import { Add, StraightenOutlined } from '@/components/ui/icons'
+import PageHeader from '@/components/common/PageHeader'
+import PageToolbar from '@/components/common/PageToolbar'
+import EntityTable, { type EntityTableColumn } from '@/components/common/EntityTable'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { RowActions } from '@/components/ui/RowActions'
-import { TableStateRow } from '@/components/ui/TableStateRow'
 import { UnitFormDialog } from '@/features/units/UnitFormDialog'
 import {
   useCreateUnitMutation,
@@ -36,8 +26,6 @@ import {
 } from '@/features/units/hooks'
 import { useAuthStore } from '@/stores/authStore'
 import type { Unit, UnitFilters, UnitPayload } from '@/types/unit'
-
-const rowsPerPageOptions = [10, 25, 50]
 
 export default function UnitsPage() {
   const { t } = useTranslation(['units', 'common'])
@@ -69,6 +57,61 @@ export default function UnitsPage() {
   const canCreate = can('units.create')
   const canEdit = can('units.edit')
   const canDelete = can('units.delete')
+
+  const columns: EntityTableColumn<Unit>[] = useMemo(
+    () => [
+      {
+        key: 'unit',
+        label: t('columns.unit'),
+        render: (unit) => (
+          <Stack spacing={0.25}>
+            <Typography variant="subtitle2">{unit.name}</Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              {unit.short_name}
+            </Typography>
+          </Stack>
+        ),
+      },
+      {
+        key: 'decimal',
+        label: t('columns.decimal'),
+        render: (unit) => (
+          <Chip
+            size="small"
+            label={unit.allow_decimal ? t('labels.decimalAllowed') : t('labels.wholeOnly')}
+            color={unit.allow_decimal ? 'primary' : 'default'}
+            variant="outlined"
+          />
+        ),
+      },
+      {
+        key: 'subUnits',
+        label: t('columns.subUnits'),
+        render: (unit) => (
+          unit.sub_units.length > 0 ? (
+            <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
+              {unit.sub_units.map((subUnit) => (
+                <Chip
+                  key={subUnit.id}
+                  size="small"
+                  label={t('labels.subUnitChip', {
+                    name: subUnit.name,
+                    factor: subUnit.conversion_factor,
+                  })}
+                  variant="outlined"
+                />
+              ))}
+            </Stack>
+          ) : (
+            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+              {t('labels.noSubUnits')}
+            </Typography>
+          )
+        ),
+      },
+    ],
+    [t]
+  )
 
   const openCreateForm = () => {
     setEditingUnit(null)
@@ -106,142 +149,55 @@ export default function UnitsPage() {
   }
 
   return (
-    <Stack spacing={3}>
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={2}
-        sx={{ alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between' }}
-      >
-        <Box>
-          <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-            <StraightenOutlined color="primary" />
-            <Typography variant="h4">{t('title')}</Typography>
-          </Stack>
-          <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
-            {t('subtitle')}
-          </Typography>
-        </Box>
-        {canCreate && (
+    <Stack spacing={2.5}>
+      <PageHeader
+        icon={<StraightenOutlined color="primary" />}
+        title={t('title')}
+        description={t('subtitle')}
+        actions={canCreate && (
           <Button startIcon={<Add />} variant="contained" onClick={openCreateForm}>
             {t('actions.new')}
           </Button>
         )}
-      </Stack>
+      />
 
-      <Card>
-        <CardContent>
-          <TextField
-            value={search}
-            onChange={(event) => {
-              setSearch(event.target.value)
-              setPage(0)
-            }}
-            placeholder={t('filters.search')}
-            sx={{ mb: 2.5, width: '100%' }}
-            slotProps={{
-              input: {
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Search fontSize="small" />
-                  </InputAdornment>
-                ),
-              },
-            }}
+      <PageToolbar
+        searchValue={search}
+        searchPlaceholder={t('filters.search')}
+        onSearchChange={(value) => { setSearch(value); setPage(0) }}
+      />
+
+      {unitsQuery.isError && (
+        <Alert severity="error">{toAppApiError(unitsQuery.error).message}</Alert>
+      )}
+
+      <EntityTable
+        rows={units}
+        columns={columns}
+        getRowKey={(unit) => unit.id}
+        loading={unitsQuery.isLoading}
+        emptyIcon={<StraightenOutlined />}
+        emptyTitle={t('empty')}
+        emptyDescription="Try changing your filters or create a new unit."
+        pagination={{
+          page,
+          rowsPerPage: perPage,
+          count: meta?.total ?? 0,
+          onPageChange: setPage,
+          onRowsPerPageChange: (nextPerPage) => { setPerPage(nextPerPage); setPage(0) },
+        }}
+        rowActions={(unit) => (
+          <RowActions
+            editLabel={t('common:buttons.edit')}
+            deleteLabel={t('common:buttons.delete')}
+            showEdit={canEdit}
+            showDelete={canDelete}
+            deleteDisabled={deleteUnit.isPending}
+            onEdit={() => openEditForm(unit)}
+            onDelete={() => setDeletingUnit(unit)}
           />
-
-          {unitsQuery.isError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {toAppApiError(unitsQuery.error).message}
-            </Alert>
-          )}
-
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('columns.unit')}</TableCell>
-                  <TableCell>{t('columns.decimal')}</TableCell>
-                  <TableCell>{t('columns.subUnits')}</TableCell>
-                  <TableCell align="center">{t('columns.actions')}</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {unitsQuery.isLoading && <TableStateRow colSpan={4} loading />}
-
-                {!unitsQuery.isLoading && units.length === 0 && (
-                  <TableStateRow colSpan={4} message={t('empty')} />
-                )}
-
-                {units.map((unit) => (
-                  <TableRow key={unit.id} hover>
-                    <TableCell>
-                      <Stack spacing={0.25}>
-                        <Typography variant="subtitle2">{unit.name}</Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {unit.short_name}
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        size="small"
-                        label={unit.allow_decimal ? t('labels.decimalAllowed') : t('labels.wholeOnly')}
-                        color={unit.allow_decimal ? 'primary' : 'default'}
-                        variant="outlined"
-                      />
-                    </TableCell>
-                    <TableCell>
-                      {unit.sub_units.length > 0 ? (
-                        <Stack direction="row" spacing={1} sx={{ flexWrap: 'wrap', gap: 1 }}>
-                          {unit.sub_units.map((subUnit) => (
-                            <Chip
-                              key={subUnit.id}
-                              size="small"
-                              label={t('labels.subUnitChip', {
-                                name: subUnit.name,
-                                factor: subUnit.conversion_factor,
-                              })}
-                              variant="outlined"
-                            />
-                          ))}
-                        </Stack>
-                      ) : (
-                        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                          {t('labels.noSubUnits')}
-                        </Typography>
-                      )}
-                    </TableCell>
-                    <TableCell align="center">
-                      <RowActions
-                        editLabel={t('common:buttons.edit')}
-                        deleteLabel={t('common:buttons.delete')}
-                        showEdit={canEdit}
-                        showDelete={canDelete}
-                        deleteDisabled={deleteUnit.isPending}
-                        onEdit={() => openEditForm(unit)}
-                        onDelete={() => setDeletingUnit(unit)}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          <TablePagination
-            component="div"
-            count={meta?.total ?? 0}
-            page={page}
-            rowsPerPage={perPage}
-            rowsPerPageOptions={rowsPerPageOptions}
-            onPageChange={(_, nextPage) => setPage(nextPage)}
-            onRowsPerPageChange={(event) => {
-              setPerPage(Number(event.target.value))
-              setPage(0)
-            }}
-          />
-        </CardContent>
-      </Card>
+        )}
+      />
 
       <UnitFormDialog
         key={`${formOpen ? 'open' : 'closed'}-${editingUnit?.id ?? 'new'}`}

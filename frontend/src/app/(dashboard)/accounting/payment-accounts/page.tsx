@@ -8,26 +8,20 @@ import {
   Card,
   CardContent,
   Chip,
-  InputAdornment,
   MenuItem,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TablePagination,
-  TableRow,
   TextField,
   Typography,
 } from '@mui/material'
-import { AccountBalanceWalletOutlined, Add, CompareArrowsOutlined, Search } from '@/components/ui/icons'
+import { AccountBalanceWalletOutlined, Add, CompareArrowsOutlined } from '@/components/ui/icons'
+import PageHeader from '@/components/common/PageHeader'
+import PageToolbar from '@/components/common/PageToolbar'
+import EntityTable, { type EntityTableColumn } from '@/components/common/EntityTable'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { RowActions } from '@/components/ui/RowActions'
-import { TableStateRow } from '@/components/ui/TableStateRow'
 import { PaymentAccountFormDialog } from '@/features/accounting/PaymentAccountFormDialog'
 import { PaymentAccountTransferDialog } from '@/features/accounting/PaymentAccountTransferDialog'
 import {
@@ -49,8 +43,6 @@ import type {
   PaymentAccountTransferPayload,
   PaymentAccountType,
 } from '@/types/accounting'
-
-const rowsPerPageOptions = [10, 25, 50]
 
 const accountTypes: PaymentAccountType[] = ['cash', 'bank', 'other']
 const statuses: AccountStatus[] = ['active', 'inactive']
@@ -96,6 +88,63 @@ export default function PaymentAccountsPage() {
   const meta = accountsQuery.data?.meta
   const canManage = can('accounting.index')
 
+  const columns: EntityTableColumn<PaymentAccount>[] = useMemo(
+    () => [
+      {
+        key: 'account',
+        label: t('paymentAccounts.columns.account'),
+        render: (account) => (
+          <Stack spacing={0.25}>
+            <Typography variant="subtitle2">{account.name}</Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              {account.bank_name || account.account_number
+                ? [account.bank_name, account.account_number].filter(Boolean).join(' / ')
+                : t('paymentAccounts.labels.noBankDetails')}
+            </Typography>
+          </Stack>
+        ),
+      },
+      {
+        key: 'type',
+        label: t('paymentAccounts.columns.type'),
+        render: (account) => t(`paymentAccounts.types.${account.type}`),
+      },
+      {
+        key: 'chartAccount',
+        label: t('paymentAccounts.columns.chartAccount'),
+        render: (account) =>
+          account.chart_of_account
+            ? `${account.chart_of_account.code} - ${account.chart_of_account.name}`
+            : '-',
+      },
+      {
+        key: 'openingBalance',
+        label: t('paymentAccounts.columns.openingBalance'),
+        align: 'right',
+        render: (account) => formatMoney(account.opening_balance, currencyFormatter),
+      },
+      {
+        key: 'currentBalance',
+        label: t('paymentAccounts.columns.currentBalance'),
+        align: 'right',
+        render: (account) => formatMoney(account.current_balance, currencyFormatter),
+      },
+      {
+        key: 'status',
+        label: t('paymentAccounts.columns.status'),
+        render: (account) => (
+          <Chip
+            size="small"
+            label={t(`paymentAccounts.statuses.${account.status}`)}
+            color={account.is_active ? 'success' : 'default'}
+            variant="outlined"
+          />
+        ),
+      },
+    ],
+    [t, currencyFormatter]
+  )
+
   const openCreateForm = () => {
     setEditingAccount(null)
     setFormOpen(true)
@@ -131,22 +180,12 @@ export default function PaymentAccountsPage() {
   }
 
   return (
-    <Stack spacing={3}>
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={2}
-        sx={{ alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between' }}
-      >
-        <Box>
-          <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-            <AccountBalanceWalletOutlined color="primary" />
-            <Typography variant="h4">{t('paymentAccounts.title')}</Typography>
-          </Stack>
-          <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
-            {t('paymentAccounts.subtitle')}
-          </Typography>
-        </Box>
-        {canManage && (
+    <Stack spacing={2.5}>
+      <PageHeader
+        icon={<AccountBalanceWalletOutlined color="primary" />}
+        title={t('paymentAccounts.title')}
+        description={t('paymentAccounts.subtitle')}
+        actions={canManage && (
           <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
             <Button startIcon={<CompareArrowsOutlined />} variant="outlined" onClick={() => setTransferOpen(true)}>
               {t('paymentAccounts.actions.transfer')}
@@ -156,7 +195,7 @@ export default function PaymentAccountsPage() {
             </Button>
           </Stack>
         )}
-      </Stack>
+      />
 
       <Box
         sx={{
@@ -184,31 +223,15 @@ export default function PaymentAccountsPage() {
         ))}
       </Box>
 
-      <Card>
-        <CardContent>
-          <Stack
-            direction={{ xs: 'column', lg: 'row' }}
-            spacing={2}
-            sx={{ alignItems: { xs: 'stretch', lg: 'center' }, mb: 2.5 }}
-          >
-            <TextField
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value)
-                setPage(0)
-              }}
-              placeholder={t('paymentAccounts.filters.search')}
-              sx={{ flexGrow: 1 }}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Search fontSize="small" />
-                    </InputAdornment>
-                  ),
-                },
-              }}
-            />
+      <PageToolbar
+        searchValue={search}
+        searchPlaceholder={t('paymentAccounts.filters.search')}
+        onSearchChange={(value) => {
+          setSearch(value)
+          setPage(0)
+        }}
+        filters={(
+          <>
             <TextField
               select
               value={typeFilter}
@@ -217,7 +240,6 @@ export default function PaymentAccountsPage() {
                 setPage(0)
               }}
               label={t('paymentAccounts.filters.type')}
-              sx={{ minWidth: { xs: '100%', lg: 180 } }}
             >
               <MenuItem value="">{t('paymentAccounts.filters.allTypes')}</MenuItem>
               {accountTypes.map((type) => (
@@ -232,101 +254,54 @@ export default function PaymentAccountsPage() {
                 setPage(0)
               }}
               label={t('paymentAccounts.filters.status')}
-              sx={{ minWidth: { xs: '100%', lg: 180 } }}
             >
               <MenuItem value="">{t('paymentAccounts.filters.allStatuses')}</MenuItem>
               {statuses.map((status) => (
                 <MenuItem key={status} value={status}>{t(`paymentAccounts.statuses.${status}`)}</MenuItem>
               ))}
             </TextField>
-          </Stack>
+          </>
+        )}
+      />
 
-          {accountsQuery.isError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {toAppApiError(accountsQuery.error).message}
-            </Alert>
-          )}
+      {accountsQuery.isError && (
+        <Alert severity="error">
+          {toAppApiError(accountsQuery.error).message}
+        </Alert>
+      )}
 
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('paymentAccounts.columns.account')}</TableCell>
-                  <TableCell>{t('paymentAccounts.columns.type')}</TableCell>
-                  <TableCell>{t('paymentAccounts.columns.chartAccount')}</TableCell>
-                  <TableCell align="right">{t('paymentAccounts.columns.openingBalance')}</TableCell>
-                  <TableCell align="right">{t('paymentAccounts.columns.currentBalance')}</TableCell>
-                  <TableCell>{t('paymentAccounts.columns.status')}</TableCell>
-                  <TableCell align="center">{t('paymentAccounts.columns.actions')}</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {accountsQuery.isLoading && <TableStateRow colSpan={7} loading />}
-                {!accountsQuery.isLoading && accounts.length === 0 && (
-                  <TableStateRow colSpan={7} message={t('paymentAccounts.empty')} />
-                )}
-                {accounts.map((account) => (
-                  <TableRow key={account.id} hover>
-                    <TableCell>
-                      <Stack spacing={0.25}>
-                        <Typography variant="subtitle2">{account.name}</Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {account.bank_name || account.account_number
-                            ? [account.bank_name, account.account_number].filter(Boolean).join(' / ')
-                            : t('paymentAccounts.labels.noBankDetails')}
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-                    <TableCell>{t(`paymentAccounts.types.${account.type}`)}</TableCell>
-                    <TableCell>
-                      {account.chart_of_account
-                        ? `${account.chart_of_account.code} - ${account.chart_of_account.name}`
-                        : '-'}
-                    </TableCell>
-                    <TableCell align="right">{formatMoney(account.opening_balance, currencyFormatter)}</TableCell>
-                    <TableCell align="right">{formatMoney(account.current_balance, currencyFormatter)}</TableCell>
-                    <TableCell>
-                      <Chip
-                        size="small"
-                        label={t(`paymentAccounts.statuses.${account.status}`)}
-                        color={account.is_active ? 'success' : 'default'}
-                        variant="outlined"
-                      />
-                    </TableCell>
-                    <TableCell align="center">
-                      <RowActions
-                        editLabel={t('common:buttons.edit')}
-                        deleteLabel={t('common:buttons.delete')}
-                        showEdit={canManage}
-                        showDelete={canManage}
-                        deleteDisabled={deleteAccount.isPending}
-                        onEdit={() => {
-                          setEditingAccount(account)
-                          setFormOpen(true)
-                        }}
-                        onDelete={() => setDeletingAccount(account)}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          <TablePagination
-            component="div"
-            count={meta?.total ?? 0}
-            page={page}
-            rowsPerPage={perPage}
-            rowsPerPageOptions={rowsPerPageOptions}
-            onPageChange={(_, nextPage) => setPage(nextPage)}
-            onRowsPerPageChange={(event) => {
-              setPerPage(Number(event.target.value))
-              setPage(0)
+      <EntityTable
+        rows={accounts}
+        columns={columns}
+        getRowKey={(account) => account.id}
+        loading={accountsQuery.isLoading}
+        emptyIcon={<AccountBalanceWalletOutlined />}
+        emptyTitle={t('paymentAccounts.empty')}
+        pagination={{
+          page,
+          rowsPerPage: perPage,
+          count: meta?.total ?? 0,
+          onPageChange: setPage,
+          onRowsPerPageChange: (nextPerPage) => {
+            setPerPage(nextPerPage)
+            setPage(0)
+          },
+        }}
+        rowActions={(account) => (
+          <RowActions
+            editLabel={t('common:buttons.edit')}
+            deleteLabel={t('common:buttons.delete')}
+            showEdit={canManage}
+            showDelete={canManage}
+            deleteDisabled={deleteAccount.isPending}
+            onEdit={() => {
+              setEditingAccount(account)
+              setFormOpen(true)
             }}
+            onDelete={() => setDeletingAccount(account)}
           />
-        </CardContent>
-      </Card>
+        )}
+      />
 
       <PaymentAccountFormDialog
         key={`${formOpen ? 'open' : 'closed'}-${editingAccount?.id ?? 'new'}`}

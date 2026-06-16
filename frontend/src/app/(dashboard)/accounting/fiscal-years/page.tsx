@@ -8,26 +8,20 @@ import {
   Card,
   CardContent,
   Chip,
-  InputAdornment,
   MenuItem,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TablePagination,
-  TableRow,
   TextField,
   Typography,
 } from '@mui/material'
-import { Add, CalculateOutlined, Search } from '@/components/ui/icons'
+import { Add, CalculateOutlined } from '@/components/ui/icons'
+import PageHeader from '@/components/common/PageHeader'
+import PageToolbar from '@/components/common/PageToolbar'
+import EntityTable, { type EntityTableColumn } from '@/components/common/EntityTable'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { RowActions } from '@/components/ui/RowActions'
-import { TableStateRow } from '@/components/ui/TableStateRow'
 import { FiscalYearFormDialog } from '@/features/accounting/FiscalYearFormDialog'
 import {
   useCreateFiscalYearMutation,
@@ -40,7 +34,6 @@ import { useAuthStore } from '@/stores/authStore'
 import { formatAppDate, formatAppDateTime } from '@/utils/dateFormat'
 import type { FiscalYear, FiscalYearFilters, FiscalYearPayload, FiscalYearStatus } from '@/types/accounting'
 
-const rowsPerPageOptions = [10, 25, 50]
 const statuses: FiscalYearStatus[] = ['active', 'closed']
 
 export default function FiscalYearsPage() {
@@ -76,6 +69,46 @@ export default function FiscalYearsPage() {
   const meta = fiscalYearsQuery.data?.meta
   const canManage = can('accounting.index')
 
+  const columns: EntityTableColumn<FiscalYear>[] = useMemo(
+    () => [
+      {
+        key: 'name',
+        label: t('fiscalYears.columns.name'),
+        render: (year) => <Typography variant="subtitle2">{year.name}</Typography>,
+      },
+      {
+        key: 'period',
+        label: t('fiscalYears.columns.period'),
+        render: (year) =>
+          `${formatAppDate(year.start_date, dateFormat, i18n.language)} - ${formatAppDate(year.end_date, dateFormat, i18n.language)}`,
+      },
+      {
+        key: 'status',
+        label: t('fiscalYears.columns.status'),
+        render: (year) => (
+          <Chip
+            size="small"
+            label={t(`fiscalYears.statuses.${year.status}`)}
+            color={year.status === 'active' ? 'success' : 'default'}
+            variant="outlined"
+          />
+        ),
+      },
+      {
+        key: 'journals',
+        label: t('fiscalYears.columns.journals'),
+        align: 'right',
+        render: (year) => year.journal_count ?? 0,
+      },
+      {
+        key: 'closedAt',
+        label: t('fiscalYears.columns.closedAt'),
+        render: (year) => formatAppDateTime(year.closed_at, dateFormat, i18n.language),
+      },
+    ],
+    [t, dateFormat, i18n.language]
+  )
+
   const openCreateForm = () => {
     setEditingFiscalYear(null)
     setFormOpen(true)
@@ -106,27 +139,17 @@ export default function FiscalYearsPage() {
   }
 
   return (
-    <Stack spacing={3}>
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={2}
-        sx={{ alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between' }}
-      >
-        <Box>
-          <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-            <CalculateOutlined color="primary" />
-            <Typography variant="h4">{t('fiscalYears.title')}</Typography>
-          </Stack>
-          <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
-            {t('fiscalYears.subtitle')}
-          </Typography>
-        </Box>
-        {canManage && (
+    <Stack spacing={2.5}>
+      <PageHeader
+        icon={<CalculateOutlined color="primary" />}
+        title={t('fiscalYears.title')}
+        description={t('fiscalYears.subtitle')}
+        actions={canManage && (
           <Button startIcon={<Add />} variant="contained" onClick={openCreateForm}>
             {t('fiscalYears.actions.new')}
           </Button>
         )}
-      </Stack>
+      />
 
       <Box
         sx={{
@@ -153,123 +176,70 @@ export default function FiscalYearsPage() {
         ))}
       </Box>
 
-      <Card>
-        <CardContent>
-          <Stack
-            direction={{ xs: 'column', lg: 'row' }}
-            spacing={2}
-            sx={{ alignItems: { xs: 'stretch', lg: 'center' }, mb: 2.5 }}
-          >
-            <TextField
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value)
-                setPage(0)
-              }}
-              placeholder={t('fiscalYears.filters.search')}
-              sx={{ flexGrow: 1 }}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Search fontSize="small" />
-                    </InputAdornment>
-                  ),
-                },
-              }}
-            />
-            <TextField
-              select
-              value={statusFilter}
-              onChange={(event) => {
-                setStatusFilter(event.target.value as FiscalYearStatus | '')
-                setPage(0)
-              }}
-              label={t('fiscalYears.filters.status')}
-              sx={{ minWidth: { xs: '100%', lg: 180 } }}
-            >
-              <MenuItem value="">{t('fiscalYears.filters.allStatuses')}</MenuItem>
-              {statuses.map((status) => (
-                <MenuItem key={status} value={status}>{t(`fiscalYears.statuses.${status}`)}</MenuItem>
-              ))}
-            </TextField>
-          </Stack>
-
-          {fiscalYearsQuery.isError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {toAppApiError(fiscalYearsQuery.error).message}
-            </Alert>
-          )}
-
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('fiscalYears.columns.name')}</TableCell>
-                  <TableCell>{t('fiscalYears.columns.period')}</TableCell>
-                  <TableCell>{t('fiscalYears.columns.status')}</TableCell>
-                  <TableCell align="right">{t('fiscalYears.columns.journals')}</TableCell>
-                  <TableCell>{t('fiscalYears.columns.closedAt')}</TableCell>
-                  <TableCell align="center">{t('fiscalYears.columns.actions')}</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {fiscalYearsQuery.isLoading && <TableStateRow colSpan={6} loading />}
-                {!fiscalYearsQuery.isLoading && fiscalYears.length === 0 && (
-                  <TableStateRow colSpan={6} message={t('fiscalYears.empty')} />
-                )}
-                {fiscalYears.map((year) => (
-                  <TableRow key={year.id} hover>
-                    <TableCell>
-                      <Typography variant="subtitle2">{year.name}</Typography>
-                    </TableCell>
-                    <TableCell>
-                      {formatAppDate(year.start_date, dateFormat, i18n.language)} - {formatAppDate(year.end_date, dateFormat, i18n.language)}
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        size="small"
-                        label={t(`fiscalYears.statuses.${year.status}`)}
-                        color={year.status === 'active' ? 'success' : 'default'}
-                        variant="outlined"
-                      />
-                    </TableCell>
-                    <TableCell align="right">{year.journal_count ?? 0}</TableCell>
-                    <TableCell>{formatAppDateTime(year.closed_at, dateFormat, i18n.language)}</TableCell>
-                    <TableCell align="center">
-                      <RowActions
-                        editLabel={t('common:buttons.edit')}
-                        deleteLabel={t('common:buttons.delete')}
-                        showEdit={canManage}
-                        showDelete={canManage}
-                        deleteDisabled={deleteFiscalYear.isPending}
-                        onEdit={() => {
-                          setEditingFiscalYear(year)
-                          setFormOpen(true)
-                        }}
-                        onDelete={() => setDeletingFiscalYear(year)}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          <TablePagination
-            component="div"
-            count={meta?.total ?? 0}
-            page={page}
-            rowsPerPage={perPage}
-            rowsPerPageOptions={rowsPerPageOptions}
-            onPageChange={(_, nextPage) => setPage(nextPage)}
-            onRowsPerPageChange={(event) => {
-              setPerPage(Number(event.target.value))
+      <PageToolbar
+        searchValue={search}
+        searchPlaceholder={t('fiscalYears.filters.search')}
+        onSearchChange={(value) => {
+          setSearch(value)
+          setPage(0)
+        }}
+        defaultFiltersOpen
+        filters={(
+          <TextField
+            select
+            value={statusFilter}
+            onChange={(event) => {
+              setStatusFilter(event.target.value as FiscalYearStatus | '')
               setPage(0)
             }}
+            label={t('fiscalYears.filters.status')}
+          >
+            <MenuItem value="">{t('fiscalYears.filters.allStatuses')}</MenuItem>
+            {statuses.map((status) => (
+              <MenuItem key={status} value={status}>{t(`fiscalYears.statuses.${status}`)}</MenuItem>
+            ))}
+          </TextField>
+        )}
+      />
+
+      {fiscalYearsQuery.isError && (
+        <Alert severity="error">
+          {toAppApiError(fiscalYearsQuery.error).message}
+        </Alert>
+      )}
+
+      <EntityTable
+        rows={fiscalYears}
+        columns={columns}
+        getRowKey={(year) => year.id}
+        loading={fiscalYearsQuery.isLoading}
+        emptyIcon={<CalculateOutlined />}
+        emptyTitle={t('fiscalYears.empty')}
+        pagination={{
+          page,
+          rowsPerPage: perPage,
+          count: meta?.total ?? 0,
+          onPageChange: setPage,
+          onRowsPerPageChange: (nextPerPage) => {
+            setPerPage(nextPerPage)
+            setPage(0)
+          },
+        }}
+        rowActions={(year) => (
+          <RowActions
+            editLabel={t('common:buttons.edit')}
+            deleteLabel={t('common:buttons.delete')}
+            showEdit={canManage}
+            showDelete={canManage}
+            deleteDisabled={deleteFiscalYear.isPending}
+            onEdit={() => {
+              setEditingFiscalYear(year)
+              setFormOpen(true)
+            }}
+            onDelete={() => setDeletingFiscalYear(year)}
           />
-        </CardContent>
-      </Card>
+        )}
+      />
 
       <FiscalYearFormDialog
         key={`${formOpen ? 'open' : 'closed'}-${editingFiscalYear?.id ?? 'new'}`}

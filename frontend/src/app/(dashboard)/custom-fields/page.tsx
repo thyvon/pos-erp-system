@@ -3,31 +3,22 @@
 import { useMemo, useState } from 'react'
 import {
   Alert,
-  Box,
   Button,
-  Card,
-  CardContent,
   Chip,
-  InputAdornment,
   MenuItem,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TablePagination,
-  TableRow,
   TextField,
   Typography,
 } from '@mui/material'
-import { Add, Search, TuneOutlined } from '@/components/ui/icons'
+import { Add, TuneOutlined } from '@/components/ui/icons'
+import PageHeader from '@/components/common/PageHeader'
+import PageToolbar from '@/components/common/PageToolbar'
+import EntityTable, { type EntityTableColumn } from '@/components/common/EntityTable'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { RowActions } from '@/components/ui/RowActions'
-import { TableStateRow } from '@/components/ui/TableStateRow'
 import { CustomFieldFormDialog } from '@/features/custom-fields/CustomFieldFormDialog'
 import {
   useCreateCustomFieldMutation,
@@ -38,7 +29,6 @@ import {
 import { useAuthStore } from '@/stores/authStore'
 import type { CustomFieldDefinition, CustomFieldFilters, CustomFieldModule, CustomFieldPayload } from '@/types/customField'
 
-const rowsPerPageOptions = [10, 25, 50]
 const modules: CustomFieldModule[] = ['product', 'customer', 'supplier']
 
 export default function CustomFieldsPage() {
@@ -119,158 +109,158 @@ export default function CustomFieldsPage() {
     setPage(0)
   }
 
-  return (
-    <Stack spacing={3}>
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={2}
-        sx={{ alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between' }}
-      >
-        <Box>
-          <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-            <TuneOutlined color="primary" />
-            <Typography variant="h4">{t('title')}</Typography>
+  const activeFilters = useMemo(() => {
+    const items: Array<{ key: string; label: string; onDelete: () => void }> = []
+
+    if (moduleFilter) {
+      items.push({
+        key: 'module',
+        label: `${t('filters.module')}: ${t(`module.${moduleFilter}`)}`,
+        onDelete: () => {
+          setModuleFilter('')
+          setPage(0)
+        },
+      })
+    }
+
+    return items
+  }, [moduleFilter, t])
+
+  const clearFilters = () => {
+    setModuleFilter('')
+    setPage(0)
+  }
+
+  const columns: EntityTableColumn<CustomFieldDefinition>[] = useMemo(
+    () => [
+      {
+        key: 'field',
+        label: t('columns.field'),
+        render: (customField) => (
+          <Stack spacing={0.25}>
+            <Typography variant="subtitle2">{customField.field_label}</Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              {customField.field_name}
+            </Typography>
           </Stack>
-          <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
-            {t('subtitle')}
-          </Typography>
-        </Box>
-        {canCreate && (
+        ),
+      },
+      {
+        key: 'module',
+        label: t('columns.module'),
+        render: (customField) => t(`module.${customField.module}`),
+      },
+      {
+        key: 'type',
+        label: t('columns.type'),
+        render: (customField) => t(`fieldType.${customField.field_type}`),
+      },
+      {
+        key: 'options',
+        label: t('columns.options'),
+        render: (customField) =>
+          customField.options?.length ? (
+            <Stack direction="row" spacing={0.75} sx={{ flexWrap: 'wrap', gap: 0.75 }}>
+              {customField.options.slice(0, 3).map((option) => (
+                <Chip key={option} size="small" label={option} />
+              ))}
+              {customField.options.length > 3 && (
+                <Chip size="small" label={t('badges.moreOptions', { count: customField.options.length - 3 })} />
+              )}
+            </Stack>
+          ) : (
+            '-'
+          ),
+      },
+      {
+        key: 'required',
+        label: t('columns.required'),
+        render: (customField) => (
+          <Chip
+            size="small"
+            label={customField.is_required ? t('badges.yes') : t('badges.no')}
+            color={customField.is_required ? 'primary' : 'default'}
+          />
+        ),
+      },
+      {
+        key: 'sortOrder',
+        label: t('columns.sortOrder'),
+        render: (customField) => customField.sort_order,
+      },
+    ],
+    [t]
+  )
+
+  return (
+    <Stack spacing={2.5}>
+      <PageHeader
+        icon={<TuneOutlined color="primary" />}
+        title={t('title')}
+        description={t('subtitle')}
+        actions={canCreate && (
           <Button startIcon={<Add />} variant="contained" onClick={openCreateForm}>
             {t('actions.new')}
           </Button>
         )}
-      </Stack>
+      />
 
-      <Card>
-        <CardContent>
-          <Stack
-            direction={{ xs: 'column', md: 'row' }}
-            spacing={2}
-            sx={{ alignItems: { xs: 'stretch', md: 'center' }, mb: 2.5 }}
+      <PageToolbar
+        searchValue={search}
+        searchPlaceholder={t('filters.search')}
+        onSearchChange={handleSearchChange}
+        filters={
+          <TextField
+            select
+            value={moduleFilter}
+            onChange={(event) => handleModuleFilterChange(event.target.value)}
+            label={t('filters.module')}
           >
-            <TextField
-              value={search}
-              onChange={(event) => handleSearchChange(event.target.value)}
-              placeholder={t('filters.search')}
-              sx={{ flexGrow: 1 }}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Search fontSize="small" />
-                    </InputAdornment>
-                  ),
-                },
-              }}
-            />
-            <TextField
-              select
-              value={moduleFilter}
-              onChange={(event) => handleModuleFilterChange(event.target.value)}
-              label={t('filters.module')}
-              sx={{ minWidth: { xs: '100%', md: 220 } }}
-            >
-              <MenuItem value="">{t('filters.allModules')}</MenuItem>
-              {modules.map((module) => (
-                <MenuItem key={module} value={module}>
-                  {t(`module.${module}`)}
-                </MenuItem>
-              ))}
-            </TextField>
-          </Stack>
+            <MenuItem value="">{t('filters.allModules')}</MenuItem>
+            {modules.map((module) => (
+              <MenuItem key={module} value={module}>
+                {t(`module.${module}`)}
+              </MenuItem>
+            ))}
+          </TextField>
+        }
+        activeFilters={activeFilters}
+        onClearFilters={activeFilters.length > 0 ? clearFilters : undefined}
+      />
 
-          {customFieldsQuery.isError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {toAppApiError(customFieldsQuery.error).message}
-            </Alert>
-          )}
+      {customFieldsQuery.isError && (
+        <Alert severity="error">{toAppApiError(customFieldsQuery.error).message}</Alert>
+      )}
 
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('columns.field')}</TableCell>
-                  <TableCell>{t('columns.module')}</TableCell>
-                  <TableCell>{t('columns.type')}</TableCell>
-                  <TableCell>{t('columns.options')}</TableCell>
-                  <TableCell>{t('columns.required')}</TableCell>
-                  <TableCell>{t('columns.sortOrder')}</TableCell>
-                  <TableCell align="center">{t('columns.actions')}</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {customFieldsQuery.isLoading && <TableStateRow colSpan={7} loading />}
-
-                {!customFieldsQuery.isLoading && customFields.length === 0 && (
-                  <TableStateRow colSpan={7} message={t('empty')} />
-                )}
-
-                {customFields.map((customField) => (
-                  <TableRow key={customField.id} hover>
-                    <TableCell>
-                      <Stack spacing={0.25}>
-                        <Typography variant="subtitle2">{customField.field_label}</Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                          {customField.field_name}
-                        </Typography>
-                      </Stack>
-                    </TableCell>
-                    <TableCell>{t(`module.${customField.module}`)}</TableCell>
-                    <TableCell>{t(`fieldType.${customField.field_type}`)}</TableCell>
-                    <TableCell>
-                      {customField.options?.length ? (
-                        <Stack direction="row" spacing={0.75} sx={{ flexWrap: 'wrap', gap: 0.75 }}>
-                          {customField.options.slice(0, 3).map((option) => (
-                            <Chip key={option} size="small" label={option} />
-                          ))}
-                          {customField.options.length > 3 && (
-                            <Chip size="small" label={t('badges.moreOptions', { count: customField.options.length - 3 })} />
-                          )}
-                        </Stack>
-                      ) : (
-                        '-'
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        size="small"
-                        label={customField.is_required ? t('badges.yes') : t('badges.no')}
-                        color={customField.is_required ? 'primary' : 'default'}
-                      />
-                    </TableCell>
-                    <TableCell>{customField.sort_order}</TableCell>
-                    <TableCell align="center">
-                      <RowActions
-                        editLabel={t('common:buttons.edit')}
-                        deleteLabel={t('common:buttons.delete')}
-                        showEdit={canEdit}
-                        showDelete={canDelete}
-                        deleteDisabled={deleteCustomField.isPending}
-                        onEdit={() => openEditForm(customField)}
-                        onDelete={() => setDeletingCustomField(customField)}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          <TablePagination
-            component="div"
-            count={meta?.total ?? 0}
-            page={page}
-            rowsPerPage={perPage}
-            rowsPerPageOptions={rowsPerPageOptions}
-            onPageChange={(_, nextPage) => setPage(nextPage)}
-            onRowsPerPageChange={(event) => {
-              setPerPage(Number(event.target.value))
-              setPage(0)
-            }}
+      <EntityTable
+        rows={customFields}
+        columns={columns}
+        getRowKey={(customField) => customField.id}
+        loading={customFieldsQuery.isLoading}
+        emptyIcon={<TuneOutlined />}
+        emptyTitle={t('empty')}
+        pagination={{
+          page,
+          rowsPerPage: perPage,
+          count: meta?.total ?? 0,
+          onPageChange: setPage,
+          onRowsPerPageChange: (nextPerPage) => {
+            setPerPage(nextPerPage)
+            setPage(0)
+          },
+        }}
+        rowActions={(customField) => (
+          <RowActions
+            editLabel={t('common:buttons.edit')}
+            deleteLabel={t('common:buttons.delete')}
+            showEdit={canEdit}
+            showDelete={canDelete}
+            deleteDisabled={deleteCustomField.isPending}
+            onEdit={() => openEditForm(customField)}
+            onDelete={() => setDeletingCustomField(customField)}
           />
-        </CardContent>
-      </Card>
+        )}
+      />
 
       <CustomFieldFormDialog
         key={`${formOpen ? 'open' : 'closed'}-${editingCustomField?.id ?? 'new'}`}

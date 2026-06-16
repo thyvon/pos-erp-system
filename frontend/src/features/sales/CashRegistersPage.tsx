@@ -21,7 +21,6 @@ import {
   TableCell,
   TableContainer,
   TableHead,
-  TablePagination,
   TableRow,
   TextField,
   Typography,
@@ -29,6 +28,7 @@ import {
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
+import EntityTable, { type EntityTableColumn } from '@/components/common/EntityTable'
 import PageHeader from '@/components/common/PageHeader'
 import PageToolbar from '@/components/common/PageToolbar'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
@@ -62,8 +62,6 @@ import {
   useDeleteCashRegisterMutation,
   useOpenCashRegisterSessionMutation,
 } from '@/features/sales/hooks'
-
-const rowsPerPageOptions = [10, 25, 50]
 
 const statusOptions: CashRegisterFilters['status'][] = ['active', 'inactive']
 
@@ -352,6 +350,73 @@ export function CashRegistersPage() {
   const canManage = can('sales.edit')
   const canUseSession = can('sales.create')
 
+  const columns = useMemo<EntityTableColumn<CashRegister>[]>(
+    () => [
+      {
+        key: 'register',
+        label: t('cashRegisters.columns.register'),
+        render: (register) => (
+          <Stack spacing={0.25}>
+            <Typography variant="subtitle2">{register.name}</Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              {t('cashRegisters.labels.sessionsCount', { count: register.sessions_count ?? 0 })}
+            </Typography>
+          </Stack>
+        ),
+      },
+      {
+        key: 'branch',
+        label: t('cashRegisters.columns.branch'),
+        render: (register) => register.branch?.name ?? '-',
+      },
+      {
+        key: 'session',
+        label: t('cashRegisters.columns.session'),
+        render: (register) => {
+          const openSessionRecord = register.current_open_session
+          return openSessionRecord ? (
+            <Stack spacing={0.25}>
+              <Chip
+                size="small"
+                color="success"
+                variant="outlined"
+                label={t('cashRegisters.sessionStatuses.open')}
+              />
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                {formatAppDateTime(openSessionRecord.opened_at, dateFormat, i18n.language)}
+              </Typography>
+            </Stack>
+          ) : (
+            <Chip
+              size="small"
+              variant="outlined"
+              label={t('cashRegisters.sessionStatuses.closed')}
+            />
+          )
+        },
+      },
+      {
+        key: 'openingFloat',
+        label: t('cashRegisters.columns.openingFloat'),
+        align: 'right',
+        render: (register) => formatMoney(register.current_open_session?.opening_float, formatter),
+      },
+      {
+        key: 'status',
+        label: t('cashRegisters.columns.status'),
+        render: (register) => (
+          <Chip
+            size="small"
+            variant="outlined"
+            color={register.is_active ? 'success' : 'default'}
+            label={t(`cashRegisters.statuses.${register.status}`)}
+          />
+        ),
+      },
+    ],
+    [dateFormat, formatter, i18n.language, t]
+  )
+
   const summary = useMemo(() => ({
     total: meta?.total ?? registers.length,
     active: registers.filter((register) => register.is_active).length,
@@ -511,140 +576,76 @@ export function CashRegistersPage() {
         }
       />
 
-      <Card>
-        <CardContent>
-          {registersQuery.isError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {toAppApiError(registersQuery.error).message}
-            </Alert>
-          )}
-          {branchesQuery.isError && (
-            <Alert severity="warning" sx={{ mb: 2 }}>
-              {toAppApiError(branchesQuery.error).message}
-            </Alert>
-          )}
+      {registersQuery.isError && (
+        <Alert severity="error">
+          {toAppApiError(registersQuery.error).message}
+        </Alert>
+      )}
+      {branchesQuery.isError && (
+        <Alert severity="warning">
+          {toAppApiError(branchesQuery.error).message}
+        </Alert>
+      )}
 
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('cashRegisters.columns.register')}</TableCell>
-                  <TableCell>{t('cashRegisters.columns.branch')}</TableCell>
-                  <TableCell>{t('cashRegisters.columns.session')}</TableCell>
-                  <TableCell align="right">{t('cashRegisters.columns.openingFloat')}</TableCell>
-                  <TableCell>{t('cashRegisters.columns.status')}</TableCell>
-                  <TableCell align="center">{t('cashRegisters.columns.actions')}</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {registersQuery.isLoading && <TableStateRow colSpan={6} loading />}
-                {!registersQuery.isLoading && registers.length === 0 && (
-                  <TableStateRow colSpan={6} message={t('cashRegisters.empty')} />
-                )}
-                {registers.map((register) => {
-                  const openSessionRecord = register.current_open_session
-
-                  return (
-                    <TableRow key={register.id} hover>
-                      <TableCell>
-                        <Stack spacing={0.25}>
-                          <Typography variant="subtitle2">{register.name}</Typography>
-                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                            {t('cashRegisters.labels.sessionsCount', { count: register.sessions_count ?? 0 })}
-                          </Typography>
-                        </Stack>
-                      </TableCell>
-                      <TableCell>{register.branch?.name ?? '-'}</TableCell>
-                      <TableCell>
-                        {openSessionRecord ? (
-                          <Stack spacing={0.25}>
-                            <Chip
-                              size="small"
-                              color="success"
-                              variant="outlined"
-                              label={t('cashRegisters.sessionStatuses.open')}
-                            />
-                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                              {formatAppDateTime(openSessionRecord.opened_at, dateFormat, i18n.language)}
-                            </Typography>
-                          </Stack>
-                        ) : (
-                          <Chip
-                            size="small"
-                            variant="outlined"
-                            label={t('cashRegisters.sessionStatuses.closed')}
-                          />
-                        )}
-                      </TableCell>
-                      <TableCell align="right">{formatMoney(openSessionRecord?.opening_float, formatter)}</TableCell>
-                      <TableCell>
-                        <Chip
-                          size="small"
-                          variant="outlined"
-                          color={register.is_active ? 'success' : 'default'}
-                          label={t(`cashRegisters.statuses.${register.status}`)}
-                        />
-                      </TableCell>
-                      <TableCell align="right">
-                        <Stack direction="row" spacing={0.5} sx={{ justifyContent: 'flex-end' }}>
-                          {canUseSession && register.is_active && !openSessionRecord && (
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              startIcon={<CheckCircleOutlined />}
-                              onClick={() => setOpeningRegister(register)}
-                            >
-                              {t('cashRegisters.actions.openSession')}
-                            </Button>
-                          )}
-                          {canUseSession && openSessionRecord && (
-                            <Button
-                              size="small"
-                              variant="outlined"
-                              color="warning"
-                              onClick={() => setClosingRegister(register)}
-                            >
-                              {t('cashRegisters.actions.closeSession')}
-                            </Button>
-                          )}
-                          <RowActions
-                            viewLabel={t('cashRegisters.actions.sessions')}
-                            editLabel={t('common:buttons.edit')}
-                            deleteLabel={t('common:buttons.delete')}
-                            showView
-                            showEdit={canManage}
-                            showDelete={canManage}
-                            deleteDisabled={deleteRegister.isPending || !!openSessionRecord}
-                            onView={() => setViewingRegister(register)}
-                            onEdit={() => {
-                              setEditingRegister(register)
-                              setFormOpen(true)
-                            }}
-                            onDelete={() => setDeletingRegister(register)}
-                          />
-                        </Stack>
-                      </TableCell>
-                    </TableRow>
-                  )
-                })}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          <TablePagination
-            component="div"
-            count={meta?.total ?? 0}
-            page={page}
-            rowsPerPage={perPage}
-            rowsPerPageOptions={rowsPerPageOptions}
-            onPageChange={(_, nextPage) => setPage(nextPage)}
-            onRowsPerPageChange={(event) => {
-              setPerPage(Number(event.target.value))
-              setPage(0)
-            }}
-          />
-        </CardContent>
-      </Card>
+      <EntityTable
+        rows={registers}
+        columns={columns}
+        getRowKey={(register) => register.id}
+        loading={registersQuery.isLoading}
+        emptyTitle={t('cashRegisters.empty')}
+        pagination={{
+          page,
+          rowsPerPage: perPage,
+          count: meta?.total ?? 0,
+          onPageChange: setPage,
+          onRowsPerPageChange: (nextPerPage) => {
+            setPerPage(nextPerPage)
+            setPage(0)
+          },
+        }}
+        rowActions={(register) => {
+          const openSessionRecord = register.current_open_session
+          return (
+            <Stack direction="row" spacing={0.5} sx={{ justifyContent: 'flex-end' }}>
+              {canUseSession && register.is_active && !openSessionRecord && (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  startIcon={<CheckCircleOutlined />}
+                  onClick={() => setOpeningRegister(register)}
+                >
+                  {t('cashRegisters.actions.openSession')}
+                </Button>
+              )}
+              {canUseSession && openSessionRecord && (
+                <Button
+                  size="small"
+                  variant="outlined"
+                  color="warning"
+                  onClick={() => setClosingRegister(register)}
+                >
+                  {t('cashRegisters.actions.closeSession')}
+                </Button>
+              )}
+              <RowActions
+                viewLabel={t('cashRegisters.actions.sessions')}
+                editLabel={t('common:buttons.edit')}
+                deleteLabel={t('common:buttons.delete')}
+                showView
+                showEdit={canManage}
+                showDelete={canManage}
+                deleteDisabled={deleteRegister.isPending || !!openSessionRecord}
+                onView={() => setViewingRegister(register)}
+                onEdit={() => {
+                  setEditingRegister(register)
+                  setFormOpen(true)
+                }}
+                onDelete={() => setDeletingRegister(register)}
+              />
+            </Stack>
+          )
+        }}
+      />
 
       <CashRegisterFormDialog
         key={`${formOpen ? 'open' : 'closed'}-${editingRegister?.id ?? 'new'}`}

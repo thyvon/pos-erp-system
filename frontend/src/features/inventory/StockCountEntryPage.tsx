@@ -29,6 +29,7 @@ import {
   Typography,
 } from '@mui/material'
 import { ArrowBack, EditOutlined, SaveOutlined, Search } from '@/components/ui/icons'
+import PageHeader from '@/components/common/PageHeader'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
@@ -225,22 +226,18 @@ export function StockCountEntryPage({ countId }: StockCountEntryPageProps) {
 
   return (
     <Stack spacing={3}>
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ justifyContent: 'space-between' }}>
-        <Box>
-          <Typography variant="h4">{count?.reference_no ?? t('counts.entries.title')}</Typography>
-          <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
-            {t('counts.entries.subtitle')}
-          </Typography>
-        </Box>
-        <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-          {count && (
-            <Chip
-              size="small"
-              label={t(`counts.status.${count.status}`)}
-              color={statusColor(count.status)}
-              variant="outlined"
-            />
-          )}
+      <PageHeader
+        title={count?.reference_no ?? t('counts.entries.title')}
+        description={t('counts.entries.subtitle')}
+        meta={count && (
+          <Chip
+            size="small"
+            label={t(`counts.status.${count.status}`)}
+            color={statusColor(count.status)}
+            variant="outlined"
+          />
+        )}
+        actions={
           <Tooltip title={t('counts.actions.backToDetail')}>
             <IconButton
               size="small"
@@ -250,8 +247,8 @@ export function StockCountEntryPage({ countId }: StockCountEntryPageProps) {
               <ArrowBack />
             </IconButton>
           </Tooltip>
-        </Stack>
-      </Stack>
+        }
+      />
 
       {countQuery.isError && <Alert severity="error">{toAppApiError(countQuery.error).message}</Alert>}
       {entriesQuery.isError && <Alert severity="error">{toAppApiError(entriesQuery.error).message}</Alert>}

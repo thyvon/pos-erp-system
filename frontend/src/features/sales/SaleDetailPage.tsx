@@ -24,6 +24,7 @@ import {
   Typography,
 } from '@mui/material'
 import { ArrowBack, CheckCircleOutlined, Close, CompareArrowsOutlined, DeleteOutlined, EditOutlined, PaymentsOutlined, PointOfSaleOutlined, ReceiptLongOutlined } from '@/components/ui/icons'
+import PageHeader from '@/components/common/PageHeader'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
@@ -249,16 +250,14 @@ export function SaleDetailPage({ saleId }: SaleDetailPageProps) {
               <ArrowBack />
             </IconButton>
           </Tooltip>
-          <PointOfSaleOutlined color="primary" />
-          <Box>
-            <Typography variant="h4">{sale.sale_number}</Typography>
-            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-              {t('detail.subtitle', {
-                customer: sale.customer?.name ?? t('labels.walkInCustomer'),
-                date: formatAppDate(sale.sale_date, dateFormat, i18n.language),
-              })}
-            </Typography>
-          </Box>
+          <PageHeader
+            icon={<PointOfSaleOutlined color="primary" />}
+            title={sale.sale_number}
+            description={t('detail.subtitle', {
+              customer: sale.customer?.name ?? t('labels.walkInCustomer'),
+              date: formatAppDate(sale.sale_date, dateFormat, i18n.language),
+            })}
+          />
         </Stack>
         <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
           {canEdit && (

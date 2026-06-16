@@ -24,6 +24,7 @@ import { AppDatePicker } from '@/components/ui/AppDatePicker'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import PageLoader from '@/components/ui/PageLoader'
 import { ArrowBack } from '@/components/ui/icons'
+import PageHeader from '@/components/common/PageHeader'
 import { useSnackbar } from 'notistack'
 import { receivePurchaseSchema, type ReceivePurchaseFormInput, type ReceivePurchaseFormValues } from './schema'
 import { PurchaseReceiveItemsTable } from './components/PurchaseReceiveItemsTable'
@@ -226,14 +227,16 @@ export function PurchaseReceivePage({ purchaseId, receiveId }: PurchaseReceivePa
   if (purchaseQuery.isError) {
     return (
       <Stack spacing={3}>
-        <Stack direction="row" spacing={2} sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h4">{t('receive.title')}</Typography>
-          <Tooltip title="Back">
-            <IconButton size="small" onClick={() => router.push(`/purchases/${purchaseId}`)}>
-              <ArrowBack />
-            </IconButton>
-          </Tooltip>
-        </Stack>
+        <PageHeader
+          title={t('receive.title')}
+          actions={
+            <Tooltip title="Back">
+              <IconButton size="small" onClick={() => router.push(`/purchases/${purchaseId}`)}>
+                <ArrowBack />
+              </IconButton>
+            </Tooltip>
+          }
+        />
         <Alert severity="error">{toAppApiError(purchaseQuery.error).message}</Alert>
       </Stack>
     )
@@ -242,14 +245,16 @@ export function PurchaseReceivePage({ purchaseId, receiveId }: PurchaseReceivePa
   if (isEditing && receiveQuery.isError) {
     return (
       <Stack spacing={3}>
-        <Stack direction="row" spacing={2} sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
-          <Typography variant="h4">{t('receive.title')}</Typography>
-          <Tooltip title="Back">
-            <IconButton size="small" onClick={() => router.push(`/purchases/${purchaseId}`)}>
-              <ArrowBack />
-            </IconButton>
-          </Tooltip>
-        </Stack>
+        <PageHeader
+          title={t('receive.title')}
+          actions={
+            <Tooltip title="Back">
+              <IconButton size="small" onClick={() => router.push(`/purchases/${purchaseId}`)}>
+                <ArrowBack />
+              </IconButton>
+            </Tooltip>
+          }
+        />
         <Alert severity="error">{toAppApiError(receiveQuery.error).message}</Alert>
       </Stack>
     )
@@ -270,23 +275,17 @@ export function PurchaseReceivePage({ purchaseId, receiveId }: PurchaseReceivePa
 
   return (
     <Stack spacing={3}>
-      <Stack direction="row" spacing={2} sx={{ justifyContent: 'space-between', alignItems: 'center' }}>
-        <Stack spacing={0.5}>
-          <Typography variant="h4">
-            {isEditing ? t('common:buttons.edit') : t('receive.title')}
-          </Typography>
-          {purchase?.purchase_number && (
-            <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-              {purchase.purchase_number}
-            </Typography>
-          )}
-        </Stack>
-        <Tooltip title={t('common:buttons.back')}>
-          <IconButton size="small" onClick={() => router.push(`/purchases/${purchaseId}`)}>
-            <ArrowBack />
-          </IconButton>
-        </Tooltip>
-      </Stack>
+      <PageHeader
+        title={isEditing ? t('common:buttons.edit') : t('receive.title')}
+        description={purchase?.purchase_number || undefined}
+        actions={
+          <Tooltip title={t('common:buttons.back')}>
+            <IconButton size="small" onClick={() => router.push(`/purchases/${purchaseId}`)}>
+              <ArrowBack />
+            </IconButton>
+          </Tooltip>
+        }
+      />
 
       <Card variant="outlined">
         <CardContent>

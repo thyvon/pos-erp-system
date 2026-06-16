@@ -8,8 +8,6 @@ import {
   Autocomplete,
   Box,
   Button,
-  Card,
-  CardContent,
   CircularProgress,
   Dialog,
   DialogActions,
@@ -17,28 +15,28 @@ import {
   DialogTitle,
   FormHelperText,
   IconButton,
-  InputAdornment,
   Stack,
   Table,
   TableBody,
   TableCell,
   TableContainer,
   TableHead,
-  TablePagination,
   TableRow,
   TextField,
   Tooltip,
   Typography,
 } from '@mui/material'
 import { FileDownloadOutlined } from '@mui/icons-material'
-import { Add, DeleteOutlined, Inventory2Outlined, Search, UploadOutlined } from '@/components/ui/icons'
+import { Add, DeleteOutlined, Inventory2Outlined, UploadOutlined } from '@/components/ui/icons'
+import PageHeader from '@/components/common/PageHeader'
+import PageToolbar from '@/components/common/PageToolbar'
+import EntityTable, { type EntityTableColumn } from '@/components/common/EntityTable'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { AppDatePicker } from '@/components/ui/AppDatePicker'
 import { RowActions } from '@/components/ui/RowActions'
 import { SearchableFilterSelect } from '@/components/ui/SearchableFilterSelect'
-import { TableStateRow } from '@/components/ui/TableStateRow'
 import { InventoryProductLookupPicker } from '@/features/inventory/components/InventoryProductLookupPicker'
 import { stockOpeningBalancesApi } from '@/features/inventory/api'
 import {
@@ -60,13 +58,11 @@ import { formatAppDate } from '@/utils/dateFormat'
 import type {
   InventoryProductLookupItem,
   InventoryWarehouseOption,
-  StockImportResult,
   StockOpeningBalance,
   StockOpeningBalanceFilters,
   StockOpeningBalancePayload,
 } from '@/types/inventory'
 
-const rowsPerPageOptions = [10, 25, 50]
 const today = () => new Date().toISOString().slice(0, 10)
 
 const itemColumnSx = {
@@ -276,7 +272,13 @@ function OpeningBalanceDialog({
                   </TableRow>
                 </TableHead>
                 <TableBody>
-                  {fields.length === 0 && <TableStateRow colSpan={6} message={t('openingBalances.emptyItems')} />}
+                  {fields.length === 0 && (
+                    <TableRow>
+                      <TableCell colSpan={6} align="center" sx={{ py: 3, color: 'text.secondary' }}>
+                        {t('openingBalances.emptyItems')}
+                      </TableCell>
+                    </TableRow>
+                  )}
                   {fields.map((field, index) => {
                     const tracking = watchedItems[index]?.stock_tracking ?? field.stock_tracking ?? 'none'
                     const isSerial = tracking === 'serial'
@@ -611,17 +613,103 @@ export default function StockOpeningBalancesPage() {
     setPage(0)
   }
 
+  const handleSearchChange = useCallback((value: string) => {
+    setSearch(value)
+    setPage(0)
+  }, [])
+
+  const handleWarehouseChange = useCallback((value: string) => {
+    setWarehouseFilter(value)
+    setPage(0)
+  }, [])
+
+  const handleDateFromChange = useCallback((value: string | null) => {
+    setDateFrom(value ?? '')
+    setPage(0)
+  }, [])
+
+  const handleDateToChange = useCallback((value: string | null) => {
+    setDateTo(value ?? '')
+    setPage(0)
+  }, [])
+
+  const clearFilters = useCallback(() => {
+    setWarehouseFilter('')
+    setDateFrom('')
+    setDateTo('')
+    setPage(0)
+  }, [])
+
+  const selectedWarehouse = warehouses.find((w) => w.id === warehouseFilter)
+
+  const activeFilters = useMemo(() => {
+    const chips: Array<{ key: string; label: string; onDelete: () => void }> = []
+    if (warehouseFilter && selectedWarehouse) {
+      chips.push({
+        key: 'warehouse',
+        label: selectedWarehouse.name,
+        onDelete: () => { setWarehouseFilter(''); setPage(0) },
+      })
+    }
+    if (dateFrom) {
+      chips.push({
+        key: 'dateFrom',
+        label: `${t('openingBalances.filters.dateFrom')}: ${dateFrom}`,
+        onDelete: () => { setDateFrom(''); setPage(0) },
+      })
+    }
+    if (dateTo) {
+      chips.push({
+        key: 'dateTo',
+        label: `${t('openingBalances.filters.dateTo')}: ${dateTo}`,
+        onDelete: () => { setDateTo(''); setPage(0) },
+      })
+    }
+    return chips
+  }, [warehouseFilter, dateFrom, dateTo, selectedWarehouse, t])
+
+  const columns: EntityTableColumn<StockOpeningBalance>[] = useMemo(() => [
+    {
+      key: 'reference',
+      label: t('openingBalances.columns.reference'),
+      render: (balance) => (
+        <Typography variant="subtitle2">{balance.reference_no}</Typography>
+      ),
+    },
+    {
+      key: 'date',
+      label: t('openingBalances.columns.date'),
+      render: (balance) => <>{formatAppDate(balance.date, dateFormat, i18n.language)}</>,
+    },
+    {
+      key: 'warehouse',
+      label: t('openingBalances.columns.warehouse'),
+      render: (balance) => (
+        <Stack spacing={0.25}>
+          <Typography variant="body2">{balance.warehouse?.name ?? '-'}</Typography>
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>{balance.warehouse?.branch_name ?? '-'}</Typography>
+        </Stack>
+      ),
+    },
+    {
+      key: 'items',
+      label: t('openingBalances.columns.items'),
+      render: (balance) => <>{balance.items?.length ?? 0}</>,
+    },
+    {
+      key: 'createdBy',
+      label: t('openingBalances.columns.createdBy'),
+      render: (balance) => <>{balance.creator?.name || '-'}</>,
+    },
+  ], [t, dateFormat, i18n.language])
+
   return (
-    <Stack spacing={3}>
-      <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between' }}>
-        <Box>
-          <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-            <Inventory2Outlined color="primary" />
-            <Typography variant="h4">{t('openingBalances.title')}</Typography>
-          </Stack>
-          <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>{t('openingBalances.subtitle')}</Typography>
-        </Box>
-        {canCreate && (
+    <Stack spacing={2.5}>
+      <PageHeader
+        icon={<Inventory2Outlined color="primary" />}
+        title={t('openingBalances.title')}
+        description={t('openingBalances.subtitle')}
+        actions={canCreate && (
           <Stack direction="row" spacing={1}>
             <Button startIcon={<UploadOutlined />} variant="outlined" onClick={() => setImportOpen(true)}>
               {t('openingBalances.actions.import')}
@@ -631,21 +719,24 @@ export default function StockOpeningBalancesPage() {
             </Button>
           </Stack>
         )}
-      </Stack>
+      />
 
-      <Card>
-        <CardContent>
-          <Stack direction={{ xs: 'column', lg: 'row' }} spacing={2} sx={{ alignItems: { xs: 'stretch', lg: 'center' }, mb: 2.5 }}>
-            <TextField
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value)
-                setPage(0)
-              }}
-              placeholder={t('openingBalances.filters.search')}
-              sx={{ flexGrow: 1 }}
-              slotProps={{ input: { startAdornment: <InputAdornment position="start"><Search fontSize="small" /></InputAdornment> } }}
-            />
+      {(balancesQuery.isError || optionsQuery.isError) && (
+        <Stack spacing={1}>
+          {balancesQuery.isError && <Alert severity="error">{toAppApiError(balancesQuery.error).message}</Alert>}
+          {optionsQuery.isError && <Alert severity="error">{toAppApiError(optionsQuery.error).message}</Alert>}
+        </Stack>
+      )}
+
+      <PageToolbar
+        searchValue={search}
+        searchPlaceholder={t('openingBalances.filters.search')}
+        onSearchChange={handleSearchChange}
+        activeFilters={activeFilters}
+        onClearFilters={clearFilters}
+        filterButtonLabel={t('openingBalances.filters.warehouse')}
+        filters={
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1}>
             <SearchableFilterSelect
               value={warehouseFilter}
               options={warehouses}
@@ -655,81 +746,52 @@ export default function StockOpeningBalancesPage() {
               getOptionValue={(warehouse) => warehouse.id}
               getOptionLabel={(warehouse) => warehouse.name}
               getOptionDescription={(warehouse) => [warehouse.code, warehouse.branch_name].filter(Boolean).join(' / ')}
-              onChange={(value) => {
-                setWarehouseFilter(value)
-                setPage(0)
-              }}
-              sx={{ minWidth: { xs: '100%', lg: 240 } }}
+              onChange={handleWarehouseChange}
             />
-            <Box sx={{ minWidth: { xs: '100%', lg: 170 } }}>
-              <AppDatePicker value={dateFrom} onChange={(value) => { setDateFrom(value ?? ''); setPage(0) }} label={t('openingBalances.filters.dateFrom')} />
-            </Box>
-            <Box sx={{ minWidth: { xs: '100%', lg: 170 } }}>
-              <AppDatePicker value={dateTo} onChange={(value) => { setDateTo(value ?? ''); setPage(0) }} label={t('openingBalances.filters.dateTo')} />
-            </Box>
+            <AppDatePicker
+              value={dateFrom}
+              onChange={handleDateFromChange}
+              label={t('openingBalances.filters.dateFrom')}
+            />
+            <AppDatePicker
+              value={dateTo}
+              onChange={handleDateToChange}
+              label={t('openingBalances.filters.dateTo')}
+            />
           </Stack>
+        }
+      />
 
-          {balancesQuery.isError && <Alert severity="error" sx={{ mb: 2 }}>{toAppApiError(balancesQuery.error).message}</Alert>}
-          {optionsQuery.isError && <Alert severity="error" sx={{ mb: 2 }}>{toAppApiError(optionsQuery.error).message}</Alert>}
-
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('openingBalances.columns.reference')}</TableCell>
-                  <TableCell>{t('openingBalances.columns.date')}</TableCell>
-                  <TableCell>{t('openingBalances.columns.warehouse')}</TableCell>
-                  <TableCell>{t('openingBalances.columns.items')}</TableCell>
-                  <TableCell>{t('openingBalances.columns.createdBy')}</TableCell>
-                  <TableCell align="center">{t('openingBalances.columns.actions')}</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {balancesQuery.isLoading && <TableStateRow colSpan={6} loading />}
-                {!balancesQuery.isLoading && balances.length === 0 && <TableStateRow colSpan={6} message={t('openingBalances.empty')} />}
-                {balances.map((balance) => (
-                  <TableRow key={balance.id} hover>
-                    <TableCell><Typography variant="subtitle2">{balance.reference_no}</Typography></TableCell>
-                    <TableCell>{formatAppDate(balance.date, dateFormat, i18n.language)}</TableCell>
-                    <TableCell>
-                      <Stack spacing={0.25}>
-                        <Typography variant="body2">{balance.warehouse?.name ?? '-'}</Typography>
-                        <Typography variant="caption" sx={{ color: 'text.secondary' }}>{balance.warehouse?.branch_name ?? '-'}</Typography>
-                      </Stack>
-                    </TableCell>
-                    <TableCell>{balance.items?.length ?? 0}</TableCell>
-                    <TableCell>{balance.creator?.name || '-'}</TableCell>
-                    <TableCell align="center">
-                      <RowActions
-                        viewLabel={t('openingBalances.actions.view')}
-                        editLabel={t('common:buttons.edit')}
-                        deleteLabel={t('common:buttons.delete')}
-                        showView
-                        showEdit={false}
-                        showDelete={false}
-                        onView={() => setViewingBalance(balance)}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          <TablePagination
-            component="div"
-            count={meta?.total ?? 0}
-            page={page}
-            rowsPerPage={perPage}
-            rowsPerPageOptions={rowsPerPageOptions}
-            onPageChange={(_, nextPage) => setPage(nextPage)}
-            onRowsPerPageChange={(event) => {
-              setPerPage(Number(event.target.value))
-              setPage(0)
-            }}
+      <EntityTable
+        rows={balances}
+        columns={columns}
+        getRowKey={(balance) => balance.id}
+        loading={balancesQuery.isLoading}
+        emptyIcon={<Inventory2Outlined />}
+        emptyTitle={t('openingBalances.empty')}
+        emptyDescription=""
+        pagination={{
+          page,
+          rowsPerPage: perPage,
+          count: meta?.total ?? 0,
+          onPageChange: (newPage) => setPage(newPage),
+          onRowsPerPageChange: (newRowsPerPage) => {
+            setPerPage(newRowsPerPage)
+            setPage(0)
+          },
+        }}
+        rowActions={(balance) => (
+          <RowActions
+            viewLabel={t('openingBalances.actions.view')}
+            editLabel={t('common:buttons.edit')}
+            deleteLabel={t('common:buttons.delete')}
+            showView
+            showEdit={false}
+            showDelete={false}
+            onView={() => setViewingBalance(balance)}
           />
-        </CardContent>
-      </Card>
+        )}
+      />
 
       <OpeningBalanceDialog
         open={formOpen}

@@ -5,44 +5,28 @@ import { useRouter } from 'next/navigation'
 import {
   Alert,
   Avatar,
-  Box,
   Button,
-  Card,
-  CardContent,
   Chip,
-  InputAdornment,
-  MenuItem,
   Stack,
-  Table,
-  TableBody,
-  TableCell,
-  TableContainer,
-  TableHead,
-  TablePagination,
-  TableRow,
-  TextField,
   Typography,
 } from '@mui/material'
-import { Add, ImageOutlined, PeopleAltOutlined, Search, UploadOutlined } from '@/components/ui/icons'
+import { Add, ImageOutlined, PeopleAltOutlined, UploadOutlined } from '@/components/ui/icons'
+import PageHeader from '@/components/common/PageHeader'
+import PageToolbar from '@/components/common/PageToolbar'
+import EntityTable, { type EntityTableColumn } from '@/components/common/EntityTable'
 import { resolveAssetUrl } from '@/api/assets'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { ConfirmDialog } from '@/components/ui/ConfirmDialog'
 import { RowActions } from '@/components/ui/RowActions'
-import { SearchableFilterSelect } from '@/components/ui/SearchableFilterSelect'
-import { TableStateRow } from '@/components/ui/TableStateRow'
 import { UserImportDialog } from '@/features/users/components/UserImportDialog'
 import {
   useDeleteUserMutation,
-  useUserAccessOptionsQuery,
   useUsersQuery,
 } from '@/features/users/hooks'
 import { useAuthStore } from '@/stores/authStore'
-import type { ImportResult, UserFilters, UserListItem, UserStatus } from '@/types/user'
-
-const rowsPerPageOptions = [10, 25, 50]
-const userStatuses: UserStatus[] = ['active', 'inactive', 'suspended']
+import type { ImportResult, UserFilters, UserListItem } from '@/types/user'
 
 function displayNumber(value: string | number | null | undefined) {
   if (value === null || value === undefined || value === '') return '0'
@@ -55,8 +39,6 @@ export default function UsersPage() {
   const { enqueueSnackbar } = useSnackbar()
   const can = useAuthStore((state) => state.can)
   const [search, setSearch] = useState('')
-  const [statusFilter, setStatusFilter] = useState<UserFilters['status']>('')
-  const [roleFilter, setRoleFilter] = useState<UserFilters['role']>('')
   const [page, setPage] = useState(0)
   const [perPage, setPerPage] = useState(10)
   const [importOpen, setImportOpen] = useState(false)
@@ -65,21 +47,17 @@ export default function UsersPage() {
   const filters: UserFilters = useMemo(
     () => ({
       search: search || undefined,
-      status: statusFilter,
-      role: roleFilter,
       page: page + 1,
       per_page: perPage,
     }),
-    [page, perPage, roleFilter, search, statusFilter]
+    [page, perPage, search]
   )
 
   const usersQuery = useUsersQuery(filters)
-  const optionsQuery = useUserAccessOptionsQuery()
   const deleteUser = useDeleteUserMutation()
 
   const users = usersQuery.data?.data ?? []
   const meta = usersQuery.data?.meta
-  const options = optionsQuery.data
   const canCreate = can('users.create')
   const canEdit = can('users.edit')
   const canDelete = can('users.delete')
@@ -116,23 +94,123 @@ export default function UsersPage() {
     }
   }
 
-  return (
-    <Stack spacing={3}>
-      <Stack
-        direction={{ xs: 'column', sm: 'row' }}
-        spacing={2}
-        sx={{ alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between' }}
-      >
-        <Box>
+  const columns: EntityTableColumn<UserListItem>[] = useMemo(
+    () => [
+      {
+        key: 'user',
+        label: t('columns.user'),
+        render: (user) => (
           <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-            <PeopleAltOutlined color="primary" />
-            <Typography variant="h4">{t('title')}</Typography>
+            <Avatar
+              variant="rounded"
+              src={resolveAssetUrl(user.avatar_url)}
+              sx={{
+                width: 'var(--app-control-height)',
+                height: 'var(--app-control-height)',
+                borderRadius: 1,
+                bgcolor: 'action.hover',
+              }}
+            >
+              <ImageOutlined fontSize="small" />
+            </Avatar>
+            <Stack sx={{ minWidth: 0 }}>
+              <Typography variant="subtitle2">{user.full_name}</Typography>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                {user.email}
+              </Typography>
+            </Stack>
           </Stack>
-          <Typography variant="body2" sx={{ mt: 0.5, color: 'text.secondary' }}>
-            {t('subtitle')}
-          </Typography>
-        </Box>
-        {canCreate && (
+        ),
+      },
+      {
+        key: 'role',
+        label: t('columns.role'),
+        render: (user) =>
+          user.roles.length > 0 ? (
+            <Stack direction="row" spacing={0.75} sx={{ flexWrap: 'wrap', rowGap: 0.75 }}>
+              {user.roles.map((role) => (
+                <Chip key={role} size="small" label={role} />
+              ))}
+            </Stack>
+          ) : (
+            t('placeholders.noRole')
+          ),
+      },
+      {
+        key: 'branches',
+        label: t('columns.branches'),
+        render: (user) => (
+          <Stack spacing={0.25}>
+            <Typography variant="body2">
+              {user.branches.length > 0
+                ? user.branches.map((branch) => branch.name).join(', ')
+                : t('placeholders.noBranches')}
+            </Typography>
+            {user.default_branch && (
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                {user.default_branch.name}
+              </Typography>
+            )}
+          </Stack>
+        ),
+      },
+      {
+        key: 'warehouses',
+        label: t('columns.warehouses'),
+        render: (user) => (
+          <Stack spacing={0.25}>
+            <Typography variant="body2">
+              {user.warehouses && user.warehouses.length > 0
+                ? user.warehouses.map((wh) => wh.name).join(', ')
+                : t('placeholders.noWarehouses')}
+            </Typography>
+            {user.default_warehouse && (
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                {user.default_warehouse.name}
+              </Typography>
+            )}
+          </Stack>
+        ),
+      },
+      {
+        key: 'salesLimits',
+        label: t('columns.salesLimits'),
+        render: (user) => (
+          <>
+            <Typography variant="body2">
+              {t('summary.salesLimits', {
+                discount: displayNumber(user.max_discount),
+                commission: displayNumber(user.commission_percentage),
+              })}
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+              {displayNumber(user.sales_target_amount)}
+            </Typography>
+          </>
+        ),
+      },
+      {
+        key: 'status',
+        label: t('columns.status'),
+        render: (user) => (
+          <Chip
+            size="small"
+            label={t(`status.${user.status}`)}
+            color={user.status === 'active' ? 'success' : user.status === 'suspended' ? 'warning' : 'default'}
+          />
+        ),
+      },
+    ],
+    [t]
+  )
+
+  return (
+    <Stack spacing={2.5}>
+      <PageHeader
+        icon={<PeopleAltOutlined color="primary" />}
+        title={t('title')}
+        description={t('subtitle')}
+        actions={canCreate && (
           <Stack direction="row" spacing={1.5}>
             <Button startIcon={<UploadOutlined />} variant="outlined" onClick={() => setImportOpen(true)}>
               {t('common:buttons.import')}
@@ -142,210 +220,50 @@ export default function UsersPage() {
             </Button>
           </Stack>
         )}
-      </Stack>
+      />
 
-      <Card>
-        <CardContent>
-          <Stack
-            direction={{ xs: 'column', md: 'row' }}
-            spacing={2}
-            sx={{ alignItems: { xs: 'stretch', md: 'center' }, mb: 2.5 }}
-          >
-            <TextField
-              value={search}
-              onChange={(event) => {
-                setSearch(event.target.value)
-                setPage(0)
-              }}
-              placeholder={t('filters.search')}
-              sx={{ flexGrow: 1 }}
-              slotProps={{
-                input: {
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <Search fontSize="small" />
-                    </InputAdornment>
-                  ),
-                },
-              }}
-            />
-            <TextField
-              select
-              value={statusFilter}
-              onChange={(event) => {
-                setStatusFilter(event.target.value as UserFilters['status'])
-                setPage(0)
-              }}
-              label={t('filters.status')}
-              sx={{ minWidth: { xs: '100%', md: 190 } }}
-            >
-              <MenuItem value="">{t('filters.allStatuses')}</MenuItem>
-              {userStatuses.map((status) => (
-                <MenuItem key={status} value={status}>
-                  {t(`status.${status}`)}
-                </MenuItem>
-              ))}
-            </TextField>
-            <SearchableFilterSelect
-              value={roleFilter ?? ''}
-              options={options?.roles ?? []}
-              loading={optionsQuery.isLoading}
-              label={t('filters.role')}
-              placeholder={t('filters.allRoles')}
-              getOptionValue={(role) => role.name}
-              getOptionLabel={(role) => role.name}
-              onChange={(value) => {
-                setRoleFilter(value)
-                setPage(0)
-              }}
-              sx={{ minWidth: { xs: '100%', md: 190 } }}
-            />
-          </Stack>
+      <PageToolbar
+        searchValue={search}
+        searchPlaceholder={t('filters.search')}
+        onSearchChange={(value) => {
+          setSearch(value)
+          setPage(0)
+        }}
+      />
 
-          {usersQuery.isError && (
-            <Alert severity="error" sx={{ mb: 2 }}>
-              {toAppApiError(usersQuery.error).message}
-            </Alert>
-          )}
+      {usersQuery.isError && (
+        <Alert severity="error">{toAppApiError(usersQuery.error).message}</Alert>
+      )}
 
-          {optionsQuery.isError && (
-            <Alert severity="warning" sx={{ mb: 2 }}>
-              {toAppApiError(optionsQuery.error).message}
-            </Alert>
-          )}
-
-          <TableContainer>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>{t('columns.user')}</TableCell>
-                  <TableCell>{t('columns.role')}</TableCell>
-                  <TableCell>{t('columns.branches')}</TableCell>
-                  <TableCell>{t('columns.warehouses')}</TableCell>
-                  <TableCell>{t('columns.salesLimits')}</TableCell>
-                  <TableCell>{t('columns.status')}</TableCell>
-                  <TableCell align="center">{t('columns.actions')}</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {usersQuery.isLoading && <TableStateRow colSpan={7} loading />}
-
-                {!usersQuery.isLoading && users.length === 0 && (
-                  <TableStateRow colSpan={7} message={t('empty')} />
-                )}
-
-                  {users.map((user) => (
-                  <TableRow key={user.id} hover>
-                    <TableCell>
-                      <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
-                        <Avatar
-                          variant="rounded"
-                          src={resolveAssetUrl(user.avatar_url)}
-                          sx={{
-                            width: 'var(--app-control-height)',
-                            height: 'var(--app-control-height)',
-                            borderRadius: 1,
-                            bgcolor: 'action.hover',
-                          }}
-                        >
-                          <ImageOutlined fontSize="small" />
-                        </Avatar>
-                        <Stack sx={{ minWidth: 0 }}>
-                          <Typography variant="subtitle2">{user.full_name}</Typography>
-                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                            {user.email}
-                          </Typography>
-                        </Stack>
-                      </Stack>
-                    </TableCell>
-                    <TableCell>
-                      {user.roles.length > 0 ? (
-                        <Stack direction="row" spacing={0.75} sx={{ flexWrap: 'wrap', rowGap: 0.75 }}>
-                          {user.roles.map((role) => (
-                            <Chip key={role} size="small" label={role} />
-                          ))}
-                        </Stack>
-                      ) : (
-                        t('placeholders.noRole')
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <Stack spacing={0.25}>
-                        <Typography variant="body2">
-                          {user.branches.length > 0
-                            ? user.branches.map((branch) => branch.name).join(', ')
-                            : t('placeholders.noBranches')}
-                        </Typography>
-                        {user.default_branch && (
-                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                            {user.default_branch.name}
-                          </Typography>
-                        )}
-                      </Stack>
-                    </TableCell>
-                    <TableCell>
-                      <Stack spacing={0.25}>
-                        <Typography variant="body2">
-                          {user.warehouses && user.warehouses.length > 0
-                            ? user.warehouses.map((wh) => wh.name).join(', ')
-                            : t('placeholders.noWarehouses')}
-                        </Typography>
-                        {user.default_warehouse && (
-                          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                            {user.default_warehouse.name}
-                          </Typography>
-                        )}
-                      </Stack>
-                    </TableCell>
-                    <TableCell>
-                      <Typography variant="body2">
-                        {t('summary.salesLimits', {
-                          discount: displayNumber(user.max_discount),
-                          commission: displayNumber(user.commission_percentage),
-                        })}
-                      </Typography>
-                      <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                        {displayNumber(user.sales_target_amount)}
-                      </Typography>
-                    </TableCell>
-                    <TableCell>
-                      <Chip
-                        size="small"
-                        label={t(`status.${user.status}`)}
-                        color={user.status === 'active' ? 'success' : user.status === 'suspended' ? 'warning' : 'default'}
-                      />
-                    </TableCell>
-                    <TableCell align="center">
-                      <RowActions
-                        editLabel={t('common:buttons.edit')}
-                        deleteLabel={t('common:buttons.delete')}
-                        showEdit={canEdit}
-                        showDelete={canDelete}
-                        deleteDisabled={deleteUser.isPending}
-                        onEdit={() => openEditForm(user)}
-                        onDelete={() => setDeletingUser(user)}
-                      />
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-
-          <TablePagination
-            component="div"
-            count={meta?.total ?? 0}
-            page={page}
-            rowsPerPage={perPage}
-            rowsPerPageOptions={rowsPerPageOptions}
-            onPageChange={(_, nextPage) => setPage(nextPage)}
-            onRowsPerPageChange={(event) => {
-              setPerPage(Number(event.target.value))
-              setPage(0)
-            }}
+      <EntityTable
+        rows={users}
+        columns={columns}
+        getRowKey={(user) => user.id}
+        loading={usersQuery.isLoading}
+        emptyIcon={<PeopleAltOutlined />}
+        emptyTitle={t('empty')}
+        pagination={{
+          page,
+          rowsPerPage: perPage,
+          count: meta?.total ?? 0,
+          onPageChange: setPage,
+          onRowsPerPageChange: (nextPerPage) => {
+            setPerPage(nextPerPage)
+            setPage(0)
+          },
+        }}
+        rowActions={(user) => (
+          <RowActions
+            editLabel={t('common:buttons.edit')}
+            deleteLabel={t('common:buttons.delete')}
+            showEdit={canEdit}
+            showDelete={canDelete}
+            deleteDisabled={deleteUser.isPending}
+            onEdit={() => openEditForm(user)}
+            onDelete={() => setDeletingUser(user)}
           />
-        </CardContent>
-      </Card>
+        )}
+      />
 
       <UserImportDialog
         open={importOpen}
