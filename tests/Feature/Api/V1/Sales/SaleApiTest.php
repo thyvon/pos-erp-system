@@ -276,10 +276,10 @@ class SaleApiTest extends TestCase
 
         $this->postJson("/api/v1/sales/{$saleId}/returns", [
             'return_date' => now()->toDateString(),
-            'refund_method' => 'cash',
+            'refund_method' => 'credit_note',
             'items' => [[
                 'sale_item_id' => $sale->items->first()->id,
-                'quantity' => 1,
+                'quantity' => 2,
             ]],
         ])->assertCreated();
 

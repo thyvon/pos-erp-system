@@ -108,7 +108,12 @@ class StockMovementService
             $availableQuantity = (float) $level->quantity - (float) $level->reserved_quantity;
 
             if (! $context['warehouse']->allow_negative_stock && $availableQuantity < $quantity) {
-                throw new DomainException('Not enough available stock to reserve that quantity.', 422);
+                $productName = $context['product']->name;
+                if ($context['variation']) {
+                    $productName .= " ({$context['variation']->name})";
+                }
+
+                throw new DomainException("Not enough available stock for product {$productName}.", 422);
             }
 
             $level->reserved_quantity = $this->formatDecimal((float) $level->reserved_quantity + $quantity);
@@ -367,7 +372,19 @@ class StockMovementService
         $nextQuantity = (float) $level->quantity + $delta;
 
         if (! $warehouse->allow_negative_stock && $nextQuantity < 0) {
-            throw new DomainException('This warehouse does not allow negative stock.', 422);
+            /** @var Product $product */
+            $product = Product::withoutGlobalScopes()->find($level->product_id);
+            $productName = $product?->name ?? 'Unknown Product';
+
+            if ($level->variation_id) {
+                /** @var ProductVariation $variation */
+                $variation = ProductVariation::withoutGlobalScopes()->find($level->variation_id);
+                if ($variation) {
+                    $productName .= " ({$variation->name})";
+                }
+            }
+
+            throw new DomainException("This warehouse does not allow negative stock for product {$productName}.", 422);
         }
     }
 
@@ -378,12 +395,17 @@ class StockMovementService
         /** @var StockSerial|null $serial */
         $serial = $context['serial'];
 
+        $productName = $context['product']->name;
+        if ($context['variation']) {
+            $productName .= " ({$context['variation']->name})";
+        }
+
         if ($serial && $quantity !== 1.0) {
-            throw new DomainException('Serial-tracked movements must use a quantity of 1.', 422);
+            throw new DomainException("Serial-tracked movements for {$productName} must use a quantity of 1.", 422);
         }
 
         if ($lot && $delta < 0 && round((float) $lot->qty_on_hand + $delta, 4) < 0) {
-            throw new DomainException('Not enough quantity is available in the selected lot.', 422);
+            throw new DomainException("Not enough quantity is available in the selected lot for {$productName}.", 422);
         }
 
         if (! $serial || $delta >= 0) {
@@ -391,11 +413,11 @@ class StockMovementService
         }
 
         if ((string) $serial->warehouse_id !== (string) $context['warehouse']->id) {
-            throw new DomainException('Selected serial is not currently stored in the chosen warehouse.', 422);
+            throw new DomainException("Selected serial for {$productName} is not currently stored in the chosen warehouse.", 422);
         }
 
         if (in_array($serial->status, ['sold', 'written_off'], true)) {
-            throw new DomainException('Selected serial is no longer available for stock movements.', 422);
+            throw new DomainException("Selected serial for {$productName} is no longer available for stock movements.", 422);
         }
     }
 

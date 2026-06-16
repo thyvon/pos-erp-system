@@ -605,6 +605,19 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
   }
 
   const addLookupItem = (item: InventoryProductLookupItem) => {
+    if (item.serial_id) {
+      const isDuplicate = watchedItems.some((existing) => existing.serial_id === item.serial_id)
+      if (isDuplicate) {
+        enqueueSnackbar(t('form.duplicateSerial', { serial: item.serial_number }), { variant: 'error' })
+        return
+      }
+    }
+
+    if (shouldBlockOverStock && (item.available_quantity ?? 0) <= 0) {
+      enqueueSnackbar(t('form.outOfStock', { product: item.label }), { variant: 'error' })
+      return
+    }
+
     append({
       product_id: item.product_id,
       variation_id: item.variation_id ?? null,

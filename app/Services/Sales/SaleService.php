@@ -1048,6 +1048,10 @@ class SaleService
 
     protected function statusAfterEdit(Sale $sale, string $type): string
     {
+        if ($type === 'quotation') {
+            return 'quotation';
+        }
+
         if (in_array($sale->status, ['draft', 'quotation', 'suspended'], true)) {
             return $this->initialStatus($type);
         }

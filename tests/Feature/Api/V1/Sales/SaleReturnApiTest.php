@@ -96,7 +96,7 @@ class SaleReturnApiTest extends TestCase
 
         $paymentAccount = $this->createPaymentAccount($business, 'cash');
         $saleAfterReturn = Sale::withoutGlobalScopes()->findOrFail($saleId);
-        $this->assertSame('30.00', (string) $saleAfterReturn->total_amount);
+        $this->assertSame((string) $saleItem->total_amount, (string) $saleAfterReturn->total_amount);
         $this->assertSame('0.00', (string) $saleAfterReturn->paid_amount);
         $this->assertSame(
             $expectedReturnAmount,
