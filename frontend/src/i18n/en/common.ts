@@ -53,6 +53,7 @@ export default {
     inherit: 'Inherit',
     content: 'Content',
     stretchContent: 'Stretch content width',
+    resetToDefault: 'Reset to default',
     useColorPreset: 'Use {{name}} color preset',
     colorGreen: 'Green',
     colorCyan: 'Cyan',

@@ -223,25 +223,34 @@ export function PosCartSection({
         borderColor: 'divider',
         borderBottomLeftRadius: 1.5,
         borderBottomRightRadius: 1.5,
-        overflow: 'hidden',
+        overflow: { xs: 'auto', xl: 'hidden' },
+        overscrollBehavior: 'contain',
         contain: 'layout style',
       }}
     >
       {typeof errors.items?.message === 'string' && <Alert severity="error">{errors.items.message}</Alert>}
 
-      <Box sx={{ minHeight: 0, flex: '1 1 auto', overflow: 'hidden', display: 'flex' }}>
+      <Box
+        sx={{
+          minHeight: 0,
+          flex: { xs: '0 0 auto', xl: '1 1 auto' },
+          overflow: { xs: 'visible', xl: 'hidden' },
+          display: 'flex',
+        }}
+      >
         <TableContainer
           sx={{
-            display: { xs: 'none', md: 'block' },
-            flex: '1 1 auto',
-            minHeight: 220,
-            maxHeight: '100%',
+            display: 'block',
+            flex: { xs: '0 0 auto', xl: '1 1 auto' },
+            minHeight: { xs: 'auto', xl: 220 },
+            maxHeight: { xs: 'none', xl: '100%' },
             border: 1,
             borderColor: 'divider',
             borderRadius: 1,
-            overflow: 'auto',
+            overflowX: 'auto',
+            overflowY: { xs: 'visible', xl: 'auto' },
             overscrollBehavior: 'contain',
-            contain: 'strict',
+            contain: { xs: 'layout style', xl: 'strict' },
           }}
         >
           <Table sx={{ minWidth: 840, height: itemFields.length === 0 ? '100%' : 'auto', tableLayout: 'fixed', '& .MuiTableCell-root': { py: 1 } }}>
@@ -394,14 +403,12 @@ export function PosCartSection({
         <Stack
           spacing={1}
           sx={{
-            display: { xs: 'flex', md: 'none' },
-            flex: '1 1 auto',
-            minHeight: 220,
+            display: 'none',
+            flex: '0 0 auto',
+            minHeight: 0,
             minWidth: 0,
-            overflowY: 'auto',
-            overflowX: 'hidden',
+            overflow: 'visible',
             overscrollBehavior: 'contain',
-            pr: 0.5,
           }}
         >
           {itemFields.length === 0 && (
@@ -530,7 +537,7 @@ export function PosCartSection({
         <Box
           sx={{
             flex: '0 0 auto',
-            position: 'sticky',
+            position: { xs: 'static', xl: 'sticky' },
             bottom: 0,
             zIndex: 2,
             display: 'grid',
@@ -539,12 +546,15 @@ export function PosCartSection({
             bgcolor: 'background.default',
             borderTop: 1,
             borderColor: 'divider',
-            boxShadow: '0 -8px 20px rgba(15, 23, 42, 0.08)',
+            boxShadow: {
+              xs: 'none',
+              xl: '0 -8px 20px rgba(15, 23, 42, 0.08)',
+            },
           }}
         >
-        <PosSummaryCards control={control} exchangeRate={exchangeRate} onEditSummary={onEditSummary} />
-        {children}
-      </Box>
+          <PosSummaryCards control={control} exchangeRate={exchangeRate} onEditSummary={onEditSummary} />
+          {children}
+        </Box>
       )}
     </Box>
   )

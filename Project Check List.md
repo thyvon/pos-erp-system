@@ -136,6 +136,7 @@
 - [x] Sale/POS payment edit-change payload building now uses one shared helper, POS product gallery search is debounced, and sale detail hides Edit for clearly blocked return/cancel states; Sales API suite and frontend type-check/lint/build verified.
 - [x] POS direct-payment table and payable summary are extracted into a dedicated component so the POS form page keeps payment rendering separate from sale workflow state; frontend type-check, lint, and build verified.
 - [x] POS cart product picker, item table, quantity controls, and summary strip are extracted into a dedicated component while preserving the existing payment section nesting; frontend type-check, lint, and build verified.
+- [x] POS mobile and one-column cart now keep the normal line-item table with horizontal scrolling and continue downward through summary, payment, and notes, while keeping the sticky checkout strip behavior only on the full desktop POS layout; frontend type-check, lint, and build verified.
 - [x] POS warehouse/customer/date header fields are extracted into a dedicated component while preserving branch synchronization and the add-customer action; frontend type-check, lint, and build verified.
 - [x] POS cart product line empty states now reuse compact `EmptyState` with the POS icon across desktop table and mobile card layouts, with the desktop empty table filling the available cart height; frontend type-check verified.
 - [x] POS product gallery empty state now reuses the shared compact `EmptyState` component with the product icon, matching customer/product table empty-state styling.
@@ -301,6 +302,12 @@
 - [x] Layout settings now include persisted Small, Normal, and Large size options, with Normal matching the previous default theme density.
 - [x] Small layout setting now globally applies dense table rows and compact table-cell padding across MUI tables; frontend type-check and lint verified.
 - [x] Layout settings now include a Compact size smaller than Small and a persisted Corner Radius level applied through the shared MUI theme; frontend type-check, lint, and build verified.
+- [x] Layout Settings drawer option buttons, segmented theme/language/size controls, and color/theme swatches now follow the dynamic app control height with consistent padding and visible spacing for Compact, Small, Normal, and Large sizes; frontend type-check and lint verified.
+- [x] Layout Settings sidebar and top nav theme pickers now expose only three options: Inherit, Light, and Dark, with old saved color-specific navigation choices normalized back to Inherit; frontend type-check and lint verified.
+- [x] Layout Settings drawer now has a bottom reset button that restores theme, language, font, color, size, corner radius, navigation theme, sidebar state, and content width to app defaults; frontend type-check and lint verified.
+- [x] Auth login layout was restyled toward the Minimal CC split-screen pattern with a compact translated sign-in form, brand header, neutral background, and right-side workspace visual panel; frontend type-check and lint verified.
+- [x] Auth layout card layers were removed so the Minimal-style login screen uses a flatter background-first composition with subtle dividers instead of nested paper cards; frontend type-check and lint verified.
+- [x] Auth visual panel now has its own full-height background and the content fills the right-side layout area instead of sitting inside a small centered box; frontend type-check and lint verified.
 - [x] Layout theme color presets were refreshed with a more modern premium palette and cleaner light/dark app backgrounds.
 - [x] Layout theme color presets were refined into premium choices while preserving the existing Graphite preset.
 - [x] Layout settings color presets now show visible premium swatches and translated preset names instead of unlabeled color dots.
@@ -394,12 +401,15 @@
 - [x] POS duplicate handling now keeps serial-tracked products as one serial per cart line with quantity fixed at one; repeated gallery clicks cannot merge or increase an unresolved/selected serial line, while ordinary and same-lot products retain quantity merging.
 - [x] POS recent transactions provide a one-click receipt print action with per-row progress feedback and localized print errors.
 - [x] POS form input performance improved by removing page-wide item/payment subscriptions, localizing cart, payment, and summary updates, avoiding payment normalization effects on every amount keystroke, and calculating authoritative totals from submitted values; frontend type-check, lint, and production build verified.
+- [x] POS toolbar date now updates live with time using the business date-format setting, and the warehouse selector, live date, and toolbar action buttons use dynamic layout-size-aware heights; frontend type-check, lint, and production build verified.
 - [x] Cash-register report handling now refreshes register data whenever the screen mounts and recovers from stale/deleted session IDs by invalidating cached register queries and closing the obsolete report dialog; the dual-currency closing migration was applied.
 - [x] Cash-register reports now load through a register-based endpoint that resolves the current open session server-side, avoiding stale or incorrectly supplied session IDs and returning a clear validation error when no session is open.
 - [x] Global App Router navigation now shows a Minimal-style thin top progress bar using the active theme color for internal links, sidebar navigation, and browser back/forward transitions.
 - [x] Theme color presets now match Minimal's green, cyan, purple, blue, orange, and red primary scales while keeping light/dark application surfaces neutral; legacy saved `darkGreen` settings migrate to the default green preset.
 - [x] Dashboard chrome now matches Minimal's translucent treatment with neutral 80-90% surfaces, 20px backdrop blur, restrained grey borders, and soft shadows on the topbar, sidebar, floating sidebar control, and popovers.
 - [x] Layout Settings now uses the same Minimal-style glass treatment with a translucent 20px-blurred drawer, soft edge shadow, and lightly blurred page backdrop.
+- [x] Global app surfaces now share the Layout Settings glass treatment with translucent paper/card backgrounds, 20px backdrop blur, soft borders, and a subtle layered app background; frontend type-check and lint verified.
+- [x] Dialogs and mobile sidebar drawer now use the same glass treatment, including translucent blurred papers, soft borders, deeper shadows, and a lightly blurred modal backdrop; frontend type-check and lint verified.
 
 ## Important Reminders
 

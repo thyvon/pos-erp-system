@@ -22,6 +22,7 @@ import {
   DarkModeOutlined,
   LanguageOutlined,
   LightModeOutlined,
+  HistoryOutlined,
   MonitorOutlined,
   PaletteOutlined,
   SettingsOutlined,
@@ -42,6 +43,103 @@ import {
   THEME_COLOR_PRESETS,
   type LayoutSurfaceTheme,
 } from '@/theme'
+
+const settingsButtonSx = {
+  minHeight: 'var(--app-control-height)',
+  height: 'var(--app-control-height)',
+  px: 1.5,
+  gap: 1,
+  minWidth: 0,
+  lineHeight: 1.2,
+  whiteSpace: 'nowrap',
+} as const
+
+const settingsToggleButtonSx = {
+  minHeight: 'var(--app-control-height)',
+  height: 'var(--app-control-height)',
+  px: 1.5,
+  gap: 0.75,
+  minWidth: 0,
+  lineHeight: 1.2,
+  whiteSpace: 'nowrap',
+  justifyContent: 'center',
+} as const
+
+const settingsSegmentGroupSx = {
+  display: 'grid',
+  gap: 1,
+  '& .MuiToggleButtonGroup-grouped': {
+    width: '100%',
+    m: 0,
+    border: 1,
+    borderColor: 'divider',
+    borderRadius: 1,
+    '&:not(:first-of-type)': {
+      borderLeft: 1,
+      borderColor: 'divider',
+    },
+    '&.Mui-selected': {
+      borderColor: 'primary.main',
+    },
+    '&.Mui-selected:hover': {
+      borderColor: 'primary.main',
+    },
+  },
+} as const
+
+function SwatchButton({
+  color,
+  selected,
+  label,
+  ariaLabel,
+  onClick,
+}: {
+  color: string
+  selected: boolean
+  label: string
+  ariaLabel: string
+  onClick: () => void
+}) {
+  const theme = useTheme()
+
+  return (
+    <Tooltip title={label}>
+      <Button
+        variant="outlined"
+        onClick={onClick}
+        aria-label={ariaLabel}
+        sx={{
+          width: 'var(--app-control-height)',
+          height: 'var(--app-control-height)',
+          minWidth: 'var(--app-control-height)',
+          minHeight: 'var(--app-control-height)',
+          p: 0.5,
+          borderRadius: '50%',
+          borderWidth: selected ? 2 : 1,
+          borderColor: selected ? color : theme.palette.divider,
+          bgcolor: alpha(theme.palette.background.paper, 0.42),
+          boxShadow: selected ? `0 0 0 3px ${alpha(color, 0.18)}` : 'none',
+          '&:hover': {
+            borderWidth: 2,
+            borderColor: color,
+            bgcolor: alpha(theme.palette.background.paper, 0.64),
+            boxShadow: `0 0 0 3px ${alpha(color, 0.14)}`,
+          },
+        }}
+      >
+        <Box
+          sx={{
+            width: '100%',
+            height: '100%',
+            borderRadius: '50%',
+            bgcolor: color,
+            boxShadow: `inset 0 0 0 1px ${alpha('#000000', 0.08)}`,
+          }}
+        />
+      </Button>
+    </Tooltip>
+  )
+}
 
 function SectionTitle({ icon, label }: { icon: ReactNode; label: string }) {
   return (
@@ -75,7 +173,6 @@ function SurfaceThemePicker({
   ariaLabel: string
 }) {
   const { t } = useTranslation('common')
-  const theme = useTheme()
 
   return (
     <Box
@@ -90,30 +187,14 @@ function SurfaceThemePicker({
         const label = t(option.labelKey)
 
         return (
-          <Tooltip key={option.value} title={label}>
-            <Button
-              variant="outlined"
+          <SwatchButton
+            key={option.value}
+            color={option.main}
+            selected={selected}
+            label={label}
+            ariaLabel={`${ariaLabel}: ${label}`}
               onClick={() => onChange(option.value)}
-              aria-label={`${ariaLabel}: ${label}`}
-              sx={{
-                width: 34,
-                height: 34,
-                minWidth: 34,
-                minHeight: 34,
-                p: 0,
-                borderRadius: '50%',
-                borderWidth: selected ? 2 : 1,
-                borderColor: selected ? option.main : theme.palette.divider,
-                bgcolor: option.main,
-                boxShadow: selected ? `0 0 0 3px ${alpha(option.main, 0.18)}` : `inset 0 0 0 1px ${alpha('#000000', 0.08)}`,
-                '&:hover': {
-                  borderWidth: 2,
-                  borderColor: option.main,
-                  boxShadow: `0 0 0 3px ${alpha(option.main, 0.14)}`,
-                },
-              }}
-            />
-          </Tooltip>
+          />
         )
       })}
     </Box>
@@ -146,6 +227,7 @@ export default function LayoutSettings() {
     setSidebarOpen,
     contentStretch,
     setContentStretch,
+    resetLayoutSettings,
   } = useUIStore()
 
   return (
@@ -233,7 +315,7 @@ export default function LayoutSettings() {
 
         <Divider sx={{ flexShrink: 0, borderColor: alpha(theme.palette.grey[500], 0.16) }} />
 
-        <Stack spacing={2.5} sx={{ p: 2, overflowY: 'auto', overflowX: 'hidden' }}>
+        <Stack spacing={2.5} sx={{ p: 2, overflowY: 'auto', overflowX: 'hidden', flex: '1 1 auto' }}>
           <Box>
             <SectionTitle
               icon={<LightModeOutlined fontSize="small" />}
@@ -244,16 +326,17 @@ export default function LayoutSettings() {
               fullWidth
               value={themeMode}
               onChange={(_, value) => value && setTheme(value)}
+              sx={{ ...settingsSegmentGroupSx, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}
             >
-              <ToggleButton value="light">
+              <ToggleButton value="light" sx={settingsToggleButtonSx}>
                 <LightModeOutlined fontSize="small" />
-                <Box component="span" sx={{ ml: 1 }}>
+                <Box component="span">
                   {t('layoutSettings.light')}
                 </Box>
               </ToggleButton>
-              <ToggleButton value="dark">
+              <ToggleButton value="dark" sx={settingsToggleButtonSx}>
                 <DarkModeOutlined fontSize="small" />
-                <Box component="span" sx={{ ml: 1 }}>
+                <Box component="span">
                   {t('layoutSettings.dark')}
                 </Box>
               </ToggleButton>
@@ -270,9 +353,10 @@ export default function LayoutSettings() {
               fullWidth
               value={language}
               onChange={(_, value) => value && setLanguage(value)}
+              sx={{ ...settingsSegmentGroupSx, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}
             >
-              <ToggleButton value="en">English</ToggleButton>
-              <ToggleButton value="km">ខ្មែរ</ToggleButton>
+              <ToggleButton value="en" sx={settingsToggleButtonSx}>English</ToggleButton>
+              <ToggleButton value="km" sx={settingsToggleButtonSx}>ខ្មែរ</ToggleButton>
             </ToggleButtonGroup>
           </Box>
 
@@ -293,32 +377,14 @@ export default function LayoutSettings() {
                 const presetLabel = t(preset.labelKey)
 
                 return (
-                  <Tooltip key={preset.value} title={presetLabel}>
-                    <Button
-                      variant="outlined"
-                      onClick={() => setColorPreset(preset.value)}
-                      aria-label={t('layoutSettings.useColorPreset', { name: presetLabel })}
-                      sx={{
-                        width: 34,
-                        height: 34,
-                        minWidth: 34,
-                        minHeight: 34,
-                        p: 0,
-                        borderRadius: '50%',
-                        borderWidth: selected ? 2 : 1,
-                        borderColor: selected ? preset.main : theme.palette.divider,
-                        bgcolor: preset.main,
-                        boxShadow: selected
-                          ? `0 0 0 3px ${alpha(preset.main, 0.18)}`
-                          : `inset 0 0 0 1px ${alpha('#000000', 0.08)}`,
-                        '&:hover': {
-                          borderWidth: 2,
-                          borderColor: preset.main,
-                          boxShadow: `0 0 0 3px ${alpha(preset.main, 0.14)}`,
-                        },
-                      }}
-                    />
-                  </Tooltip>
+                  <SwatchButton
+                    key={preset.value}
+                    color={preset.main}
+                    selected={selected}
+                    label={presetLabel}
+                    ariaLabel={t('layoutSettings.useColorPreset', { name: presetLabel })}
+                    onClick={() => setColorPreset(preset.value)}
+                  />
                 )
               })}
             </Box>
@@ -337,6 +403,7 @@ export default function LayoutSettings() {
                   variant={fontPreset === option.value ? 'contained' : 'outlined'}
                   onClick={() => setFontPreset(option.value)}
                   sx={{
+                    ...settingsButtonSx,
                     justifyContent: 'flex-start',
                     fontFamily: `"${option.family}", "Kantumruy Pro", sans-serif`,
                   }}
@@ -357,9 +424,10 @@ export default function LayoutSettings() {
               fullWidth
               value={layoutSize}
               onChange={(_, value) => value && setLayoutSize(value)}
+              sx={{ ...settingsSegmentGroupSx, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}
             >
               {LAYOUT_SIZE_OPTIONS.map((option) => (
-                <ToggleButton key={option.value} value={option.value}>
+                <ToggleButton key={option.value} value={option.value} sx={settingsToggleButtonSx}>
                   {t(option.labelKey)}
                 </ToggleButton>
               ))}
@@ -435,6 +503,7 @@ export default function LayoutSettings() {
                 variant={sidebarOpen ? 'contained' : 'outlined'}
                 onClick={() => setSidebarOpen(true)}
                 startIcon={<ViewSidebarOutlined />}
+                sx={settingsButtonSx}
               >
                 {t('layoutSettings.full')}
               </Button>
@@ -443,6 +512,7 @@ export default function LayoutSettings() {
                 variant={!sidebarOpen ? 'contained' : 'outlined'}
                 onClick={() => setSidebarOpen(false)}
                 startIcon={<ViewSidebarOutlined />}
+                sx={settingsButtonSx}
               >
                 {t('layoutSettings.mini')}
               </Button>
@@ -489,6 +559,29 @@ export default function LayoutSettings() {
             />
           </Box>
         </Stack>
+
+        <Divider sx={{ flexShrink: 0, borderColor: alpha(theme.palette.grey[500], 0.16) }} />
+
+        <Box
+          sx={{
+            flexShrink: 0,
+            p: 2,
+            backgroundColor: alpha(theme.palette.background.paper, theme.palette.mode === 'dark' ? 0.48 : 0.42),
+            backdropFilter: 'blur(12px)',
+            WebkitBackdropFilter: 'blur(12px)',
+          }}
+        >
+          <Button
+            fullWidth
+            variant="outlined"
+            color="inherit"
+            startIcon={<HistoryOutlined />}
+            onClick={resetLayoutSettings}
+            sx={settingsButtonSx}
+          >
+            {t('layoutSettings.resetToDefault')}
+          </Button>
+        </Box>
       </Stack>
     </Drawer>
   )

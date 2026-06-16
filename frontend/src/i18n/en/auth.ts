@@ -1,13 +1,17 @@
 export default {
   // Login Page
   login: {
-    title: 'Welcome Back',
-    subtitle: 'Sign in to your account to continue',
+    title: 'Sign in to your account',
+    subtitle: 'Welcome back. Enter your credentials to continue.',
     email: 'Email Address',
+    emailPlaceholder: 'name@company.com',
     password: 'Password',
+    passwordPlaceholder: 'Enter password',
     rememberMe: 'Remember me',
     signIn: 'Sign In',
     forgotPassword: 'Forgot password?',
+    showPassword: 'Show password',
+    hidePassword: 'Hide password',
     noAccount: "Don't have an account?",
     createOne: 'Create one',
     signingIn: 'Signing in...',
@@ -26,6 +30,18 @@ export default {
       password: 'demo123456',
     },
     copyright: '© 2026 ERP System. All rights reserved.',
+  },
+
+  layout: {
+    secureWorkspace: 'Secure workspace',
+    heroTitle: 'Manage your business with clarity and control.',
+    heroSubtitle: 'A focused ERP workspace for sales, inventory, purchases, accounting, and daily branch operations.',
+    workspaceOverview: 'Workspace overview',
+    liveOperations: 'Live operations snapshot',
+    salesReady: 'Sales ready',
+    inventorySynced: 'Inventory synced',
+    cashControl: 'Cash control',
+    currentStatus: 'Current status',
   },
 
   // Forgot Password Page

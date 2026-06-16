@@ -434,6 +434,11 @@ export default function AppSidebar() {
         boxSizing: 'border-box',
         overflow: 'visible',
         position: 'relative',
+        '& .MuiBackdrop-root': {
+          backgroundColor: alpha(theme.palette.common.black, theme.palette.mode === 'dark' ? 0.42 : 0.2),
+          backdropFilter: 'blur(4px)',
+          WebkitBackdropFilter: 'blur(4px)',
+        },
         '& .MuiDrawer-paper': {
           width: isDesktop ? drawerWidth : layoutMetrics.sidebarWidth,
           transition: theme.transitions.create('width', {
@@ -441,13 +446,13 @@ export default function AppSidebar() {
             duration: theme.transitions.duration.enteringScreen,
           }),
           overflow: 'visible',
-          backgroundColor: alpha(sidebarColors.paper, sidebarColors.isDark ? 0.9 : 0.86),
+          backgroundColor: alpha(sidebarColors.paper, sidebarColors.isDark ? 0.88 : 0.78),
           backgroundImage: 'none',
           borderRight: `1px solid ${alpha(theme.palette.grey[500], sidebarColors.isDark ? 0.2 : 0.12)}`,
           px: isDenseLayout ? 1 : 1.25,
           boxShadow: `12px 0 32px -28px ${alpha(theme.palette.common.black, 0.32)}`,
-          backdropFilter: 'blur(20px)',
-          WebkitBackdropFilter: 'blur(20px)',
+          backdropFilter: 'saturate(180%) blur(24px)',
+          WebkitBackdropFilter: 'saturate(180%) blur(24px)',
         },
       }}
     >

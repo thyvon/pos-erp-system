@@ -33,18 +33,18 @@ export function getAppDateDisplayFormat(dateFormat?: string | null, language?: s
   }
 }
 
-export function formatAppDate(value: string | null | undefined, dateFormat?: string | null, language?: string | null) {
+export function formatAppDate(value: string | Date | null | undefined, dateFormat?: string | null, language?: string | null) {
   if (!value) return '-'
 
   const locale = getAppDateLocale(language)
   const date = dayjs(value).locale(locale)
-  return date.isValid() ? date.format(getAppDateDisplayFormat(dateFormat, language)) : value
+  return date.isValid() ? date.format(getAppDateDisplayFormat(dateFormat, language)) : String(value)
 }
 
-export function formatAppDateTime(value: string | null | undefined, dateFormat?: string | null, language?: string | null) {
+export function formatAppDateTime(value: string | Date | null | undefined, dateFormat?: string | null, language?: string | null) {
   if (!value) return '-'
 
   const locale = getAppDateLocale(language)
   const date = dayjs(value).locale(locale)
-  return date.isValid() ? date.format(`${getAppDateDisplayFormat(dateFormat, language)} h:mm A`) : value
+  return date.isValid() ? date.format(`${getAppDateDisplayFormat(dateFormat, language)} h:mm A`) : String(value)
 }

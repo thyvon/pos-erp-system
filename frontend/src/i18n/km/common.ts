@@ -53,6 +53,7 @@ export default {
     inherit: 'តាមប្រព័ន្ធ',
     content: 'មាតិកា',
     stretchContent: 'ពង្រីកទទឹងមាតិកា',
+    resetToDefault: 'កំណត់ទៅលំនាំដើម',
     useColorPreset: 'ប្រើពណ៌ {{name}}',
     colorGreen: 'បៃតង',
     colorCyan: 'ខៀវស្រាល',

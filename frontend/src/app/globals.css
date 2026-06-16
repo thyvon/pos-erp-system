@@ -43,7 +43,8 @@ a {
 
 .MuiPaper-root,
 .MuiCard-root {
-  backdrop-filter: saturate(180%) blur(8px);
+  backdrop-filter: saturate(180%) blur(var(--app-glass-blur, 20px));
+  -webkit-backdrop-filter: saturate(180%) blur(var(--app-glass-blur, 20px));
 }
 
 .MuiCard-root {

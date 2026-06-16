@@ -39,11 +39,10 @@ import {
   Typography,
   useTheme,
 } from '@mui/material'
-import dayjs from 'dayjs'
 import { useSnackbar } from 'notistack'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
-import { AccountBalanceWalletOutlined, ArrowBack, CategoryOutlined, Close, PointOfSaleOutlined, ReceiptLongOutlined, Search, SettingsOutlined } from '@/components/ui/icons'
+import { AccountBalanceWalletOutlined, ArrowBack, CategoryOutlined, Close, ReceiptLongOutlined, Search, SettingsOutlined } from '@/components/ui/icons'
 import { RowActions } from '@/components/ui/RowActions'
 import { TableStateRow } from '@/components/ui/TableStateRow'
 import { useDefaultExchangeRateQuery, usePaymentAccountsQuery } from '@/features/accounting/hooks'
@@ -103,7 +102,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { useUIStore } from '@/stores/uiStore'
 import { useSettingsGroupQuery } from '@/features/settings/hooks'
 import { buildLayoutSurfaceColors, getLayoutMetrics } from '@/theme'
-import { formatAppDate } from '@/utils/dateFormat'
+import { formatAppDate, formatAppDateTime } from '@/utils/dateFormat'
 import { formatMoney } from '@/utils/formatMoney'
 
 let audioContext: AudioContext | null = null
@@ -223,15 +222,41 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
   const debouncedProductGallerySearch = useDebouncedValue(productGallerySearch, 250)
   const layoutMetrics = getLayoutMetrics(layoutSize)
   const posTopbarColors = buildLayoutSurfaceColors(theme, topbarTheme)
-  const posTopbarButtonSx = {
-    width: 'var(--app-small-control-height)',
-    height: 'var(--app-small-control-height)',
+  const posTopbarActionSx = {
+    height: 'var(--app-control-height)',
+    minHeight: 'var(--app-control-height)',
     color: posTopbarColors.text,
     bgcolor: posTopbarColors.buttonBg,
+    borderColor: posTopbarColors.border,
+    whiteSpace: 'nowrap',
+    px: 1.5,
+    flex: '0 0 auto',
     '&:hover': {
       bgcolor: posTopbarColors.buttonHover,
+      borderColor: posTopbarColors.border,
     },
   }
+  const posTopbarFieldSx = {
+    '& .MuiOutlinedInput-root': {
+      height: 'var(--app-control-height)',
+      minHeight: 'var(--app-control-height)',
+      color: posTopbarColors.text,
+      '& fieldset': {
+        borderColor: posTopbarColors.border,
+      },
+      '&:hover fieldset': {
+        borderColor: posTopbarColors.border,
+      },
+      '&.Mui-focused fieldset': {
+        borderColor: 'primary.main',
+      },
+    },
+    '& .MuiOutlinedInput-input::placeholder': {
+      color: posTopbarColors.muted,
+      opacity: 1,
+    },
+  }
+  const [currentDateTime, setCurrentDateTime] = useState(() => new Date())
 
   const recentTransactionsFilters: SaleFilters = useMemo(
     () => ({
@@ -395,9 +420,15 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
   }, [branchId, canUseOtherOpenRegister, cashRegisters, currentUser?.id])
   const selectedCashRegister = cashRegisters.find((register) => register.current_open_session?.id === cashRegisterSessionId) ?? null
   const dialogCashRegister = cashRegisters.find((register) => register.id === selectedCashRegisterId) ?? null
+  const liveDateTimeLabel = formatAppDateTime(currentDateTime, dateFormat, i18n.language)
 
   const isSuspended = saleType === 'suspended'
   const canCapturePayment = !isSuspended && (!isEdit || currentSaleStatus === 'completed')
+
+  useEffect(() => {
+    const timer = window.setInterval(() => setCurrentDateTime(new Date()), 1000)
+    return () => window.clearInterval(timer)
+  }, [])
 
   useEffect(() => {
     if (!currentSale) return
@@ -984,7 +1015,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
           >
             <Stack direction="row" spacing={1} sx={{ alignItems: 'center', minWidth: 0, flex: { xs: '1 1 auto', md: '0 0 auto' } }}>
               <Typography variant="body2" sx={{ fontWeight: 800, flex: '0 0 auto' }}>{t('pos.location')}</Typography>
-              <Box sx={{ width: { xs: '100%', md: 200 }, minWidth: 0 }}>
+              <Box sx={{ width: { xs: '100%', md: 240 }, minWidth: 0 }}>
                 <Controller
                   name="warehouse_id"
                   control={control}
@@ -1003,7 +1034,6 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
                           shouldValidate: true,
                         })
                       }}
-                      size="small"
                       slotProps={{
                         paper: { sx: { fontSize: '0.875rem' } },
                       }}
@@ -1012,33 +1042,16 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
                           {...params}
                           placeholder={t('fields.warehouse')}
                           error={!!errors.warehouse_id || !!errors.branch_id}
-                          sx={{
-                            '& .MuiOutlinedInput-root': {
-                              color: posTopbarColors.text,
-                              '& fieldset': {
-                                borderColor: posTopbarColors.border,
-                              },
-                              '&:hover fieldset': {
-                                borderColor: posTopbarColors.border,
-                              },
-                              '&.Mui-focused fieldset': {
-                                borderColor: 'primary.main',
-                              },
-                            },
-                            '& .MuiOutlinedInput-input::placeholder': {
-                              color: posTopbarColors.muted,
-                              opacity: 1,
-                            },
-                          }}
+                          sx={posTopbarFieldSx}
                         />
                       )}
                     />
                   )}
                 />
               </Box>
-              <Box sx={{ px: 1.5, py: 0.75, borderRadius: 1, bgcolor: 'primary.main', color: 'primary.contrastText', flex: '0 0 auto' }}>
-                <Typography variant="caption" sx={{ fontWeight: 800 }}>
-                  {dayjs().format('MM/DD/YYYY HH:mm')}
+              <Box sx={{ height: 'var(--app-control-height)', minHeight: 'var(--app-control-height)', px: 1.5, borderRadius: 1, bgcolor: 'primary.main', color: 'primary.contrastText', flex: '0 0 auto', display: 'flex', alignItems: 'center', whiteSpace: 'nowrap' }}>
+                <Typography variant="body2" sx={{ fontWeight: 800, lineHeight: 1 }}>
+                  {liveDateTimeLabel}
                 </Typography>
               </Box>
             </Stack>
@@ -1053,29 +1066,24 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
               }}
             >
               <Tooltip title={t('pos.toolbar.back')}>
-                <IconButton size="small" onClick={() => router.push('/sales')} sx={posTopbarButtonSx}>
-                  <ArrowBack />
-                </IconButton>
-              </Tooltip>
-              <Tooltip title={t('pos.toolbar.pos')}>
-                <IconButton size="small" color="primary" sx={posTopbarButtonSx}>
-                  <PointOfSaleOutlined />
-                </IconButton>
+                <Button variant="outlined" startIcon={<ArrowBack />} onClick={() => router.push('/sales')} sx={posTopbarActionSx}>
+                  {t('pos.toolbar.back')}
+                </Button>
               </Tooltip>
               <Tooltip title={t('pos.toolbar.products')}>
-                <IconButton
-                  size="small"
-                  color={productGalleryOpen ? 'primary' : 'default'}
+                <Button
+                  variant="outlined"
+                  startIcon={<CategoryOutlined />}
                   onClick={() => setProductGalleryOpen(true)}
-                  sx={{ ...posTopbarButtonSx, display: { xl: 'none' } }}
+                  sx={{ ...posTopbarActionSx, display: { xl: 'none' } }}
                 >
-                  <CategoryOutlined />
-                </IconButton>
+                  {t('pos.toolbar.products')}
+                </Button>
               </Tooltip>
               <Tooltip title={selectedCashRegister ? selectedCashRegister.name : t('pos.cashRegister.title')}>
-                <IconButton
-                  size="small"
-                  color={selectedCashRegister ? 'success' : 'default'}
+                <Button
+                  variant="outlined"
+                  startIcon={<AccountBalanceWalletOutlined />}
                   onClick={() => {
                     if (selectedCashRegister?.current_open_session) {
                       setCashRegisterReportOpen(true)
@@ -1084,15 +1092,15 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
 
                     openCashRegisterDialog()
                   }}
-                  sx={posTopbarButtonSx}
+                  sx={posTopbarActionSx}
                 >
-                  <AccountBalanceWalletOutlined />
-                </IconButton>
+                  {selectedCashRegister?.name ?? t('pos.cashRegister.title')}
+                </Button>
               </Tooltip>
               <Tooltip title={t('pos.toolbar.settings')}>
-                <IconButton size="small" onClick={() => setSettingsOpen(true)} sx={posTopbarButtonSx}>
-                  <SettingsOutlined />
-                </IconButton>
+                <Button variant="outlined" startIcon={<SettingsOutlined />} onClick={() => setSettingsOpen(true)} sx={posTopbarActionSx}>
+                  {t('pos.toolbar.settings')}
+                </Button>
               </Tooltip>
             </Stack>
           </Stack>

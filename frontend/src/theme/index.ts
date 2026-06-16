@@ -3,10 +3,8 @@ import type { Shadows } from '@mui/material/styles'
 import type {} from '@mui/x-date-pickers/themeAugmentation'
 import {
   buildPalette,
-  getThemeColorPreset,
   THEME_COLOR_PRESETS,
   type LayoutSurfaceTheme,
-  type NavigationColorPreset,
   type ThemeColorPreset,
 } from './palette'
 
@@ -48,22 +46,6 @@ export const LAYOUT_SIZE_OPTIONS: Array<{ value: LayoutSize; labelKey: string }>
   { value: 'large', labelKey: 'layoutSettings.large' },
 ]
 
-const NAVIGATION_COLOR_PRESET_VALUES = ['default', 'cyan', 'purple', 'blue', 'orange', 'red'] as const satisfies readonly NavigationColorPreset[]
-
-function isNavigationColorPreset(value: ThemeColorPreset): value is NavigationColorPreset {
-  return NAVIGATION_COLOR_PRESET_VALUES.includes(value as NavigationColorPreset)
-}
-
-const NAVIGATION_COLOR_PRESETS = THEME_COLOR_PRESETS.filter((preset) =>
-  isNavigationColorPreset(preset.value)
-).map((preset) => ({
-  value: preset.value as NavigationColorPreset,
-  labelKey: preset.labelKey,
-  main: preset.main,
-  light: preset.light,
-  dark: preset.dark,
-}))
-
 export const LAYOUT_SURFACE_THEME_OPTIONS: Array<{
   value: LayoutSurfaceTheme
   labelKey: string
@@ -74,7 +56,6 @@ export const LAYOUT_SURFACE_THEME_OPTIONS: Array<{
   { value: 'inherit', labelKey: 'layoutSettings.inherit', main: '#64748B', light: '#E2E8F0', dark: '#0F172A' },
   { value: 'light', labelKey: 'layoutSettings.light', main: '#F8FAFC', light: '#FFFFFF', dark: '#CBD5E1' },
   { value: 'dark', labelKey: 'layoutSettings.dark', main: '#111827', light: '#374151', dark: '#030712' },
-  ...NAVIGATION_COLOR_PRESETS,
 ]
 
 const LAYOUT_METRICS_PRESETS: Record<LayoutSize, LayoutMetrics> = {
@@ -161,26 +142,7 @@ export function buildLayoutSurfaceColors(theme: Theme, surfaceTheme: LayoutSurfa
     }
   }
 
-  const preset = getThemeColorPreset(resolvedTheme)
-
-  return {
-    isDark: true,
-    bg: preset.dark,
-    paper: preset.dark,
-    border: alpha(theme.palette.primary.light, 0.28),
-    text: '#ffffff',
-    muted: alpha('#ffffff', 0.74),
-    disabled: alpha('#ffffff', 0.46),
-    icon: alpha(theme.palette.primary.light, 0.92),
-    hover: alpha(theme.palette.primary.light, 0.12),
-    buttonBg: alpha(theme.palette.primary.light, 0.16),
-    buttonHover: alpha(theme.palette.primary.light, 0.26),
-    floatingBg: preset.dark,
-    floatingBorder: alpha(theme.palette.primary.light, 0.32),
-    selected: theme.palette.primary.main,
-    selectedHover: theme.palette.primary.dark,
-    selectedText: theme.palette.primary.contrastText,
-  }
+  return buildLayoutSurfaceColors(theme, 'inherit')
 }
 
 export function buildAppBackground(theme: Theme) {
@@ -312,9 +274,9 @@ export function createAppTheme(
   layoutSize: LayoutSize = 'normal',
   borderRadiusLevel: BorderRadiusLevel = DEFAULT_BORDER_RADIUS_LEVEL
 ): Theme {
-  const palette = buildPalette(mode, colorPreset)
+  const basePalette = buildPalette(mode, colorPreset)
   const primaryMain =
-    palette.primary && 'main' in palette.primary ? palette.primary.main : '#00A76F'
+    basePalette.primary && 'main' in basePalette.primary ? basePalette.primary.main : '#00A76F'
   const fontFamily = resolveFontFamily(fontPreset)
   const sizePreset = LAYOUT_SIZE_PRESETS[layoutSize] ?? LAYOUT_SIZE_PRESETS.normal
   const controlRadius = normalizeBorderRadiusLevel(borderRadiusLevel)
@@ -323,8 +285,19 @@ export function createAppTheme(
   const isCompactLayout = layoutSize === 'compact'
   const inputLabelOffset = Math.max((sizePreset.controlHeight - 22) / 2, 7)
   const smallInputLabelOffset = Math.max((sizePreset.smallControlHeight - 20) / 2, 5)
-  const solidInputBg = mode === 'light' ? '#F9FAFB' : alpha('#FFFFFF', 0.04)
-  const inputBackground = solidInputBg
+  const paperBase = mode === 'light' ? '#FFFFFF' : '#1C252E'
+  const glassPaperBackground = alpha(paperBase, mode === 'light' ? 0.74 : 0.72)
+  const glassStrongBackground = alpha(paperBase, mode === 'light' ? 0.88 : 0.82)
+  const glassSoftBackground = alpha(paperBase, mode === 'light' ? 0.58 : 0.5)
+  const glassBorder = mode === 'light' ? alpha('#919EAB', 0.2) : alpha('#FFFFFF', 0.12)
+  const inputBackground = mode === 'light' ? alpha('#FFFFFF', 0.7) : alpha('#FFFFFF', 0.05)
+  const palette = {
+    ...basePalette,
+    background: {
+      ...basePalette.background,
+      paper: glassPaperBackground,
+    },
+  }
 
   return createTheme({
     palette,
@@ -386,11 +359,22 @@ export function createAppTheme(
             width: '100%',
             height: '100%',
             backgroundColor: palette.background?.default,
+            backgroundImage: [
+              `linear-gradient(135deg, ${alpha(primaryMain, mode === 'light' ? 0.13 : 0.16)} 0%, transparent 34%)`,
+              `linear-gradient(315deg, ${alpha(mode === 'light' ? '#FFFFFF' : '#000000', mode === 'light' ? 0.78 : 0.16)} 0%, transparent 42%)`,
+              `linear-gradient(180deg, ${alpha(mode === 'light' ? '#FFFFFF' : '#0B1120', mode === 'light' ? 0.36 : 0.28)} 0%, transparent 100%)`,
+            ].join(', '),
+            backgroundAttachment: 'fixed',
             color: palette.text?.primary,
             fontFamily,
             '--app-control-height': `${sizePreset.controlHeight}px`,
             '--app-small-control-height': `${sizePreset.smallControlHeight}px`,
             '--app-large-control-height': `${sizePreset.largeControlHeight}px`,
+            '--app-glass-bg': glassPaperBackground,
+            '--app-glass-bg-strong': glassStrongBackground,
+            '--app-glass-bg-soft': glassSoftBackground,
+            '--app-glass-border': glassBorder,
+            '--app-glass-blur': '20px',
           },
           'button, input, textarea, select': {
             fontFamily: 'inherit',
@@ -603,6 +587,11 @@ export function createAppTheme(
             position: 'relative',
             boxShadow: `0 0 2px 0 ${alpha('#919EAB', 0.2)}, 0 12px 24px -4px ${alpha('#919EAB', 0.12)}`,
             borderRadius: controlRadius,
+            backgroundColor: glassPaperBackground,
+            backgroundImage: 'none',
+            border: `1px solid ${glassBorder}`,
+            backdropFilter: 'saturate(180%) blur(20px)',
+            WebkitBackdropFilter: 'saturate(180%) blur(20px)',
             zIndex: 0,
           },
         },
@@ -632,7 +621,11 @@ export function createAppTheme(
         },
         styleOverrides: {
           root: {
+            backgroundColor: glassPaperBackground,
             backgroundImage: 'none',
+            borderColor: glassBorder,
+            backdropFilter: 'saturate(180%) blur(20px)',
+            WebkitBackdropFilter: 'saturate(180%) blur(20px)',
           },
         },
       },
@@ -777,6 +770,21 @@ export function createAppTheme(
         styleOverrides: {
           paper: {
             borderRadius: controlRadius,
+            backgroundColor: glassStrongBackground,
+            backgroundImage: 'none',
+            border: `1px solid ${glassBorder}`,
+            backdropFilter: 'saturate(180%) blur(24px)',
+            WebkitBackdropFilter: 'saturate(180%) blur(24px)',
+            boxShadow: `0 24px 64px -24px ${alpha('#000000', mode === 'light' ? 0.28 : 0.56)}`,
+          },
+        },
+      },
+      MuiBackdrop: {
+        styleOverrides: {
+          root: {
+            backgroundColor: alpha('#000000', mode === 'light' ? 0.18 : 0.42),
+            backdropFilter: 'blur(4px)',
+            WebkitBackdropFilter: 'blur(4px)',
           },
         },
       },
@@ -840,8 +848,11 @@ export function createAppTheme(
       MuiDrawer: {
         styleOverrides: {
           paper: {
-            border: 'none',
+            backgroundColor: glassStrongBackground,
             backgroundImage: 'none',
+            borderColor: glassBorder,
+            backdropFilter: 'saturate(180%) blur(24px)',
+            WebkitBackdropFilter: 'saturate(180%) blur(24px)',
           },
         },
       },

@@ -1,13 +1,17 @@
 export default {
   // Login Page
   login: {
-    title: 'ស្វាគមន៍ត្រលប់មកវិញ',
-    subtitle: 'ចូលគណនីរបស់អ្នកដើម្បីបន្ត',
+    title: 'ចូលទៅគណនីរបស់អ្នក',
+    subtitle: 'សូមស្វាគមន៍ត្រលប់មកវិញ។ បញ្ចូលព័ត៌មានចូលដើម្បីបន្ត។',
     email: 'អាសយដ្ឋានអ៊ីមែល',
+    emailPlaceholder: 'name@company.com',
     password: 'ពាក្យសម្ងាត់',
+    passwordPlaceholder: 'បញ្ចូលពាក្យសម្ងាត់',
     rememberMe: 'ចូលចាំខ្ញុំ',
     signIn: 'ចូលគណនី',
     forgotPassword: 'ភ្លេចពាក្យសម្ងាត់?',
+    showPassword: 'បង្ហាញពាក្យសម្ងាត់',
+    hidePassword: 'លាក់ពាក្យសម្ងាត់',
     noAccount: 'មិនមានគណនីមែនទេ?',
     createOne: 'បង្កើតមួយ',
     signingIn: 'កំពុងចូល...',
@@ -26,6 +30,18 @@ export default {
       password: 'demo123456',
     },
     copyright: '© 2026 ប្រព័ន្ធ ERP។ រក្សាសិទ្ធិ។',
+  },
+
+  layout: {
+    secureWorkspace: 'ផ្ទៃការងារសុវត្ថិភាព',
+    heroTitle: 'គ្រប់គ្រងអាជីវកម្មរបស់អ្នកឱ្យច្បាស់ និងងាយស្រួល។',
+    heroSubtitle: 'ផ្ទៃការងារ ERP សម្រាប់ការលក់ ស្តុក ការទិញ គណនេយ្យ និងប្រតិបត្តិការសាខាប្រចាំថ្ងៃ។',
+    workspaceOverview: 'ទិដ្ឋភាពផ្ទៃការងារ',
+    liveOperations: 'ស្ថានភាពប្រតិបត្តិការបច្ចុប្បន្ន',
+    salesReady: 'ការលក់រួចរាល់',
+    inventorySynced: 'ស្តុកបានធ្វើសមកាលកម្ម',
+    cashControl: 'ការគ្រប់គ្រងសាច់ប្រាក់',
+    currentStatus: 'ស្ថានភាពបច្ចុប្បន្ន',
   },
 
   // Forgot Password Page

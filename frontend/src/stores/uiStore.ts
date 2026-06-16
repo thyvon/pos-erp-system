@@ -44,6 +44,7 @@ interface UIActions {
   setSidebarTheme: (theme: LayoutSurfaceTheme) => void
   setTopbarTheme: (theme: LayoutSurfaceTheme) => void
   setContentStretch: (stretch: boolean) => void
+  resetLayoutSettings: () => void
   setHasHydrated: (hasHydrated: boolean) => void
 }
 
@@ -112,12 +113,24 @@ export const useUIStore = create<UIStore>()(
       setSidebarTheme: (sidebarTheme) => set({ sidebarTheme }),
       setTopbarTheme: (topbarTheme) => set({ topbarTheme }),
       setContentStretch: (contentStretch) => set({ contentStretch }),
+      resetLayoutSettings: () => set({
+        themeMode: initialState.themeMode,
+        language: initialState.language,
+        fontPreset: initialState.fontPreset,
+        colorPreset: initialState.colorPreset,
+        layoutSize: initialState.layoutSize,
+        borderRadiusLevel: initialState.borderRadiusLevel,
+        sidebarTheme: initialState.sidebarTheme,
+        topbarTheme: initialState.topbarTheme,
+        sidebarOpen: initialState.sidebarOpen,
+        contentStretch: initialState.contentStretch,
+      }),
       setHasHydrated: (hasHydrated) => set({ hasHydrated }),
     }),
     {
       name: 'erp-ui',
       storage: createJSONStorage(() => localStorage),
-      version: 9,
+      version: 10,
       partialize: (state) => {
         const { hasHydrated: _, ...rest } = state
         return rest
