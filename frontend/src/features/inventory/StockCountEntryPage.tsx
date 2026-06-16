@@ -226,29 +226,29 @@ export function StockCountEntryPage({ countId }: StockCountEntryPageProps) {
 
   return (
     <Stack spacing={3}>
-      <PageHeader
-        title={count?.reference_no ?? t('counts.entries.title')}
-        description={t('counts.entries.subtitle')}
-        meta={count && (
-          <Chip
+      <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+        <Tooltip title={t('counts.actions.backToDetail')}>
+          <IconButton
             size="small"
-            label={t(`counts.status.${count.status}`)}
-            color={statusColor(count.status)}
-            variant="outlined"
-          />
-        )}
-        actions={
-          <Tooltip title={t('counts.actions.backToDetail')}>
-            <IconButton
+            aria-label={t('counts.actions.backToDetail')}
+            onClick={() => router.push(`/inventory/counts/${countId}`)}
+          >
+            <ArrowBack />
+          </IconButton>
+        </Tooltip>
+        <PageHeader
+          title={count?.reference_no ?? t('counts.entries.title')}
+          description={t('counts.entries.subtitle')}
+          meta={count && (
+            <Chip
               size="small"
-              aria-label={t('counts.actions.backToDetail')}
-              onClick={() => router.push(`/inventory/counts/${countId}`)}
-            >
-              <ArrowBack />
-            </IconButton>
-          </Tooltip>
-        }
-      />
+              label={t(`counts.status.${count.status}`)}
+              color={statusColor(count.status)}
+              variant="outlined"
+            />
+          )}
+        />
+      </Stack>
 
       {countQuery.isError && <Alert severity="error">{toAppApiError(countQuery.error).message}</Alert>}
       {entriesQuery.isError && <Alert severity="error">{toAppApiError(entriesQuery.error).message}</Alert>}
@@ -278,8 +278,33 @@ export function StockCountEntryPage({ countId }: StockCountEntryPageProps) {
               onSelect={selectLookupItem}
             />
 
+            {/* Mobile entry card */}
+            {selectedItem && (
+              <Box sx={{ display: { xs: 'block', lg: 'none' }, mb: 1.5, p: 1.5, border: 1, borderColor: 'divider', borderRadius: 1, bgcolor: 'action.hover' }}>
+                <Typography variant="subtitle2">{selectedItem.label}</Typography>
+                <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+                  {[selectedItem.sku, selectedItem.lot_number].filter(Boolean).join(' / ')}
+                </Typography>
+                <Stack direction="row" spacing={3} sx={{ mt: 1 }}>
+                  <Box>
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>{t('counts.columns.endingBalance')}</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                      {formatQuantity(selectedCountItem ? getEndingBalance(selectedCountItem) : selectedItem?.ending_quantity)}
+                    </Typography>
+                  </Box>
+                  <Box>
+                    <Typography variant="caption" sx={{ color: 'text.secondary' }}>{t('counts.columns.countedQuantity')}</Typography>
+                    <Typography variant="body2" sx={{ fontWeight: 700 }}>
+                      {formatQuantity(selectedCountItem?.counted_quantity)}
+                    </Typography>
+                  </Box>
+                </Stack>
+              </Box>
+            )}
+
             <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', lg: 'minmax(260px, 1fr) 150px 150px 170px auto' }, gap: 1.5, alignItems: 'start' }}>
-              <Box sx={{ minHeight: 56, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+              {/* Desktop product info */}
+              <Box sx={{ display: { xs: 'none', lg: 'flex' }, minHeight: 'var(--app-control-height)', flexDirection: 'column', justifyContent: 'center' }}>
                 <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                   {t('counts.fields.product')}
                 </Typography>
@@ -290,22 +315,27 @@ export function StockCountEntryPage({ countId }: StockCountEntryPageProps) {
                   {selectedItem && [selectedItem.sku, selectedItem.lot_number].filter(Boolean).join(' / ') || '-'}
                 </Typography>
               </Box>
-              <Box sx={{ minHeight: 56, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                <Typography variant="caption" sx={{ color: 'text.secondary', textAlign: { xs: 'left', lg: 'right' } }}>
+
+              {/* Desktop ending balance */}
+              <Box sx={{ display: { xs: 'none', lg: 'flex' }, minHeight: 'var(--app-control-height)', flexDirection: 'column', justifyContent: 'center' }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary', textAlign: 'right' }}>
                   {t('counts.columns.endingBalance')}
                 </Typography>
-                <Typography variant="body2" sx={{ textAlign: { xs: 'left', lg: 'right' } }}>
+                <Typography variant="body2" sx={{ textAlign: 'right' }}>
                   {formatQuantity(selectedCountItem ? getEndingBalance(selectedCountItem) : selectedItem?.ending_quantity)}
                 </Typography>
               </Box>
-              <Box sx={{ minHeight: 56, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                <Typography variant="caption" sx={{ color: 'text.secondary', textAlign: { xs: 'left', lg: 'right' } }}>
+
+              {/* Desktop counted quantity */}
+              <Box sx={{ display: { xs: 'none', lg: 'flex' }, minHeight: 'var(--app-control-height)', flexDirection: 'column', justifyContent: 'center' }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary', textAlign: 'right' }}>
                   {t('counts.columns.countedQuantity')}
                 </Typography>
-                <Typography variant="body2" sx={{ textAlign: { xs: 'left', lg: 'right' } }}>
+                <Typography variant="body2" sx={{ textAlign: 'right' }}>
                   {formatQuantity(selectedCountItem?.counted_quantity)}
                 </Typography>
               </Box>
+
               <TextField
                 value={entryQuantity}
                 type="number"
@@ -325,7 +355,7 @@ export function StockCountEntryPage({ countId }: StockCountEntryPageProps) {
                 startIcon={addEntry.isPending ? undefined : <SaveOutlined />}
                 disabled={!canRecordEntries || addEntry.isPending || updateEntry.isPending || !selectedItem}
                 onClick={() => void submitEntry()}
-                sx={{ minHeight: 56 }}
+                sx={{ py: { xs: 1.5, lg: 'auto' } }}
               >
                 {addEntry.isPending ? <CircularProgress size={20} color="inherit" /> : t('counts.actions.record')}
               </Button>

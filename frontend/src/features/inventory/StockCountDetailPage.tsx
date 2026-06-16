@@ -126,41 +126,39 @@ export function StockCountDetailPage({ countId }: StockCountDetailPageProps) {
 
   return (
     <Stack spacing={3}>
-      <PageHeader
-        title={count?.reference_no ?? t('counts.detail.title')}
-        description={t('counts.detail.viewSubtitle')}
-        actions={
-          <Stack direction="row" spacing={1} sx={{ alignItems: 'center' }}>
-            {canCount && isInProgress && (
-              <>
-                <Button
-                  variant="outlined"
-                  onClick={() => router.push(`/inventory/counts/${countId}/entries`)}
-                >
-                  {t('counts.actions.openEntryForm')}
-                </Button>
-                <Button
-                  variant="contained"
-                  color="success"
-                  startIcon={<CheckCircleOutlined />}
-                  onClick={() => setConfirmCompleteOpen(true)}
-                >
-                  {t('counts.actions.complete')}
-                </Button>
-              </>
-            )}
-            <Tooltip title={t('counts.actions.backToList')}>
-              <IconButton
-                size="small"
-                aria-label={t('counts.actions.backToList')}
-                onClick={() => router.push('/inventory/counts')}
+      <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+        <Tooltip title={t('counts.actions.backToList')}>
+          <IconButton
+            size="small"
+            aria-label={t('counts.actions.backToList')}
+            onClick={() => router.push('/inventory/counts')}
+          >
+            <ArrowBack />
+          </IconButton>
+        </Tooltip>
+        <PageHeader
+          title={count?.reference_no ?? t('counts.detail.title')}
+          description={t('counts.detail.viewSubtitle')}
+          actions={canCount && isInProgress && (
+            <Stack direction="row" spacing={1}>
+              <Button
+                variant="outlined"
+                onClick={() => router.push(`/inventory/counts/${countId}/entries`)}
               >
-                <ArrowBack />
-              </IconButton>
-            </Tooltip>
-          </Stack>
-        }
-      />
+                {t('counts.actions.openEntryForm')}
+              </Button>
+              <Button
+                variant="contained"
+                color="success"
+                startIcon={<CheckCircleOutlined />}
+                onClick={() => setConfirmCompleteOpen(true)}
+              >
+                {t('counts.actions.complete')}
+              </Button>
+            </Stack>
+          )}
+        />
+      </Stack>
 
       {countQuery.isLoading && (
         <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>

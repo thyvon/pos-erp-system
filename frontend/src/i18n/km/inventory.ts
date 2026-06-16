@@ -4,6 +4,8 @@ const inventory = {
     searchHint: 'ស្កេន ឬវាយយ៉ាងហោចណាស់ 2 តួអក្សរ',
     noProducts: 'រកមិនឃើញផលិតផលស្តុកទេ',
     available: 'មានស្រាប់៖ {{quantity}}',
+    scannerTitle: 'ស្កេនបាកូដ ឬ QR កូដ',
+    scannerHelp: 'ចង្អុលកាមេរ៉ារបស់អ្នកទៅកាន់បាកូដ ឬ QR កូដ។ ផលិតផលនឹងត្រូវបានជ្រើសរើសដោយស្វ័យប្រវត្តិ។',
   },
   stockLevels: {
     title: 'កម្រិតស្តុក',

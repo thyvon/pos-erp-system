@@ -4,6 +4,8 @@ const inventory = {
     searchHint: 'Scan or type at least 2 characters',
     noProducts: 'No inventory products found',
     available: 'Available: {{quantity}}',
+    scannerTitle: 'Scan barcode or QR code',
+    scannerHelp: 'Point your camera at a barcode or QR code. The product will be selected automatically.',
   },
   stockLevels: {
     title: 'Stock Levels',

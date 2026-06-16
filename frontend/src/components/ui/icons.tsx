@@ -46,6 +46,7 @@ import {
   Ruler,
   Sale,
   SaleSquare,
+  Scanner,
   SettingsMinimalistic,
   SidebarMinimalistic,
   Sun2,
@@ -194,6 +195,7 @@ export const PercentOutlined = createIcon(Sale)
 export const PointOfSaleOutlined = createIcon(SaleSquare)
 export const ReceiptLongOutlined = createIcon(BillList)
 export const SaveOutlined = createIcon(Diskette)
+export const ScanOutlined = createIcon(Scanner)
 export const Search = createIcon(MinimalisticMagnifier)
 export const SettingsOutlined = createIcon(SettingsMinimalistic)
 export const StraightenOutlined = createIcon(Ruler)

@@ -408,7 +408,19 @@
 - [x] POS toolbar date now updates live with time using the business date-format setting, and the warehouse selector, live date, and toolbar action buttons use dynamic layout-size-aware heights; frontend type-check, lint, and production build verified.
 - [x] Cash-register report handling now refreshes register data whenever the screen mounts and recovers from stale/deleted session IDs by invalidating cached register queries and closing the obsolete report dialog; the dual-currency closing migration was applied.
 - [x] Cash-register reports now load through a register-based endpoint that resolves the current open session server-side, avoiding stale or incorrectly supplied session IDs and returning a clear validation error when no session is open.
-- [x] Global App Router navigation now shows a Minimal-style thin top progress bar using the active theme color for internal links, sidebar navigation, and browser back/forward transitions.
+## PageHeader / PageToolbar / EntityTable Standardization
+
+- [x] Added `icon` prop to shared `PageHeader` component so inline pages can keep their icons while using the shared component.
+- [x] Converted 47 list/detail/form pages across all modules to use shared `PageHeader` with consistent back-navigation placement (left side wrapped in Stack, not in `actions`).
+- [x] Converted ~29 list pages from inline search/filter toolbars to shared `PageToolbar` with active filter chips and translated clear-filter controls.
+- [x] Converted ~29 list pages from inline `<Table>` to shared `EntityTable` with built-in loading, empty state, and pagination.
+- [x] Fixed back button placement on StockCountFormPage, StockCountEntryPage, StockCountDetailPage — back icon on left, action buttons stay in `actions`.
+- [x] Fixed hardcoded `minHeight: 56` on StockCountEntryPage info boxes → `var(--app-control-height)` from theme layout settings.
+- [x] Removed hardcoded `minHeight: 56` on StockCountEntryPage Record button.
+- [x] Redesigned StockCountEntryPage entry form with compact mobile info card and prominent quantity input/record button for easier touch entry.
+- [x] Frontend type-check and lint verified (0 errors, 52 pre-existing warnings).
+
+## Global App Router navigation now shows a Minimal-style thin top progress bar using the active theme color for internal links, sidebar navigation, and browser back/forward transitions.
 - [x] Theme color presets now match Minimal's green, cyan, purple, blue, orange, and red primary scales while keeping light/dark application surfaces neutral; legacy saved `darkGreen` settings migrate to the default green preset.
 - [x] Dashboard chrome now matches Minimal's translucent treatment with neutral 80-90% surfaces, 20px backdrop blur, restrained grey borders, and soft shadows on the topbar, sidebar, floating sidebar control, and popovers.
 - [x] Layout Settings now uses the same Minimal-style glass treatment with a translucent 20px-blurred drawer, soft edge shadow, and lightly blurred page backdrop.

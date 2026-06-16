@@ -5,12 +5,15 @@ import {
   Autocomplete,
   Box,
   Chip,
+  IconButton,
+  InputAdornment,
   TextField,
   Typography,
   Stack,
 } from '@mui/material'
 import { useTranslation } from 'react-i18next'
-import { Search } from '@/components/ui/icons'
+import { Search, ScanOutlined } from '@/components/ui/icons'
+import { BarcodeScannerDialog } from '@/components/common/BarcodeScannerDialog'
 import { inventoryApi } from '../api'
 import { useInventoryProductLookupQuery } from '../hooks'
 import type { InventoryProductLookupItem } from '@/types/inventory'
@@ -67,6 +70,7 @@ export function InventoryProductLookupPicker({
   const { t } = useTranslation('inventory')
   const [inputValue, setInputValue] = useState('')
   const [isResolving, setIsResolving] = useState(false)
+  const [isScannerOpen, setIsScannerOpen] = useState(false)
   const lookupQuery = useInventoryProductLookupQuery(inputValue, warehouseId)
   const options = useMemo(() => lookupQuery.data ?? [], [lookupQuery.data])
 
@@ -118,7 +122,27 @@ export function InventoryProductLookupPicker({
     }
   }
 
+  const handleScanResult = useCallback(async (code: string) => {
+    setInputValue(code)
+
+    try {
+      const results = await inventoryApi.productLookup({ q: code, warehouse_id: warehouseId })
+      const exactMatch = findExactLookupMatch(results, code)
+
+      if (exactMatch) {
+        onSelect(exactMatch)
+        setInputValue('')
+      } else if (results.length === 1) {
+        onSelect(results[0])
+        setInputValue('')
+      }
+    } catch {
+      // leave the scanned code as the search term
+    }
+  }, [warehouseId, onSelect])
+
   return (
+    <>
     <Autocomplete
       value={null}
       inputValue={inputValue}
@@ -154,20 +178,50 @@ export function InventoryProductLookupPicker({
           </Stack>
         </Box>
       )}
-      renderInput={(params) => (
-        <TextField
-          {...params}
-          autoFocus={autoFocus}
-          label={label ?? t('lookup.label')}
-          helperText={helperText}
-          onKeyDown={(event) => {
-            if (event.key === 'Enter') {
-              event.preventDefault()
-              void resolveSubmittedTerm()
-            }
-          }}
-        />
-      )}
+      renderInput={(params) => {
+        const { slotProps: autocompleteSlotProps, ...textFieldParams } = params
+        return (
+          <TextField
+            {...textFieldParams}
+            autoFocus={autoFocus}
+            label={label ?? t('lookup.label')}
+            helperText={helperText}
+            onKeyDown={(event) => {
+              if (event.key === 'Enter') {
+                event.preventDefault()
+                void resolveSubmittedTerm()
+              }
+            }}
+            slotProps={{
+              inputLabel: autocompleteSlotProps.inputLabel,
+              htmlInput: autocompleteSlotProps.htmlInput,
+              input: {
+                ...autocompleteSlotProps.input,
+                endAdornment: (
+                  <>
+                    <InputAdornment position="end">
+                      <IconButton
+                        size="small"
+                        onClick={() => setIsScannerOpen(true)}
+                        disabled={disabled}
+                      >
+                        <ScanOutlined fontSize="small" />
+                      </IconButton>
+                    </InputAdornment>
+                    {autocompleteSlotProps.input.endAdornment}
+                  </>
+                ),
+              },
+            }}
+          />
+        )
+      }}
     />
+    <BarcodeScannerDialog
+      open={isScannerOpen}
+      onClose={() => setIsScannerOpen(false)}
+      onScan={handleScanResult}
+    />
+    </>
   )
 }

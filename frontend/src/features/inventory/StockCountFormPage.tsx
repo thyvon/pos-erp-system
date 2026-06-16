@@ -104,21 +104,21 @@ export function StockCountFormPage() {
 
   return (
     <Stack spacing={3}>
-      <PageHeader
-        title={t('counts.form.createTitle')}
-        description={t('counts.form.pageSubtitle')}
-        actions={
-          <Tooltip title={t('counts.actions.backToList')}>
-            <IconButton
-              size="small"
-              aria-label={t('counts.actions.backToList')}
-              onClick={() => router.push('/inventory/counts')}
-            >
-              <ArrowBack />
-            </IconButton>
-          </Tooltip>
-        }
-      />
+      <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center' }}>
+        <Tooltip title={t('counts.actions.backToList')}>
+          <IconButton
+            size="small"
+            aria-label={t('counts.actions.backToList')}
+            onClick={() => router.push('/inventory/counts')}
+          >
+            <ArrowBack />
+          </IconButton>
+        </Tooltip>
+        <PageHeader
+          title={t('counts.form.createTitle')}
+          description={t('counts.form.pageSubtitle')}
+        />
+      </Stack>
 
       {optionsQuery.isError && <Alert severity="error">{toAppApiError(optionsQuery.error).message}</Alert>}
 
