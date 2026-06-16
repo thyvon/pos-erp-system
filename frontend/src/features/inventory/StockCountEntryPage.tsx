@@ -77,7 +77,7 @@ export function StockCountEntryPage({ countId }: StockCountEntryPageProps) {
   const { enqueueSnackbar } = useSnackbar()
   const can = useAuthStore((state) => state.can)
   const [selectedItem, setSelectedItem] = useState<InventoryProductLookupItem | null>(null)
-  const [entryQuantity, setEntryQuantity] = useState('1')
+  const [entryQuantity, setEntryQuantity] = useState('')
   const [itemSearch, setItemSearch] = useState('')
   const [itemPage, setItemPage] = useState(0)
   const [itemPerPage, setItemPerPage] = useState(10)
@@ -137,7 +137,7 @@ export function StockCountEntryPage({ countId }: StockCountEntryPageProps) {
 
   const selectLookupItem = (item: InventoryProductLookupItem) => {
     setSelectedItem(item)
-    setEntryQuantity('1')
+    setEntryQuantity('')
   }
 
   const submitEntry = async () => {
@@ -165,7 +165,7 @@ export function StockCountEntryPage({ countId }: StockCountEntryPageProps) {
       })
       enqueueSnackbar(t('counts.messages.entryRecorded'), { variant: 'success' })
       setSelectedItem(null)
-      setEntryQuantity('1')
+      setEntryQuantity('')
       setItemSearch('')
       setItemPage(0)
       setEntrySearch('')
@@ -259,12 +259,7 @@ export function StockCountEntryPage({ countId }: StockCountEntryPageProps) {
       <Card>
         <CardContent>
           <Stack spacing={2}>
-            <Box>
-              <Typography variant="subtitle2">{t('counts.entries.formTitle')}</Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                {t('counts.entries.formHelp')}
-              </Typography>
-            </Box>
+            <Typography variant="subtitle2">{t('counts.entries.formTitle')}</Typography>
 
             {!canRecordEntries && count && (
               <Alert severity="info">{t('counts.entries.readOnly')}</Alert>
@@ -274,7 +269,6 @@ export function StockCountEntryPage({ countId }: StockCountEntryPageProps) {
               warehouseId={count?.warehouse_id}
               disabled={!canRecordEntries || addEntry.isPending || updateEntry.isPending}
               autoFocus
-              helperText={t('counts.detail.entryPickerHelp')}
               onSelect={selectLookupItem}
             />
 
@@ -317,24 +311,22 @@ export function StockCountEntryPage({ countId }: StockCountEntryPageProps) {
               </Box>
 
               {/* Desktop ending balance */}
-              <Box sx={{ display: { xs: 'none', lg: 'flex' }, minHeight: 'var(--app-control-height)', flexDirection: 'column', justifyContent: 'center' }}>
-                <Typography variant="caption" sx={{ color: 'text.secondary', textAlign: 'right' }}>
-                  {t('counts.columns.endingBalance')}
-                </Typography>
-                <Typography variant="body2" sx={{ textAlign: 'right' }}>
-                  {formatQuantity(selectedCountItem ? getEndingBalance(selectedCountItem) : selectedItem?.ending_quantity)}
-                </Typography>
-              </Box>
+              <TextField
+                label={t('counts.columns.endingBalance')}
+                value={formatQuantity(selectedCountItem ? getEndingBalance(selectedCountItem) : selectedItem?.ending_quantity)}
+                disabled
+                slotProps={{ htmlInput: { style: { textAlign: 'right' } } }}
+                sx={{ display: { xs: 'none', lg: 'inline-flex' } }}
+              />
 
               {/* Desktop counted quantity */}
-              <Box sx={{ display: { xs: 'none', lg: 'flex' }, minHeight: 'var(--app-control-height)', flexDirection: 'column', justifyContent: 'center' }}>
-                <Typography variant="caption" sx={{ color: 'text.secondary', textAlign: 'right' }}>
-                  {t('counts.columns.countedQuantity')}
-                </Typography>
-                <Typography variant="body2" sx={{ textAlign: 'right' }}>
-                  {formatQuantity(selectedCountItem?.counted_quantity)}
-                </Typography>
-              </Box>
+              <TextField
+                label={t('counts.columns.countedQuantity')}
+                value={formatQuantity(selectedCountItem?.counted_quantity)}
+                disabled
+                slotProps={{ htmlInput: { style: { textAlign: 'right' } } }}
+                sx={{ display: { xs: 'none', lg: 'inline-flex' } }}
+              />
 
               <TextField
                 value={entryQuantity}
@@ -372,12 +364,7 @@ export function StockCountEntryPage({ countId }: StockCountEntryPageProps) {
               spacing={2}
               sx={{ alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between' }}
             >
-              <Box>
-                <Typography variant="subtitle2">{t('counts.entries.itemTotalsTitle')}</Typography>
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                  {t('counts.entries.itemTotalsHelp')}
-                </Typography>
-              </Box>
+              <Typography variant="subtitle2">{t('counts.entries.itemTotalsTitle')}</Typography>
               <TextField
                 value={itemSearch}
                 onChange={(event) => {
@@ -472,12 +459,7 @@ export function StockCountEntryPage({ countId }: StockCountEntryPageProps) {
               spacing={2}
               sx={{ alignItems: { xs: 'stretch', sm: 'center' }, justifyContent: 'space-between' }}
             >
-              <Box>
-                <Typography variant="subtitle2">{t('counts.entries.listTitle')}</Typography>
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                  {t('counts.entries.listHelp')}
-                </Typography>
-              </Box>
+              <Typography variant="subtitle2">{t('counts.entries.listTitle')}</Typography>
               <TextField
                 value={entrySearch}
                 onChange={(event) => {
