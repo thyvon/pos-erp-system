@@ -21,7 +21,7 @@ class SalePolicy
     {
         return $user->can('sales.index')
             && $this->belongsToSameBusiness($user, $sale)
-            && $user->hasBranchAccess($sale->branch_id);
+            && $this->hasSaleLocationAccess($user, $sale);
     }
 
     public function create(User $user): bool
@@ -33,7 +33,7 @@ class SalePolicy
     {
         return $user->can('sales.edit')
             && $this->belongsToSameBusiness($user, $sale)
-            && $user->hasBranchAccess($sale->branch_id)
+            && $this->hasSaleLocationAccess($user, $sale)
             && $this->isWithinEditWindow($sale);
     }
 
@@ -41,7 +41,7 @@ class SalePolicy
     {
         return $user->can('sales.delete')
             && $this->belongsToSameBusiness($user, $sale)
-            && $user->hasBranchAccess($sale->branch_id)
+            && $this->hasSaleLocationAccess($user, $sale)
             && $this->isEditableSale($sale);
     }
 
@@ -49,7 +49,7 @@ class SalePolicy
     {
         return $user->can('sales.confirm')
             && $this->belongsToSameBusiness($user, $sale)
-            && $user->hasBranchAccess($sale->branch_id)
+            && $this->hasSaleLocationAccess($user, $sale)
             && in_array($sale->status, ['draft', 'suspended'], true);
     }
 
@@ -57,7 +57,7 @@ class SalePolicy
     {
         return $user->can('sales.complete')
             && $this->belongsToSameBusiness($user, $sale)
-            && $user->hasBranchAccess($sale->branch_id)
+            && $this->hasSaleLocationAccess($user, $sale)
             && in_array($sale->status, ['draft', 'suspended', 'confirmed'], true);
     }
 
@@ -65,7 +65,7 @@ class SalePolicy
     {
         return $user->can('sales.cancel')
             && $this->belongsToSameBusiness($user, $sale)
-            && $user->hasBranchAccess($sale->branch_id)
+            && $this->hasSaleLocationAccess($user, $sale)
             && in_array($sale->status, ['draft', 'quotation', 'suspended', 'confirmed'], true);
     }
 
@@ -73,7 +73,7 @@ class SalePolicy
     {
         return $user->can('payments.create')
             && $this->belongsToSameBusiness($user, $sale)
-            && $user->hasBranchAccess($sale->branch_id)
+            && $this->hasSaleLocationAccess($user, $sale)
             && $sale->status === 'completed'
             && in_array($sale->payment_status, ['unpaid', 'partial'], true);
     }
@@ -82,7 +82,7 @@ class SalePolicy
     {
         return $user->can('payments.edit')
             && $this->belongsToSameBusiness($user, $sale)
-            && $user->hasBranchAccess($sale->branch_id)
+            && $this->hasSaleLocationAccess($user, $sale)
             && $sale->status === 'completed'
             && in_array($sale->payment_status, ['partial', 'paid'], true);
     }
@@ -91,7 +91,7 @@ class SalePolicy
     {
         return $user->can('payments.delete')
             && $this->belongsToSameBusiness($user, $sale)
-            && $user->hasBranchAccess($sale->branch_id)
+            && $this->hasSaleLocationAccess($user, $sale)
             && $sale->status === 'completed'
             && in_array($sale->payment_status, ['partial', 'paid'], true);
     }
@@ -100,8 +100,14 @@ class SalePolicy
     {
         return $user->can('sales.return')
             && $this->belongsToSameBusiness($user, $sale)
-            && $user->hasBranchAccess($sale->branch_id)
+            && $this->hasSaleLocationAccess($user, $sale)
             && in_array($sale->status, ['completed', 'returned'], true);
+    }
+
+    protected function hasSaleLocationAccess(User $user, Sale $sale): bool
+    {
+        return $user->hasBranchAccess($sale->branch_id)
+            && $user->hasWarehouseAccess($sale->warehouse_id);
     }
 
     protected function isEditableSale(Sale $sale): bool

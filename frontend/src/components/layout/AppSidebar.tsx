@@ -133,6 +133,7 @@ const NAV_CONFIG: NavSection[] = [
     items: [
       { key: 'warehouses', path: '/warehouses', module: 'inventory', icon: <WarehouseOutlined />, permissions: ['warehouses.index'] },
       { key: 'rackLocations', path: '/rack-locations', module: 'inventory', icon: <StraightenOutlined />, permissions: ['rack_locations.index'] },
+      { key: 'warehouseProductSettings', path: '/warehouse-product-settings', module: 'inventory', icon: <Inventory2Outlined />, permissions: ['warehouse_product_settings.index'] },
       { key: 'stockLevels', path: '/inventory/stock', module: 'inventory', icon: <TrendingUpOutlined />, permissions: ['inventory.index'] },
       { key: 'openingBalances', path: '/inventory/opening-balances', module: 'inventory', icon: <Inventory2Outlined />, permissions: ['inventory.index'] },
       { key: 'stockLots', path: '/inventory/lots', module: 'inventory', icon: <Inventory2Outlined />, permissions: ['inventory.index'] },

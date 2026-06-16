@@ -4,6 +4,7 @@ namespace App\Repositories\Sales;
 
 use App\Models\Sale;
 use App\Repositories\BaseRepository;
+use App\Support\WarehouseAccess;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 
 class SaleRepository extends BaseRepository
@@ -18,6 +19,7 @@ class SaleRepository extends BaseRepository
         $perPage = max(1, min((int) ($filters['per_page'] ?? 15), 100));
 
         $query = $this->query()
+            ->tap(fn ($query) => WarehouseAccess::scopeWarehouseQuery($query, request()->user(), 'warehouse_id'))
             ->with([
                 'branch:id,name,code',
                 'warehouse:id,name,code',

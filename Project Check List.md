@@ -89,6 +89,7 @@
 - [x] Sales create/edit select menus now keep page scroll unlocked so the browser right scrollbar stays visible while dropdowns are open.
 - [x] Sales create/edit quantity inputs now warn and block saving when requested quantity exceeds available stock for warehouses that do not allow negative stock.
 - [x] Sale create/confirm stock handling now preserves clear API exception messages for unavailable stock, rejects duplicate or unavailable serial allocations before reservation, and blocks duplicate serial lines in Sale/POS forms; focused Sales API tests plus frontend type-check, lint, and build verified.
+- [x] Sales scope audit tightened warehouse access for sale create/update validation, sale list queries, and sale action policies so users cannot create, view, edit, confirm, complete, cancel, pay, or return sales outside their allowed warehouse; focused Sales/Sale Return API tests and frontend type-check verified.
 - [x] Sales edit rows now receive current available stock from the sale item API resource, and the Unit column hides completely when no sale line has sub-units.
 - [x] Sales create/edit item table inputs now use default-size form controls while preserving the full product detail column; frontend type-check and lint verified.
 - [x] Sales create form now supports optional multi-line direct payments with live remaining and change-back calculation before completing and recording payment after save.
@@ -155,6 +156,7 @@
 
 ## Inventory Frontend Rebuild
 
+- [x] Warehouse Product Settings added with backend model/migration/policy/repository/service/requests/resources/routes, branch-aware warehouse access, duplicate product/variation prevention, stock-planning validation, focused API tests, frontend page/form/API hooks/types/navigation/translations, and frontend type-check/lint/build verification.
 - [x] Stock Levels read-only backend endpoint, frontend page, API hooks, types, filters, detail dialog, navigation, branch-scoped tests, and translations are present.
 - [x] Stock Levels verified with focused backend tests, Inventory API tests, Inventory service tests, frontend type-check, and frontend lint.
 - [x] Stock Adjustments page, create form, inventory API hooks, types, product lookup, filters, detail view, and translations are present.

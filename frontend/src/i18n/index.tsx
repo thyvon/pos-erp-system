@@ -20,6 +20,7 @@ import enBrands from './en/brands'
 import enUnits from './en/units'
 import enVariationTemplates from './en/variationTemplates'
 import enRackLocations from './en/rackLocations'
+import enWarehouseProductSettings from './en/warehouseProductSettings'
 import enPriceGroups from './en/priceGroups'
 import enBranches from './en/branches'
 import enWarehouses from './en/warehouses'
@@ -50,6 +51,7 @@ import kmBrands from './km/brands'
 import kmUnits from './km/units'
 import kmVariationTemplates from './km/variationTemplates'
 import kmRackLocations from './km/rackLocations'
+import kmWarehouseProductSettings from './km/warehouseProductSettings'
 import kmPriceGroups from './km/priceGroups'
 import kmBranches from './km/branches'
 import kmWarehouses from './km/warehouses'
@@ -82,6 +84,7 @@ const resources = {
     units: enUnits,
     variationTemplates: enVariationTemplates,
     rackLocations: enRackLocations,
+    warehouseProductSettings: enWarehouseProductSettings,
     priceGroups: enPriceGroups,
     branches: enBranches,
     warehouses: enWarehouses,
@@ -113,6 +116,7 @@ const resources = {
     units: kmUnits,
     variationTemplates: kmVariationTemplates,
     rackLocations: kmRackLocations,
+    warehouseProductSettings: kmWarehouseProductSettings,
     priceGroups: kmPriceGroups,
     branches: kmBranches,
     warehouses: kmWarehouses,

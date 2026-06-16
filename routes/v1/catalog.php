@@ -5,6 +5,7 @@ use App\Http\Controllers\Api\V1\Catalog\BrandController;
 use App\Http\Controllers\Api\V1\Catalog\UnitController;
 use App\Http\Controllers\Api\V1\Catalog\VariationTemplateController;
 use App\Http\Controllers\Api\V1\Catalog\RackLocationController;
+use App\Http\Controllers\Api\V1\Catalog\WarehouseProductSettingController;
 use App\Http\Controllers\Api\V1\Catalog\PriceGroupController;
 use App\Http\Controllers\Api\V1\Catalog\ProductController;
 use Illuminate\Support\Facades\Route;
@@ -55,6 +56,13 @@ return static function (): void {
     Route::get('rack-locations/{rackLocation}', [RackLocationController::class, 'show'])->middleware('can:rack_locations.index');
     Route::put('rack-locations/{rackLocation}', [RackLocationController::class, 'update'])->middleware('can:rack_locations.edit');
     Route::delete('rack-locations/{rackLocation}', [RackLocationController::class, 'destroy'])->middleware('can:rack_locations.delete');
+
+    Route::get('warehouse-product-settings/options', [WarehouseProductSettingController::class, 'options'])->middleware('can:warehouse_product_settings.index');
+    Route::get('warehouse-product-settings', [WarehouseProductSettingController::class, 'index'])->middleware('can:warehouse_product_settings.index');
+    Route::post('warehouse-product-settings', [WarehouseProductSettingController::class, 'store'])->middleware('can:warehouse_product_settings.create');
+    Route::get('warehouse-product-settings/{warehouseProductSetting}', [WarehouseProductSettingController::class, 'show'])->middleware('can:warehouse_product_settings.index');
+    Route::put('warehouse-product-settings/{warehouseProductSetting}', [WarehouseProductSettingController::class, 'update'])->middleware('can:warehouse_product_settings.edit');
+    Route::delete('warehouse-product-settings/{warehouseProductSetting}', [WarehouseProductSettingController::class, 'destroy'])->middleware('can:warehouse_product_settings.delete');
 
     Route::get('price-groups', [PriceGroupController::class, 'index'])->middleware('can:price_groups.index');
     Route::post('price-groups', [PriceGroupController::class, 'store'])->middleware('can:price_groups.create');

@@ -1,0 +1,58 @@
+export default {
+  title: 'Warehouse Product Settings',
+  subtitle: 'Manage per-warehouse product rack, reorder, supplier, and stock planning settings.',
+  empty: 'No warehouse product settings found.',
+  actions: {
+    new: 'New setting',
+  },
+  filters: {
+    search: 'Search product, SKU, warehouse, rack, or note',
+    warehouse: 'Warehouse',
+    allWarehouses: 'All warehouses',
+    status: 'Status',
+    allStatuses: 'All statuses',
+  },
+  columns: {
+    product: 'Product',
+    warehouse: 'Warehouse',
+    rackLocation: 'Rack',
+    reorder: 'Reorder',
+    minMax: 'Min / Max',
+    supplier: 'Supplier',
+    status: 'Status',
+    actions: 'Actions',
+  },
+  fields: {
+    warehouse: 'Warehouse',
+    product: 'Product',
+    variation: 'Variation',
+    rackLocation: 'Rack location',
+    preferredSupplier: 'Preferred supplier',
+    min_stock_alert: 'Min stock',
+    max_stock_level: 'Max stock',
+    reorder_point: 'Reorder point',
+    reorder_quantity: 'Reorder qty',
+    isActive: 'Active in warehouse',
+    notes: 'Notes',
+  },
+  form: {
+    createTitle: 'Create warehouse product setting',
+    editTitle: 'Edit warehouse product setting',
+    noVariations: 'This product has no variations.',
+  },
+  status: {
+    active: 'Active',
+    inactive: 'Inactive',
+  },
+  messages: {
+    created: 'Warehouse product setting created.',
+    updated: 'Warehouse product setting updated.',
+    deleted: 'Warehouse product setting deleted.',
+    noWarehouses: 'No accessible warehouses are available.',
+  },
+  deleteDialog: {
+    title: 'Delete warehouse product setting',
+    message: 'Delete the setting for {{name}}?',
+    confirm: 'Delete setting',
+  },
+}

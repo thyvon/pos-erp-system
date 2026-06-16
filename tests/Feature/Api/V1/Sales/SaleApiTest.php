@@ -100,6 +100,60 @@ class SaleApiTest extends TestCase
         ]);
     }
 
+    public function test_sale_create_requires_warehouse_access_even_when_branch_is_allowed(): void
+    {
+        $business = Business::factory()->create();
+        $branch = Branch::factory()->create(['business_id' => $business->id]);
+        $allowedWarehouse = Warehouse::factory()->forBranch($branch)->create();
+        $blockedWarehouse = Warehouse::factory()->forBranch($branch)->create();
+        $unit = Unit::factory()->create(['business_id' => $business->id]);
+        $product = Product::factory()->create([
+            'business_id' => $business->id,
+            'unit_id' => $unit->id,
+            'track_inventory' => true,
+            'stock_tracking' => 'none',
+            'selling_price' => 12,
+            'minimum_selling_price' => 8,
+        ]);
+        StockLevel::withoutGlobalScopes()->create([
+            'business_id' => $business->id,
+            'product_id' => $product->id,
+            'warehouse_id' => $blockedWarehouse->id,
+            'quantity' => 5,
+            'reserved_quantity' => 0,
+        ]);
+
+        $user = User::factory()->for($business)->create(['default_warehouse_id' => $allowedWarehouse->id]);
+        $user->assignRole('cashier');
+        $user->branches()->attach($branch->id);
+        $user->warehouses()->attach($allowedWarehouse->id);
+
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/v1/sales', [
+            'branch_id' => $branch->id,
+            'warehouse_id' => $blockedWarehouse->id,
+            'type' => 'invoice',
+            'sale_date' => now()->toDateString(),
+            'items' => [[
+                'product_id' => $product->id,
+                'quantity' => 2,
+                'unit_price' => 12,
+                'unit_cost' => 5,
+            ]],
+        ])->assertStatus(422)
+            ->assertJsonValidationErrors('warehouse_id')
+            ->assertJsonPath('errors.warehouse_id.0', 'The selected warehouse is outside your allowed warehouse access.');
+
+        $this->assertDatabaseCount('sales', 0);
+        $this->assertDatabaseHas('stock_levels', [
+            'product_id' => $product->id,
+            'warehouse_id' => $blockedWarehouse->id,
+            'quantity' => '5.0000',
+            'reserved_quantity' => '0.0000',
+        ]);
+    }
+
     public function test_confirmed_sale_can_be_completed_and_posts_inventory_and_accounting(): void
     {
         $business = Business::factory()->create();
@@ -412,6 +466,65 @@ class SaleApiTest extends TestCase
             ->assertJsonPath('data.0.returns_count', 0)
             ->assertJsonMissingPath('data.0.items')
             ->assertJsonMissingPath('data.0.payments');
+    }
+
+    public function test_warehouse_scoped_user_only_sees_and_opens_sales_from_allowed_warehouses(): void
+    {
+        $business = Business::factory()->create();
+        $branch = Branch::factory()->create(['business_id' => $business->id]);
+        $allowedWarehouse = Warehouse::factory()->forBranch($branch)->create();
+        $blockedWarehouse = Warehouse::factory()->forBranch($branch)->create();
+
+        $allowedSale = Sale::withoutGlobalScopes()->create([
+            'business_id' => $business->id,
+            'branch_id' => $branch->id,
+            'warehouse_id' => $allowedWarehouse->id,
+            'sale_number' => 'INV-2026-WH-00001',
+            'type' => 'invoice',
+            'status' => 'draft',
+            'payment_status' => 'unpaid',
+            'sale_date' => now()->toDateString(),
+            'subtotal' => 10,
+            'discount_amount' => 0,
+            'tax_amount' => 0,
+            'shipping_charges' => 0,
+            'total_amount' => 10,
+            'paid_amount' => 0,
+            'change_amount' => 0,
+        ]);
+
+        $blockedSale = Sale::withoutGlobalScopes()->create([
+            'business_id' => $business->id,
+            'branch_id' => $branch->id,
+            'warehouse_id' => $blockedWarehouse->id,
+            'sale_number' => 'INV-2026-WH-00002',
+            'type' => 'invoice',
+            'status' => 'draft',
+            'payment_status' => 'unpaid',
+            'sale_date' => now()->toDateString(),
+            'subtotal' => 20,
+            'discount_amount' => 0,
+            'tax_amount' => 0,
+            'shipping_charges' => 0,
+            'total_amount' => 20,
+            'paid_amount' => 0,
+            'change_amount' => 0,
+        ]);
+
+        $user = User::factory()->for($business)->create(['default_warehouse_id' => $allowedWarehouse->id]);
+        $user->assignRole('cashier');
+        $user->branches()->attach($branch->id);
+        $user->warehouses()->attach($allowedWarehouse->id);
+
+        Sanctum::actingAs($user);
+
+        $this->getJson('/api/v1/sales')
+            ->assertOk()
+            ->assertJsonFragment(['sale_number' => $allowedSale->sale_number])
+            ->assertJsonMissing(['sale_number' => $blockedSale->sale_number]);
+
+        $this->getJson("/api/v1/sales/{$allowedSale->id}")->assertOk();
+        $this->getJson("/api/v1/sales/{$blockedSale->id}")->assertForbidden();
     }
 
     public function test_completed_sale_can_record_payment_and_update_payment_status(): void

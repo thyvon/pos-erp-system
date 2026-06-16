@@ -84,9 +84,14 @@ class StoreSaleRequest extends FormRequest
         $validator->after(function ($validator): void {
             $user = $this->user();
             $branchId = $this->input('branch_id');
+            $warehouseId = $this->input('warehouse_id');
 
             if ($user && $branchId && ! $user->hasBranchAccess($branchId)) {
                 $validator->errors()->add('branch_id', 'The selected branch is outside your allowed branch access.');
+            }
+
+            if ($user && $warehouseId && ! $user->hasWarehouseAccess($warehouseId)) {
+                $validator->errors()->add('warehouse_id', 'The selected warehouse is outside your allowed warehouse access.');
             }
         });
     }

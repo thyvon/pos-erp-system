@@ -27,6 +27,7 @@ const BREADCRUMB_KEY_MAP: Record<string, string> = {
   '/units': 'units',
   '/variation-templates': 'variationTemplates',
   '/rack-locations': 'rackLocations',
+  '/warehouse-product-settings': 'warehouseProductSettings',
   '/price-groups': 'priceGroups',
   '/inventory': 'inventory',
   '/inventory/stock': 'stockLevels',
