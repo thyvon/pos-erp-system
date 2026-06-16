@@ -208,12 +208,13 @@ interface TrackedItemSelectorProps {
   item: Partial<SaleFormInput['items'][number]> | undefined
   warehouseId: string
   disabled: boolean
+  usedSerialIds?: Set<string>
   control: Control<SaleFormInput, unknown, SaleFormValues>
   errors: FieldErrors<SaleFormInput>
   setValue: UseFormSetValue<SaleFormInput>
 }
 
-function TrackedItemSelector({ index, item, warehouseId, disabled, control, errors, setValue }: TrackedItemSelectorProps) {
+function TrackedItemSelector({ index, item, warehouseId, disabled, usedSerialIds, control, errors, setValue }: TrackedItemSelectorProps) {
   const tracking = item?.stock_tracking
 
   if (tracking === 'lot') {
@@ -223,6 +224,7 @@ function TrackedItemSelector({ index, item, warehouseId, disabled, control, erro
         item={item}
         warehouseId={warehouseId}
         disabled={disabled}
+        usedSerialIds={usedSerialIds}
         control={control}
         errors={errors}
         setValue={setValue}
@@ -309,8 +311,9 @@ function LotItemSelector({ index, item, warehouseId, disabled, control, errors, 
   )
 }
 
-function SerialItemSelector({ index, item, warehouseId, disabled, control, errors, setValue }: TrackedItemSelectorProps) {
+function SerialItemSelector({ index, item, warehouseId, disabled, usedSerialIds, control, errors, setValue }: TrackedItemSelectorProps) {
   const { t } = useTranslation('sales')
+  const { enqueueSnackbar } = useSnackbar()
   const productId = item?.product_id ?? ''
   const variationId = item?.variation_id ?? null
 
@@ -338,6 +341,10 @@ function SerialItemSelector({ index, item, warehouseId, disabled, control, error
           } as unknown as StockSerial
           : null)
         const options = selectedSerial && !currentSerial ? [selectedSerial, ...serials] : serials
+        const duplicateSerial = Boolean(field.value && usedSerialIds?.has(field.value))
+        const duplicateSerialMessage = duplicateSerial
+          ? t('form.duplicateSerial', { serial: selectedSerial?.serial_number ?? field.value })
+          : undefined
 
         return (
           <Autocomplete
@@ -349,6 +356,11 @@ function SerialItemSelector({ index, item, warehouseId, disabled, control, error
             isOptionEqualToValue={(option, value) => option.id === value.id}
             onBlur={field.onBlur}
             onChange={(_, serial) => {
+              if (serial && usedSerialIds?.has(serial.id)) {
+                enqueueSnackbar(t('form.duplicateSerial', { serial: serial.serial_number }), { variant: 'warning' })
+                return
+              }
+
               field.onChange(serial?.id ?? null)
               setValue(`items.${index}.serial_number`, serial?.serial_number ?? null, { shouldDirty: true, shouldValidate: true })
               setValue(`items.${index}.lot_id`, null, { shouldDirty: true, shouldValidate: true })
@@ -360,8 +372,8 @@ function SerialItemSelector({ index, item, warehouseId, disabled, control, error
               <TextField
                 {...params}
                 label={t('pos.lineDialog.serialLookup')}
-                error={!!errors.items?.[index]?.serial_id}
-                helperText={errors.items?.[index]?.serial_id?.message}
+                error={!!errors.items?.[index]?.serial_id || duplicateSerial}
+                helperText={errors.items?.[index]?.serial_id?.message || duplicateSerialMessage}
               />
             )}
           />
@@ -498,6 +510,27 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
     [shouldBlockOverStock, watchedItems],
   )
   const hasOverStockLines = overStockLineIndexes.length > 0
+  const duplicateSerialLineIndexes = useMemo(() => {
+    const firstIndexBySerial = new Map<string, number>()
+    const duplicates = new Set<number>()
+
+    watchedItems.forEach((item, index) => {
+      if (!item?.serial_id) return
+
+      const firstIndex = firstIndexBySerial.get(item.serial_id)
+
+      if (firstIndex === undefined) {
+        firstIndexBySerial.set(item.serial_id, index)
+        return
+      }
+
+      duplicates.add(firstIndex)
+      duplicates.add(index)
+    })
+
+    return Array.from(duplicates)
+  }, [watchedItems])
+  const hasDuplicateSerialLines = duplicateSerialLineIndexes.length > 0
   const currentSale = saleQuery.data ?? null
   const currentSaleStatus = currentSale?.status
   const existingPayments = useMemo(
@@ -613,7 +646,7 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
       }
     }
 
-    if (shouldBlockOverStock && (item.available_quantity ?? 0) <= 0) {
+    if (shouldBlockOverStock && toNumber(item.available_quantity) <= 0) {
       enqueueSnackbar(t('form.outOfStock', { product: item.label }), { variant: 'error' })
       return
     }
@@ -687,6 +720,41 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
         enqueueSnackbar(t('form.overStockSubmitBlocked'), { variant: 'warning' })
         return
       }
+    }
+
+    const submittedDuplicateSerialIndexes = duplicateSerialLineIndexes.length > 0
+      ? duplicateSerialLineIndexes
+      : (() => {
+        const firstIndexBySerial = new Map<string, number>()
+        const duplicates = new Set<number>()
+
+        values.items.forEach((item, index) => {
+          if (!item.serial_id) return
+
+          const firstIndex = firstIndexBySerial.get(item.serial_id)
+
+          if (firstIndex === undefined) {
+            firstIndexBySerial.set(item.serial_id, index)
+            return
+          }
+
+          duplicates.add(firstIndex)
+          duplicates.add(index)
+        })
+
+        return Array.from(duplicates)
+      })()
+
+    if (submittedDuplicateSerialIndexes.length > 0) {
+      submittedDuplicateSerialIndexes.forEach((index) => {
+        setError(`items.${index}.serial_id`, {
+          type: 'validate',
+          message: t('form.duplicateSerial', { serial: values.items[index]?.serial_number ?? values.items[index]?.serial_id }),
+        })
+      })
+      setServerError(t('form.duplicateSerialSubmitBlocked'))
+      enqueueSnackbar(t('form.duplicateSerialSubmitBlocked'), { variant: 'warning' })
+      return
     }
 
     setIsSubmittingSale(true)
@@ -975,6 +1043,11 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
                     {t('form.overStockAlert')}
                   </Alert>
                 )}
+                {hasDuplicateSerialLines && (
+                  <Alert severity="warning">
+                    {t('form.duplicateSerialAlert')}
+                  </Alert>
+                )}
 
                 <TableContainer sx={scrollTableContainerSx}>
                   <Table sx={{ minWidth: saleItemsTableMinWidth, tableLayout: 'fixed' }}>
@@ -1041,6 +1114,7 @@ export function SaleFormPage({ saleId, mode = 'sale' }: SaleFormPageProps) {
                                   item={watchedItem ?? field}
                                   warehouseId={warehouseId}
                                   disabled={isSaving}
+                                  usedSerialIds={new Set(watchedItems.map((line, lineIndex) => lineIndex === index ? null : line?.serial_id).filter((serialId): serialId is string => Boolean(serialId)))}
                                   control={control}
                                   errors={errors}
                                   setValue={setValue}

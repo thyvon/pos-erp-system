@@ -593,7 +593,7 @@ class SaleService
 
     protected function buildLinePayloads(string $businessId, Warehouse $warehouse, Collection $items, string $taxScope = 'line'): Collection
     {
-        return $items->map(function (array $item) use ($businessId, $warehouse, $taxScope): array {
+        $linePayloads = $items->map(function (array $item) use ($businessId, $warehouse, $taxScope): array {
             $product = $this->resolveProduct($businessId, $item['product_id']);
             $variation = $this->resolveVariation($businessId, $product, $item['variation_id'] ?? null);
             $subUnit = $this->resolveSubUnit($businessId, $product, $variation, $item['sub_unit_id'] ?? null);
@@ -676,6 +676,10 @@ class SaleService
                 ],
             ];
         });
+
+        $this->assertUniqueSerialAllocations($linePayloads);
+
+        return $linePayloads;
     }
 
     protected function calculateSaleTotals(
@@ -1331,7 +1335,23 @@ class SaleService
             $this->failValidation('One or more selected serials are invalid for this warehouse.');
         }
 
+        if ($serial->status !== 'in_stock') {
+            $this->failValidation('One or more selected serials are not available for sale.');
+        }
+
         return $serial;
+    }
+
+    protected function assertUniqueSerialAllocations(Collection $linePayloads): void
+    {
+        $serialIds = $linePayloads
+            ->flatMap(fn (array $linePayload) => $linePayload['serials'])
+            ->filter()
+            ->values();
+
+        if ($serialIds->count() !== $serialIds->unique()->count()) {
+            $this->failValidation('A serial number can only be used once in the same sale.');
+        }
     }
 
     protected function resolveAccountByCode(string $businessId, string $code): ChartOfAccount

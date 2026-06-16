@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { useQueryClient } from '@tanstack/react-query'
-import { Controller, useFieldArray, useForm, useWatch } from 'react-hook-form'
+import { Controller, useFieldArray, useForm, useWatch, type Control, type FieldErrors, type UseFormGetValues, type UseFormSetValue } from 'react-hook-form'
 import {
   Alert,
   Autocomplete,
@@ -54,7 +54,7 @@ import { useCreateCustomerMutation, useCustomersQuery } from '@/features/custome
 import { useCustomFieldsQuery } from '@/features/custom-fields/hooks'
 import { inventoryApi } from '@/features/inventory/api'
 import { InventoryProductLookupPicker } from '@/features/inventory/components/InventoryProductLookupPicker'
-import { inventoryKeys } from '@/features/inventory/hooks'
+import { inventoryKeys, useStockSerialsQuery } from '@/features/inventory/hooks'
 import {
   buildDirectPaymentLines,
   buildSalePayload,
@@ -80,7 +80,7 @@ import {
 } from './hooks'
 import type { CashRegister, SaleFilters } from '@/types/sales'
 import type { Customer, CustomerPayload } from '@/types/customer'
-import type { InventoryProductLookupItem } from '@/types/inventory'
+import type { InventoryProductLookupItem, StockSerial } from '@/types/inventory'
 import type { PriceGroup } from '@/types/priceGroup'
 import type { Product } from '@/types/product'
 import type { TaxRate } from '@/types/taxRate'
@@ -171,6 +171,104 @@ function cashRegisterLabel(register: CashRegister) {
 
 function productSearchTerm(product: Product) {
   return product.sku || product.variations?.[0]?.sku || product.name
+}
+
+function posSerialLabel(serial: StockSerial) {
+  return [serial.serial_number, serial.status].filter(Boolean).join(' / ')
+}
+
+interface PosSerialLineSelectorProps {
+  index: number
+  line: SaleFormInput['items'][number] | undefined
+  warehouseId: string
+  disabled: boolean
+  control: Control<SaleFormInput, unknown, SaleFormValues>
+  errors: FieldErrors<SaleFormInput>
+  getValues: UseFormGetValues<SaleFormInput>
+  setValue: UseFormSetValue<SaleFormInput>
+}
+
+function PosSerialLineSelector({
+  index,
+  line,
+  warehouseId,
+  disabled,
+  control,
+  errors,
+  getValues,
+  setValue,
+}: PosSerialLineSelectorProps) {
+  const { t } = useTranslation('sales')
+  const { enqueueSnackbar } = useSnackbar()
+  const productId = line?.product_id ?? ''
+  const variationId = line?.variation_id ?? null
+  const serialsQuery = useStockSerialsQuery({
+    warehouse_id: warehouseId,
+    product_id: productId,
+    variation_id: variationId ?? undefined,
+    status: 'in_stock',
+    per_page: 100,
+  })
+  const serials = serialsQuery.data?.data ?? []
+
+  return (
+    <Controller
+      name={`items.${index}.serial_id`}
+      control={control}
+      render={({ field }) => {
+        const currentSerial = serials.find((serial) => serial.id === field.value)
+        const selectedSerial = currentSerial ?? (field.value
+          ? {
+            id: field.value,
+            serial_number: line?.serial_number ?? field.value,
+            status: 'reserved',
+          } as unknown as StockSerial
+          : null)
+        const options = selectedSerial && !currentSerial ? [selectedSerial, ...serials] : serials
+
+        return (
+          <Autocomplete
+            options={options}
+            value={selectedSerial}
+            loading={serialsQuery.isLoading}
+            disabled={disabled || !warehouseId || !productId}
+            getOptionLabel={posSerialLabel}
+            isOptionEqualToValue={(option, value) => option.id === value.id}
+            onBlur={field.onBlur}
+            onChange={(_, serial) => {
+              if (serial) {
+                const duplicateSerialIndex = (getValues('items') ?? []).findIndex((item, lineIndex) =>
+                  lineIndex !== index && item.serial_id === serial.id
+                )
+
+                if (duplicateSerialIndex >= 0) {
+                  enqueueSnackbar(t('pos.messages.serialAlreadyInCart'), { variant: 'warning' })
+                  return
+                }
+              }
+
+              field.onChange(serial?.id ?? null)
+              setValue(`items.${index}.stock_tracking`, 'serial', { shouldDirty: true, shouldValidate: true })
+              setValue(`items.${index}.serial_number`, serial?.serial_number ?? null, { shouldDirty: true, shouldValidate: true })
+              setValue(`items.${index}.lot_id`, null, { shouldDirty: true, shouldValidate: true })
+              setValue(`items.${index}.lot_number`, null, { shouldDirty: true, shouldValidate: true })
+              setValue(`items.${index}.quantity`, serial ? 1 : line?.quantity ?? 1, { shouldDirty: true, shouldValidate: true })
+              setValue(`items.${index}.unit_cost`, Number(serial?.unit_cost ?? line?.unit_cost ?? 0), { shouldDirty: true, shouldValidate: true })
+              setValue(`items.${index}.available_quantity`, serial ? '1' : line?.available_quantity ?? null, { shouldDirty: true })
+            }}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label={t('pos.lineDialog.serialLookup')}
+                error={!!errors.items?.[index]?.serial_id}
+                helperText={errors.items?.[index]?.serial_id?.message || t('pos.lineDialog.serialLookupHelp')}
+              />
+            )}
+          />
+        )
+      }}
+    />
+  )
 }
 
 interface PosFormPageProps {
@@ -335,6 +433,10 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
   }, !!branchId)
 
   const warehouses = useMemo(() => warehousesQuery.data?.data ?? [], [warehousesQuery.data?.data])
+  const selectedWarehouse = useMemo(
+    () => warehouses.find((warehouse) => warehouse.id === warehouseId) ?? null,
+    [warehouseId, warehouses],
+  )
   const customers = useMemo(() => {
     const baseCustomers = customersQuery.data?.data ?? []
     if (!createdCustomer || baseCustomers.some((customer) => customer.id === createdCustomer.id)) {
@@ -424,6 +526,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
 
   const isSuspended = saleType === 'suspended'
   const canCapturePayment = !isSuspended && (!isEdit || currentSaleStatus === 'completed')
+  const shouldBlockOverStock = selectedWarehouse?.allow_negative_stock === false
 
   useEffect(() => {
     const timer = window.setInterval(() => setCurrentDateTime(new Date()), 1000)
@@ -537,7 +640,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
       && (line.serial_id ?? null) === itemSerialId
     )
 
-    if (shouldBlockOverStock && (item.available_quantity ?? 0) <= 0) {
+    if (shouldBlockOverStock && toNumber(item.available_quantity) <= 0) {
       enqueueSnackbar(t('form.outOfStock', { product: item.label }), { variant: 'error' })
       return
     }
@@ -591,7 +694,7 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
       notes: '',
     })
     playAddProductSound()
-  }, [append, enqueueSnackbar, getValues, setValue, t])
+  }, [append, enqueueSnackbar, getValues, setValue, shouldBlockOverStock, t])
 
   const openCashRegisterDialog = () => {
     if (!branchId) {
@@ -1513,13 +1616,26 @@ export function PosFormPage({ saleId }: PosFormPageProps) {
 
                 return (
                   <Stack spacing={1}>
-                    <InventoryProductLookupPicker
-                      warehouseId={warehouseId || undefined}
-                      disabled={!warehouseId || isSaving}
-                      label={tracking === 'lot' ? t('pos.lineDialog.lotLookup') : t('pos.lineDialog.serialLookup')}
-                      helperText={tracking === 'lot' ? t('pos.lineDialog.lotLookupHelp') : t('pos.lineDialog.serialLookupHelp')}
-                      onSelect={(item) => applyTrackedLookupToLine(editingItemIndex, item)}
-                    />
+                    {tracking === 'lot' ? (
+                      <InventoryProductLookupPicker
+                        warehouseId={warehouseId || undefined}
+                        disabled={!warehouseId || isSaving}
+                        label={t('pos.lineDialog.lotLookup')}
+                        helperText={t('pos.lineDialog.lotLookupHelp')}
+                        onSelect={(item) => applyTrackedLookupToLine(editingItemIndex, item)}
+                      />
+                    ) : (
+                      <PosSerialLineSelector
+                        index={editingItemIndex}
+                        line={editingLine}
+                        warehouseId={warehouseId}
+                        disabled={isSaving}
+                        control={control}
+                        errors={errors}
+                        getValues={getValues}
+                        setValue={setValue}
+                      />
+                    )}
                     {(tracking === 'lot' && editingLine?.lot_number) || (tracking === 'serial' && editingLine?.serial_number) ? (
                       <Alert severity="info">
                         {tracking === 'lot'

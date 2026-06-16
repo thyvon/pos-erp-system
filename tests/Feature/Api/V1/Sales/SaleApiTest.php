@@ -14,6 +14,7 @@ use App\Models\SalePayment;
 use App\Models\Setting;
 use App\Models\StockLevel;
 use App\Models\StockLot;
+use App\Models\StockSerial;
 use App\Models\SubUnit;
 use App\Models\Unit;
 use App\Models\User;
@@ -1227,6 +1228,97 @@ class SaleApiTest extends TestCase
                 'unit_cost' => 4,
             ]],
         ])->assertStatus(422);
+    }
+
+    public function test_confirming_sale_returns_clear_message_when_stock_is_not_available(): void
+    {
+        [$business, $branch, $warehouse, $product] = $this->saleEditFixtures(stockQuantity: 1);
+
+        $saleId = $this->postJson('/api/v1/sales', $this->salePayload($branch, $warehouse, $product, quantity: 2))
+            ->assertCreated()
+            ->json('data.id');
+
+        $this->postJson("/api/v1/sales/{$saleId}/confirm")
+            ->assertStatus(422)
+            ->assertJsonPath('message', "Not enough available stock for product {$product->name}.");
+
+        $this->assertDatabaseHas('sales', [
+            'id' => $saleId,
+            'business_id' => $business->id,
+            'status' => 'draft',
+        ]);
+
+        $this->assertDatabaseHas('stock_levels', [
+            'product_id' => $product->id,
+            'warehouse_id' => $warehouse->id,
+            'quantity' => '1.0000',
+            'reserved_quantity' => '0.0000',
+        ]);
+    }
+
+    public function test_sale_rejects_duplicate_serial_allocations_across_lines(): void
+    {
+        $business = Business::factory()->create();
+        $branch = Branch::factory()->create(['business_id' => $business->id]);
+        $warehouse = Warehouse::factory()->forBranch($branch)->create(['allow_negative_stock' => true]);
+        $unit = Unit::factory()->create(['business_id' => $business->id]);
+        $product = Product::factory()->create([
+            'business_id' => $business->id,
+            'unit_id' => $unit->id,
+            'track_inventory' => true,
+            'stock_tracking' => 'serial',
+            'selling_price' => 15,
+            'minimum_selling_price' => 10,
+            'purchase_price' => 4,
+        ]);
+        $serial = StockSerial::withoutGlobalScopes()->create([
+            'business_id' => $business->id,
+            'product_id' => $product->id,
+            'warehouse_id' => $warehouse->id,
+            'serial_number' => 'SER-SALE-DUP-001',
+            'status' => 'in_stock',
+            'unit_cost' => 4,
+        ]);
+        StockLevel::withoutGlobalScopes()->create([
+            'business_id' => $business->id,
+            'product_id' => $product->id,
+            'warehouse_id' => $warehouse->id,
+            'quantity' => 1,
+            'reserved_quantity' => 0,
+        ]);
+
+        $user = User::factory()->for($business)->create();
+        $user->assignRole('manager');
+        $user->branches()->attach($branch->id);
+
+        Sanctum::actingAs($user);
+
+        $this->postJson('/api/v1/sales', [
+            'branch_id' => $branch->id,
+            'warehouse_id' => $warehouse->id,
+            'type' => 'invoice',
+            'sale_date' => now()->toDateString(),
+            'items' => [
+                [
+                    'product_id' => $product->id,
+                    'quantity' => 1,
+                    'unit_price' => 15,
+                    'unit_cost' => 4,
+                    'serial_ids' => [$serial->id],
+                ],
+                [
+                    'product_id' => $product->id,
+                    'quantity' => 1,
+                    'unit_price' => 15,
+                    'unit_cost' => 4,
+                    'serial_ids' => [$serial->id],
+                ],
+            ],
+        ])->assertStatus(422)
+            ->assertJsonPath('message', 'A serial number can only be used once in the same sale.');
+
+        $this->assertDatabaseCount('sales', 0);
+        $this->assertSame('in_stock', $serial->refresh()->status);
     }
 
     protected function saleEditFixtures(float $stockQuantity = 6): array

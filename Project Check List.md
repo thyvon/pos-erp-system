@@ -88,6 +88,7 @@
 - [x] Sales create/edit form sections now constrain wide field and table overflow inside their own sections so the page-level scrollbar matches the purchase form behavior.
 - [x] Sales create/edit select menus now keep page scroll unlocked so the browser right scrollbar stays visible while dropdowns are open.
 - [x] Sales create/edit quantity inputs now warn and block saving when requested quantity exceeds available stock for warehouses that do not allow negative stock.
+- [x] Sale create/confirm stock handling now preserves clear API exception messages for unavailable stock, rejects duplicate or unavailable serial allocations before reservation, and blocks duplicate serial lines in Sale/POS forms; focused Sales API tests plus frontend type-check, lint, and build verified.
 - [x] Sales edit rows now receive current available stock from the sale item API resource, and the Unit column hides completely when no sale line has sub-units.
 - [x] Sales create/edit item table inputs now use default-size form controls while preserving the full product detail column; frontend type-check and lint verified.
 - [x] Sales create form now supports optional multi-line direct payments with live remaining and change-back calculation before completing and recording payment after save.
@@ -334,6 +335,7 @@
 - [x] POS checkout now hides sale/due date fields, moves price group and notes behind a More toggle, and keeps payment anchored at the bottom of the sell-line panel.
 - [x] POS checkout layout reviewed and cleaned for desktop and iPad: product gallery now uses a drawer until wide desktop, cart table is narrower for landscape iPad/desktop, and portrait tablet/mobile uses compact cart cards; frontend type-check, lint, and build verified.
 - [x] POS tracked item edit flow reviewed and cleaned: serial quantity locking is shared between cart layouts, tracking state is preserved when applying lot/serial lookup, and fast frontend check passes.
+- [x] POS product line edit dialog now uses the same direct in-stock serial autocomplete pattern as the Sale form for serial-tracked rows, making serial changes easier while preserving duplicate-serial protection.
 - [x] POS cash register selection now auto-uses an open register session for the selected branch and preserves the location/register after completing each new sale.
 - [x] Pending frosted shell/global overlay blur changes reviewed and removed to preserve the verified solid/translucent layout behavior; Next route types regenerated and frontend type-check, lint, and build verified.
 - [x] Agent rules now require small reusable shared components/hooks for repeated frontend patterns instead of duplicated page-level code.

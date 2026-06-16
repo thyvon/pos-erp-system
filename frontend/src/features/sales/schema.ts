@@ -107,6 +107,30 @@ export const saleFormSchema = z.object({
   path: ['due_date'],
   message: 'Due date must be on or after the sale date',
 }).superRefine((values, context) => {
+  const seenSerialIds = new Map<string, number>()
+
+  values.items.forEach((item, index) => {
+    if (!item.serial_id) return
+
+    const previousIndex = seenSerialIds.get(item.serial_id)
+
+    if (previousIndex !== undefined) {
+      context.addIssue({
+        code: 'custom',
+        path: ['items', index, 'serial_id'],
+        message: 'This serial number is already used on another sale line',
+      })
+      context.addIssue({
+        code: 'custom',
+        path: ['items', previousIndex, 'serial_id'],
+        message: 'This serial number is already used on another sale line',
+      })
+      return
+    }
+
+    seenSerialIds.set(item.serial_id, index)
+  })
+
   if (!values.direct_payment_enabled) return
 
   if (!values.direct_payments?.length) {
