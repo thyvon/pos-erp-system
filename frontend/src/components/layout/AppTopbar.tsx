@@ -36,9 +36,6 @@ export default function AppTopbar() {
   } = useUIStore()
 
   const layoutMetrics = getLayoutMetrics(layoutSize)
-  const isDenseLayout = layoutSize === 'compact' || layoutSize === 'small'
-  const actionButtonSize = isDenseLayout ? 36 : 40
-  const collapseButtonSize = isDenseLayout ? 32 : 36
   const drawerWidth = sidebarOpen ? layoutMetrics.sidebarWidth : layoutMetrics.sidebarCollapsedWidth
   const topbarColors = buildLayoutSurfaceColors(theme, topbarTheme)
 
@@ -66,12 +63,12 @@ export default function AppTopbar() {
           onClick={() => setSidebarOpen(!sidebarOpen)}
           sx={{
             position: 'absolute',
-            left: -(collapseButtonSize / 2),
+            left: 'calc(var(--app-small-control-height) / -2)',
             top: '50%',
             transform: 'translateY(-50%)',
             zIndex: theme.zIndex.drawer + 2,
-            width: collapseButtonSize,
-            height: collapseButtonSize,
+            width: 'var(--app-small-control-height)',
+            height: 'var(--app-small-control-height)',
             borderRadius: `${theme.shape.borderRadius}px`,
             color: topbarColors.icon,
             bgcolor: alpha(topbarColors.floatingBg, topbarColors.isDark ? 0.88 : 0.82),
@@ -118,8 +115,8 @@ export default function AppTopbar() {
           <IconButton
             onClick={toggleTheme}
             sx={{
-              width: actionButtonSize,
-              height: actionButtonSize,
+              width: 'var(--app-control-height)',
+              height: 'var(--app-control-height)',
               color: topbarColors.icon,
               bgcolor: topbarColors.buttonBg,
               '&:hover': { bgcolor: topbarColors.buttonHover },
@@ -131,8 +128,8 @@ export default function AppTopbar() {
           <IconButton
             onClick={toggleSettings}
             sx={{
-              width: actionButtonSize,
-              height: actionButtonSize,
+              width: 'var(--app-control-height)',
+              height: 'var(--app-control-height)',
               color: topbarColors.icon,
               bgcolor: topbarColors.buttonBg,
               '&:hover': { bgcolor: topbarColors.buttonHover },

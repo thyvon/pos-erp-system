@@ -26,6 +26,7 @@
 ## Stabilization
 
 - [x] Application root scrollbar is hidden at the theme level while preserving page scrolling and internal scroll areas.
+- [x] Dashboard top navbar action buttons now follow the dynamic layout setting control sizes.
 
 ## Product Import Feature
 

@@ -69,8 +69,8 @@ export default function AccountPopover({ avatarBorderColor, buttonSx }: AccountP
           src={user?.avatar_url || ''}
           alt={user ? `${user.first_name} ${user.last_name}` : 'User'}
           sx={{
-            width: 36,
-            height: 36,
+            width: 'calc(var(--app-control-height) - 8px)',
+            height: 'calc(var(--app-control-height) - 8px)',
             border: (theme) => `solid 2px ${avatarBorderColor ?? theme.palette.background.default}`,
           }}
         />
