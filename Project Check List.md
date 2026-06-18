@@ -25,6 +25,8 @@
 
 ## Stabilization
 
+- [x] Application root scrollbar is hidden at the theme level while preserving page scrolling and internal scroll areas.
+
 ## Product Import Feature
 
 - [x] Added `products.import` permission to master list + manager + inventory_manager roles.

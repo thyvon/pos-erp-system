@@ -338,8 +338,8 @@ export function createAppTheme(
             width: '100%',
             height: '100%',
             WebkitOverflowScrolling: 'touch',
-            scrollbarWidth: 'thin',
-            scrollbarColor: `${alpha(theme.palette.grey[500], 0.32)} transparent`,
+            scrollbarWidth: 'none',
+            msOverflowStyle: 'none',
           },
           '*::-webkit-scrollbar': {
             width: 6,
@@ -354,6 +354,9 @@ export function createAppTheme(
           },
           '*::-webkit-scrollbar-thumb:hover': {
             background: alpha(theme.palette.grey[500], 0.5),
+          },
+          'html::-webkit-scrollbar, body::-webkit-scrollbar': {
+            display: 'none',
           },
           body: {
             width: '100%',
