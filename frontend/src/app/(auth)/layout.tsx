@@ -51,7 +51,8 @@ function AuthBrand() {
 }
 
 export default function AuthLayout({ children }: { children: React.ReactNode }) {
-  const { isLoggedIn, hasHydrated } = useAuthStore()
+  const isLoggedIn = useAuthStore((state) => state.isLoggedIn)
+  const hasHydrated = useAuthStore((state) => state.hasHydrated)
   const router = useRouter()
   const { t } = useTranslation('auth')
 

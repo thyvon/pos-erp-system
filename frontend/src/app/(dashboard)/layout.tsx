@@ -10,7 +10,8 @@ import { AuthGate } from '@/components/auth/AuthGate'
 import { getLayoutMetrics } from '@/theme'
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const { contentStretch, layoutSize } = useUIStore()
+  const contentStretch = useUIStore((state) => state.contentStretch)
+  const layoutSize = useUIStore((state) => state.layoutSize)
   const theme = useTheme()
   const layoutMetrics = getLayoutMetrics(layoutSize)
 

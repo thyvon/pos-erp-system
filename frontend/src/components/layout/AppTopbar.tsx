@@ -25,15 +25,13 @@ import NotificationsPopover from './NotificationsPopover'
 
 export default function AppTopbar() {
   const theme = useTheme()
-  const {
-    sidebarOpen,
-    setSidebarOpen,
-    topbarTheme,
-    toggleMobileSidebar,
-    toggleSettings,
-    toggleTheme,
-    layoutSize,
-  } = useUIStore()
+  const sidebarOpen = useUIStore((state) => state.sidebarOpen)
+  const setSidebarOpen = useUIStore((state) => state.setSidebarOpen)
+  const topbarTheme = useUIStore((state) => state.topbarTheme)
+  const toggleMobileSidebar = useUIStore((state) => state.toggleMobileSidebar)
+  const toggleSettings = useUIStore((state) => state.toggleSettings)
+  const toggleTheme = useUIStore((state) => state.toggleTheme)
+  const layoutSize = useUIStore((state) => state.layoutSize)
 
   const layoutMetrics = getLayoutMetrics(layoutSize)
   const drawerWidth = sidebarOpen ? layoutMetrics.sidebarWidth : layoutMetrics.sidebarCollapsedWidth

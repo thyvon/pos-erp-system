@@ -10,7 +10,7 @@ import {
   Box,
 } from '@mui/material'
 import { useTranslation } from 'react-i18next'
-import { Html5Qrcode } from 'html5-qrcode'
+import type { Html5Qrcode } from 'html5-qrcode'
 import { Close } from '@/components/ui/icons'
 
 interface BarcodeScannerDialogProps {
@@ -34,24 +34,44 @@ export function BarcodeScannerDialog({ open, onClose, onScan }: BarcodeScannerDi
       return
     }
 
-    const scanner = new Html5Qrcode(CONTAINER_ID)
+    let cancelled = false
+    let scanner: Html5Qrcode | null = null
 
-    scanner.start(
-      { facingMode: 'environment' },
-      { fps: 10, qrbox: { width: 250, height: 150 } },
-      (decodedText) => {
-        scanner.stop().catch(() => {})
+    void (async () => {
+      try {
+        const { Html5Qrcode } = await import('html5-qrcode')
+
+        if (cancelled) return
+
+        scanner = new Html5Qrcode(CONTAINER_ID)
+
+        await scanner.start(
+          { facingMode: 'environment' },
+          { fps: 10, qrbox: { width: 250, height: 150 } },
+          (decodedText: string) => {
+            scanner?.stop().catch(() => {})
+            scannerRef.current = null
+            onScan(decodedText)
+            onClose()
+          },
+          () => {},
+        )
+
+        if (cancelled) {
+          scanner.stop().catch(() => {})
+          return
+        }
+
+        scannerRef.current = scanner
+      } catch {
         scannerRef.current = null
-        onScan(decodedText)
-        onClose()
-      },
-      () => {},
-    ).then(() => {
-      scannerRef.current = scanner
-    }).catch(() => {})
+      }
+    })()
 
     return () => {
-      scanner.stop().catch(() => {})
+      cancelled = true
+      const activeScanner = scannerRef.current ?? scanner
+      activeScanner?.stop().catch(() => {})
       scannerRef.current = null
     }
   }, [open, onScan, onClose])

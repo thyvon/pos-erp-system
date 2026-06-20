@@ -5,7 +5,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { useRouter } from 'next/navigation'
 
 export default function NoBranchAccessPage() {
-  const { logout } = useAuthStore()
+  const logout = useAuthStore((state) => state.logout)
   const router = useRouter()
 
   const handleLogout = () => {

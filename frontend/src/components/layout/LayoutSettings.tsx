@@ -204,46 +204,50 @@ function SurfaceThemePicker({
 export default function LayoutSettings() {
   const { t } = useTranslation('common')
   const theme = useTheme()
-  const {
-    settingsOpen,
-    setSettingsOpen,
-    themeMode,
-    setTheme,
-    language,
-    setLanguage,
-    fontPreset,
-    setFontPreset,
-    colorPreset,
-    setColorPreset,
-    layoutSize,
-    setLayoutSize,
-    borderRadiusLevel,
-    setBorderRadiusLevel,
-    sidebarTheme,
-    setSidebarTheme,
-    topbarTheme,
-    setTopbarTheme,
-    sidebarOpen,
-    setSidebarOpen,
-    contentStretch,
-    setContentStretch,
-    resetLayoutSettings,
-  } = useUIStore()
+  const settingsOpen = useUIStore((state) => state.settingsOpen)
+  const setSettingsOpen = useUIStore((state) => state.setSettingsOpen)
+  const themeMode = useUIStore((state) => state.themeMode)
+  const setTheme = useUIStore((state) => state.setTheme)
+  const language = useUIStore((state) => state.language)
+  const setLanguage = useUIStore((state) => state.setLanguage)
+  const fontPreset = useUIStore((state) => state.fontPreset)
+  const setFontPreset = useUIStore((state) => state.setFontPreset)
+  const colorPreset = useUIStore((state) => state.colorPreset)
+  const setColorPreset = useUIStore((state) => state.setColorPreset)
+  const layoutSize = useUIStore((state) => state.layoutSize)
+  const setLayoutSize = useUIStore((state) => state.setLayoutSize)
+  const borderRadiusLevel = useUIStore((state) => state.borderRadiusLevel)
+  const setBorderRadiusLevel = useUIStore((state) => state.setBorderRadiusLevel)
+  const sidebarTheme = useUIStore((state) => state.sidebarTheme)
+  const setSidebarTheme = useUIStore((state) => state.setSidebarTheme)
+  const topbarTheme = useUIStore((state) => state.topbarTheme)
+  const setTopbarTheme = useUIStore((state) => state.setTopbarTheme)
+  const sidebarOpen = useUIStore((state) => state.sidebarOpen)
+  const setSidebarOpen = useUIStore((state) => state.setSidebarOpen)
+  const contentStretch = useUIStore((state) => state.contentStretch)
+  const setContentStretch = useUIStore((state) => state.setContentStretch)
+  const resetLayoutSettings = useUIStore((state) => state.resetLayoutSettings)
 
   return (
     <Drawer
       anchor="right"
       open={settingsOpen}
       onClose={() => setSettingsOpen(false)}
+      ModalProps={{
+        keepMounted: true,
+        disableScrollLock: true,
+      }}
+      transitionDuration={{
+        enter: theme.transitions.duration.shorter,
+        exit: theme.transitions.duration.shortest,
+      }}
       sx={{
         zIndex: (theme) => theme.zIndex.modal + 1,
       }}
       slotProps={{
         backdrop: {
           sx: {
-            bgcolor: alpha(theme.palette.common.black, theme.palette.mode === 'dark' ? 0.4 : 0.2),
-            backdropFilter: 'blur(4px)',
-            WebkitBackdropFilter: 'blur(4px)',
+            bgcolor: alpha(theme.palette.common.black, theme.palette.mode === 'dark' ? 0.32 : 0.14),
           },
         },
         paper: {
@@ -251,12 +255,10 @@ export default function LayoutSettings() {
             width: { xs: '100%', sm: 360 },
             maxWidth: '100vw',
             height: '100dvh',
-            backgroundColor: alpha(theme.palette.background.paper, theme.palette.mode === 'dark' ? 0.9 : 0.88),
+            backgroundColor: alpha(theme.palette.background.paper, theme.palette.mode === 'dark' ? 0.96 : 0.98),
             backgroundImage: 'none',
             borderLeft: `1px solid ${alpha(theme.palette.grey[500], theme.palette.mode === 'dark' ? 0.24 : 0.16)}`,
             boxShadow: `-24px 0 48px -20px ${alpha(theme.palette.common.black, theme.palette.mode === 'dark' ? 0.48 : 0.24)}`,
-            backdropFilter: 'blur(20px)',
-            WebkitBackdropFilter: 'blur(20px)',
             zIndex: (theme) => theme.zIndex.modal + 1,
           },
         },
@@ -271,9 +273,7 @@ export default function LayoutSettings() {
             px: 2,
             py: 1.5,
             flexShrink: 0,
-            backgroundColor: alpha(theme.palette.background.paper, theme.palette.mode === 'dark' ? 0.48 : 0.42),
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
+            backgroundColor: alpha(theme.palette.background.paper, theme.palette.mode === 'dark' ? 0.86 : 0.92),
           }}
         >
           <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', minWidth: 0 }}>
@@ -566,9 +566,7 @@ export default function LayoutSettings() {
           sx={{
             flexShrink: 0,
             p: 2,
-            backgroundColor: alpha(theme.palette.background.paper, theme.palette.mode === 'dark' ? 0.48 : 0.42),
-            backdropFilter: 'blur(12px)',
-            WebkitBackdropFilter: 'blur(12px)',
+            backgroundColor: alpha(theme.palette.background.paper, theme.palette.mode === 'dark' ? 0.86 : 0.92),
           }}
         >
           <Button

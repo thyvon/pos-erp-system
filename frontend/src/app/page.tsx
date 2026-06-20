@@ -6,7 +6,8 @@ import { useAuthStore } from '@/stores/authStore'
 import PageLoader from '@/components/ui/PageLoader'
 
 export default function HomePage() {
-  const { isLoggedIn, isLoading } = useAuthStore()
+  const isLoggedIn = useAuthStore((state) => state.isLoggedIn)
+  const isLoading = useAuthStore((state) => state.isLoading)
   const router = useRouter()
 
   useEffect(() => {
