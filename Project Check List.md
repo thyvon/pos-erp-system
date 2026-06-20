@@ -25,11 +25,13 @@
 
 ## Stabilization
 
+- [x] Fixed the warehouse product settings migration to use a short explicit preferred-supplier index name compatible with MySQL identifier limits.
 - [x] Application root scrollbar is hidden at the theme level while preserving page scrolling and internal scroll areas.
 - [x] Dashboard top navbar action buttons now follow the dynamic layout setting control sizes.
 - [x] Barcode scanner type declarations and callback typing restored frontend type-check, and `html5-qrcode` is installed locally.
 - [x] Layout settings drawer open performance improved by keeping it mounted, reducing expensive blur effects, and narrowing shell UI store subscriptions.
 - [x] Full UI performance pass narrowed remaining shell auth subscriptions and lazy-loaded the barcode scanner library until scan dialog open.
+- [x] Deep UI performance pass lazy-loads React Query Devtools in development only and routes remaining direct MUI icon imports through the local icon module.
 
 ## Product Import Feature
 

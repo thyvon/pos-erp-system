@@ -29,7 +29,7 @@ return new class extends Migration
 
             $table->index(['business_id', 'warehouse_id', 'product_id'], 'warehouse_product_settings_lookup_idx');
             $table->index(['business_id', 'rack_location_id']);
-            $table->index(['business_id', 'preferred_supplier_id']);
+            $table->index(['business_id', 'preferred_supplier_id'], 'warehouse_product_settings_supplier_idx');
         });
     }
 

@@ -13,8 +13,7 @@ import {
   Stack,
   Typography,
 } from '@mui/material'
-import { FileDownloadOutlined } from '@mui/icons-material'
-import { UploadOutlined } from '@/components/ui/icons'
+import { FileDownloadOutlined, UploadOutlined } from '@/components/ui/icons'
 import { useTranslation } from 'react-i18next'
 import { toAppApiError } from '@/api/errors'
 import { usersApi } from '../api'

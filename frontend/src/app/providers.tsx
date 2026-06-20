@@ -1,17 +1,22 @@
 'use client'
 
 import { useEffect, useMemo } from 'react'
+import dynamic from 'next/dynamic'
 import { ThemeProvider, CssBaseline, GlobalStyles, alpha } from '@mui/material'
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider'
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs'
 import { QueryClientProvider } from '@tanstack/react-query'
-import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { SnackbarProvider } from 'notistack'
 import { createAppTheme } from '@/theme'
 import { useUIStore } from '@/stores/uiStore'
 import i18n, { I18nProvider } from '@/i18n'
 import { createQueryClient } from '@/api/queryClient'
 import { NavigationProgress } from '@/components/navigation/NavigationProgress'
+
+const ReactQueryDevtools = dynamic(
+  () => import('@tanstack/react-query-devtools').then((mod) => mod.ReactQueryDevtools),
+  { ssr: false }
+)
 
 export function Providers({ children }: { children: React.ReactNode }) {
   const hasHydrated = useUIStore((s) => s.hasHydrated)
@@ -100,7 +105,9 @@ export function Providers({ children }: { children: React.ReactNode }) {
             </LocalizationProvider>
           </SnackbarProvider>
         </ThemeProvider>
-        <ReactQueryDevtools initialIsOpen={false} />
+        {process.env.NODE_ENV === 'development' && (
+          <ReactQueryDevtools initialIsOpen={false} />
+        )}
       </QueryClientProvider>
     </I18nProvider>
   )

@@ -26,8 +26,7 @@ import {
   Tooltip,
   Typography,
 } from '@mui/material'
-import { FileDownloadOutlined } from '@mui/icons-material'
-import { Add, DeleteOutlined, Inventory2Outlined, UploadOutlined } from '@/components/ui/icons'
+import { Add, DeleteOutlined, FileDownloadOutlined, Inventory2Outlined, UploadOutlined } from '@/components/ui/icons'
 import PageHeader from '@/components/common/PageHeader'
 import PageToolbar from '@/components/common/PageToolbar'
 import EntityTable, { type EntityTableColumn } from '@/components/common/EntityTable'

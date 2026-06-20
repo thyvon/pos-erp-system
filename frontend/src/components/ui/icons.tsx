@@ -8,6 +8,7 @@ import type { SxProps, Theme } from '@mui/material/styles'
 import type { IconWeight } from '@solar-icons/react'
 import {
   AddCircle,
+  ArchiveDown,
   DangerCircle,
   AltArrowDown,
   AltArrowLeft,
@@ -172,6 +173,7 @@ export const EditOutlined = createIcon(Pen2)
 export const ExpandLess = createIcon(AltArrowUp)
 export const ExpandMore = createIcon(AltArrowDown)
 export const FactCheckOutlined = createIcon(CheckRead)
+export const FileDownloadOutlined = createIcon(ArchiveDown)
 export const LanguageOutlined = createIcon(Global)
 export const GroupsOutlined = createIcon(UsersGroupRounded)
 export const HistoryOutlined = createIcon(History)
