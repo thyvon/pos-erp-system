@@ -29,5 +29,11 @@ RUN sed -i 's/^pm.max_children = 5/pm.max_children = 25/' /usr/local/etc/php-fpm
     sed -i 's/^;request_terminate_timeout = 0/request_terminate_timeout = 30s/' /usr/local/etc/php-fpm.d/www.conf && \
     sed -i 's/^[[:space:]]*worker_connections 768/worker_connections 1024/' /etc/nginx/nginx.conf
 
+RUN { \
+    echo 'opcache.enable_cli=1'; \
+    echo 'opcache.file_cache=/tmp/opcache-cli'; \
+    } > /usr/local/etc/php/conf.d/opcache-cli.ini && \
+    mkdir -p /tmp/opcache-cli
+
 EXPOSE 80
 CMD ["sh", "-c", "php-fpm -D && nginx -g 'daemon off;'"]
