@@ -28,9 +28,9 @@ class PurchaseRepository extends BaseRepository
 
                     $query->where(function ($inner) use ($search): void {
                         $inner
-                            ->where('purchase_number', 'like', "%{$search}%")
-                            ->orWhere('supplier_invoice_no', 'like', "%{$search}%")
-                            ->orWhereHas('supplier', fn ($supplierQuery) => $supplierQuery->where('name', 'like', "%{$search}%"));
+                            ->whereLike('purchase_number', "%{$search}%")
+                            ->orWhereLike('supplier_invoice_no', "%{$search}%")
+                            ->orWhereHas('supplier', fn ($supplierQuery) => $supplierQuery->whereLike('name', "%{$search}%"));
                     });
                 }
             )

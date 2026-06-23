@@ -28,8 +28,8 @@ class StockCountRepository extends BaseRepository
 
                     $query->where(function ($inner) use ($search): void {
                         $inner
-                            ->where('reference_no', 'like', "%{$search}%")
-                            ->orWhere('notes', 'like', "%{$search}%");
+                            ->whereLike('reference_no', "%{$search}%")
+                            ->orWhereLike('notes', "%{$search}%");
                     });
                 }
             )
@@ -75,16 +75,16 @@ class StockCountRepository extends BaseRepository
                 $builder
                     ->whereHas('product', function ($productQuery) use ($search): void {
                         $productQuery
-                            ->where('name', 'like', "%{$search}%")
-                            ->orWhere('sku', 'like', "%{$search}%");
+                            ->whereLike('name', "%{$search}%")
+                            ->orWhereLike('sku', "%{$search}%");
                     })
                     ->orWhereHas('variation', function ($variationQuery) use ($search): void {
                         $variationQuery
-                            ->where('name', 'like', "%{$search}%")
-                            ->orWhere('sku', 'like', "%{$search}%");
+                            ->whereLike('name', "%{$search}%")
+                            ->orWhereLike('sku', "%{$search}%");
                     })
                     ->orWhereHas('lot', function ($lotQuery) use ($search): void {
-                        $lotQuery->where('lot_number', 'like', "%{$search}%");
+                        $lotQuery->whereLike('lot_number', "%{$search}%");
                     });
             });
         }
@@ -107,21 +107,21 @@ class StockCountRepository extends BaseRepository
                 $builder
                     ->whereHas('product', function ($productQuery) use ($search): void {
                         $productQuery
-                            ->where('name', 'like', "%{$search}%")
-                            ->orWhere('sku', 'like', "%{$search}%");
+                            ->whereLike('name', "%{$search}%")
+                            ->orWhereLike('sku', "%{$search}%");
                     })
                     ->orWhereHas('variation', function ($variationQuery) use ($search): void {
                         $variationQuery
-                            ->where('name', 'like', "%{$search}%")
-                            ->orWhere('sku', 'like', "%{$search}%");
+                            ->whereLike('name', "%{$search}%")
+                            ->orWhereLike('sku', "%{$search}%");
                     })
                     ->orWhereHas('stockCountItem.lot', function ($lotQuery) use ($search): void {
-                        $lotQuery->where('lot_number', 'like', "%{$search}%");
+                        $lotQuery->whereLike('lot_number', "%{$search}%");
                     })
                     ->orWhereHas('creator', function ($creatorQuery) use ($search): void {
                         $creatorQuery
-                            ->where('first_name', 'like', "%{$search}%")
-                            ->orWhere('last_name', 'like', "%{$search}%");
+                            ->whereLike('first_name', "%{$search}%")
+                            ->orWhereLike('last_name', "%{$search}%");
                     });
             });
         }

@@ -12,15 +12,14 @@ use App\Models\StockSerial;
 use App\Models\User;
 use App\Models\Warehouse;
 use App\Support\BranchAccess;
+use App\Support\Database\PostgresAdvisoryLock;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class StockOpeningBalanceService
 {
-    public function __construct(protected StockMovementService $stockMovementService)
-    {
-    }
+    public function __construct(protected StockMovementService $stockMovementService) {}
 
     public function paginate(array $filters, ?User $user = null): LengthAwarePaginator
     {
@@ -33,8 +32,8 @@ class StockOpeningBalanceService
 
                 $query->where(function ($inner) use ($search): void {
                     $inner
-                        ->where('reference_no', 'like', "%{$search}%")
-                        ->orWhere('notes', 'like', "%{$search}%");
+                        ->whereLike('reference_no', "%{$search}%")
+                        ->orWhereLike('notes', "%{$search}%");
                 });
             })
             ->when(
@@ -325,9 +324,11 @@ class StockOpeningBalanceService
 
     protected function generateReferenceNumber(): string
     {
+        PostgresAdvisoryLock::acquire('stock-opening-number:'.now()->format('Y'));
+
         $prefix = 'OPEN-'.now()->format('Y').'-';
         $lastReference = StockOpeningBalance::withoutGlobalScopes()
-            ->where('reference_no', 'like', $prefix.'%')
+            ->whereLike('reference_no', $prefix.'%')
             ->orderByDesc('reference_no')
             ->value('reference_no');
 

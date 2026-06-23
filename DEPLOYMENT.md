@@ -13,7 +13,7 @@ Nginx Proxy Manager
         ↓
 Docker network
         ↓
-Next.js frontend + Laravel API + MariaDB + Redis
+Next.js frontend + Laravel API + PostgreSQL + Redis
 ```
 
 ## Services
@@ -22,7 +22,7 @@ Next.js frontend + Laravel API + MariaDB + Redis
 |---|---|
 | Laravel API | Backend business logic, authentication, modules, permissions |
 | Next.js frontend | Modern ERP user interface |
-| MariaDB | Main relational database |
+| PostgreSQL 16 | Main relational database |
 | Redis | Cache, queues, and sessions when enabled |
 | Nginx Proxy Manager | Reverse proxy and SSL routing |
 | Cloudflare | DNS, SSL edge, WAF, tunnel, and domain protection |
@@ -42,7 +42,13 @@ Backend important values:
 APP_ENV=production
 APP_DEBUG=false
 APP_URL=https://api.example.com
-DB_CONNECTION=mysql
+DB_CONNECTION=pgsql
+DB_HOST=postgres
+DB_PORT=5432
+DB_DATABASE=erp_db
+DB_USERNAME=erp_user
+DB_PASSWORD=use-a-strong-secret
+DB_SSLMODE=require
 CACHE_STORE=redis
 QUEUE_CONNECTION=redis
 SESSION_DRIVER=redis
@@ -56,6 +62,8 @@ NEXT_PUBLIC_API_BASE_URL=https://api.example.com/api
 ```
 
 ## Backend Setup
+
+The project Docker image includes PHP's `pdo_pgsql` extension. Non-Docker PHP installations must enable it before running Artisan.
 
 ```bash
 composer install --no-dev --optimize-autoloader
@@ -111,7 +119,7 @@ Enable:
 - [ ] `APP_DEBUG=false`
 - [ ] Strong database password
 - [ ] Redis not exposed publicly
-- [ ] MariaDB not exposed publicly
+- [ ] PostgreSQL not exposed publicly
 - [ ] NPM admin not publicly exposed
 - [ ] Cloudflare proxy/tunnel enabled
 - [ ] Laravel scheduler configured
@@ -141,16 +149,16 @@ Add cron on the host or a scheduler container:
 
 Minimum production backup policy:
 
-- Daily MariaDB dump
+- Daily PostgreSQL custom-format backup
 - Daily uploaded files backup
 - Keep 7 daily backups
 - Keep 4 weekly backups
-- Test restore monthly
+- Test restore monthly with `pg_restore` into an isolated database
 
 Example database dump:
 
 ```bash
-mysqldump -u USER -p DATABASE_NAME > backup.sql
+pg_dump --format=custom --file=erp_db.dump --dbname=postgresql://USER:PASSWORD@HOST:5432/DATABASE_NAME
 ```
 
 ## Deployment Verification

@@ -21,7 +21,7 @@ class FiscalYearRepository extends BaseRepository
             ->withCount('journals')
             ->when(
                 filled($filters['search'] ?? null),
-                fn ($query) => $query->where('name', 'like', '%'.trim((string) $filters['search']).'%')
+                fn ($query) => $query->whereLike('name', '%'.trim((string) $filters['search']).'%')
             )
             ->when(
                 filled($filters['status'] ?? null),

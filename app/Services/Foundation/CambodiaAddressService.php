@@ -168,11 +168,11 @@ class CambodiaAddressService
         }
 
         if (filled($filters['name_en'] ?? null)) {
-            $query->where('name_en', 'like', '%'.(string) $filters['name_en'].'%');
+            $query->whereLike('name_en', '%'.(string) $filters['name_en'].'%');
         }
 
         if (filled($filters['name_km'] ?? null)) {
-            $query->where('name_km', 'like', '%'.(string) $filters['name_km'].'%');
+            $query->whereLike('name_km', '%'.(string) $filters['name_km'].'%');
         }
 
         return $query

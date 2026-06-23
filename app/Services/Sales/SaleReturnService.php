@@ -14,6 +14,7 @@ use App\Repositories\Sales\SaleReturnRepository;
 use App\Services\Accounting\AccountingService;
 use App\Services\AuditService;
 use App\Services\Inventory\StockMovementService;
+use App\Support\Database\PostgresAdvisoryLock;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -25,8 +26,7 @@ class SaleReturnService
         protected StockMovementService $stockMovementService,
         protected AccountingService $accountingService,
         protected AuditService $auditService,
-    ) {
-    }
+    ) {}
 
     public function paginate(array $filters): LengthAwarePaginator
     {
@@ -290,8 +290,7 @@ class SaleReturnService
         SaleReturn $saleReturn,
         ?PaymentAccount $paymentAccount,
         ?User $actor
-    ): void
-    {
+    ): void {
         $revenueAccount = $this->resolveAccountByCode($businessId, '4100');
         $inventoryAccount = $this->resolveAccountByCode($businessId, '1300');
         $cogsAccount = $this->resolveAccountByCode($businessId, '5100');
@@ -473,11 +472,13 @@ class SaleReturnService
 
     protected function generateReturnNumber(string $businessId): string
     {
+        PostgresAdvisoryLock::acquire('sale-return-number:'.$businessId.':'.now()->format('Y'));
+
         $prefix = 'SRT-'.now()->format('Y').'-';
 
         $lastNumber = SaleReturn::withoutGlobalScopes()
             ->where('business_id', $businessId)
-            ->where('return_number', 'like', $prefix.'%')
+            ->whereLike('return_number', $prefix.'%')
             ->lockForUpdate()
             ->orderByDesc('return_number')
             ->value('return_number');

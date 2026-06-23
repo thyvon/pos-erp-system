@@ -3,6 +3,8 @@
 namespace App\Services\Purchases;
 
 use App\Exceptions\Domain\DomainException;
+use App\Models\ChartOfAccount;
+use App\Models\Journal;
 use App\Models\Purchase;
 use App\Models\PurchaseItem;
 use App\Models\PurchaseReturn;
@@ -12,7 +14,9 @@ use App\Models\StockSerial;
 use App\Models\SubUnit;
 use App\Models\User;
 use App\Repositories\Purchases\PurchaseReturnRepository;
+use App\Services\Accounting\AccountingService;
 use App\Services\Inventory\StockMovementService;
+use App\Support\Database\PostgresAdvisoryLock;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -22,9 +26,8 @@ class PurchaseReturnService
     public function __construct(
         protected PurchaseReturnRepository $purchaseReturns,
         protected StockMovementService $stockMovementService,
-        protected \App\Services\Accounting\AccountingService $accountingService,
-    ) {
-    }
+        protected AccountingService $accountingService,
+    ) {}
 
     public function paginate(array $filters, ?User $user = null): LengthAwarePaginator
     {
@@ -82,7 +85,7 @@ class PurchaseReturnService
         });
     }
 
-    protected function postReturnJournal(string $businessId, PurchaseReturn $purchaseReturn, ?User $actor = null): \App\Models\Journal
+    protected function postReturnJournal(string $businessId, PurchaseReturn $purchaseReturn, ?User $actor = null): Journal
     {
         $totalReturnAmount = round((float) $purchaseReturn->total_amount, 2);
 
@@ -116,9 +119,9 @@ class PurchaseReturnService
         ], $actor);
     }
 
-    protected function resolveAccountByCode(string $businessId, string $code): \App\Models\ChartOfAccount
+    protected function resolveAccountByCode(string $businessId, string $code): ChartOfAccount
     {
-        $account = \App\Models\ChartOfAccount::withoutGlobalScopes()
+        $account = ChartOfAccount::withoutGlobalScopes()
             ->where('business_id', $businessId)
             ->where('code', $code)
             ->first();
@@ -298,11 +301,13 @@ class PurchaseReturnService
 
     protected function generateReturnNumber(string $businessId): string
     {
+        PostgresAdvisoryLock::acquire('purchase-return-number:'.$businessId.':'.now()->format('Y'));
+
         $prefix = 'PRT-'.now()->format('Y').'-';
 
         $lastNumber = PurchaseReturn::withoutGlobalScopes()
             ->where('business_id', $businessId)
-            ->where('return_number', 'like', $prefix.'%')
+            ->whereLike('return_number', $prefix.'%')
             ->lockForUpdate()
             ->orderByDesc('return_number')
             ->value('return_number');

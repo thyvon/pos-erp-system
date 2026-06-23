@@ -17,9 +17,6 @@ return new class extends Migration
             $table->primary(['user_id', 'warehouse_id']);
         });
 
-        $driver = DB::connection()->getDriverName();
-        $now = $driver === 'sqlite' ? "datetime('now')" : 'NOW()';
-
         DB::table('user_warehouse')->insertUsing(
             ['user_id', 'warehouse_id', 'created_at', 'updated_at'],
             DB::table('users')
@@ -28,7 +25,7 @@ return new class extends Migration
                     $join->on('warehouses.business_id', '=', 'users.business_id')
                         ->whereColumn('warehouses.branch_id', '=', 'branch_user.branch_id');
                 })
-                ->select('users.id', 'warehouses.id', DB::raw($now), DB::raw($now))
+                ->select('users.id', 'warehouses.id', DB::raw('CURRENT_TIMESTAMP'), DB::raw('CURRENT_TIMESTAMP'))
                 ->distinct()
         );
     }

@@ -34,9 +34,9 @@ class PaymentAccountRepository extends BaseRepository
 
                     $query->where(function ($inner) use ($search): void {
                         $inner
-                            ->where('name', 'like', "%{$search}%")
-                            ->orWhere('account_number', 'like', "%{$search}%")
-                            ->orWhere('bank_name', 'like', "%{$search}%");
+                            ->whereLike('name', "%{$search}%")
+                            ->orWhereLike('account_number', "%{$search}%")
+                            ->orWhereLike('bank_name', "%{$search}%");
                     });
                 }
             )
@@ -57,7 +57,7 @@ class PaymentAccountRepository extends BaseRepository
     {
         $totals = $this->query()
             ->selectRaw('COUNT(*) as total_accounts')
-            ->selectRaw('SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as active_accounts')
+            ->selectRaw('SUM(CASE WHEN is_active IS TRUE THEN 1 ELSE 0 END) as active_accounts')
             ->selectRaw("SUM(CASE WHEN account_type = 'bank' THEN 1 ELSE 0 END) as bank_accounts")
             ->selectRaw('SUM(CASE WHEN coa_account_id IS NOT NULL THEN 1 ELSE 0 END) as linked_accounts')
             ->first();

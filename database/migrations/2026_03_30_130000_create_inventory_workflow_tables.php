@@ -45,7 +45,7 @@ return new class extends Migration
             $table->foreignUuid('from_warehouse_id')->constrained('warehouses')->cascadeOnDelete();
             $table->foreignUuid('to_warehouse_id')->constrained('warehouses')->cascadeOnDelete();
             $table->string('reference_no', 30)->unique();
-            $table->enum('status', ['completed'])->default('completed');
+            $table->enum('status', ['completed', 'pending', 'in_transit', 'received'])->default('pending');
             $table->date('date');
             $table->text('notes')->nullable();
             $table->foreignUuid('created_by')->nullable()->constrained('users')->nullOnDelete();

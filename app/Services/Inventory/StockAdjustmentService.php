@@ -9,6 +9,7 @@ use App\Models\User;
 use App\Models\Warehouse;
 use App\Repositories\Inventory\StockAdjustmentRepository;
 use App\Services\Foundation\EditWindowService;
+use App\Support\Database\PostgresAdvisoryLock;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
@@ -18,8 +19,7 @@ class StockAdjustmentService
         protected StockAdjustmentRepository $adjustments,
         protected EditWindowService $editWindow,
         protected StockMovementService $stockMovementService,
-    ) {
-    }
+    ) {}
 
     public function paginate(array $filters, ?User $user = null): LengthAwarePaginator
     {
@@ -204,9 +204,11 @@ class StockAdjustmentService
 
     protected function generateReferenceNumber(): string
     {
+        PostgresAdvisoryLock::acquire('stock-adjustment-number:'.now()->format('Y'));
+
         $prefix = 'ADJ-'.now()->format('Y').'-';
         $lastReference = StockAdjustment::withoutGlobalScopes()
-            ->where('reference_no', 'like', $prefix.'%')
+            ->whereLike('reference_no', $prefix.'%')
             ->orderByDesc('reference_no')
             ->value('reference_no');
 

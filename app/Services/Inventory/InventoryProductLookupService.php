@@ -79,9 +79,9 @@ class InventoryProductLookupService
             ->where('type', '!=', 'variable')
             ->where(function ($query) use ($term): void {
                 $query
-                    ->where('sku', 'like', '%'.$term.'%')
-                    ->orWhere('name', 'like', '%'.$term.'%')
-                    ->orWhere('description', 'like', '%'.$term.'%');
+                    ->whereLike('sku', '%'.$term.'%')
+                    ->orWhereLike('name', '%'.$term.'%')
+                    ->orWhereLike('description', '%'.$term.'%');
             })
             ->orderBy('name')
             ->limit(8)
@@ -161,8 +161,8 @@ class InventoryProductLookupService
                     ->where('is_active', true)
                     ->where(function ($nested) use ($term): void {
                         $nested
-                            ->where('name', 'like', '%'.$term.'%')
-                            ->orWhere('description', 'like', '%'.$term.'%');
+                            ->whereLike('name', '%'.$term.'%')
+                            ->orWhereLike('description', '%'.$term.'%');
                     });
             })
             ->orWhere(function ($query) use ($businessId, $term): void {
@@ -170,8 +170,8 @@ class InventoryProductLookupService
                     ->where('business_id', $businessId)
                     ->where(function ($nested) use ($term): void {
                         $nested
-                            ->where('sku', 'like', '%'.$term.'%')
-                            ->orWhere('name', 'like', '%'.$term.'%');
+                            ->whereLike('sku', '%'.$term.'%')
+                            ->orWhereLike('name', '%'.$term.'%');
                     })
                     ->whereHas('product', function ($productQuery) use ($businessId): void {
                         $productQuery
@@ -250,7 +250,7 @@ class InventoryProductLookupService
             ->where('business_id', $businessId)
             ->where('warehouse_id', $warehouseId)
             ->where('qty_on_hand', '>', 0)
-            ->where('lot_number', 'like', '%'.$term.'%')
+            ->whereLike('lot_number', '%'.$term.'%')
             ->with([
                 'product:id,name,sku,unit_id,sub_unit_id,selling_price,sub_unit_selling_price,minimum_selling_price,stock_tracking',
                 'product.unit:id,name,short_name',
@@ -335,7 +335,7 @@ class InventoryProductLookupService
             ->where('business_id', $businessId)
             ->where('warehouse_id', $warehouseId)
             ->whereNotIn('status', ['sold', 'written_off'])
-            ->where('serial_number', 'like', '%'.$term.'%')
+            ->whereLike('serial_number', '%'.$term.'%')
             ->with([
                 'product:id,name,sku,unit_id,sub_unit_id,selling_price,sub_unit_selling_price,minimum_selling_price,stock_tracking',
                 'product.unit:id,name,short_name',

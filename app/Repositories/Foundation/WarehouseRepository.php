@@ -2,8 +2,8 @@
 
 namespace App\Repositories\Foundation;
 
-use App\Models\Warehouse;
 use App\Models\User;
+use App\Models\Warehouse;
 use App\Repositories\BaseRepository;
 use App\Support\BranchAccess;
 use App\Support\WarehouseAccess;
@@ -30,8 +30,8 @@ class WarehouseRepository extends BaseRepository
 
                     $query->where(function ($warehouseQuery) use ($search): void {
                         $warehouseQuery
-                            ->where('name', 'like', "%{$search}%")
-                            ->orWhere('code', 'like', "%{$search}%");
+                            ->whereLike('name', "%{$search}%")
+                            ->orWhereLike('code', "%{$search}%");
                     });
                 }
             )

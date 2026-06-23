@@ -30,8 +30,8 @@ class UnitRepository extends BaseRepository
 
                     $query->where(function ($builder) use ($search): void {
                         $builder
-                            ->where('name', 'like', "%{$search}%")
-                            ->orWhere('short_name', 'like', "%{$search}%");
+                            ->whereLike('name', "%{$search}%")
+                            ->orWhereLike('short_name', "%{$search}%");
                     });
                 }
             )
@@ -50,6 +50,6 @@ class UnitRepository extends BaseRepository
 
     public function newSubUnitQuery()
     {
-        return (new SubUnit())->newQuery();
+        return (new SubUnit)->newQuery();
     }
 }

@@ -28,8 +28,8 @@ class StockTransferRepository extends BaseRepository
 
                     $query->where(function ($inner) use ($search): void {
                         $inner
-                            ->where('reference_no', 'like', "%{$search}%")
-                            ->orWhere('notes', 'like', "%{$search}%");
+                            ->whereLike('reference_no', "%{$search}%")
+                            ->orWhereLike('notes', "%{$search}%");
                     });
                 }
             )

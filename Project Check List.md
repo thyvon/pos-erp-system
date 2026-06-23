@@ -1,5 +1,21 @@
 # Project Check List
 
+## PostgreSQL Baseline
+
+- [x] Replaced the MariaDB and phpMyAdmin development services with PostgreSQL 16 and pgAdmin.
+- [x] Added an isolated PostgreSQL test service and changed PHPUnit from SQLite to PostgreSQL.
+- [x] Replaced the PHP MySQL PDO extension with `pdo_pgsql` and made PostgreSQL the only configured relational connection.
+- [x] Documented the local XAMPP `pdo_pgsql` requirement; the project Docker image installs it automatically.
+- [x] Removed MySQL-specific SQL mode, FULLTEXT, enum-alteration, and barcode-index migration logic.
+- [x] Converted user-facing searches to Laravel `whereLike` so PostgreSQL uses case-insensitive `ILIKE` semantics.
+- [x] Added PostgreSQL trigram indexes for high-use search surfaces and case-insensitive unique indexes for business identifiers.
+- [x] Added `NULLS NOT DISTINCT` inventory uniqueness and active warehouse-product-setting uniqueness.
+- [x] Added transaction-scoped PostgreSQL advisory locks for sequential customer, supplier, warehouse, inventory, accounting, purchase, and sales references.
+- [x] Updated deployment, environment, database reference, and v11 master-plan documentation for PostgreSQL.
+- [x] PostgreSQL conversion passed PHP lint for 66 changed/new PHP files, Composer validation, Docker Compose YAML parsing, effective-config inspection, route loading, Pint, and the database-free unit suite.
+- [x] Added a PostgreSQL baseline feature test covering the database driver, `pg_trgm`, critical integrity/search indexes, transfer-status default, and case-insensitive search.
+- [ ] Run `docker compose --profile test up -d postgres-test` and the full backend suite on a machine with Docker before release.
+
 ## Catalog Frontend Rebuild
 
 - [x] Units page, form, API hooks, types, and translations are present.
@@ -25,7 +41,7 @@
 
 ## Stabilization
 
-- [x] Fixed the warehouse product settings migration to use a short explicit preferred-supplier index name compatible with MySQL identifier limits.
+- [x] Fixed the warehouse product settings migration to use a short explicit preferred-supplier index name compatible with relational-database identifier limits.
 - [x] Application root scrollbar is hidden at the theme level while preserving page scrolling and internal scroll areas.
 - [x] Dashboard top navbar action buttons now follow the dynamic layout setting control sizes.
 - [x] Barcode scanner type declarations and callback typing restored frontend type-check, and `html5-qrcode` is installed locally.

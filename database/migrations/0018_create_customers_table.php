@@ -2,7 +2,6 @@
 
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 return new class extends Migration
@@ -38,9 +37,6 @@ return new class extends Migration
             $table->index(['business_id', 'phone'], 'customers_business_phone_index');
             $table->index(['business_id', 'customer_group_id'], 'customers_business_group_index');
 
-            if (DB::getDriverName() !== 'sqlite') {
-                $table->fullText(['name', 'email', 'phone', 'mobile'], 'customers_search_fulltext');
-            }
         });
     }
 

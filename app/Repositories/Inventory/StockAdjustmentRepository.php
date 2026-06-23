@@ -28,9 +28,9 @@ class StockAdjustmentRepository extends BaseRepository
 
                     $query->where(function ($inner) use ($search): void {
                         $inner
-                            ->where('reference_no', 'like', "%{$search}%")
-                            ->orWhere('reason', 'like', "%{$search}%")
-                            ->orWhere('notes', 'like', "%{$search}%");
+                            ->whereLike('reference_no', "%{$search}%")
+                            ->orWhereLike('reason', "%{$search}%")
+                            ->orWhereLike('notes', "%{$search}%");
                     });
                 }
             )

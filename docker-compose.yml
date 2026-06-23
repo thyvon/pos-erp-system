@@ -1,17 +1,40 @@
 services:
-  mariadb:
-    image: mariadb:10.11
-    container_name: mariadb
+  postgres:
+    image: postgres:16-alpine
+    container_name: erp-postgres
     restart: unless-stopped
     ports:
-      - "3307:3306"
+      - "5432:5432"
     environment:
-      MYSQL_ROOT_PASSWORD: secret
-      MYSQL_DATABASE: erp_db
-      MYSQL_USER: erp_user
-      MYSQL_PASSWORD: secret
+      POSTGRES_DB: ${DB_DATABASE:-erp_db}
+      POSTGRES_USER: ${DB_USERNAME:-erp_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-secret}
     volumes:
-      - mariadb_data:/var/lib/mysql
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  postgres-test:
+    image: postgres:16-alpine
+    container_name: erp-postgres-test
+    profiles: ["test"]
+    restart: unless-stopped
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_DB: erp_test
+      POSTGRES_USER: erp_user
+      POSTGRES_PASSWORD: secret
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $$POSTGRES_USER -d $$POSTGRES_DB"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
   redis:
     image: redis:7-alpine
@@ -22,19 +45,18 @@ services:
     volumes:
       - redis_data:/data
 
-  phpmyadmin:
-    image: phpmyadmin:latest
-    container_name: phpmyadmin
+  pgadmin:
+    image: dpage/pgadmin4:latest
+    container_name: erp-pgadmin
     restart: unless-stopped
     depends_on:
-      - mariadb
+      postgres:
+        condition: service_healthy
     ports:
       - "8080:80"
     environment:
-      PMA_HOST: mariadb
-      PMA_PORT: 3306
-      PMA_USER: root
-      PMA_PASSWORD: secret
+      PGADMIN_DEFAULT_EMAIL: admin@erp.local
+      PGADMIN_DEFAULT_PASSWORD: ${PGADMIN_DEFAULT_PASSWORD:-secret}
 
   mailhog:
     image: mailhog/mailhog
@@ -45,5 +67,5 @@ services:
       - "8025:8025"
 
 volumes:
-  mariadb_data:
+  postgres_data:
   redis_data:

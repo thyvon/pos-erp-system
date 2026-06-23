@@ -8,6 +8,7 @@ use App\Models\CustomerGroup;
 use App\Models\User;
 use App\Repositories\Foundation\CustomerRepository;
 use App\Support\Audit\AuditLogger;
+use App\Support\Database\PostgresAdvisoryLock;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -18,8 +19,7 @@ class CustomerService
     public function __construct(
         protected CustomerRepository $customers,
         protected AuditLogger $auditLogger,
-    ) {
-    }
+    ) {}
 
     public function paginate(array $filters): LengthAwarePaginator
     {
@@ -216,8 +216,10 @@ class CustomerService
 
     protected function generateCode(string $businessId): string
     {
+        PostgresAdvisoryLock::acquire('customer-code:'.$businessId);
+
         $lastCode = $this->customerQueryForBusiness($businessId)
-            ->where('code', 'like', 'CUST-%')
+            ->whereLike('code', 'CUST-%')
             ->lockForUpdate()
             ->orderByDesc('code')
             ->value('code');

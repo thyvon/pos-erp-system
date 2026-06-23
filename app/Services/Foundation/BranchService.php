@@ -7,15 +7,13 @@ use App\Models\Branch;
 use App\Models\Business;
 use App\Models\User;
 use App\Repositories\Foundation\BranchRepository;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
 class BranchService
 {
-    public function __construct(protected BranchRepository $branches)
-    {
-    }
+    public function __construct(protected BranchRepository $branches) {}
 
     public function paginate(array $filters, User|array|null $branchAccessScope = null): LengthAwarePaginator
     {
@@ -108,7 +106,7 @@ class BranchService
 
     protected function ensureBranchLimitNotExceeded(Business $business): void
     {
-        if ($this->branchQueryForBusiness($business)->lockForUpdate()->count() >= $business->max_branches) {
+        if ($this->branchQueryForBusiness($business)->count() >= $business->max_branches) {
             throw new DomainException('Your business branch limit has been reached.', 403);
         }
     }
@@ -116,7 +114,7 @@ class BranchService
     protected function generateCode(Business $business): string
     {
         $lastCode = $this->branchQueryForBusiness($business)
-            ->where('code', 'like', 'BR-%')
+            ->whereLike('code', 'BR-%')
             ->lockForUpdate()
             ->orderByDesc('code')
             ->value('code');

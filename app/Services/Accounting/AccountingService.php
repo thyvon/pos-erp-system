@@ -9,6 +9,7 @@ use App\Models\Journal;
 use App\Models\User;
 use App\Repositories\Accounting\JournalRepository;
 use App\Support\Audit\AuditLogger;
+use App\Support\Database\PostgresAdvisoryLock;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
@@ -18,8 +19,7 @@ class AccountingService
     public function __construct(
         protected JournalRepository $journals,
         protected AuditLogger $auditLogger,
-    ) {
-    }
+    ) {}
 
     public function paginate(array $filters): LengthAwarePaginator
     {
@@ -205,11 +205,13 @@ class AccountingService
 
     protected function generateJournalNumber(string $businessId): string
     {
+        PostgresAdvisoryLock::acquire('journal-number:'.$businessId.':'.now()->format('Y'));
+
         $prefix = 'JRN-'.now()->format('Y').'-';
 
         $lastNumber = Journal::withoutGlobalScopes()
             ->where('business_id', $businessId)
-            ->where('journal_number', 'like', $prefix.'%')
+            ->whereLike('journal_number', $prefix.'%')
             ->lockForUpdate()
             ->orderByDesc('journal_number')
             ->value('journal_number');

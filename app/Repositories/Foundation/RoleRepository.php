@@ -10,16 +10,14 @@ use Spatie\Permission\Models\Role;
 
 class RoleRepository
 {
-    public function __construct(protected Role $model)
-    {
-    }
+    public function __construct(protected Role $model) {}
 
     public function paginateFiltered(array $filters, ?string $businessId = null): LengthAwarePaginator
     {
         $perPage = (int) ($filters['per_page'] ?? 15);
         $perPage = max(1, min($perPage, 100));
         $modelHasRolesTable = config('permission.table_names.model_has_roles', 'model_has_roles');
-        $usersTable = (new User())->getTable();
+        $usersTable = (new User)->getTable();
 
         $usersCountSubquery = DB::table($modelHasRolesTable)
             ->join($usersTable, "{$usersTable}.id", '=', "{$modelHasRolesTable}.model_id")
@@ -39,7 +37,7 @@ class RoleRepository
             ->selectSub($usersCountSubquery, 'users_count')
             ->when(
                 filled($filters['search'] ?? null),
-                fn ($query) => $query->where('name', 'like', '%'.trim((string) $filters['search']).'%')
+                fn ($query) => $query->whereLike('name', '%'.trim((string) $filters['search']).'%')
             )
             ->orderBy('name')
             ->paginate($perPage)

@@ -28,9 +28,9 @@ class CategoryRepository extends BaseRepository
                     $search = trim((string) $filters['search']);
                     $query->where(function ($builder) use ($search): void {
                         $builder
-                            ->where('name', 'like', "%{$search}%")
-                            ->orWhere('code', 'like', "%{$search}%")
-                            ->orWhere('short_code', 'like', "%{$search}%");
+                            ->whereLike('name', "%{$search}%")
+                            ->orWhereLike('code', "%{$search}%")
+                            ->orWhereLike('short_code', "%{$search}%");
                     });
                 }
             )

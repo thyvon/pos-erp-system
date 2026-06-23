@@ -29,10 +29,10 @@ class BranchRepository extends BaseRepository
 
                     $query->where(function ($branchQuery) use ($search): void {
                         $branchQuery
-                            ->where('name', 'like', "%{$search}%")
-                            ->orWhere('code', 'like', "%{$search}%")
-                            ->orWhere('email', 'like', "%{$search}%")
-                            ->orWhere('phone', 'like', "%{$search}%");
+                            ->whereLike('name', "%{$search}%")
+                            ->orWhereLike('code', "%{$search}%")
+                            ->orWhereLike('email', "%{$search}%")
+                            ->orWhereLike('phone', "%{$search}%");
                     });
                 }
             )

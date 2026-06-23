@@ -7,6 +7,7 @@ use App\Models\Supplier;
 use App\Models\User;
 use App\Repositories\Foundation\SupplierRepository;
 use App\Support\Audit\AuditLogger;
+use App\Support\Database\PostgresAdvisoryLock;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
@@ -17,8 +18,7 @@ class SupplierService
     public function __construct(
         protected SupplierRepository $suppliers,
         protected AuditLogger $auditLogger,
-    ) {
-    }
+    ) {}
 
     public function paginate(array $filters): LengthAwarePaginator
     {
@@ -162,8 +162,10 @@ class SupplierService
 
     protected function generateCode(string $businessId): string
     {
+        PostgresAdvisoryLock::acquire('supplier-code:'.$businessId);
+
         $lastCode = $this->supplierQueryForBusiness($businessId)
-            ->where('code', 'like', 'SUPP-%')
+            ->whereLike('code', 'SUPP-%')
             ->lockForUpdate()
             ->orderByDesc('code')
             ->value('code');

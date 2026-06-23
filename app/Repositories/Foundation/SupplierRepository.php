@@ -32,12 +32,12 @@ class SupplierRepository extends BaseRepository
             $search = trim((string) $filters['search']);
             $query->where(function (Builder $builder) use ($search): void {
                 $builder
-                    ->where('name', 'like', "%{$search}%")
-                    ->orWhere('company', 'like', "%{$search}%")
-                    ->orWhere('email', 'like', "%{$search}%")
-                    ->orWhere('phone', 'like', "%{$search}%")
-                    ->orWhere('mobile', 'like', "%{$search}%")
-                    ->orWhere('code', 'like', "%{$search}%");
+                    ->whereLike('name', "%{$search}%")
+                    ->orWhereLike('company', "%{$search}%")
+                    ->orWhereLike('email', "%{$search}%")
+                    ->orWhereLike('phone', "%{$search}%")
+                    ->orWhereLike('mobile', "%{$search}%")
+                    ->orWhereLike('code', "%{$search}%");
             });
         }
 

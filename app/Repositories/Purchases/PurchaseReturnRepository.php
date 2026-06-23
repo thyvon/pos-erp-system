@@ -29,9 +29,9 @@ class PurchaseReturnRepository extends BaseRepository
 
                     $query->where(function ($builder) use ($search): void {
                         $builder
-                            ->where('return_number', 'like', "%{$search}%")
-                            ->orWhere('notes', 'like', "%{$search}%")
-                            ->orWhereHas('purchase', fn ($purchaseQuery) => $purchaseQuery->where('purchase_number', 'like', "%{$search}%"));
+                            ->whereLike('return_number', "%{$search}%")
+                            ->orWhereLike('notes', "%{$search}%")
+                            ->orWhereHas('purchase', fn ($purchaseQuery) => $purchaseQuery->whereLike('purchase_number', "%{$search}%"));
                     });
                 }
             )

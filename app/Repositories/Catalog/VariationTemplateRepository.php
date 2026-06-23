@@ -28,7 +28,7 @@ class VariationTemplateRepository extends BaseRepository
                 function ($query) use ($filters): void {
                     $search = trim((string) $filters['search']);
 
-                    $query->where('name', 'like', "%{$search}%");
+                    $query->whereLike('name', "%{$search}%");
                 }
             )
             ->orderBy('name')
@@ -46,6 +46,6 @@ class VariationTemplateRepository extends BaseRepository
 
     public function newValueQuery()
     {
-        return (new VariationValue())->newQuery();
+        return (new VariationValue)->newQuery();
     }
 }

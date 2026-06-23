@@ -9,8 +9,6 @@ return new class extends Migration
 {
     public function up(): void
     {
-        $this->setTransferStatusEnum(['completed', 'pending', 'in_transit', 'received'], 'completed');
-
         if (! Schema::hasColumn('stock_transfers', 'sent_by')) {
             Schema::table('stock_transfers', function (Blueprint $table): void {
                 $table->foreignUuid('sent_by')->nullable()->after('created_by')->constrained('users')->nullOnDelete();
@@ -100,19 +98,5 @@ return new class extends Migration
             });
         }
 
-        $this->setTransferStatusEnum(['completed'], 'completed');
-    }
-
-    protected function setTransferStatusEnum(array $values, string $default): void
-    {
-        if (DB::getDriverName() !== 'mysql') {
-            return;
-        }
-
-        $quotedValues = implode("', '", $values);
-
-        DB::statement(
-            "ALTER TABLE `stock_transfers` MODIFY `status` ENUM('{$quotedValues}') NOT NULL DEFAULT '{$default}'"
-        );
     }
 };

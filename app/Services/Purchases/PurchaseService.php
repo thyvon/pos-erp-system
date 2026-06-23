@@ -8,19 +8,18 @@ use App\Models\Product;
 use App\Models\ProductVariation;
 use App\Models\Purchase;
 use App\Models\PurchaseItem;
-use App\Models\PurchaseReceive;
-use App\Models\PurchaseReceiveItem;
 use App\Models\StockLot;
-use App\Models\StockSerial;
 use App\Models\SubUnit;
 use App\Models\Supplier;
 use App\Models\User;
 use App\Models\Warehouse;
 use App\Repositories\Purchases\PurchaseRepository;
+use App\Services\Accounting\AccountingService;
 use App\Services\AuditService;
 use App\Services\Foundation\EditWindowService;
+use App\Services\Foundation\SettingsService;
 use App\Services\Inventory\StockMovementService;
-use App\Services\Purchases\PurchaseReceiveService;
+use App\Support\Database\PostgresAdvisoryLock;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
@@ -31,11 +30,11 @@ class PurchaseService
         protected AuditService $auditService,
         protected StockMovementService $stockMovementService,
         protected EditWindowService $editWindow,
-        protected \App\Services\Accounting\AccountingService $accountingService,
-        protected \App\Services\Foundation\SettingsService $settings,
+        protected AccountingService $accountingService,
+        protected SettingsService $settings,
         protected PurchaseReceiveService $receiveService,
-    ) {
-    }
+    ) {}
+
     public function nextLotNumber(string $businessId): ?string
     {
         $stockSettings = $this->settings->getGroup('stock', $businessId);
@@ -56,9 +55,9 @@ class PurchaseService
 
         $fullPrefix = $prefix.$datePart.'-';
 
-        $lastLot = \App\Models\StockLot::withoutGlobalScopes()
+        $lastLot = StockLot::withoutGlobalScopes()
             ->where('business_id', $businessId)
-            ->where('lot_number', 'like', $fullPrefix.'%')
+            ->whereLike('lot_number', $fullPrefix.'%')
             ->orderByDesc('lot_number')
             ->value('lot_number');
 
@@ -485,10 +484,12 @@ class PurchaseService
 
     protected function generatePurchaseNumber(string $businessId): string
     {
+        PostgresAdvisoryLock::acquire('purchase-number:'.$businessId.':'.now()->format('Y'));
+
         $prefix = 'PO-'.now()->format('Y').'-';
         $lastReference = Purchase::withoutGlobalScopes()
             ->where('business_id', $businessId)
-            ->where('purchase_number', 'like', $prefix.'%')
+            ->whereLike('purchase_number', $prefix.'%')
             ->orderByDesc('purchase_number')
             ->value('purchase_number');
 

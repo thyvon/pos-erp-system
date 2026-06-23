@@ -48,37 +48,12 @@ class CustomerRepository extends BaseRepository
             return;
         }
 
-        $driver = DB::getDriverName();
-
-        if (in_array($driver, ['mysql', 'mariadb'], true)) {
-            $booleanTerms = collect(preg_split('/\s+/', $search) ?: [])
-                ->filter(fn (?string $term) => filled($term))
-                ->map(fn (string $term) => '+'.$term.'*')
-                ->implode(' ');
-
-            $query->where(function (Builder $builder) use ($booleanTerms, $search): void {
-                $builder->whereRaw(
-                    "MATCH(name,email,phone,mobile) AGAINST (? IN BOOLEAN MODE)",
-                    [$booleanTerms]
-                );
-
-                if (preg_match('/^[0-9+\\-\\s]+$/', $search) === 1) {
-                    $builder
-                        ->orWhere('phone', 'like', $search.'%')
-                        ->orWhere('mobile', 'like', $search.'%');
-                }
-            });
-
-            return;
-        }
-
-        // SQLite test fallback. Production should use the FULLTEXT branch above.
         $query->where(function (Builder $builder) use ($search): void {
             $builder
-                ->where('name', 'like', "%{$search}%")
-                ->orWhere('email', 'like', "%{$search}%")
-                ->orWhere('phone', 'like', "%{$search}%")
-                ->orWhere('mobile', 'like', "%{$search}%");
+                ->whereLike('name', "%{$search}%")
+                ->orWhereLike('email', "%{$search}%")
+                ->orWhereLike('phone', "%{$search}%")
+                ->orWhereLike('mobile', "%{$search}%");
         });
     }
 

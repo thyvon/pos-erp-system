@@ -37,10 +37,10 @@ class UserRepository extends BaseRepository
 
                     $query->where(function ($userQuery) use ($search): void {
                         $userQuery
-                            ->where('first_name', 'like', "%{$search}%")
-                            ->orWhere('last_name', 'like', "%{$search}%")
-                            ->orWhere('email', 'like', "%{$search}%")
-                            ->orWhere('phone', 'like', "%{$search}%");
+                            ->whereLike('first_name', "%{$search}%")
+                            ->orWhereLike('last_name', "%{$search}%")
+                            ->orWhereLike('email', "%{$search}%")
+                            ->orWhereLike('phone', "%{$search}%");
                     });
                 }
             )

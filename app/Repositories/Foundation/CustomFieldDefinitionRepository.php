@@ -26,8 +26,8 @@ class CustomFieldDefinitionRepository extends BaseRepository
 
                     $query->where(function ($fieldQuery) use ($search): void {
                         $fieldQuery
-                            ->where('field_name', 'like', "%{$search}%")
-                            ->orWhere('field_label', 'like', "%{$search}%");
+                            ->whereLike('field_name', "%{$search}%")
+                            ->orWhereLike('field_label', "%{$search}%");
                     });
                 }
             )

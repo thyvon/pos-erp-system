@@ -36,9 +36,9 @@ class SaleRepository extends BaseRepository
 
                     $query->where(function ($builder) use ($search): void {
                         $builder
-                            ->where('sale_number', 'like', "%{$search}%")
-                            ->orWhere('notes', 'like', "%{$search}%")
-                            ->orWhereHas('customer', fn ($customerQuery) => $customerQuery->where('name', 'like', "%{$search}%"));
+                            ->whereLike('sale_number', "%{$search}%")
+                            ->orWhereLike('notes', "%{$search}%")
+                            ->orWhereHas('customer', fn ($customerQuery) => $customerQuery->whereLike('name', "%{$search}%"));
                     });
                 }
             )

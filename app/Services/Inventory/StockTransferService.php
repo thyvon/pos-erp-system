@@ -11,6 +11,7 @@ use App\Models\User;
 use App\Models\Warehouse;
 use App\Repositories\Inventory\StockTransferRepository;
 use App\Services\Foundation\EditWindowService;
+use App\Support\Database\PostgresAdvisoryLock;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
@@ -20,8 +21,7 @@ class StockTransferService
         protected StockTransferRepository $transfers,
         protected EditWindowService $editWindow,
         protected StockMovementService $stockMovementService,
-    ) {
-    }
+    ) {}
 
     public function paginate(array $filters, ?User $user = null): LengthAwarePaginator
     {
@@ -423,9 +423,11 @@ class StockTransferService
 
     protected function generateReferenceNumber(): string
     {
+        PostgresAdvisoryLock::acquire('stock-transfer-number:'.now()->format('Y'));
+
         $prefix = 'TRF-'.now()->format('Y').'-';
         $lastReference = StockTransfer::withoutGlobalScopes()
-            ->where('reference_no', 'like', $prefix.'%')
+            ->whereLike('reference_no', $prefix.'%')
             ->orderByDesc('reference_no')
             ->value('reference_no');
 

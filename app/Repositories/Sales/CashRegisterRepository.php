@@ -30,8 +30,8 @@ class CashRegisterRepository extends BaseRepository
 
                     $query->where(function ($builder) use ($search): void {
                         $builder
-                            ->where('name', 'like', "%{$search}%")
-                            ->orWhereHas('branch', fn ($branchQuery) => $branchQuery->where('name', 'like', "%{$search}%"));
+                            ->whereLike('name', "%{$search}%")
+                            ->orWhereHas('branch', fn ($branchQuery) => $branchQuery->whereLike('name', "%{$search}%"));
                     });
                 }
             )

@@ -27,9 +27,9 @@ class JournalRepository extends BaseRepository
 
                     $query->where(function ($inner) use ($search): void {
                         $inner
-                            ->where('journal_number', 'like', "%{$search}%")
-                            ->orWhere('description', 'like', "%{$search}%")
-                            ->orWhere('reference_type', 'like', "%{$search}%");
+                            ->whereLike('journal_number', "%{$search}%")
+                            ->orWhereLike('description', "%{$search}%")
+                            ->orWhereLike('reference_type', "%{$search}%");
                     });
                 }
             )
@@ -38,6 +38,7 @@ class JournalRepository extends BaseRepository
                 function ($query) use ($filters): void {
                     if ($filters['status'] === 'reversed') {
                         $query->whereNotNull('reversed_by_id');
+
                         return;
                     }
 

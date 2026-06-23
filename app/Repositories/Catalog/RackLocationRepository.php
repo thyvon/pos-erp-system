@@ -29,9 +29,9 @@ class RackLocationRepository extends BaseRepository
 
                     $query->where(function ($builder) use ($search): void {
                         $builder
-                            ->where('name', 'like', "%{$search}%")
-                            ->orWhere('code', 'like', "%{$search}%")
-                            ->orWhere('description', 'like', "%{$search}%");
+                            ->whereLike('name', "%{$search}%")
+                            ->orWhereLike('code', "%{$search}%")
+                            ->orWhereLike('description', "%{$search}%");
                     });
                 }
             )

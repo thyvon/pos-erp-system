@@ -28,8 +28,8 @@ class StockLotRepository extends BaseRepository
 
                     $query->where(function ($inner) use ($search): void {
                         $inner
-                            ->where('lot_number', 'like', "%{$search}%")
-                            ->orWhereHas('product', fn ($productQuery) => $productQuery->where('name', 'like', "%{$search}%")->orWhere('sku', 'like', "%{$search}%"));
+                            ->whereLike('lot_number', "%{$search}%")
+                            ->orWhereHas('product', fn ($productQuery) => $productQuery->whereLike('name', "%{$search}%")->orWhereLike('sku', "%{$search}%"));
                     });
                 }
             )

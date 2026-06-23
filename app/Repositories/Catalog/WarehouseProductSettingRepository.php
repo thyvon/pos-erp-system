@@ -34,19 +34,19 @@ class WarehouseProductSettingRepository extends BaseRepository
 
                     $query->where(function ($builder) use ($search): void {
                         $builder
-                            ->where('notes', 'like', "%{$search}%")
+                            ->whereLike('notes', "%{$search}%")
                             ->orWhereHas('product', fn ($productQuery) => $productQuery
-                                ->where('name', 'like', "%{$search}%")
-                                ->orWhere('sku', 'like', "%{$search}%"))
+                                ->whereLike('name', "%{$search}%")
+                                ->orWhereLike('sku', "%{$search}%"))
                             ->orWhereHas('variation', fn ($variationQuery) => $variationQuery
-                                ->where('name', 'like', "%{$search}%")
-                                ->orWhere('sku', 'like', "%{$search}%"))
+                                ->whereLike('name', "%{$search}%")
+                                ->orWhereLike('sku', "%{$search}%"))
                             ->orWhereHas('warehouse', fn ($warehouseQuery) => $warehouseQuery
-                                ->where('name', 'like', "%{$search}%")
-                                ->orWhere('code', 'like', "%{$search}%"))
+                                ->whereLike('name', "%{$search}%")
+                                ->orWhereLike('code', "%{$search}%"))
                             ->orWhereHas('rackLocation', fn ($rackQuery) => $rackQuery
-                                ->where('name', 'like', "%{$search}%")
-                                ->orWhere('code', 'like', "%{$search}%"));
+                                ->whereLike('name', "%{$search}%")
+                                ->orWhereLike('code', "%{$search}%"));
                     });
                 }
             )

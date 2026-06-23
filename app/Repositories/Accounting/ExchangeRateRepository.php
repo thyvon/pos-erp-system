@@ -24,9 +24,9 @@ class ExchangeRateRepository extends BaseRepository
                     $search = trim((string) $filters['search']);
 
                     $query->where(function ($query) use ($search): void {
-                        $query->where('from_currency', 'like', "%{$search}%")
-                            ->orWhere('to_currency', 'like', "%{$search}%")
-                            ->orWhere('note', 'like', "%{$search}%");
+                        $query->whereLike('from_currency', "%{$search}%")
+                            ->orWhereLike('to_currency', "%{$search}%")
+                            ->orWhereLike('note', "%{$search}%");
                     });
                 }
             )
@@ -53,7 +53,7 @@ class ExchangeRateRepository extends BaseRepository
     {
         $totals = $this->query()
             ->selectRaw('COUNT(*) as total_rates')
-            ->selectRaw("SUM(CASE WHEN is_default = 1 THEN 1 ELSE 0 END) as default_rates")
+            ->selectRaw('SUM(CASE WHEN is_default IS TRUE THEN 1 ELSE 0 END) as default_rates')
             ->first();
 
         return [

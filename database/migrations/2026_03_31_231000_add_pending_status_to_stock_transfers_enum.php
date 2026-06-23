@@ -7,7 +7,8 @@ return new class extends Migration
 {
     public function up(): void
     {
-        $this->setTransferStatusEnum(['completed', 'pending', 'in_transit', 'received'], 'pending');
+        // The clean-install schema now contains every workflow status and defaults to pending.
+        // The final PostgreSQL hardening migration also repairs pre-existing development databases.
     }
 
     public function down(): void
@@ -17,20 +18,5 @@ return new class extends Migration
             ->update([
                 'status' => 'completed',
             ]);
-
-        $this->setTransferStatusEnum(['completed', 'in_transit', 'received'], 'completed');
-    }
-
-    protected function setTransferStatusEnum(array $values, string $default): void
-    {
-        if (DB::getDriverName() !== 'mysql') {
-            return;
-        }
-
-        $quotedValues = implode("', '", $values);
-
-        DB::statement(
-            "ALTER TABLE `stock_transfers` MODIFY `status` ENUM('{$quotedValues}') NOT NULL DEFAULT '{$default}'"
-        );
     }
 };

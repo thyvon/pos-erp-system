@@ -5,6 +5,26 @@ This repository is now split into:
 - Laravel backend API in the project root
 - Standalone Next.js React frontend in [frontend](/home/vun/Project/ERP-SYSTEM/frontend)
 
+## Database
+
+PostgreSQL 16 is the only supported relational database.
+
+The project Docker image includes `pdo_pgsql`. When running Artisan through local XAMPP PHP, enable `extension=pdo_pgsql` in `php.ini` first.
+
+```bash
+cp .env.example .env
+docker compose up -d postgres redis mailhog pgadmin
+php artisan key:generate
+php artisan migrate --seed
+```
+
+Backend tests use the isolated PostgreSQL service:
+
+```bash
+docker compose --profile test up -d postgres-test
+php artisan test
+```
+
 ## Backend
 
 Run the Laravel API from the project root:

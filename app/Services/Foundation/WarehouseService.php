@@ -7,15 +7,14 @@ use App\Models\Business;
 use App\Models\User;
 use App\Models\Warehouse;
 use App\Repositories\Foundation\WarehouseRepository;
+use App\Support\Database\PostgresAdvisoryLock;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Schema;
 
 class WarehouseService
 {
-    public function __construct(protected WarehouseRepository $warehouses)
-    {
-    }
+    public function __construct(protected WarehouseRepository $warehouses) {}
 
     public function paginate(array $filters, User|array|null $branchAccessScope = null): LengthAwarePaginator
     {
@@ -119,8 +118,10 @@ class WarehouseService
 
     protected function generateCode(): string
     {
+        PostgresAdvisoryLock::acquire('warehouse-code');
+
         $lastCode = Warehouse::query()
-            ->where('code', 'like', 'WH-%')
+            ->whereLike('code', 'WH-%')
             ->orderByDesc('code')
             ->value('code');
 
@@ -135,7 +136,7 @@ class WarehouseService
     {
         $user = auth()->user();
 
-        if ($user instanceof \App\Models\User && ! $user->hasBranchAccess($branchId)) {
+        if ($user instanceof User && ! $user->hasBranchAccess($branchId)) {
             throw new DomainException('You cannot manage warehouse data outside your assigned branches.', 403);
         }
     }

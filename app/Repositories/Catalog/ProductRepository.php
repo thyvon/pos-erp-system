@@ -145,23 +145,10 @@ class ProductRepository extends BaseRepository
             return;
         }
 
-        $driver = DB::getDriverName();
-
-        if (in_array($driver, ['mysql', 'mariadb'], true)) {
-            $query->where(function (Builder $builder) use ($search): void {
-                $builder
-                    ->where('name', 'like', "%{$search}%")
-                    ->orWhere('sku', 'like', "%{$search}%");
-            });
-
-            return;
-        }
-
-        // SQLite test fallback. Production should use the FULLTEXT branch above.
         $query->where(function (Builder $builder) use ($search): void {
             $builder
-                ->where('name', 'like', "%{$search}%")
-                ->orWhere('sku', 'like', "%{$search}%");
+                ->whereLike('name', "%{$search}%")
+                ->orWhereLike('sku', "%{$search}%");
         });
     }
 }

@@ -25,7 +25,7 @@ class TaxGroupRepository extends BaseRepository
                 function ($query) use ($filters): void {
                     $search = trim((string) $filters['search']);
 
-                    $query->where('name', 'like', "%{$search}%");
+                    $query->whereLike('name', "%{$search}%");
                 }
             )
             ->when(

@@ -28,9 +28,9 @@ class ChartOfAccountRepository extends BaseRepository
 
                     $query->where(function ($inner) use ($search): void {
                         $inner
-                            ->where('code', 'like', "%{$search}%")
-                            ->orWhere('name', 'like', "%{$search}%")
-                            ->orWhere('sub_type', 'like', "%{$search}%");
+                            ->whereLike('code', "%{$search}%")
+                            ->orWhereLike('name', "%{$search}%")
+                            ->orWhereLike('sub_type', "%{$search}%");
                     });
                 }
             )
@@ -51,8 +51,8 @@ class ChartOfAccountRepository extends BaseRepository
     {
         $totals = $this->query()
             ->selectRaw('COUNT(*) as total_accounts')
-            ->selectRaw('SUM(CASE WHEN is_active = 1 THEN 1 ELSE 0 END) as active_accounts')
-            ->selectRaw('SUM(CASE WHEN is_system = 1 THEN 1 ELSE 0 END) as system_accounts')
+            ->selectRaw('SUM(CASE WHEN is_active IS TRUE THEN 1 ELSE 0 END) as active_accounts')
+            ->selectRaw('SUM(CASE WHEN is_system IS TRUE THEN 1 ELSE 0 END) as system_accounts')
             ->first();
 
         $postableAccounts = $this->query()

@@ -1,4 +1,4 @@
-﻿## SECTION 8 - API AND DATABASE ORGANIZATION
+## SECTION 8 - API AND DATABASE ORGANIZATION
 
 ### 8.1 API Surface by Domain
 
@@ -44,5 +44,14 @@ Not yet migrated as first-class modules in this repo:
 - Business ownership must be explicit on tenant-bound records
 - Branch ownership must be explicit on branch-scoped records
 - Workflow header tables and ledger tables must not be confused with each other
+
+### 8.4 PostgreSQL Baseline
+
+- PostgreSQL 16 is the only supported relational database for development, testing, and production.
+- Case-insensitive user searches use Laravel's portable whereLike query API and PostgreSQL trigram indexes.
+- Case-insensitive unique business identifiers are protected by expression indexes.
+- Sequential ERP references use transaction-scoped PostgreSQL advisory locks.
+- Nullable inventory identity keys use PostgreSQL NULLS NOT DISTINCT uniqueness.
+- The backend test suite runs against the isolated PostgreSQL test service, not SQLite.
 
 ---

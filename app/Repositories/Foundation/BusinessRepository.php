@@ -50,10 +50,10 @@ class BusinessRepository extends BaseRepository
 
                     $query->where(function ($businessQuery) use ($search): void {
                         $businessQuery
-                            ->where('name', 'like', "%{$search}%")
-                            ->orWhere('legal_name', 'like', "%{$search}%")
-                            ->orWhere('email', 'like', "%{$search}%")
-                            ->orWhere('tax_id', 'like', "%{$search}%");
+                            ->whereLike('name', "%{$search}%")
+                            ->orWhereLike('legal_name', "%{$search}%")
+                            ->orWhereLike('email', "%{$search}%")
+                            ->orWhereLike('tax_id', "%{$search}%");
                     });
                 }
             )

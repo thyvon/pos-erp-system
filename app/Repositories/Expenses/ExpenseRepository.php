@@ -27,8 +27,8 @@ class ExpenseRepository extends BaseRepository
                     $search = trim((string) $filters['search']);
                     $query->where(function ($inner) use ($search): void {
                         $inner
-                            ->where('reference_no', 'like', "%{$search}%")
-                            ->orWhere('description', 'like', "%{$search}%");
+                            ->whereLike('reference_no', "%{$search}%")
+                            ->orWhereLike('description', "%{$search}%");
                     });
                 }
             )

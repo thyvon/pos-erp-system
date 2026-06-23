@@ -27,9 +27,9 @@ class SaleReturnRepository extends BaseRepository
 
                     $query->where(function ($builder) use ($search): void {
                         $builder
-                            ->where('return_number', 'like', "%{$search}%")
-                            ->orWhere('notes', 'like', "%{$search}%")
-                            ->orWhereHas('sale', fn ($saleQuery) => $saleQuery->where('sale_number', 'like', "%{$search}%"));
+                            ->whereLike('return_number', "%{$search}%")
+                            ->orWhereLike('notes', "%{$search}%")
+                            ->orWhereHas('sale', fn ($saleQuery) => $saleQuery->whereLike('sale_number', "%{$search}%"));
                     });
                 }
             )

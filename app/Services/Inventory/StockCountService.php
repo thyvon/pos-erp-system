@@ -15,12 +15,14 @@ use App\Models\Warehouse;
 use App\Repositories\Inventory\StockCountRepository;
 use App\Services\Foundation\EditWindowService;
 use App\Support\Audit\AuditLogger;
+use App\Support\Database\PostgresAdvisoryLock;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
 class StockCountService
 {
     protected const STATUS_IN_PROGRESS = 'in_progress';
+
     protected const STATUS_COMPLETED = 'completed';
 
     protected const RESPONSE_RELATIONS = [
@@ -37,8 +39,7 @@ class StockCountService
         protected StockMovementService $stockMovementService,
         protected AuditLogger $auditLogger,
         protected EditWindowService $editWindow,
-    ) {
-    }
+    ) {}
 
     public function paginate(array $filters, ?User $user = null): LengthAwarePaginator
     {
@@ -826,9 +827,11 @@ class StockCountService
 
     protected function generateReferenceNumber(): string
     {
+        PostgresAdvisoryLock::acquire('stock-count-number:'.now()->format('Y'));
+
         $prefix = 'SC-'.now()->format('Y').'-';
         $lastReference = StockCount::withoutGlobalScopes()
-            ->where('reference_no', 'like', $prefix.'%')
+            ->whereLike('reference_no', $prefix.'%')
             ->orderByDesc('reference_no')
             ->value('reference_no');
 

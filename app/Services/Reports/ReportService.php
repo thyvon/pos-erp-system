@@ -2,16 +2,16 @@
 
 namespace App\Services\Reports;
 
-use App\Models\Sale;
-use App\Models\SalePayment;
-use App\Models\SaleReturn;
-use App\Models\Expense;
 use App\Models\CashRegisterSession;
-use App\Models\StockLevel;
-use App\Models\StockLot;
+use App\Models\Expense;
 use App\Models\Purchase;
 use App\Models\PurchasePayment;
 use App\Models\PurchaseReturn;
+use App\Models\Sale;
+use App\Models\SalePayment;
+use App\Models\SaleReturn;
+use App\Models\StockLevel;
+use App\Models\StockLot;
 use App\Models\User;
 use App\Support\BranchAccess;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
@@ -282,8 +282,8 @@ class ReportService
 
                     $query->where(function (Builder $builder) use ($search): void {
                         $builder
-                            ->where('sale_number', 'like', "%{$search}%")
-                            ->orWhereHas('customer', fn (Builder $customer) => $customer->where('name', 'like', "%{$search}%"));
+                            ->whereLike('sale_number', "%{$search}%")
+                            ->orWhereHas('customer', fn (Builder $customer) => $customer->whereLike('name', "%{$search}%"));
                     });
                 }
             )
@@ -321,10 +321,10 @@ class ReportService
 
                     $query->where(function (Builder $builder) use ($search): void {
                         $builder
-                            ->where('return_number', 'like', "%{$search}%")
-                            ->orWhere('notes', 'like', "%{$search}%")
-                            ->orWhereHas('sale', fn (Builder $sale) => $sale->where('sale_number', 'like', "%{$search}%"))
-                            ->orWhereHas('sale.customer', fn (Builder $customer) => $customer->where('name', 'like', "%{$search}%"));
+                            ->whereLike('return_number', "%{$search}%")
+                            ->orWhereLike('notes', "%{$search}%")
+                            ->orWhereHas('sale', fn (Builder $sale) => $sale->whereLike('sale_number', "%{$search}%"))
+                            ->orWhereHas('sale.customer', fn (Builder $customer) => $customer->whereLike('name', "%{$search}%"));
                     });
                 }
             )
@@ -360,9 +360,9 @@ class ReportService
 
                     $query->where(function (Builder $builder) use ($search): void {
                         $builder
-                            ->where('purchase_number', 'like', "%{$search}%")
-                            ->orWhere('supplier_invoice_no', 'like', "%{$search}%")
-                            ->orWhereHas('supplier', fn (Builder $supplier) => $supplier->where('name', 'like', "%{$search}%"));
+                            ->whereLike('purchase_number', "%{$search}%")
+                            ->orWhereLike('supplier_invoice_no', "%{$search}%")
+                            ->orWhereHas('supplier', fn (Builder $supplier) => $supplier->whereLike('name', "%{$search}%"));
                     });
                 }
             )
@@ -399,10 +399,10 @@ class ReportService
 
                     $query->where(function (Builder $builder) use ($search): void {
                         $builder
-                            ->where('return_number', 'like', "%{$search}%")
-                            ->orWhere('notes', 'like', "%{$search}%")
-                            ->orWhereHas('purchase', fn (Builder $purchase) => $purchase->where('purchase_number', 'like', "%{$search}%"))
-                            ->orWhereHas('purchase.supplier', fn (Builder $supplier) => $supplier->where('name', 'like', "%{$search}%"));
+                            ->whereLike('return_number', "%{$search}%")
+                            ->orWhereLike('notes', "%{$search}%")
+                            ->orWhereHas('purchase', fn (Builder $purchase) => $purchase->whereLike('purchase_number', "%{$search}%"))
+                            ->orWhereHas('purchase.supplier', fn (Builder $supplier) => $supplier->whereLike('name', "%{$search}%"));
                     });
                 }
             )
@@ -448,10 +448,10 @@ class ReportService
 
                     $query->where(function (Builder $builder) use ($search): void {
                         $builder
-                            ->where('reference', 'like', "%{$search}%")
-                            ->orWhere('note', 'like', "%{$search}%")
-                            ->orWhereHas('sale', fn (Builder $sale) => $sale->where('sale_number', 'like', "%{$search}%"))
-                            ->orWhereHas('sale.customer', fn (Builder $customer) => $customer->where('name', 'like', "%{$search}%"));
+                            ->whereLike('reference', "%{$search}%")
+                            ->orWhereLike('note', "%{$search}%")
+                            ->orWhereHas('sale', fn (Builder $sale) => $sale->whereLike('sale_number', "%{$search}%"))
+                            ->orWhereHas('sale.customer', fn (Builder $customer) => $customer->whereLike('name', "%{$search}%"));
                     });
                 }
             )
@@ -493,10 +493,10 @@ class ReportService
 
                     $query->where(function (Builder $builder) use ($search): void {
                         $builder
-                            ->where('reference', 'like', "%{$search}%")
-                            ->orWhere('note', 'like', "%{$search}%")
-                            ->orWhereHas('purchase', fn (Builder $purchase) => $purchase->where('purchase_number', 'like', "%{$search}%"))
-                            ->orWhereHas('purchase.supplier', fn (Builder $supplier) => $supplier->where('name', 'like', "%{$search}%"));
+                            ->whereLike('reference', "%{$search}%")
+                            ->orWhereLike('note', "%{$search}%")
+                            ->orWhereHas('purchase', fn (Builder $purchase) => $purchase->whereLike('purchase_number', "%{$search}%"))
+                            ->orWhereHas('purchase.supplier', fn (Builder $supplier) => $supplier->whereLike('name', "%{$search}%"));
                     });
                 }
             )
@@ -535,14 +535,14 @@ class ReportService
                     $query->where(function (Builder $builder) use ($search): void {
                         $builder
                             ->whereHas('product', fn (Builder $product) => $product
-                                ->where('name', 'like', "%{$search}%")
-                                ->orWhere('sku', 'like', "%{$search}%"))
+                                ->whereLike('name', "%{$search}%")
+                                ->orWhereLike('sku', "%{$search}%"))
                             ->orWhereHas('variation', fn (Builder $variation) => $variation
-                                ->where('name', 'like', "%{$search}%")
-                                ->orWhere('sku', 'like', "%{$search}%"))
+                                ->whereLike('name', "%{$search}%")
+                                ->orWhereLike('sku', "%{$search}%"))
                             ->orWhereHas('warehouse', fn (Builder $warehouse) => $warehouse
-                                ->where('name', 'like', "%{$search}%")
-                                ->orWhere('code', 'like', "%{$search}%"));
+                                ->whereLike('name', "%{$search}%")
+                                ->orWhereLike('code', "%{$search}%"));
                     });
                 }
             )
@@ -588,12 +588,12 @@ class ReportService
 
                     $query->where(function (Builder $builder) use ($search): void {
                         $builder
-                            ->where('reference_no', 'like', "%{$search}%")
-                            ->orWhere('description', 'like', "%{$search}%")
-                            ->orWhere('notes', 'like', "%{$search}%")
+                            ->whereLike('reference_no', "%{$search}%")
+                            ->orWhereLike('description', "%{$search}%")
+                            ->orWhereLike('notes', "%{$search}%")
                             ->orWhereHas('expenseAccount', fn (Builder $account) => $account
-                                ->where('name', 'like', "%{$search}%")
-                                ->orWhere('code', 'like', "%{$search}%"));
+                                ->whereLike('name', "%{$search}%")
+                                ->orWhereLike('code', "%{$search}%"));
                     });
                 }
             )
@@ -639,12 +639,12 @@ class ReportService
 
                     $query->where(function (Builder $builder) use ($search): void {
                         $builder
-                            ->where('notes', 'like', "%{$search}%")
-                            ->orWhereHas('cashRegister', fn (Builder $register) => $register->where('name', 'like', "%{$search}%"))
+                            ->whereLike('notes', "%{$search}%")
+                            ->orWhereHas('cashRegister', fn (Builder $register) => $register->whereLike('name', "%{$search}%"))
                             ->orWhereHas('user', fn (Builder $user) => $user
-                                ->where('first_name', 'like', "%{$search}%")
-                                ->orWhere('last_name', 'like', "%{$search}%")
-                                ->orWhere('email', 'like', "%{$search}%"));
+                                ->whereLike('first_name', "%{$search}%")
+                                ->orWhereLike('last_name', "%{$search}%")
+                                ->orWhereLike('email', "%{$search}%"));
                     });
                 }
             );
@@ -1013,7 +1013,7 @@ class ReportService
                     ] : null,
                     'cashier' => $session->user ? [
                         'id' => $session->user->id,
-                        'name' => trim(($session->user->first_name ?? '') . ' ' . ($session->user->last_name ?? '')),
+                        'name' => trim(($session->user->first_name ?? '').' '.($session->user->last_name ?? '')),
                     ] : null,
                 ];
             })

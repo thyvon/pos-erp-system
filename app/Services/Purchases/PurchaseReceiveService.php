@@ -3,6 +3,8 @@
 namespace App\Services\Purchases;
 
 use App\Exceptions\Domain\DomainException;
+use App\Models\ChartOfAccount;
+use App\Models\Journal;
 use App\Models\Product;
 use App\Models\Purchase;
 use App\Models\PurchaseItem;
@@ -12,18 +14,19 @@ use App\Models\StockLot;
 use App\Models\StockSerial;
 use App\Models\SubUnit;
 use App\Models\User;
+use App\Services\Accounting\AccountingService;
 use App\Services\AuditService;
 use App\Services\Inventory\StockMovementService;
+use App\Support\Database\PostgresAdvisoryLock;
 use Illuminate\Support\Facades\DB;
 
 class PurchaseReceiveService
 {
     public function __construct(
         protected StockMovementService $stockMovementService,
-        protected \App\Services\Accounting\AccountingService $accountingService,
+        protected AccountingService $accountingService,
         protected AuditService $auditService,
-    ) {
-    }
+    ) {}
 
     public function receive(string $businessId, Purchase $purchase, array $data, ?User $actor = null): Purchase
     {
@@ -82,7 +85,7 @@ class PurchaseReceiveService
                 ->lockForUpdate()
                 ->firstOrFail();
 
-            $oldJournal = \App\Models\Journal::withoutGlobalScopes()
+            $oldJournal = Journal::withoutGlobalScopes()
                 ->where('business_id', $businessId)
                 ->where('reference_type', PurchaseReceive::class)
                 ->where('reference_id', $lockedReceive->id)
@@ -341,7 +344,7 @@ class PurchaseReceiveService
             $lockedReceive->purchase->status = $this->resolveReceivedStatus($lockedReceive->purchase);
             $lockedReceive->purchase->save();
 
-            $oldJournal = \App\Models\Journal::withoutGlobalScopes()
+            $oldJournal = Journal::withoutGlobalScopes()
                 ->where('business_id', $businessId)
                 ->where('reference_type', PurchaseReceive::class)
                 ->where('reference_id', $lockedReceive->id)
@@ -413,7 +416,7 @@ class PurchaseReceiveService
             $lockedReceive->purchase->status = $this->resolveReceivedStatus($lockedReceive->purchase);
             $lockedReceive->purchase->save();
 
-            $oldJournal = \App\Models\Journal::withoutGlobalScopes()
+            $oldJournal = Journal::withoutGlobalScopes()
                 ->where('business_id', $businessId)
                 ->where('reference_type', PurchaseReceive::class)
                 ->where('reference_id', $lockedReceive->id)
@@ -432,7 +435,7 @@ class PurchaseReceiveService
         });
     }
 
-    protected function postReceiveJournal(string $businessId, PurchaseReceive $receive, ?User $actor = null): \App\Models\Journal
+    protected function postReceiveJournal(string $businessId, PurchaseReceive $receive, ?User $actor = null): Journal
     {
         $receive->load(['items.purchaseItem', 'purchase']);
         $totalReceivedValue = 0.0;
@@ -481,9 +484,9 @@ class PurchaseReceiveService
         ], $actor);
     }
 
-    protected function resolveAccountByCode(string $businessId, string $code): \App\Models\ChartOfAccount
+    protected function resolveAccountByCode(string $businessId, string $code): ChartOfAccount
     {
-        $account = \App\Models\ChartOfAccount::withoutGlobalScopes()
+        $account = ChartOfAccount::withoutGlobalScopes()
             ->where('business_id', $businessId)
             ->where('code', $code)
             ->first();
@@ -573,11 +576,13 @@ class PurchaseReceiveService
 
     protected function generateReceiveNumber(string $businessId): string
     {
+        PostgresAdvisoryLock::acquire('purchase-receive-number:'.$businessId.':'.now()->format('Y'));
+
         $prefix = 'REC-'.now()->format('Y').'-';
 
         $lastNumber = PurchaseReceive::withoutGlobalScopes()
             ->where('business_id', $businessId)
-            ->where('receive_number', 'like', $prefix.'%')
+            ->whereLike('receive_number', $prefix.'%')
             ->lockForUpdate()
             ->orderByDesc('receive_number')
             ->value('receive_number');

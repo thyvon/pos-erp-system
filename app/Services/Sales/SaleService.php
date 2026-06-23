@@ -28,10 +28,11 @@ use App\Services\AuditService;
 use App\Services\Foundation\EditWindowService;
 use App\Services\Foundation\SettingsService;
 use App\Services\Inventory\StockMovementService;
+use App\Support\Database\PostgresAdvisoryLock;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\QueryException;
-use Illuminate\Support\Collection;
 use Illuminate\Support\Arr;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 
 class SaleService
@@ -1078,6 +1079,8 @@ class SaleService
 
     protected function generateSaleNumber(string $businessId, string $type): string
     {
+        PostgresAdvisoryLock::acquire('sale-number:'.$businessId.':'.$type.':'.now()->format('Y'));
+
         $prefix = $type === 'quotation'
             ? (string) $this->settings->get('invoice', 'quotation_prefix')
             : (string) $this->settings->get('invoice', 'prefix');
@@ -1087,7 +1090,7 @@ class SaleService
 
         $lastNumber = Sale::withoutGlobalScopes()
             ->where('business_id', $businessId)
-            ->where('sale_number', 'like', $numberPrefix.'%')
+            ->whereLike('sale_number', $numberPrefix.'%')
             ->lockForUpdate()
             ->orderByDesc('sale_number')
             ->value('sale_number');
