@@ -46,7 +46,7 @@ return new class extends Migration
             $table->foreignUuid('customer_id')->nullable()->constrained('customers')->nullOnDelete();
             $table->foreignUuid('cash_register_session_id')->nullable()->constrained('cash_register_sessions')->nullOnDelete();
             $table->foreignUuid('commission_agent_id')->nullable()->constrained('users')->nullOnDelete();
-            $table->foreignUuid('parent_sale_id')->nullable()->constrained('sales')->nullOnDelete();
+            $table->uuid('parent_sale_id')->nullable();
             $table->foreignUuid('created_by')->nullable()->constrained('users')->nullOnDelete();
             $table->string('sale_number', 50);
             $table->enum('type', ['pos_sale', 'invoice', 'draft', 'quotation', 'suspended'])->default('draft');
@@ -78,6 +78,10 @@ return new class extends Migration
             $table->index(['business_id', 'status', 'created_at'], 'sales_business_status_created_idx');
             $table->index(['business_id', 'payment_status', 'due_date'], 'sales_business_payment_due_idx');
             $table->index(['business_id', 'customer_id', 'created_at'], 'sales_business_customer_created_idx');
+        });
+
+        Schema::table('sales', function (Blueprint $table): void {
+            $table->foreign('parent_sale_id')->references('id')->on('sales')->nullOnDelete();
         });
 
         Schema::create('sale_items', function (Blueprint $table): void {

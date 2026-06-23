@@ -11,7 +11,7 @@ return new class extends Migration
         Schema::create('chart_of_accounts', function (Blueprint $table): void {
             $table->uuid('id')->primary();
             $table->foreignUuid('business_id')->constrained('businesses')->cascadeOnDelete();
-            $table->foreignUuid('parent_id')->nullable()->constrained('chart_of_accounts')->nullOnDelete();
+            $table->uuid('parent_id')->nullable();
             $table->string('code', 20);
             $table->string('name', 255);
             $table->enum('type', ['asset', 'liability', 'equity', 'revenue', 'expense']);
@@ -25,6 +25,10 @@ return new class extends Migration
 
             $table->unique(['business_id', 'code'], 'chart_of_accounts_business_code_unique');
             $table->index(['business_id', 'type', 'is_active'], 'chart_of_accounts_type_active_idx');
+        });
+
+        Schema::table('chart_of_accounts', function (Blueprint $table): void {
+            $table->foreign('parent_id')->references('id')->on('chart_of_accounts')->nullOnDelete();
         });
 
         Schema::create('fiscal_years', function (Blueprint $table): void {
@@ -81,12 +85,16 @@ return new class extends Migration
             $table->decimal('total_amount', 15, 2)->default(0);
             $table->timestamp('posted_at')->useCurrent();
             $table->foreignUuid('posted_by')->nullable()->constrained('users')->nullOnDelete();
-            $table->foreignUuid('reversed_by_id')->nullable()->constrained('journals')->nullOnDelete();
+            $table->uuid('reversed_by_id')->nullable();
             $table->timestamp('created_at')->useCurrent();
 
             $table->unique(['business_id', 'journal_number'], 'journals_business_number_unique');
             $table->index(['business_id', 'type', 'posted_at'], 'journals_business_type_posted_idx');
             $table->index(['reference_type', 'reference_id'], 'journals_reference_idx');
+        });
+
+        Schema::table('journals', function (Blueprint $table): void {
+            $table->foreign('reversed_by_id')->references('id')->on('journals')->nullOnDelete();
         });
 
         Schema::create('journal_entries', function (Blueprint $table): void {

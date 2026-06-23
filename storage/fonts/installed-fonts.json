@@ -1,8 +1,8 @@
 {
     "kantumruy pro": {
-        "300": "D:\\Project\\erp-system\\storage\\fonts\/kantumruy_pro_300_131cc27e5b3d6b48cfc357d123d6a6a8",
-        "normal": "D:\\Project\\erp-system\\storage\\fonts\/kantumruy_pro_normal_002ba06437be067393a1c99ea802549b",
-        "600": "D:\\Project\\erp-system\\storage\\fonts\/kantumruy_pro_600_b395b4ddcee6843fe35eaa9471dc3cd5",
-        "bold": "kantumruy_pro_bold_a968fb499e17b9db6feaf7a5ae55da6f"
+        "300": "\/home\/vundev\/Projects\/pos-erp-system\/storage\/fonts\/kantumruy_pro_300_c986950c2687a7870902034f80906a67",
+        "normal": "\/home\/vundev\/Projects\/pos-erp-system\/storage\/fonts\/kantumruy_pro_normal_d60506fd8bdca7b3830231fd6aad38a1",
+        "600": "\/home\/vundev\/Projects\/pos-erp-system\/storage\/fonts\/kantumruy_pro_600_4cbb04d6b0f3785e300454c2e75a38a0",
+        "bold": "kantumruy_pro_bold_3304cbb83520da32034b6be5f4773472"
     }
 }

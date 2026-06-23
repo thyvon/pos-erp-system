@@ -23,7 +23,7 @@ return new class extends Migration
             $table->date('payment_date');
             $table->text('note')->nullable();
             $table->enum('status', ['completed', 'reversed'])->default('completed');
-            $table->foreignUuid('replaces_payment_id')->nullable()->constrained('purchase_payments');
+            $table->uuid('replaces_payment_id')->nullable();
             $table->foreignUuid('reversed_by')->nullable()->constrained('users');
             $table->timestamp('reversed_at')->nullable();
             $table->text('reversal_reason')->nullable();
@@ -32,6 +32,10 @@ return new class extends Migration
 
             $table->index(['business_id', 'purchase_id'], 'purchase_payments_business_purchase_idx');
             $table->index(['purchase_id', 'status'], 'purchase_payments_purchase_status_idx');
+        });
+
+        Schema::table('purchase_payments', function (Blueprint $table): void {
+            $table->foreign('replaces_payment_id')->references('id')->on('purchase_payments');
         });
     }
 
