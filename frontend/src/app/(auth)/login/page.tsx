@@ -1,7 +1,6 @@
 'use client'
 
 import { useState } from 'react'
-import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { useTranslation } from 'react-i18next'
 import { useForm } from 'react-hook-form'
@@ -44,7 +43,6 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false)
   const [serverError, setServerError] = useState('')
   const loginMutation = useLoginMutation()
-  const router = useRouter()
   const { t } = useTranslation('auth')
 
   const {
@@ -67,8 +65,6 @@ export default function LoginPage() {
         email: data.email,
         password: data.password,
       })
-      router.replace('/dashboard')
-      router.refresh()
     } catch (err) {
       const error = toAppApiError(err)
       setServerError(error.status === 422 ? t('login.error.invalidCredentials') : error.message)
