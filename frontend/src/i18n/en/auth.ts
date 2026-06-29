@@ -42,7 +42,7 @@ export default {
     inventorySynced: 'Inventory synced',
     cashControl: 'Cash control',
     currentStatus: 'Current status',
-    welcomeBack: 'Welcome Back',
+    welcomeBack: 'Hi, Welcome Back',
   },
 
   // Forgot Password Page

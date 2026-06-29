@@ -98,34 +98,6 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
           })}
         >
           <Stack spacing={4}>
-            {/* Brand */}
-            <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', minWidth: 0 }}>
-              <Box
-                sx={(theme) => ({
-                  width: 40,
-                  height: 40,
-                  borderRadius: `${theme.shape.borderRadius}px`,
-                  display: 'grid',
-                  placeItems: 'center',
-                  bgcolor: 'primary.main',
-                  color: 'primary.contrastText',
-                  fontSize: 20,
-                  fontWeight: 900,
-                  boxShadow: `0 16px 32px -18px ${alpha(theme.palette.primary.main, 0.9)}`,
-                })}
-              >
-                E
-              </Box>
-              <Box sx={{ minWidth: 0 }}>
-                <Typography variant="subtitle1" sx={{ fontWeight: 900, lineHeight: 1.1 }}>
-                  ERP System
-                </Typography>
-                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                  Business platform
-                </Typography>
-              </Box>
-            </Stack>
-
             {/* Form */}
             {children}
           </Stack>
@@ -140,6 +112,45 @@ export default function AuthLayout({ children }: { children: React.ReactNode }) 
       </Box>
 
       <LayoutSettings />
+
+      {/* Top-left logo */}
+      <Stack
+        direction="row"
+        spacing={1.5}
+        sx={{
+          position: 'fixed',
+          top: 16,
+          left: 24,
+          zIndex: 1500,
+          alignItems: 'center',
+          minWidth: 0,
+        }}
+      >
+        <Box
+          sx={(theme) => ({
+            width: 34,
+            height: 34,
+            borderRadius: `${theme.shape.borderRadius}px`,
+            display: 'grid',
+            placeItems: 'center',
+            bgcolor: 'primary.main',
+            color: 'primary.contrastText',
+            fontSize: 16,
+            fontWeight: 900,
+            boxShadow: `0 16px 32px -18px ${alpha(theme.palette.primary.main, 0.9)}`,
+          })}
+        >
+          E
+        </Box>
+        <Box sx={{ minWidth: 0, display: { xs: 'none', sm: 'block' } }}>
+          <Typography variant="subtitle1" sx={{ fontWeight: 900, lineHeight: 1.1 }}>
+            ERP System
+          </Typography>
+          <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+            Business platform
+          </Typography>
+        </Box>
+      </Stack>
 
       <Tooltip title="Layout settings">
         <IconButton
