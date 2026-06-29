@@ -35,7 +35,7 @@ return new class extends Migration
         });
 
         Schema::table('purchase_payments', function (Blueprint $table): void {
-            $table->foreign('replaces_payment_id')->references('id')->on('purchase_payments');
+            $table->foreign('replaces_payment_id')->references('id')->on('purchase_payments')->deferrable()->initiallyDeferred();
         });
     }
 

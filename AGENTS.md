@@ -37,6 +37,7 @@ Keep this file short. Use the plan docs for detail.
   - Tenant users with no assigned branches get `403 No branch access assigned`.
 - Keep authorization in middleware/controllers/policies, not primarily in services.
 - Add or update tests when backend behavior changes.
+- **PostgreSQL**: The project is PostgreSQL-only. Never write MySQL-specific SQL. Use Laravel's query builder for portability. Raw SQL in migrations must be gated with `DB::getDriverName() !== 'pgsql'` when PG-only or version-checked otherwise. Prefer new migration files for runtime fixes rather than modifying run migrations.
 
 ## Frontend Rules
 

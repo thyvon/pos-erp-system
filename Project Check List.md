@@ -16,6 +16,17 @@
 - [x] Added a PostgreSQL baseline feature test covering the database driver, `pg_trgm`, critical integrity/search indexes, transfer-status default, and case-insensitive search.
 - [ ] Run `docker compose --profile test up -d postgres-test` and the full backend suite on a machine with Docker before release.
 
+## PostgreSQL Audit & Hardening
+
+- [x] Fixed `useCurrentOnUpdate()` silently ignored in PG by adding a `BEFORE UPDATE` trigger on `stock_levels.updated_at` (`2026_06_29_000001_fix_postgresql_updated_at_triggers.php`).
+- [x] Made self-referencing FK on `purchase_payments.replaces_payment_id` DEFERRABLE INITIALLY DEFERRED for PostgreSQL circular FK safety (`2026_06_29_000002_fix_self_referencing_fk_deferrable.php`).
+- [x] Added non-negative CHECK constraints for all `unsigned*` integer columns (jobs, businesses, customers, etc.) and explicit CHECK constraints for enum columns not previously hardened (`2026_06_29_000003_add_postgresql_check_constraints.php`).
+- [x] Added CHECK constraints to `purchases.discount_type` and `purchase_items.discount_type` to match sales enum validation.
+- [x] Added PostgreSQL version guard for `NULLS NOT DISTINCT` syntax (requires PG ≥ 15) in hardening migration.
+- [x] Added `deferrable()->initiallyDeferred()` to original purchase_payments migration for fresh installs.
+- [x] Fixed N+1 queries in SaleReturnRepository, StockTransferRepository, StockAdjustmentRepository by pre-loading nested item relations that resources require.
+- [x] Updated Project Check List and AGENTS.md with audit completion.
+
 ## Catalog Frontend Rebuild
 
 - [x] Units page, form, API hooks, types, and translations are present.

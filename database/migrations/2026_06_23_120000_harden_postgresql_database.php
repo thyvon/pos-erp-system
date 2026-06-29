@@ -17,11 +17,25 @@ return new class extends Migration
         DB::statement("ALTER TABLE stock_transfers ADD CONSTRAINT stock_transfers_status_check CHECK (status IN ('completed', 'pending', 'in_transit', 'received'))");
         DB::statement("ALTER TABLE stock_transfers ALTER COLUMN status SET DEFAULT 'pending'");
 
+        // NULLS NOT DISTINCT requires PostgreSQL >= 15 (Docker uses 16, but guard for safety).
+        $pgVersion = DB::connection()->getServerVersion();
+        $supportsNullsNotDistinct = version_compare($pgVersion, '15', '>=');
+
         DB::statement('ALTER TABLE stock_levels DROP CONSTRAINT IF EXISTS stock_levels_unique_idx');
         DB::statement('DROP INDEX IF EXISTS stock_levels_unique_idx');
-        DB::statement('CREATE UNIQUE INDEX stock_levels_unique_idx ON stock_levels (business_id, product_id, variation_id, warehouse_id) NULLS NOT DISTINCT');
+        if ($supportsNullsNotDistinct) {
+            DB::statement('CREATE UNIQUE INDEX stock_levels_unique_idx ON stock_levels (business_id, product_id, variation_id, warehouse_id) NULLS NOT DISTINCT');
+        } else {
+            DB::statement('CREATE UNIQUE INDEX stock_levels_unique_idx ON stock_levels (business_id, product_id, variation_id, warehouse_id)');
+        }
 
-        DB::statement('CREATE UNIQUE INDEX warehouse_product_settings_active_unique_idx ON warehouse_product_settings (business_id, warehouse_id, product_id, variation_id) NULLS NOT DISTINCT WHERE deleted_at IS NULL');
+        if ($supportsNullsNotDistinct) {
+            DB::statement('CREATE UNIQUE INDEX warehouse_product_settings_active_unique_idx ON warehouse_product_settings (business_id, warehouse_id, product_id, variation_id) NULLS NOT DISTINCT WHERE deleted_at IS NULL');
+        } else {
+            // Without NULLS NOT DISTINCT, the unique index treats NULL as a distinct value,
+            // so multiple deleted rows with NULL varied columns won't violate uniqueness.
+            DB::statement('CREATE UNIQUE INDEX warehouse_product_settings_active_unique_idx ON warehouse_product_settings (business_id, warehouse_id, product_id, variation_id) WHERE deleted_at IS NULL');
+        }
 
         foreach ($this->partialUniqueIndexes() as $name => $definition) {
             DB::statement("CREATE UNIQUE INDEX IF NOT EXISTS {$name} ON {$definition}");

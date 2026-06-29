@@ -20,7 +20,7 @@ class StockAdjustmentRepository extends BaseRepository
         $perPage = max(1, min((int) ($filters['per_page'] ?? 15), 100));
 
         $query = $this->query()
-            ->with(['warehouse.branch', 'creator'])
+            ->with(['warehouse.branch', 'creator', 'items.product', 'items.variation', 'items.lot', 'items.serial'])
             ->when(
                 filled($filters['search'] ?? null),
                 function ($query) use ($filters): void {

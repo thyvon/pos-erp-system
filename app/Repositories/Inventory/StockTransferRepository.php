@@ -20,7 +20,7 @@ class StockTransferRepository extends BaseRepository
         $perPage = max(1, min((int) ($filters['per_page'] ?? 15), 100));
 
         $query = $this->query()
-            ->with(['fromWarehouse.branch', 'toWarehouse.branch', 'creator', 'sender', 'receiver'])
+            ->with(['fromWarehouse.branch', 'toWarehouse.branch', 'creator', 'sender', 'receiver', 'items.product', 'items.variation', 'items.lot', 'items.serial'])
             ->when(
                 filled($filters['search'] ?? null),
                 function ($query) use ($filters): void {
