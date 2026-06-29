@@ -152,7 +152,10 @@ export default function LoginPage() {
             }}
           />
 
-          <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between', gap: 2 }}>
+          <Stack
+            direction={{ xs: 'column', sm: 'row' }}
+            sx={{ alignItems: { xs: 'flex-start', sm: 'center' }, justifyContent: 'space-between', gap: 1 }}
+          >
             <FormControlLabel
               control={<Checkbox size="small" />}
               label={t('login.rememberMe')}
@@ -172,7 +175,6 @@ export default function LoginPage() {
                 color: 'text.primary',
                 fontWeight: 700,
                 fontSize: '0.875rem',
-                whiteSpace: 'nowrap',
                 '&:hover': { color: 'primary.main' },
               }}
             >
@@ -183,7 +185,6 @@ export default function LoginPage() {
           <Button
             type="submit"
             fullWidth
-            size="large"
             variant="contained"
             disabled={isSubmitting || loginMutation.isPending}
             sx={(theme) => ({

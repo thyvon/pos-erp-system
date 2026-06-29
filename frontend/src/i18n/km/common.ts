@@ -53,6 +53,8 @@ export default {
     inherit: 'តាមប្រព័ន្ធ',
     content: 'មាតិកា',
     stretchContent: 'ពង្រីកទទឹងមាតិកា',
+    standard: 'ស្តង់ដារ',
+    stretch: 'ពង្រីក',
     resetToDefault: 'កំណត់ទៅលំនាំដើម',
     useColorPreset: 'ប្រើពណ៌ {{name}}',
     colorGreen: 'បៃតង',
@@ -61,5 +63,7 @@ export default {
     colorBlue: 'ខៀវ',
     colorOrange: 'ទឹកក្រូច',
     colorRed: 'ក្រហម',
+    fullscreen: 'ពេញអេក្រង់',
+    exitFullscreen: 'ចាកចេញពីពេញអេក្រង់',
   },
 }

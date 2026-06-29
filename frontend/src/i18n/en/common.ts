@@ -53,6 +53,8 @@ export default {
     inherit: 'Inherit',
     content: 'Content',
     stretchContent: 'Stretch content width',
+    standard: 'Standard',
+    stretch: 'Stretch',
     resetToDefault: 'Reset to default',
     useColorPreset: 'Use {{name}} color preset',
     colorGreen: 'Green',
@@ -61,5 +63,7 @@ export default {
     colorBlue: 'Blue',
     colorOrange: 'Orange',
     colorRed: 'Red',
+    fullscreen: 'Full screen',
+    exitFullscreen: 'Exit full screen',
   },
 }

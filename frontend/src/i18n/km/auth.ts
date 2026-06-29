@@ -42,6 +42,7 @@ export default {
     inventorySynced: 'ស្តុកបានធ្វើសមកាលកម្ម',
     cashControl: 'ការគ្រប់គ្រងសាច់ប្រាក់',
     currentStatus: 'ស្ថានភាពបច្ចុប្បន្ន',
+    welcomeBack: 'សូមស្វាគមន៍ត្រលប់មកវិញ',
   },
 
   // Forgot Password Page

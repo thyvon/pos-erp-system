@@ -1,15 +1,12 @@
 'use client'
 
-import type { ReactNode } from 'react'
+import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import {
   Box,
   Button,
-  Divider,
   Drawer,
-  FormControlLabel,
   Slider,
   Stack,
-  Switch,
   Tooltip,
   ToggleButton,
   ToggleButtonGroup,
@@ -18,14 +15,12 @@ import {
   useTheme,
 } from '@mui/material'
 import {
-  Close,
   DarkModeOutlined,
   LanguageOutlined,
   LightModeOutlined,
   HistoryOutlined,
   MonitorOutlined,
   PaletteOutlined,
-  SettingsOutlined,
   StraightenOutlined,
   TextFieldsOutlined,
   TuneOutlined,
@@ -227,6 +222,21 @@ export default function LayoutSettings() {
   const contentStretch = useUIStore((state) => state.contentStretch)
   const setContentStretch = useUIStore((state) => state.setContentStretch)
   const resetLayoutSettings = useUIStore((state) => state.resetLayoutSettings)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+
+  const toggleFullscreen = useCallback(() => {
+    if (!document.fullscreenElement) {
+      document.documentElement.requestFullscreen()
+    } else {
+      document.exitFullscreen()
+    }
+  }, [])
+
+  useEffect(() => {
+    const handler = () => setIsFullscreen(!!document.fullscreenElement)
+    document.addEventListener('fullscreenchange', handler)
+    return () => document.removeEventListener('fullscreenchange', handler)
+  }, [])
 
   return (
     <Drawer
@@ -247,135 +257,98 @@ export default function LayoutSettings() {
       slotProps={{
         backdrop: {
           sx: {
-            bgcolor: alpha(theme.palette.common.black, theme.palette.mode === 'dark' ? 0.32 : 0.14),
+            bgcolor: alpha(theme.palette.common.black, theme.palette.mode === 'dark' ? 0.4 : 0.2),
           },
         },
         paper: {
           sx: {
-            width: { xs: '100%', sm: 360 },
+            width: { xs: '100%', sm: 380 },
             maxWidth: '100vw',
             height: '100dvh',
-            backgroundColor: alpha(theme.palette.background.paper, theme.palette.mode === 'dark' ? 0.96 : 0.98),
+            backgroundColor: alpha(
+              theme.palette.mode === 'dark' ? '#1C252E' : '#F4F6F8',
+              theme.palette.mode === 'dark' ? 0.92 : 0.88
+            ),
             backgroundImage: 'none',
-            borderLeft: `1px solid ${alpha(theme.palette.grey[500], theme.palette.mode === 'dark' ? 0.24 : 0.16)}`,
+            backdropFilter: 'blur(40px)',
+            WebkitBackdropFilter: 'blur(40px)',
+            borderLeft: `1px solid ${alpha(theme.palette.divider, 0.1)}`,
             boxShadow: `-24px 0 48px -20px ${alpha(theme.palette.common.black, theme.palette.mode === 'dark' ? 0.48 : 0.24)}`,
             zIndex: (theme) => theme.zIndex.modal + 1,
           },
         },
       }}
     >
-      <Stack sx={{ height: '100%' }}>
-        <Stack
-          direction="row"
-          sx={{
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            px: 2,
-            py: 1.5,
-            flexShrink: 0,
-            backgroundColor: alpha(theme.palette.background.paper, theme.palette.mode === 'dark' ? 0.86 : 0.92),
-          }}
-        >
-          <Stack direction="row" spacing={1.5} sx={{ alignItems: 'center', minWidth: 0 }}>
+      <Stack sx={{ height: '100%', overflow: 'hidden' }}>
+        <Stack spacing={2.5} sx={{ p: 2.5, overflowY: 'auto', overflowX: 'hidden', flex: '1 1 auto' }}>
+          {/* Theme Mode + Language row */}
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
             <Box
-              sx={(theme) => ({
-                width: 36,
-                height: 36,
-                borderRadius: `${theme.shape.borderRadius}px`,
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                color: 'primary.main',
-                bgcolor: alpha(theme.palette.primary.main, 0.1),
-              })}
+              sx={{
+                p: 1.5,
+                borderRadius: 3,
+                bgcolor: alpha(theme.palette.grey[500], 0.12),
+              }}
             >
-              <SettingsOutlined />
+              <SectionTitle
+                icon={<LightModeOutlined fontSize="small" />}
+                label={t('layoutSettings.themeMode')}
+              />
+              <ToggleButtonGroup
+                exclusive
+                fullWidth
+                value={themeMode}
+                onChange={(_, value) => value && setTheme(value)}
+                sx={{ ...settingsSegmentGroupSx, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}
+              >
+                <ToggleButton value="light" sx={settingsToggleButtonSx}>
+                  <LightModeOutlined fontSize="small" />
+                </ToggleButton>
+                <ToggleButton value="dark" sx={settingsToggleButtonSx}>
+                  <DarkModeOutlined fontSize="small" />
+                </ToggleButton>
+              </ToggleButtonGroup>
             </Box>
-            <Box sx={{ minWidth: 0 }}>
-              <Typography variant="subtitle1">{t('layoutSettings.title')}</Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                {t('layoutSettings.subtitle')}
-              </Typography>
+            <Box
+              sx={{
+                p: 1.5,
+                borderRadius: 3,
+                bgcolor: alpha(theme.palette.grey[500], 0.12),
+              }}
+            >
+              <SectionTitle
+                icon={<LanguageOutlined fontSize="small" />}
+                label={t('layoutSettings.language')}
+              />
+              <ToggleButtonGroup
+                exclusive
+                fullWidth
+                value={language}
+                onChange={(_, value) => value && setLanguage(value)}
+                sx={{ ...settingsSegmentGroupSx, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}
+              >
+                <ToggleButton value="en" sx={settingsToggleButtonSx}>EN</ToggleButton>
+                <ToggleButton value="km" sx={settingsToggleButtonSx}>KH</ToggleButton>
+              </ToggleButtonGroup>
             </Box>
-          </Stack>
-          <Button
-            variant="text"
-            color="inherit"
-            onClick={() => setSettingsOpen(false)}
+          </Box>
+
+          {/* Theme Colors */}
+          <Box
             sx={{
-              minWidth: 'var(--app-control-height)',
-              width: 'var(--app-control-height)',
-              height: 'var(--app-control-height)',
-              p: 0,
+              p: 1.5,
+              borderRadius: 3,
+              bgcolor: alpha(theme.palette.grey[500], 0.12),
             }}
           >
-            <Close fontSize="small" />
-          </Button>
-        </Stack>
-
-        <Divider sx={{ flexShrink: 0, borderColor: alpha(theme.palette.grey[500], 0.16) }} />
-
-        <Stack spacing={2.5} sx={{ p: 2, overflowY: 'auto', overflowX: 'hidden', flex: '1 1 auto' }}>
-          <Box>
-            <SectionTitle
-              icon={<LightModeOutlined fontSize="small" />}
-              label={t('layoutSettings.themeMode')}
-            />
-            <ToggleButtonGroup
-              exclusive
-              fullWidth
-              value={themeMode}
-              onChange={(_, value) => value && setTheme(value)}
-              sx={{ ...settingsSegmentGroupSx, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}
-            >
-              <ToggleButton value="light" sx={settingsToggleButtonSx}>
-                <LightModeOutlined fontSize="small" />
-                <Box component="span">
-                  {t('layoutSettings.light')}
-                </Box>
-              </ToggleButton>
-              <ToggleButton value="dark" sx={settingsToggleButtonSx}>
-                <DarkModeOutlined fontSize="small" />
-                <Box component="span">
-                  {t('layoutSettings.dark')}
-                </Box>
-              </ToggleButton>
-            </ToggleButtonGroup>
-          </Box>
-
-          <Box>
-            <SectionTitle
-              icon={<LanguageOutlined fontSize="small" />}
-              label={t('layoutSettings.language')}
-            />
-            <ToggleButtonGroup
-              exclusive
-              fullWidth
-              value={language}
-              onChange={(_, value) => value && setLanguage(value)}
-              sx={{ ...settingsSegmentGroupSx, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}
-            >
-              <ToggleButton value="en" sx={settingsToggleButtonSx}>English</ToggleButton>
-              <ToggleButton value="km" sx={settingsToggleButtonSx}>ខ្មែរ</ToggleButton>
-            </ToggleButtonGroup>
-          </Box>
-
-          <Box>
             <SectionTitle
               icon={<PaletteOutlined fontSize="small" />}
               label={t('layoutSettings.themeColor')}
             />
-            <Box
-              sx={{
-                display: 'flex',
-                flexWrap: 'wrap',
-                gap: 1,
-              }}
-            >
+            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
               {THEME_COLOR_PRESETS.map((preset) => {
                 const selected = colorPreset === preset.value
                 const presetLabel = t(preset.labelKey)
-
                 return (
                   <SwatchButton
                     key={preset.value}
@@ -390,79 +363,92 @@ export default function LayoutSettings() {
             </Box>
           </Box>
 
-          <Box>
-            <SectionTitle
-              icon={<TextFieldsOutlined fontSize="small" />}
-              label={t('layoutSettings.fontFamily')}
-            />
-            <Stack spacing={1}>
-              {ENGLISH_FONT_OPTIONS.map((option) => (
-                <Button
-                  key={option.value}
-                  fullWidth
-                  variant={fontPreset === option.value ? 'contained' : 'outlined'}
-                  onClick={() => setFontPreset(option.value)}
-                  sx={{
-                    ...settingsButtonSx,
-                    justifyContent: 'flex-start',
-                    fontFamily: `"${option.family}", "Kantumruy Pro", sans-serif`,
-                  }}
-                >
-                  {option.label}
-                </Button>
-              ))}
-            </Stack>
-          </Box>
-
-          <Box>
-            <SectionTitle
-              icon={<StraightenOutlined fontSize="small" />}
-              label={t('layoutSettings.size')}
-            />
-            <ToggleButtonGroup
-              exclusive
-              fullWidth
-              value={layoutSize}
-              onChange={(_, value) => value && setLayoutSize(value)}
-              sx={{ ...settingsSegmentGroupSx, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}
+          {/* Font + Size row */}
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
+            <Box
+              sx={{
+                p: 1.5,
+                borderRadius: 3,
+                bgcolor: alpha(theme.palette.grey[500], 0.12),
+              }}
             >
-              {LAYOUT_SIZE_OPTIONS.map((option) => (
-                <ToggleButton key={option.value} value={option.value} sx={settingsToggleButtonSx}>
-                  {t(option.labelKey)}
-                </ToggleButton>
-              ))}
-            </ToggleButtonGroup>
+              <SectionTitle
+                icon={<TextFieldsOutlined fontSize="small" />}
+                label={t('layoutSettings.fontFamily')}
+              />
+              <Stack spacing={0.75}>
+                {ENGLISH_FONT_OPTIONS.map((option) => (
+                  <Button
+                    key={option.value}
+                    fullWidth
+                    variant={fontPreset === option.value ? 'contained' : 'outlined'}
+                    onClick={() => setFontPreset(option.value)}
+                    startIcon={<TextFieldsOutlined />}
+                    sx={{
+                      ...settingsButtonSx,
+                      justifyContent: 'flex-start',
+                      fontFamily: `"${option.family}", "Kantumruy Pro", sans-serif`,
+                      fontSize: '0.8rem',
+                    }}
+                  >
+                    {option.label}
+                  </Button>
+                ))}
+              </Stack>
+            </Box>
+            <Box
+              sx={{
+                p: 1.5,
+                borderRadius: 3,
+                bgcolor: alpha(theme.palette.grey[500], 0.12),
+              }}
+            >
+              <SectionTitle
+                icon={<StraightenOutlined fontSize="small" />}
+                label={t('layoutSettings.size')}
+              />
+              <ToggleButtonGroup
+                exclusive
+                fullWidth
+                value={layoutSize}
+                onChange={(_, value) => value && setLayoutSize(value)}
+                sx={{ ...settingsSegmentGroupSx, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }}
+              >
+                {LAYOUT_SIZE_OPTIONS.map((option) => (
+                  <ToggleButton key={option.value} value={option.value} sx={{ ...settingsToggleButtonSx, fontSize: '0.75rem' }}>
+                    {t(option.labelKey)}
+                  </ToggleButton>
+                ))}
+              </ToggleButtonGroup>
+            </Box>
           </Box>
 
-          <Box>
+          {/* Corner Radius */}
+          <Box
+            sx={{
+              p: 1.5,
+              borderRadius: 3,
+              bgcolor: alpha(theme.palette.grey[500], 0.12),
+            }}
+          >
             <SectionTitle
               icon={<TuneOutlined fontSize="small" />}
               label={t('layoutSettings.cornerRadius')}
             />
-            <Stack
-              spacing={1.25}
-              sx={{
-                px: 1.5,
-                py: 1.25,
-                borderRadius: `${theme.shape.borderRadius}px`,
-                border: `1px solid ${theme.palette.divider}`,
-                bgcolor: alpha(theme.palette.grey[500], 0.04),
-              }}
-            >
+            <Stack spacing={1.25} sx={{ px: 0.5 }}>
               <Stack direction="row" sx={{ alignItems: 'center', justifyContent: 'space-between' }}>
-                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
                   {borderRadiusLevel === 0
                     ? t('layoutSettings.radiusNone')
                     : t('layoutSettings.radiusValue', { value: borderRadiusLevel })}
                 </Typography>
                 <Box
                   sx={{
-                    width: 34,
-                    height: 24,
+                    width: 28,
+                    height: 20,
                     border: `1px solid ${theme.palette.divider}`,
                     borderRadius: `${borderRadiusLevel}px`,
                     bgcolor: 'background.paper',
-                    boxShadow: `inset 0 0 0 1px ${alpha(theme.palette.primary.main, 0.08)}`,
                   }}
                 />
               </Stack>
@@ -472,32 +458,26 @@ export default function LayoutSettings() {
                 min={BORDER_RADIUS_MIN}
                 max={BORDER_RADIUS_MAX}
                 step={BORDER_RADIUS_STEP}
-                marks={[
-                  { value: BORDER_RADIUS_MIN, label: '0' },
-                  { value: 8, label: '8' },
-                  { value: BORDER_RADIUS_MAX, label: String(BORDER_RADIUS_MAX) },
-                ]}
+                size="small"
                 valueLabelDisplay="auto"
                 aria-label={t('layoutSettings.cornerRadius')}
               />
             </Stack>
           </Box>
 
-          <Box>
+          {/* Navigation */}
+          <Box
+            sx={{
+              p: 1.5,
+              borderRadius: 3,
+              bgcolor: alpha(theme.palette.grey[500], 0.12),
+            }}
+          >
             <SectionTitle
               icon={<ViewSidebarOutlined fontSize="small" />}
               label={t('layoutSettings.navigation')}
             />
-            <Stack
-              direction="row"
-              spacing={1}
-              sx={{
-                p: 1,
-                borderRadius: `${theme.shape.borderRadius}px`,
-                border: `1px solid ${theme.palette.divider}`,
-                bgcolor: alpha(theme.palette.grey[500], 0.04),
-              }}
-            >
+            <Stack direction="row" spacing={1}>
               <Button
                 fullWidth
                 variant={sidebarOpen ? 'contained' : 'outlined'}
@@ -519,67 +499,164 @@ export default function LayoutSettings() {
             </Stack>
           </Box>
 
-          <Box>
-            <SectionTitle
-              icon={<ViewSidebarOutlined fontSize="small" />}
-              label={t('layoutSettings.sidebarTheme')}
-            />
-            <SurfaceThemePicker
-              value={sidebarTheme}
-              onChange={setSidebarTheme}
-              ariaLabel={t('layoutSettings.sidebarTheme')}
-            />
+          {/* Sidebar + Topbar themes row */}
+          <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1.5 }}>
+            <Box
+              sx={{
+                p: 1.5,
+                borderRadius: 3,
+                bgcolor: alpha(theme.palette.grey[500], 0.12),
+              }}
+            >
+              <SectionTitle
+                icon={<ViewSidebarOutlined fontSize="small" />}
+                label={t('layoutSettings.sidebarTheme')}
+              />
+              <SurfaceThemePicker
+                value={sidebarTheme}
+                onChange={setSidebarTheme}
+                ariaLabel={t('layoutSettings.sidebarTheme')}
+              />
+            </Box>
+            <Box
+              sx={{
+                p: 1.5,
+                borderRadius: 3,
+                bgcolor: alpha(theme.palette.grey[500], 0.12),
+              }}
+            >
+              <SectionTitle
+                icon={<MonitorOutlined fontSize="small" />}
+                label={t('layoutSettings.topbarTheme')}
+              />
+              <SurfaceThemePicker
+                value={topbarTheme}
+                onChange={setTopbarTheme}
+                ariaLabel={t('layoutSettings.topbarTheme')}
+              />
+            </Box>
           </Box>
 
-          <Box>
-            <SectionTitle
-              icon={<MonitorOutlined fontSize="small" />}
-              label={t('layoutSettings.topbarTheme')}
-            />
-            <SurfaceThemePicker
-              value={topbarTheme}
-              onChange={setTopbarTheme}
-              ariaLabel={t('layoutSettings.topbarTheme')}
-            />
-          </Box>
-
-          <Box>
+          {/* Content */}
+          <Box
+            sx={{
+              p: 1.5,
+              borderRadius: 3,
+              bgcolor: alpha(theme.palette.grey[500], 0.12),
+            }}
+          >
             <SectionTitle
               icon={<TuneOutlined fontSize="small" />}
               label={t('layoutSettings.content')}
             />
-            <FormControlLabel
-              control={
-                <Switch
-                  checked={contentStretch}
-                  onChange={(event) => setContentStretch(event.target.checked)}
-                />
-              }
-              label={t('layoutSettings.stretchContent')}
-            />
+            <Stack direction="row" spacing={1} sx={{ justifyContent: 'center' }}>
+              <Box
+                component="button"
+                type="button"
+                onClick={() => setContentStretch(!contentStretch)}
+                title={contentStretch ? t('layoutSettings.standard') : t('layoutSettings.stretch')}
+                sx={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 2.5,
+                  border: '1px solid',
+                  borderColor: alpha(theme.palette.divider, 0.2),
+                  bgcolor: alpha(theme.palette.grey[500], 0.12),
+                  color: 'text.secondary',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  '&:hover': { bgcolor: alpha(theme.palette.grey[500], 0.14) },
+                }}
+              >
+                {contentStretch ? (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <rect x="3" y="5" width="18" height="14" rx="1" />
+                    <path d="M3 10h18" /><path d="M3 14h18" />
+                  </svg>
+                ) : (
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
+                    <path d="M2 6h20" /><path d="M2 10h20" /><path d="M2 14h20" /><path d="M2 18h20" />
+                  </svg>
+                )}
+              </Box>
+              <Box
+                component="button"
+                onClick={toggleFullscreen}
+                title={isFullscreen ? t('layoutSettings.exitFullscreen') : t('layoutSettings.fullscreen')}
+                sx={{
+                  width: 44,
+                  height: 44,
+                  borderRadius: 2.5,
+                  border: '1px solid',
+                  borderColor: alpha(theme.palette.divider, 0.2),
+                  bgcolor: isFullscreen
+                    ? alpha(theme.palette.primary.main, 0.12)
+                    : alpha(theme.palette.grey[500], 0.12),
+                  color: isFullscreen ? 'primary.main' : 'text.secondary',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  '&:hover': {
+                    bgcolor: isFullscreen
+                      ? alpha(theme.palette.primary.main, 0.2)
+                      : alpha(theme.palette.grey[500], 0.14),
+                  },
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round">
+                  {isFullscreen ? (
+                    <>
+                      <path d="M8 3v3a2 2 0 01-2 2H3" />
+                      <path d="M21 8h-3a2 2 0 01-2-2V3" />
+                      <path d="M16 21v-3a2 2 0 012-2h3" />
+                      <path d="M3 16h3a2 2 0 012 2v3" />
+                    </>
+                  ) : (
+                    <>
+                      <path d="M8 3H5a2 2 0 00-2 2v3" />
+                      <path d="M21 8V5a2 2 0 00-2-2h-3" />
+                      <path d="M16 21h3a2 2 0 002-2v-3" />
+                      <path d="M3 16v3a2 2 0 002 2h3" />
+                    </>
+                  )}
+                </svg>
+              </Box>
+              <Box
+                component="button"
+                type="button"
+                onClick={resetLayoutSettings}
+                title={t('layoutSettings.resetToDefault')}
+                sx={(theme) => ({
+                  width: 44,
+                  height: 44,
+                  borderRadius: 2.5,
+                  border: '1px solid',
+                  borderColor: alpha(theme.palette.divider, 0.2),
+                  bgcolor: alpha(theme.palette.grey[500], 0.12),
+                  color: 'text.secondary',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  cursor: 'pointer',
+                  transition: 'all 0.2s',
+                  fontSize: 'calc(var(--app-control-height) * 0.45)',
+                  '&:hover': {
+                    bgcolor: alpha(theme.palette.error.main, 0.08),
+                    color: 'error.main',
+                    borderColor: alpha(theme.palette.error.main, 0.2),
+                  },
+                })}
+              >
+                <HistoryOutlined fontSize="inherit" />
+              </Box>
+            </Stack>
           </Box>
         </Stack>
-
-        <Divider sx={{ flexShrink: 0, borderColor: alpha(theme.palette.grey[500], 0.16) }} />
-
-        <Box
-          sx={{
-            flexShrink: 0,
-            p: 2,
-            backgroundColor: alpha(theme.palette.background.paper, theme.palette.mode === 'dark' ? 0.86 : 0.92),
-          }}
-        >
-          <Button
-            fullWidth
-            variant="outlined"
-            color="inherit"
-            startIcon={<HistoryOutlined />}
-            onClick={resetLayoutSettings}
-            sx={settingsButtonSx}
-          >
-            {t('layoutSettings.resetToDefault')}
-          </Button>
-        </Box>
       </Stack>
     </Drawer>
   )
